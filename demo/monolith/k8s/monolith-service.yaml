@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: monolith-service
+  labels:
+    app: monolith
+spec:
+  type: ClusterIP # Change to LoadBalancer or NodePort for external access if needed
+  selector:
+    app: monolith # This must match the labels of your Pods (defined in the Deployment)
+  ports:
+  - protocol: TCP
+    port: 80             # Port the Service will listen on
+    targetPort: 8080     # Port on your application Pods to forward traffic to
