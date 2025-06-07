@@ -21,8 +21,7 @@ push: build
 deploy:
 	@echo "--- Deploying to Kubernetes using manifests in $(K8S_DIR) ---"
 	kind load docker-image $(IMAGE_NAME):$(IMAGE_TAG) --name operator-perf-test
-	kubectl apply -f $(K8S_DEPLOYMENT_FILE)
-	kubectl apply -f $(K8S_SERVICE_FILE)
+	kubectl apply -f $(K8S_DIR)
 
 undeploy:
 	@echo "--- Undeploying from Kubernetes ---"
