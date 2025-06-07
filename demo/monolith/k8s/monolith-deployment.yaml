@@ -20,6 +20,17 @@ spec:
         image: docker.io/tlg2132/demo-monolith:latest
         ports:
         - containerPort: 8080
+        env:
+        - name: REDIS_ADDRESS
+          value: "monolith-redis.default.svc.cluster.local:6379"
+        - name: REDIS_PASSWORD
+          value: "redispass" # matches the password in redis.yaml
+        # If using a Kubernetes Secret for the password, it would look like this:
+        # - name: REDIS_PASSWORD
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: redis-secret # Name of your Secret object
+        #       key: password     # Key within the Secret
         resources:
           requests:
             memory: "128Mi"

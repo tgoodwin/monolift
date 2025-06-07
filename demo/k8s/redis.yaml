@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shared-redis-master
+  namespace: yanqizhang # Or your preferred namespace
+  labels:
+    app: redis
+    role: master
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+    role: master
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shared-redis-master
+  namespace: yanqizhang # Or your preferred namespace
+  labels:
+    app: redis
+    role: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: master
+    spec:
+      containers:
+      - name: redis-master
+        image: redis:7.2-alpine # You can choose a specific Redis version
+        ports:
+        - containerPort: 6379
+        env:
+        - name: REDIS_PASSWORD # Standard environment variable for Bitnami Redis, but official Redis image doesn't use it directly.
+          value: "daprsecret"   # This is for your Dapr components to use.
+        # For the official Redis image, password needs to be set via command or config file.
+        # For simplicity in a local dev setup, we can run Redis without a password,
+        # or you can mount a config file.
+        # If you need password protection for Redis itself (and not just for Dapr components to connect):
+        command: ["redis-server"]
+        args: ["--requirepass", "daprsecret"] # This sets the password for Redis itself.
+        # If you don't want a password on Redis itself for local dev, remove command and args.
+        # Dapr components will still use the 'daprsecret' when they connect.
+
+        # For local development, persistence is often disabled to save resources
+        # and avoid issues with Kind node restarts.
+        # If you need persistence, you would add volumeMounts and volumes.
+        # volumeMounts:
+        # - name: redis-data
+        #   mountPath: /data
+      # volumes:
+      # - name: redis-data
+      #   emptyDir: {} # Or a persistentVolumeClaim for more robust storage
+

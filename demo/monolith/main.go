@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -17,8 +18,10 @@ import (
 var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags|log.Lshortfile)
 
 func main() {
-	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")   // Main service address
-	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084") // Prometheus metrics address
+	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")              // Main service address
+	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084")            // Prometheus metrics address
+	redisAddress := util.GetEnvVar("REDIS_ADDRESS", "localhost:6379") // Redis address for future use
+	redisPassword := util.GetEnvVar("REDIS_PASSWORD", "")             // Redis password, if any
 
 	// Setup Prometheus metrics from the frontend package
 	// The actual HTTP handler for /metrics will be started on a separate port or by the main mux
@@ -28,7 +31,11 @@ func main() {
 	userservice.RegisterMetrics()         // Register userservice metrics
 	timelineservice.RegisterMetrics()     // Register timelineservice metrics
 
-	dbStore := database.NewInMemoryKVStore()
+	// dbStore := database.NewInMemoryKVStore()
+	dbStore, err := database.NewRedisStore(context.Background(), redisAddress, redisPassword, 0)
+	if err != nil {
+		logger.Fatalf("Failed to connect to Redis at %s: %v", redisAddress, err)
+	}
 
 	// Instantiate service modules
 	socialGraphSvc := socialgraph.NewService(dbStore)
