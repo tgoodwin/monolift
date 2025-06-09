@@ -3,15 +3,12 @@ package database
 import (
 	"context"
 	"encoding/json"
-	"errors" // Standard library errors
+	"errors"
 	"fmt"
-
-	// "time" // Not directly needed here as generateEtag is from the package
 
 	"github.com/redis/go-redis/v9"
 )
 
-// Ensure RedisStore implements Store
 var _ Store = (*RedisStore)(nil)
 
 // Sentinel errors for Store ETag operations.
