@@ -103,11 +103,106 @@ func New(appRootPath string) (*Compiler, error) {
 		Packages: appPackages,
 	}
 
+	targetPackageImportPath := ""
+	// Determine the correct import path for userservice.
+	// This might be "dapr-apps/socialnet/monolith/userservice" or something based on your go.mod module path + /userservice
+	// For example, if your go.mod is "my/project", it might be "my/project/demo/monolith/userservice"
+	// You might need to list `compiler.Packages` keys to find the exact one.
+	// For now, let's iterate to find it:
+	for pkgPath := range appPackages {
+		if strings.HasSuffix(pkgPath, "socialgraph") { // Adjust this heuristic if needed
+			targetPackageImportPath = pkgPath
+			break
+		}
+	}
+
+	if pkgAst, ok := appPackages[targetPackageImportPath]; ok {
+		for filePath, fileAst := range pkgAst.Files {
+			if strings.HasSuffix(filePath, "service.go") { // Assuming the file is named service.go
+				fmt.Printf("\nDEBUG: Inspecting AST for %s in package %s\n", filePath, targetPackageImportPath)
+				for _, decl := range fileAst.Decls {
+					if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.TYPE {
+						for _, spec := range genDecl.Specs {
+							if typeSpec, okSpec := spec.(*ast.TypeSpec); okSpec {
+								if typeSpec.Name.Name == "Service" {
+									fmt.Printf("  DEBUG: Found TypeSpec for 'Service':\n")
+									if typeSpec.Doc != nil {
+										fmt.Printf("    DEBUG: typeSpec.Doc is NOT nil. Text:\n%s\n", typeSpec.Doc.Text())
+									} else {
+										fmt.Printf("    DEBUG: typeSpec.Doc IS nil.\n")
+									}
+									if genDecl.Doc != nil {
+										fmt.Printf("    DEBUG: genDecl.Doc is NOT nil. Text:\n%s\n", genDecl.Doc.Text())
+									} else {
+										fmt.Printf("    DEBUG: genDecl.Doc IS nil.\n")
+									}
+									// Also check ast.File.Comments for unassociated comments
+									// This is more involved, but good to keep in mind.
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	} else if targetPackageImportPath != "" {
+		fmt.Printf("\nDEBUG: Target package %s not found in parsed packages.\n", targetPackageImportPath)
+	} else {
+		fmt.Printf("\nDEBUG: Could not determine target package for userservice.\n")
+	}
+	// ---- END DETAILED DEBUGGING ----
+
 	// Diagnostic printing
 	for importPath, astPkg := range compiler.Packages {
 		fmt.Printf("Found package (import path: %s, name: %s)\n", importPath, astPkg.Name)
-		for filePath := range astPkg.Files {
+		for filePath, fileAst := range astPkg.Files {
 			fmt.Printf("  File: %s\n", filePath)
+			ast.Inspect(fileAst, func(n ast.Node) bool {
+				switch node := n.(type) {
+				case *ast.FuncDecl:
+					pragmas := GetFuncDeclPragmas(node)
+					if len(pragmas) > 0 {
+						fmt.Printf("    Function %s has pragmas:\n", node.Name.Name)
+						for _, pragma := range pragmas {
+							fmt.Printf("      %s\n", pragma.Raw)
+						}
+					}
+				case *ast.TypeSpec:
+					// This case might still be useful for TypeSpecs not within a GenDecl
+					// or if GenDecl.Doc is not the one we want.
+					// However, for the current issue, we handle TypeSpecs within GenDecls below.
+					// Consider if you need standalone TypeSpec pragma checking.
+					// For now, we'll rely on the GenDecl logic for types.
+					pass := true // Placeholder to avoid empty switch case if FuncDecl is removed
+					_ = pass
+				case *ast.GenDecl:
+					// Check for TYPE declarations (like interfaces, structs)
+					if node.Tok == token.TYPE {
+						for _, spec := range node.Specs {
+							if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+								if IsInterface(typeSpec) {
+									fmt.Println("	Found interface:", typeSpec.Name.Name)
+									var docCommentGroup *ast.CommentGroup
+									if typeSpec.Doc != nil {
+										docCommentGroup = typeSpec.Doc
+									} else if node.Doc != nil { // node here is the ast.GenDecl
+										docCommentGroup = node.Doc
+									}
+
+									pragmas := GetPragmasFromCommentGroup(docCommentGroup)
+									if len(pragmas) > 0 {
+										fmt.Printf("    Interface %s has pragmas:\n", typeSpec.Name.Name)
+										for _, pragma := range pragmas {
+											fmt.Printf("      %s\n", pragma.Raw)
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				return true // Ensure all code paths return a bool
+			})
 		}
 	}
 
