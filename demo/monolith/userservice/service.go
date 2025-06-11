@@ -9,11 +9,11 @@ import (
 	"os"
 	"time"
 
-	"dapr-apps/socialnet/monolith/database"
-	"dapr-apps/socialnet/monolith/socialgraph"
-	socialGraphTypes "dapr-apps/socialnet/monolith/types/socialgraph"
-	userTypes "dapr-apps/socialnet/monolith/types/user"
-	"dapr-apps/socialnet/monolith/util"
+	"github.com/tgoodwin/monolift/demo/monolith/database"
+	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
+	socialGraphTypes "github.com/tgoodwin/monolift/demo/monolith/types/socialgraph"
+	userTypes "github.com/tgoodwin/monolift/demo/monolith/types/user"
+	"github.com/tgoodwin/monolift/demo/monolith/util"
 
 	"github.com/pkg/errors"
 )

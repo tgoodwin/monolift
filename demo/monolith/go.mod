@@ -1,4 +1,4 @@
-module dapr-apps/socialnet/monolith
+module github.com/tgoodwin/monolift/demo/monolith
 
 go 1.23.6
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"dapr-apps/socialnet/monolith/database"
-	social "dapr-apps/socialnet/monolith/types/socialgraph"
-	"dapr-apps/socialnet/monolith/util"
+	"github.com/tgoodwin/monolift/demo/monolith/database"
+	social "github.com/tgoodwin/monolift/demo/monolith/types/socialgraph"
+	"github.com/tgoodwin/monolift/demo/monolith/util"
 
 	"github.com/pkg/errors"
 )

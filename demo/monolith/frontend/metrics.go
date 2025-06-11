@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"dapr-apps/socialnet/monolith/util" // Adjusted import path
+	"github.com/tgoodwin/monolift/demo/monolith/util" // Adjusted import path
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

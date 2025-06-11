@@ -2,7 +2,6 @@ package frontend
 
 import (
 	"context" // Added for service calls
-	"dapr-apps/socialnet/monolith/database"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,14 +10,16 @@ import (
 	"strconv"
 	"time"
 
-	"dapr-apps/socialnet/monolith/postservice"
-	"dapr-apps/socialnet/monolith/socialgraph" // Import for socialgraph.Service
-	"dapr-apps/socialnet/monolith/timelineservice"
-	postTypes "dapr-apps/socialnet/monolith/types/post"
-	timelineTypes "dapr-apps/socialnet/monolith/types/timeline" // Import timeline types
-	userTypes "dapr-apps/socialnet/monolith/types/user"         // Import user types for API requests
-	"dapr-apps/socialnet/monolith/userservice"                  // Import for userservice.Service
-	"dapr-apps/socialnet/monolith/util"
+	"github.com/tgoodwin/monolift/demo/monolith/database"
+
+	"github.com/tgoodwin/monolift/demo/monolith/postservice"
+	"github.com/tgoodwin/monolift/demo/monolith/socialgraph" // Import for socialgraph.Service
+	"github.com/tgoodwin/monolift/demo/monolith/timelineservice"
+	postTypes "github.com/tgoodwin/monolift/demo/monolith/types/post"
+	timelineTypes "github.com/tgoodwin/monolift/demo/monolith/types/timeline" // Import timeline types
+	userTypes "github.com/tgoodwin/monolift/demo/monolith/types/user"         // Import user types for API requests
+	"github.com/tgoodwin/monolift/demo/monolith/userservice"                  // Import for userservice.Service
+	"github.com/tgoodwin/monolift/demo/monolith/util"
 )
 
 const (
@@ -503,7 +504,7 @@ func (h *APIHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	util.ObserveHist(e2eReqLatHist.WithLabelValues("login"), float64(time.Since(startTime).Milliseconds()))
 }
 
-// @monolift extractionType=lambda thresholdType = maxConcurrentInvocations threholdValue = 10
+// @monolift extractionType=lambda trigger=invocationsPerSecond threholdValue = 10
 func expensiveProcessingStep(imageData []byte) error {
 	return nil
 }

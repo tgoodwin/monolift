@@ -1,0 +1,23 @@
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/http"
+    // TODO: add more imports for JSON, context, etc. as methods are added
+
+    {{.InterfacePackageAlias}} "{{.InterfacePackagePath}}"
+)
+
+type {{.ServerStructName}} struct {
+    {{.DelegateFieldName}} {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}
+}
+
+// TODO: Add main function to instantiate {{.ServerStructName}} and its delegate.
+// TODO: Add HTTP handler methods for each interface method.
+
+// Main function to set up the HTTP server
+func main() {
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}

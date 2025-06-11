@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"dapr-apps/socialnet/monolith/database"
-	"dapr-apps/socialnet/monolith/postservice"
-	"dapr-apps/socialnet/monolith/socialgraph"
-	socialGraphTypes "dapr-apps/socialnet/monolith/types/socialgraph"
-	timelineTypes "dapr-apps/socialnet/monolith/types/timeline"
-	"dapr-apps/socialnet/monolith/util"
+	"github.com/tgoodwin/monolift/demo/monolith/database"
+	"github.com/tgoodwin/monolift/demo/monolith/postservice"
+	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
+	socialGraphTypes "github.com/tgoodwin/monolift/demo/monolith/types/socialgraph"
+	timelineTypes "github.com/tgoodwin/monolift/demo/monolith/types/timeline"
+	"github.com/tgoodwin/monolift/demo/monolith/util"
 
 	"github.com/pkg/errors"
 )
@@ -215,6 +215,7 @@ func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateRe
 		if err != nil {
 			logger.Printf("UpdateTimeline: failed to get followers for user %s: %v. Skipping home timeline updates.", req.UserId, err)
 		} else if followerMap, ok := followersResp.FollowerIds[req.UserId]; ok {
+			start := time.Now()
 			for _, followerId := range followerMap {
 				homeTlKey := homeTimelineKey(followerId)
 				err := s.updateSpecificTimeline(ctx, homeTimelineStoreName, homeTlKey, req.PostId, req.ClientUnixMilli, req.Add)
@@ -222,6 +223,8 @@ func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateRe
 					logger.Printf("UpdateTimeline: failed to update home timeline for follower %s (of user %s): %v", followerId, req.UserId, err)
 				}
 			}
+			fmt.Println("elapsed time for updating followers' home timelines:", time.Since(start))
+			// util.ObserveHist(followersUpdateLatHist, float64(time.Since(start).Milliseconds()))
 		}
 	}
 	// Note: Deleting from followers' home timelines upon post deletion is more complex

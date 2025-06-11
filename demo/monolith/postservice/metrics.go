@@ -1,7 +1,7 @@
 package postservice
 
 import (
-	"dapr-apps/socialnet/monolith/util"
+	"github.com/tgoodwin/monolift/demo/monolith/util"
 
 	"github.com/prometheus/client_golang/prometheus"
 )

@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"os"
 
-	"dapr-apps/socialnet/monolith/database" // Import the new database package
-	"dapr-apps/socialnet/monolith/frontend"
-	"dapr-apps/socialnet/monolith/postservice"
-	"dapr-apps/socialnet/monolith/socialgraph"     // Import the socialgraph service
-	"dapr-apps/socialnet/monolith/timelineservice" // Import the timelineservice
-	"dapr-apps/socialnet/monolith/userservice"     // Import the userservice
-	"dapr-apps/socialnet/monolith/util"
+	"github.com/tgoodwin/monolift/demo/monolith/database" // Import the new database package
+	"github.com/tgoodwin/monolift/demo/monolith/frontend"
+	"github.com/tgoodwin/monolift/demo/monolith/postservice"
+	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"     // Import the socialgraph service
+	"github.com/tgoodwin/monolift/demo/monolith/timelineservice" // Import the timelineservice
+	"github.com/tgoodwin/monolift/demo/monolith/userservice"     // Import the userservice
+	"github.com/tgoodwin/monolift/demo/monolith/util"
 )
 
 var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags|log.Lshortfile)
