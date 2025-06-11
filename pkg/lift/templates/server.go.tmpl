@@ -1,9 +1,11 @@
 package main
 
 import (
-    "fmt"
+    // "context" // Will be needed
+    // "encoding/json" // Will be needed
     "log"
     "net/http"
+    "fmt" // For placeholder
     // TODO: add more imports for JSON, context, etc. as methods are added
 
     {{.InterfacePackageAlias}} "{{.InterfacePackagePath}}"
@@ -13,11 +15,26 @@ type {{.ServerStructName}} struct {
     {{.DelegateFieldName}} {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}
 }
 
-// TODO: Add main function to instantiate {{.ServerStructName}} and its delegate.
-// TODO: Add HTTP handler methods for each interface method.
+{{range .Methods}}
+// {{.HandlerFuncName}} handles HTTP requests for the {{.Name}} method.
+func (s *{{$.ServerStructName}}) {{.HandlerFuncName}}(w http.ResponseWriter, r *http.Request) {
+    // TODO: Decode request from r.Body (likely JSON)
+    // TODO: Validate request
+    // TODO: Call s.{{$.DelegateFieldName}}.{{.Name}}(...)
+    // TODO: Encode response to w (likely JSON)
+    fmt.Fprintf(w, "Handler for {{.Name}} called. Implement me!\n")
+}
+{{end}}
 
 // Main function to set up the HTTP server
 func main() {
+    // TODO: Instantiate the actual service delegate here.
+    // For example: delegate := {{.InterfacePackageAlias}}.NewService(/* dependencies */)
+    // serverInstance := &{{.ServerStructName}}{ {{.DelegateFieldName}}: delegate }
 
+    serverInstance := &{{.ServerStructName}}{} // Placeholder instantiation
+{{range .Methods}}
+    http.HandleFunc("{{.HTTPRoute}}", serverInstance.{{.HandlerFuncName}})
+{{end}}
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

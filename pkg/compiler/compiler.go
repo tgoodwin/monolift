@@ -183,12 +183,38 @@ func New(appRootPath string) (*Compiler, error) {
 												serverStructName := strings.ToLower(typeSpec.Name.Name[:1]) + typeSpec.Name.Name[1:] + "Server"
 												delegateFieldName := strings.ToLower(typeSpec.Name.Name[:1]) + typeSpec.Name.Name[1:] + "Delegate"
 
+												// Extract methods from the interface for template generation
+												var methodDataList []lift.MethodData
+												ifaceObj := currentLoadedPkg.TypesInfo.Defs[typeSpec.Name]
+												if ifaceObj == nil {
+													fmt.Printf("      Could not find type object for interface %s\n", typeSpec.Name.Name)
+												} else if ifaceTypeName, ok := ifaceObj.(*types.TypeName); !ok {
+													fmt.Printf("      Object for %s is not a TypeName\n", typeSpec.Name.Name)
+												} else if ifaceType, ok := ifaceTypeName.Type().Underlying().(*types.Interface); !ok {
+													fmt.Printf("      Type for %s is not an Interface\n", typeSpec.Name.Name)
+												} else {
+													for i := 0; i < ifaceType.NumExplicitMethods(); i++ {
+														method := ifaceType.ExplicitMethod(i)
+														methodName := method.Name()
+														handlerFuncName := "handle" + strings.ToUpper(methodName[:1]) + methodName[1:]
+														httpRoute := "/" + strings.ToLower(methodName)
+
+														methodDataList = append(methodDataList, lift.MethodData{
+															Name:            methodName,
+															HandlerFuncName: handlerFuncName,
+															HTTPRoute:       httpRoute,
+														})
+													}
+												}
+
 												templateData := lift.ServerTemplateData{
 													InterfacePackageAlias: currentLoadedPkg.Name, // Assumes currentLoadedPkg.Name is suitable as an alias
 													InterfacePackagePath:  currentLoadedPkg.PkgPath,
 													InterfaceTypeName:     typeSpec.Name.Name,
 													ServerStructName:      serverStructName,
 													DelegateFieldName:     delegateFieldName,
+													Methods:               methodDataList,
+													Imports:               make(map[string]string), // Initialize; will populate later
 												}
 
 												lift.ExecuteAndPrintTemplate(typeSpec.Name.Name, "output", templateData) // "output" is hardcoded for now

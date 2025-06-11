@@ -13,12 +13,23 @@ import (
 //go:embed templates/server.go.tmpl
 var serverTemplate string
 
+// MethodData holds information about a single interface method for template generation.
+type MethodData struct {
+	Name            string // Original method name, e.g., "Register"
+	HandlerFuncName string // Name for the HTTP handler func, e.g., "handleRegister"
+	HTTPRoute       string // HTTP route, e.g., "/register"
+	// We will add more fields here later, like request/response types
+}
+
+// ServerTemplateData holds all information needed for generating the server.
 type ServerTemplateData struct {
-	InterfacePackageAlias string // e.g., "userservice"
-	InterfacePackagePath  string // e.g., "github.com/tgoodwin/monolift/demo/monolith/userservice"
-	InterfaceTypeName     string // e.g., "Service"
-	ServerStructName      string // e.g., "userServiceServer"
-	DelegateFieldName     string // e.g., "userServiceDelegate"
+	InterfacePackageAlias string
+	InterfacePackagePath  string
+	InterfaceTypeName     string
+	ServerStructName      string
+	DelegateFieldName     string
+	Methods               []MethodData      // List of methods to generate handlers for
+	Imports               map[string]string // To collect necessary imports: map[alias]path
 }
 
 func ExecuteAndPrintTemplate(name, outputDir string, data ServerTemplateData) error {
