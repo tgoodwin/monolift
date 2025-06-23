@@ -179,12 +179,28 @@ func New(appRootPath string) (*Compiler, error) {
 													importPath, typeSpec.Name.Name,
 													implementerNamedType.Obj().Pkg().Path(), implementerNamedType.Obj().Name())
 
+												// --- Find Constructor Call in main.go ---
+												constructorName := "New" + typeSpec.Name.Name // e.g., "NewService"
+												constructorPkgPath := implementerNamedType.Obj().Pkg().Path()
+
+												callExpr, _, err := compiler.FindConstructorCallInMain(constructorPkgPath, constructorName)
+												if err != nil {
+													fmt.Printf("      [ERROR] Could not automatically find constructor call for %s.%s in main.go: %v\n", constructorPkgPath, constructorName, err)
+													fmt.Printf("      HINT: Please add a pragma '// @monolift:instanceFor serviceId=...' to the variable declaration in main.go.\n")
+													continue // Skip to the next interface
+												}
+
+												fmt.Printf("      Found constructor call for %s in main.go.\n", constructorName)
+												fmt.Printf("	  Call expression: %v\n", callExpr)
+												// TODO: Recursively analyze callExpr.Args to build dependency tree.
+												// For now, we proceed with the existing template generation as a placeholder.
+
 												// Prepare data for template generation
 												serverStructName := strings.ToLower(typeSpec.Name.Name[:1]) + typeSpec.Name.Name[1:] + "Server"
 												delegateFieldName := strings.ToLower(typeSpec.Name.Name[:1]) + typeSpec.Name.Name[1:] + "Delegate"
 
 												// Extract methods from the interface for template generation
-												var methodDataList []lift.MethodData
+												var methodDataList []lift.MethodConfig
 												ifaceObj := currentLoadedPkg.TypesInfo.Defs[typeSpec.Name]
 												if ifaceObj == nil {
 													fmt.Printf("      Could not find type object for interface %s\n", typeSpec.Name.Name)
@@ -199,7 +215,7 @@ func New(appRootPath string) (*Compiler, error) {
 														handlerFuncName := "handle" + strings.ToUpper(methodName[:1]) + methodName[1:]
 														httpRoute := "/" + strings.ToLower(methodName)
 
-														methodDataList = append(methodDataList, lift.MethodData{
+														methodDataList = append(methodDataList, lift.MethodConfig{
 															Name:            methodName,
 															HandlerFuncName: handlerFuncName,
 															HTTPRoute:       httpRoute,
@@ -359,4 +375,66 @@ func (c *Compiler) GetStructMethodASTs(structType *types.Named) ([]*ast.FuncDecl
 		})
 	}
 	return methodDecls, nil
+}
+
+// FindConstructorCallInMain searches the 'main' package of the application for a specific constructor call.
+// It returns the AST node for the call expression if found.
+func (c *Compiler) FindConstructorCallInMain(constructorPkgPath, constructorName string) (*ast.CallExpr, *packages.Package, error) {
+	var mainPkg *packages.Package
+	for _, pkg := range c.LoadedPkgs {
+		if pkg.Name == "main" {
+			mainPkg = pkg
+			break
+		}
+	}
+
+	if mainPkg == nil {
+		return nil, nil, fmt.Errorf("no 'main' package found in the application")
+	}
+
+	var foundCall *ast.CallExpr
+	for _, fileAST := range mainPkg.Syntax {
+		ast.Inspect(fileAST, func(n ast.Node) bool {
+			if foundCall != nil {
+				return false // Stop searching once found
+			}
+
+			callExpr, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true // Continue searching
+			}
+
+			// The Fun field of a CallExpr can be an *ast.Ident (for direct calls)
+			// or an *ast.SelectorExpr (for qualified calls like pkg.Func or obj.Method).
+			// We need the *ast.Ident that represents the function name itself.
+			var funIdent *ast.Ident
+			switch funExpr := callExpr.Fun.(type) {
+			case *ast.Ident:
+				funIdent = funExpr
+			case *ast.SelectorExpr:
+				funIdent = funExpr.Sel // This is the 'Func' part in 'pkg.Func' or 'Method' in 'obj.Method'
+			default:
+				return true // Unexpected type for callExpr.Fun, continue searching
+			}
+			// Use type information to resolve the function being called.
+			obj := mainPkg.TypesInfo.Uses[funIdent]
+			if fn, ok := obj.(*types.Func); ok {
+				if fn.Pkg() != nil && fn.Pkg().Path() == constructorPkgPath && fn.Name() == constructorName {
+					foundCall = callExpr
+					return false // Stop searching
+				}
+			}
+			return true
+		})
+
+		if foundCall != nil {
+			break // Stop iterating through files in the main package
+		}
+	}
+
+	if foundCall == nil {
+		return nil, nil, fmt.Errorf("call to %s.%s not found", constructorPkgPath, constructorName)
+	}
+
+	return foundCall, mainPkg, nil
 }

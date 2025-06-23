@@ -13,8 +13,8 @@ import (
 //go:embed templates/server.go.tmpl
 var serverTemplate string
 
-// MethodData holds information about a single interface method for template generation.
-type MethodData struct {
+// MethodConfig holds information about a single interface method for template generation.
+type MethodConfig struct {
 	Name            string // Original method name, e.g., "Register"
 	HandlerFuncName string // Name for the HTTP handler func, e.g., "handleRegister"
 	HTTPRoute       string // HTTP route, e.g., "/register"
@@ -28,7 +28,7 @@ type ServerTemplateData struct {
 	InterfaceTypeName     string
 	ServerStructName      string
 	DelegateFieldName     string
-	Methods               []MethodData      // List of methods to generate handlers for
+	Methods               []MethodConfig    // List of methods to generate handlers for
 	Imports               map[string]string // To collect necessary imports: map[alias]path
 }
 
