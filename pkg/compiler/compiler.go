@@ -201,19 +201,19 @@ func (c *Compiler) Compile() error {
 												// fmt.Printf("      Found constructor call for %s in main.go.\n", constructorName)
 
 												mainPkg, _ := c.getMainPackage()
-												rootVarName, err := c.findVarForCallExpr(mainPkg, constructorCall)
+												rootAssignStmt, err := c.findAssignmentForCallExpr(mainPkg, constructorCall)
 												if err != nil {
-													fmt.Printf("      [ERROR] Could not find variable for constructor call %s: %v\n", constructorName, err)
+													fmt.Printf("      [ERROR] Could not find assignment for constructor call %s: %v\n", constructorName, err)
 													continue
 												}
 												// Resolve the full dependency graph for the service
 												collectedImports := make(map[string]string)
-												instantiationPlan, err := c.resolveDependencies(mainPkg, constructorCall, rootVarName, collectedImports)
+												instantiationPlan, err := c.resolveDependencies(mainPkg, rootAssignStmt, collectedImports)
 												if err != nil {
 													fmt.Printf("      [ERROR] Failed to resolve dependencies for %s.%s: %v\n", constructorPkgPath, constructorName, err)
 													continue // Skip to the next interface
 												}
-												fmt.Printf("      Successfully resolved %d dependencies for %s.\n", len(instantiationPlan.Steps), rootVarName)
+												// fmt.Printf("      Successfully resolved %d dependencies for %s.\n", len(instantiationPlan.Steps), rootVarName)
 
 												// Add the main interface package to imports if it's not already there
 												if _, ok := collectedImports[currentLoadedPkg.PkgPath]; !ok {
@@ -476,56 +476,53 @@ func (c *Compiler) findConstructorCallInMain(constructorPkgPath, constructorName
 	return foundCall, mainPkg, nil
 }
 
-// findVarForCallExpr finds the variable name on the LHS of an assignment
+// findAssignmentForCallExpr finds the assignment statement
 // where the RHS is the given call expression.
-func (c *Compiler) findVarForCallExpr(pkg *packages.Package, targetCall *ast.CallExpr) (string, error) {
-	var varName string
+func (c *Compiler) findAssignmentForCallExpr(pkg *packages.Package, targetCall *ast.CallExpr) (*ast.AssignStmt, error) {
+	var foundAssign *ast.AssignStmt
 	for _, fileAST := range pkg.Syntax {
 		ast.Inspect(fileAST, func(n ast.Node) bool {
-			if varName != "" {
+			if foundAssign != nil {
 				return false // Stop searching
 			}
-			// Look for `varName := ...` or `var varName = ...`
 			assign, ok := n.(*ast.AssignStmt)
 			if !ok {
 				return true
 			}
 
-			// We only handle simple assignments `var := call()`
-			if len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+			// We only handle assignments where the RHS is a single expression (the targetCall)
+			if len(assign.Rhs) != 1 {
 				return true
 			}
 
 			// Check if the RHS is our target call expression
 			if assign.Rhs[0] == targetCall {
-				if ident, ok := assign.Lhs[0].(*ast.Ident); ok {
-					varName = ident.Name
-					return false
-				}
+				foundAssign = assign
+				return false
 			}
 			return true
 		})
-		if varName != "" {
+		if foundAssign != nil {
 			break
 		}
 	}
-	if varName == "" {
-		return "", fmt.Errorf("could not find variable assignment for the given constructor call")
+	if foundAssign == nil {
+		return nil, fmt.Errorf("could not find assignment statement for the given constructor call")
 	}
-	return varName, nil
+	return foundAssign, nil
 }
 
 // resolveDependencies analyzes the given rootCall (an *ast.CallExpr) and recursively
 // resolves all its arguments and their sub-dependencies, building an InstantiationPlan.
-func (c *Compiler) resolveDependencies(pkg *packages.Package, rootCall *ast.CallExpr, rootVarName string, imports map[string]string) (*lift.InstantiationPlan, error) {
+func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *ast.AssignStmt, imports map[string]string) (*lift.InstantiationPlan, error) {
 	// resolvedDeps maps types.Object.Id() to *Dependency to cache and avoid re-processing.
 	resolvedDeps := make(map[string]*lift.Dependency)
 	// depGraph maps a dependency to the list of dependencies it directly relies on.
 	depGraph := make(map[*lift.Dependency][]*lift.Dependency)
 	var allDeps []*lift.Dependency
 
-	// Start the recursive resolution from the root call, providing its known variable name.
-	_, rootDep, err := c.resolveExpr(pkg, rootCall, resolvedDeps, depGraph, &allDeps, imports, rootVarName)
+	// Start the recursive resolution from the root assignment statement.
+	rootDep, err := c.resolveAssignment(pkg, rootAssignStmt, resolvedDeps, depGraph, &allDeps, imports)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve root dependency: %w", err)
 	}
@@ -539,10 +536,150 @@ func (c *Compiler) resolveDependencies(pkg *packages.Package, rootCall *ast.Call
 	return &lift.InstantiationPlan{Steps: orderedDeps, RootDependency: rootDep}, nil
 }
 
-// resolveExpr recursively resolves an AST expression.
-// It returns the string representation of the expression for use as an argument,
-// and a non-nil *lift.Dependency if the expression must be declared as a variable.
-// `desiredVarName` is passed when the expression is known to be the RHS of an assignment.
+// resolveAssignment resolves an assignment statement (e.g., `x := f(y)` or `var x = f(y)`).
+// It returns the created lift.Dependency for the assigned variable.
+func (c *Compiler) resolveAssignment(
+	pkg *packages.Package,
+	assignStmt ast.Stmt, // Can be *ast.AssignStmt or *ast.DeclStmt
+	resolvedDeps map[string]*lift.Dependency,
+	depGraph map[*lift.Dependency][]*lift.Dependency,
+	allDeps *[]*lift.Dependency,
+	imports map[string]string,
+) (*lift.Dependency, error) {
+	var lhsExprs []ast.Expr
+	var rhsExpr ast.Expr
+
+	switch stmt := assignStmt.(type) {
+	case *ast.AssignStmt:
+		lhsExprs = stmt.Lhs
+		rhsExpr = stmt.Rhs[0] // Assuming single RHS for now
+	case *ast.DeclStmt:
+		genDecl := stmt.Decl.(*ast.GenDecl)
+		valueSpec := genDecl.Specs[0].(*ast.ValueSpec) // Assuming single ValueSpec for now
+		// convert []*ast.Ident to []ast.Expr
+		lhsExprs = make([]ast.Expr, len(valueSpec.Names))
+		for i, ident := range valueSpec.Names {
+			lhsExprs[i] = ident
+		}
+		rhsExpr = valueSpec.Values[0] // Assuming single RHS for now
+	default:
+		return nil, fmt.Errorf("unsupported assignment statement type: %T", assignStmt)
+	}
+
+	// Get the name of the primary variable being declared (the first one on LHS)
+	firstLHSIdent, ok := lhsExprs[0].(*ast.Ident)
+	if !ok {
+		return nil, fmt.Errorf("first LHS of assignment is not an identifier: %T", lhsExprs[0])
+	}
+	varName := firstLHSIdent.Name
+
+	// Render the full assignment statement to a string for the template
+	renderedAssignment, err := c.stmtToString(assignStmt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render assignment statement to string: %w", err)
+	}
+
+	// Create the Dependency object for this variable declaration
+	providerID := fmt.Sprintf("%s-%s", c.Fset.Position(assignStmt.Pos()), c.Fset.Position(assignStmt.End()))
+	if dep, ok := resolvedDeps[providerID]; ok {
+		return dep, nil // Return cached dependency
+	}
+
+	dep := &lift.Dependency{
+		VarName:            varName,
+		Kind:               lift.VariableDeclaration,
+		ProviderID:         providerID,
+		RenderedForm:       renderedAssignment,
+		OriginalAssignStmt: assignStmt, // Store for recursive argument resolution
+	}
+	resolvedDeps[providerID] = dep
+	*allDeps = append(*allDeps, dep)
+
+	// Now, recursively resolve the arguments/components of the RHS expression
+	// This is where we build the graph of prerequisites.
+	var prereqs []*lift.Dependency
+	switch rhs := rhsExpr.(type) {
+	case *ast.CallExpr:
+		// For a function call, resolve each argument.
+		for _, argExpr := range rhs.Args {
+			prereqDep, err := c.resolveExpr(pkg, argExpr, resolvedDeps, depGraph, allDeps, imports)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve argument for call %s: %w", c.exprToStringDebug(argExpr), err)
+			}
+			if prereqDep != nil { // Only add if it's a declarable dependency
+				prereqs = append(prereqs, prereqDep)
+			}
+		}
+		// Add the function's package to imports
+		if funIdent, ok := rhs.Fun.(*ast.Ident); ok {
+			if obj := pkg.TypesInfo.Uses[funIdent]; obj != nil {
+				if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil {
+					imports[fn.Pkg().Path()] = fn.Pkg().Name()
+				}
+			}
+		} else if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+			if obj := pkg.TypesInfo.Uses[selExpr.Sel]; obj != nil {
+				if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil {
+					imports[fn.Pkg().Path()] = fn.Pkg().Name()
+				}
+			}
+		}
+
+	case *ast.CompositeLit:
+		// For a struct literal, resolve each field's value.
+		for _, elt := range rhs.Elts {
+			if kv, ok := elt.(*ast.KeyValueExpr); ok {
+				prereqDep, err := c.resolveExpr(pkg, kv.Value, resolvedDeps, depGraph, allDeps, imports)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve field %s for struct literal: %w", c.exprToStringDebug(kv.Key), err)
+				}
+				if prereqDep != nil {
+					prereqs = append(prereqs, prereqDep)
+				}
+			}
+		}
+		// Add the struct's package to imports
+		if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
+			if ident, ok := selExpr.X.(*ast.Ident); ok {
+				if obj := pkg.TypesInfo.Uses[ident]; obj != nil {
+					if pkgName, ok := obj.(*types.PkgName); ok {
+						importedPkg := pkgName.Imported()
+						imports[importedPkg.Path()] = importedPkg.Name()
+					}
+				}
+			}
+		} else if _, ok := rhs.Type.(*ast.Ident); ok {
+			// If it's a local type, its package is the current package.
+			imports[pkg.PkgPath] = pkg.Name
+		}
+
+	case *ast.Ident: // RHS is a variable reference (e.g., `x := y`)
+		// Resolve 'y' to find its declaration.
+		prereqDep, err := c.resolveExpr(pkg, rhs, resolvedDeps, depGraph, allDeps, imports)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve RHS identifier %s: %w", c.exprToStringDebug(rhs), err)
+		}
+		if prereqDep != nil {
+			prereqs = append(prereqs, prereqDep)
+		}
+
+	// For basic literals or selector expressions (like `somepkg.SomeConst`),
+	// they are inlined and don't have further declarable dependencies.
+	case *ast.BasicLit, *ast.SelectorExpr:
+		// No further declarable dependencies to resolve.
+
+	default:
+		return nil, fmt.Errorf("unsupported RHS expression type for assignment: %T", rhsExpr)
+	}
+
+	depGraph[dep] = prereqs // Add prerequisites to the graph
+	return dep, nil
+}
+
+// resolveExpr recursively resolves an AST expression that is *not* the RHS of a variable declaration.
+// It returns a non-nil *lift.Dependency if the expression itself needs to be declared as a variable
+// (e.g., if it's a reference to another variable that needs to be declared).
+// Otherwise, it returns nil, indicating the expression can be inlined.
 func (c *Compiler) resolveExpr(
 	pkg *packages.Package,
 	expr ast.Expr,
@@ -550,239 +687,155 @@ func (c *Compiler) resolveExpr(
 	depGraph map[*lift.Dependency][]*lift.Dependency,
 	allDeps *[]*lift.Dependency,
 	imports map[string]string,
-	desiredVarName string,
-) (string, *lift.Dependency, error) {
+) (*lift.Dependency, error) {
 	// Get the type information for the expression.
-	exprType := pkg.TypesInfo.TypeOf(expr) // Can be nil for untyped expressions like `nil`
-	if exprType == nil {
-		// Allow untyped nil literal
-		if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
-			// ok
-		} else {
-			return "", nil, fmt.Errorf("could not determine type of expression: %T", expr)
+	exprType := pkg.TypesInfo.TypeOf(expr)
+	if exprType == nil { // Can be nil for untyped expressions like `nil`
+		// Check if it's the untyped nil literal
+		if ident, ok := expr.(*ast.Ident); ok && pkg.TypesInfo.Uses[ident] == nil && ident.Name == "nil" {
+			// This is the untyped nil literal, which has no type. It's an inlined expression.
+			return nil, nil
 		}
+		// For any other untyped expression, we can't proceed.
+		return nil, fmt.Errorf("could not determine type of expression: %T (value: %s)", expr, c.exprToStringDebug(expr))
 	}
 
-	// Determine if the expression is a pointer type.
-	isPointer := exprType != nil && types.IsInterface(exprType.Underlying())
-
 	// Generate a unique ID for this expression to use as a cache key.
-	// For identifiers, use their types.Object ID. For literals/calls, use their position.
 	var providerID string
 	var obj types.Object
 
 	switch n := expr.(type) {
-	case *ast.Ident:
+	case *ast.Ident: // This is a reference to a variable or constant (e.g., `myVar`, `MyConst`)
 		obj = pkg.TypesInfo.Uses[n]
 		if obj == nil {
-			return "", nil, fmt.Errorf("could not find object for identifier %s", n.Name)
+			return nil, fmt.Errorf("could not find object for identifier %s", n.Name)
 		}
 		providerID = obj.Id()
 
 		// Check cache first for identifiers
 		if dep, ok := resolvedDeps[providerID]; ok {
-			return dep.VarName, dep, nil
+			return dep, nil // Return cached declarable dependency
 		}
 
-		// If it's a variable, we need to find its declaration and resolve its RHS.
-		if v, ok := obj.(*types.Var); ok {
+		// If it's a variable or constant, we need to find its declaration and resolve its RHS.
+		if v, isVar := obj.(*types.Var); isVar {
 			// Find the declaration of this variable.
-			// This is a simplified approach; a full solution might need to trace data flow.
-			// For now, we assume it's declared in the same function/scope.
-			// We'll look for an assignment statement or declaration statement.
-			var rhsExpr ast.Expr
-			ast.Inspect(pkg.Syntax[0], func(node ast.Node) bool { // Inspecting only the first file for simplicity
-				if assign, ok := node.(*ast.AssignStmt); ok {
-					for i, lhs := range assign.Lhs {
-						if ident, ok := lhs.(*ast.Ident); ok && pkg.TypesInfo.Defs[ident] == v {
-							rhsExpr = assign.Rhs[i]
-							return false // Found it
-						}
+			var varDeclStmt ast.Stmt
+			// Search all files in the package for the variable's declaration
+			for _, fileAST := range pkg.Syntax {
+				ast.Inspect(fileAST, func(node ast.Node) bool {
+					if varDeclStmt != nil { // Already found
+						return false
 					}
-				} else if decl, ok := node.(*ast.DeclStmt); ok {
-					if genDecl, ok := decl.Decl.(*ast.GenDecl); ok {
-						for _, spec := range genDecl.Specs {
-							if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-								for i, name := range valueSpec.Names {
-									if pkg.TypesInfo.Defs[name] == v {
-										if len(valueSpec.Values) > i {
-											rhsExpr = valueSpec.Values[i]
+					if assign, ok := node.(*ast.AssignStmt); ok {
+						for _, lhs := range assign.Lhs {
+							if ident, ok := lhs.(*ast.Ident); ok && pkg.TypesInfo.Defs[ident] == v {
+								varDeclStmt = assign
+								return false // Found it
+							}
+						}
+					} else if decl, ok := node.(*ast.DeclStmt); ok {
+						if genDecl, ok := decl.Decl.(*ast.GenDecl); ok {
+							for _, spec := range genDecl.Specs {
+								if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+									for _, name := range valueSpec.Names {
+										if pkg.TypesInfo.Defs[name] == v {
+											varDeclStmt = decl
+											return false // Found it
 										}
-										return false // Found it
 									}
 								}
 							}
 						}
 					}
+					return true
+				})
+				if varDeclStmt != nil {
+					break
 				}
-				return true
-			})
-
-			if rhsExpr == nil {
-				return "", nil, fmt.Errorf("could not find declaration/assignment for variable %s", n.Name)
 			}
-			// Recursively resolve the RHS.
-			_, resolvedDep, err := c.resolveExpr(pkg, rhsExpr, resolvedDeps, depGraph, allDeps, imports, n.Name)
+
+			if varDeclStmt == nil {
+				return nil, fmt.Errorf("could not find declaration/assignment for variable %s", n.Name)
+			}
+			// Recursively resolve the assignment statement.
+			resolvedDep, err := c.resolveAssignment(pkg, varDeclStmt, resolvedDeps, depGraph, allDeps, imports)
 			if err != nil {
-				return "", nil, fmt.Errorf("failed to resolve RHS for variable %s: %w", n.Name, err)
+				return nil, fmt.Errorf("failed to resolve declaration for variable %s: %w", n.Name, err)
 			}
 			resolvedDeps[providerID] = resolvedDep
-			return n.Name, resolvedDep, nil
+			return resolvedDep, nil // Return the declarable dependency
 		}
-		// If it's a constant, treat as literal.
-		if _, ok := obj.(*types.Const); ok {
-			return n.Name, nil, nil
-		}
-		return "", nil, fmt.Errorf("unhandled identifier type: %T for %s", obj, n.Name)
-
-	case *ast.CallExpr:
-		// If this call is not being assigned to a variable, we treat it as an inline expression.
-		if desiredVarName == "" {
-			renderable, err := c.exprToString(n)
-			return renderable, nil, err
-		}
-
-		// Resolve the function being called.
-		var funIdent *ast.Ident
-		switch funExpr := n.Fun.(type) {
-		case *ast.Ident:
-			funIdent = funExpr
-		case *ast.SelectorExpr:
-			funIdent = funExpr.Sel
-		default:
-			return "", nil, fmt.Errorf("unsupported function expression type: %T", n.Fun)
-		}
-		funObj := pkg.TypesInfo.Uses[funIdent]
-		if funObj == nil {
-			return "", nil, fmt.Errorf("could not find object for function call %s", funIdent.Name)
-		}
-		fun := funObj.(*types.Func)
-
-		if fun.Pkg() != nil {
-			imports[fun.Pkg().Path()] = fun.Pkg().Name()
-		}
-
-		// This is a dependency that needs to be declared.
-		providerID = fmt.Sprintf("%s-%s", pkg.Fset.Position(n.Pos()), pkg.Fset.Position(n.End()))
-		if dep, ok := resolvedDeps[providerID]; ok {
-			return dep.VarName, dep, nil
-		}
-
-		var args []string
-		var prereqs []*lift.Dependency
-		for i, argExpr := range n.Args {
-			renderable, prereqDep, err := c.resolveExpr(pkg, argExpr, resolvedDeps, depGraph, allDeps, imports, "") // No desired name for args
+		// If it's a constant, treat it similarly to a variable: find its declaration.
+		if cnst, isConst := obj.(*types.Const); isConst {
+			var declStmt ast.Stmt
+			for _, fileAST := range pkg.Syntax {
+				ast.Inspect(fileAST, func(node ast.Node) bool {
+					if declStmt != nil {
+						return false
+					}
+					if decl, ok := node.(*ast.DeclStmt); ok {
+						if genDecl, ok := decl.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.CONST {
+							for _, spec := range genDecl.Specs {
+								if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+									for _, name := range valueSpec.Names {
+										if pkg.TypesInfo.Defs[name] == cnst {
+											declStmt = decl
+											return false
+										}
+									}
+								}
+							}
+						}
+					}
+					return true
+				})
+				if declStmt != nil {
+					break
+				}
+			}
+			if declStmt == nil {
+				return nil, fmt.Errorf("could not find declaration for constant %s", n.Name)
+			}
+			resolvedDep, err := c.resolveAssignment(pkg, declStmt, resolvedDeps, depGraph, allDeps, imports)
 			if err != nil {
-				return "", nil, fmt.Errorf("failed to resolve argument %d for call %s: %w", i, fun.Name(), err)
+				return nil, fmt.Errorf("failed to resolve declaration for constant %s: %w", n.Name, err)
 			}
-			args = append(args, renderable)
-			if prereqDep != nil {
-				prereqs = append(prereqs, prereqDep)
-			}
+			resolvedDeps[providerID] = resolvedDep
+			return resolvedDep, nil
 		}
+		return nil, fmt.Errorf("unhandled identifier type: %T for %s", obj, n.Name)
 
-		dep := &lift.Dependency{
-			VarName:    desiredVarName,
-			VarType:    exprType,
-			Kind:       lift.ConstructorCall,
-			ProviderID: providerID,
-			IsPointer:  isPointer,
-			CtorCallData: &lift.ConstructorCallData{
-				PkgPath:  fun.Pkg().Path(),
-				PkgName:  fun.Pkg().Name(),
-				FuncName: fun.Name(),
-				Args:     args,
-			},
-		}
-		resolvedDeps[providerID] = dep
-		depGraph[dep] = prereqs // Add dependencies to the graph
-		*allDeps = append(*allDeps, dep)
-		return desiredVarName, dep, nil
-
-	case *ast.BasicLit:
-		// Basic literals are always inlined.
-		return n.Value, nil, nil
-
-	case *ast.CompositeLit:
-		// If this struct literal is not being assigned to a variable, we treat it as an inline expression.
-		if desiredVarName == "" {
-			renderable, err := c.exprToString(n)
-			return renderable, nil, err
-		}
-
-		// Resolve type of the composite literal
-		var typeName string
-		var typePkgName string
-		var typePkgPath string
-		if selExpr, ok := n.Type.(*ast.SelectorExpr); ok {
-			typeName = selExpr.Sel.Name
-			if ident, ok := selExpr.X.(*ast.Ident); ok {
-				obj := pkg.TypesInfo.Uses[ident]
-				if pkgName, ok := obj.(*types.PkgName); ok {
-					importedPkg := pkgName.Imported()
-					typePkgPath = importedPkg.Path()
-					typePkgName = importedPkg.Name()
-					imports[typePkgPath] = typePkgName
-				}
-			}
-		} else if ident, ok := n.Type.(*ast.Ident); ok {
-			typeName = ident.Name
-			typePkgName = pkg.Name
-			typePkgPath = pkg.PkgPath // Assume same package if not qualified
-		} else {
-			return "", nil, fmt.Errorf("unsupported composite literal type expression: %T", n.Type)
-		}
-
-		// This is a dependency that needs to be declared.
-		providerID = fmt.Sprintf("%s-%s", pkg.Fset.Position(n.Pos()), pkg.Fset.Position(n.End()))
-		if dep, ok := resolvedDeps[providerID]; ok {
-			return dep.VarName, dep, nil
-		}
-
-		fieldValues := make(map[string]string)
-		var prereqs []*lift.Dependency
-		for _, elt := range n.Elts {
-			if kv, ok := elt.(*ast.KeyValueExpr); ok {
-				fieldName := kv.Key.(*ast.Ident).Name
-				renderable, prereqDep, err := c.resolveExpr(pkg, kv.Value, resolvedDeps, depGraph, allDeps, imports, "")
-				if err != nil {
-					return "", nil, fmt.Errorf("failed to resolve field %s for struct literal: %w", fieldName, err)
-				}
-				fieldValues[fieldName] = renderable
-				if prereqDep != nil {
-					prereqs = append(prereqs, prereqDep)
-				}
-			} else {
-				return "", nil, fmt.Errorf("unsupported element in composite literal: %T", elt)
-			}
-		}
-
-		dep := &lift.Dependency{
-			VarName:    desiredVarName,
-			VarType:    exprType,
-			Kind:       lift.StructLiteral,
-			ProviderID: providerID,
-			IsPointer:  isPointer,
-			StructLitData: &lift.StructLiteralData{
-				PkgPath:  typePkgPath,
-				PkgName:  typePkgName,
-				TypeName: typeName,
-				Fields:   fieldValues,
-			},
-		}
-		resolvedDeps[providerID] = dep
-		depGraph[dep] = prereqs
-		*allDeps = append(*allDeps, dep)
-		return desiredVarName, dep, nil
-
-	case *ast.SelectorExpr: // e.g., `somepkg.SomeConst` or `somepkg.SomeVar`
-		// Treat as an inline expression.
-		renderable, err := c.exprToString(n)
-		return renderable, nil, err
+	case *ast.CallExpr, *ast.BasicLit, *ast.CompositeLit, *ast.SelectorExpr:
+		// These are all inlined expressions and do not create a declarable dependency themselves.
+		return nil, nil
 
 	default:
-		return "", nil, fmt.Errorf("unsupported AST expression type for dependency resolution: %T", expr)
+		return nil, fmt.Errorf("unsupported AST expression type for dependency resolution: %T", expr)
 	}
+}
+
+// exprsToStrings converts a slice of AST expressions to their string representations.
+func (c *Compiler) exprsToStrings(exprs []ast.Expr) ([]string, error) {
+	var results []string
+	for _, expr := range exprs {
+		s, err := c.exprToString(expr)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, s)
+	}
+	return results, nil
+}
+
+// stmtToString converts an AST statement back into its Go source code representation.
+func (c *Compiler) stmtToString(stmt ast.Stmt) (string, error) {
+	var buf bytes.Buffer
+	err := printer.Fprint(&buf, c.Fset, stmt)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // exprToString converts an AST expression back into its Go source code representation.
@@ -793,6 +846,12 @@ func (c *Compiler) exprToString(expr ast.Expr) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+// exprToStringDebug converts an AST expression back into its Go source code representation for debugging.
+func (c *Compiler) exprToStringDebug(expr ast.Expr) string {
+	s, _ := c.exprToString(expr)
+	return s
 }
 
 // topologicalSort performs a topological sort on the given dependencies.

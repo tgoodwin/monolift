@@ -32,25 +32,9 @@ func (s *{{$.ServerStructName}}) {{.HandlerFuncName}}(w http.ResponseWriter, r *
 func main() {
 	// --- Dependency Instantiation ---
     {{range .InstantiationPlan.Steps}}
-        {{- if eq .Kind 2 }} {{/* EnvVar */}}
-	{{.VarName}} := os.Getenv("{{.EnvVarData.Name}}")
-	// TODO: Add default value handling and type parsing (e.g., for int)
-        {{- else if eq .Kind 3 }} {{/* Literal */}}
-	{{.VarName}} := {{.LiteralData.Value}}
-        {{- else if eq .Kind 4 }} {{/* KnownGlobal */}}
-	{{.VarName}} := {{.KnownGlobalData.PkgPath}}.{{.KnownGlobalData.Name}}()
-        {{- else if eq .Kind 0 }} {{/* ConstructorCall */}}
-	{{.VarName}}, err := {{.CtorCallData.PkgName}}.{{.CtorCallData.FuncName}}({{range $i, $arg := .CtorCallData.Args}}{{if $i}}, {{end}}{{$arg}}{{end}})
-	if err != nil {
-		log.Fatalf("failed to instantiate {{.VarName}}: %v", err)
-	}
-        {{- else if eq .Kind 1 }} {{/* StructLiteral */}}
-	{{.VarName}} := {{if .IsPointer}}&{{end}}{{.StructLitData.PkgName}}.{{.StructLitData.TypeName}}{
-            {{- range $fieldName, $fieldValue := .StructLitData.Fields}}
-		{{$fieldName}}: {{$fieldValue}},
-            {{- end}}
-	}
-        {{- end}}
+    {{- if eq .Kind 0 }} {{/* VariableDeclaration */}}
+	{{.RenderedForm}}
+	{{- end}}
     {{end}}
 
 	// --- Server Setup ---
