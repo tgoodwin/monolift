@@ -14,6 +14,8 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+const debugDependencyResolution = true // Set to true to see debug prints
+
 // Compiler holds the parsed ASTs for the application's Go packages.
 // It discovers packages within the application's module starting from a root directory.
 type Compiler struct {
@@ -21,6 +23,9 @@ type Compiler struct {
 	// Packages are keyed by their import path (e.g., "my/app/main", "my/app/utils").
 	// Each *ast.Package contains the files for that specific package.
 	Packages map[string]*ast.Package
+
+	// rootAssignStmt is the root assignment for the current extraction.
+	rootAssignStmt *ast.AssignStmt
 
 	// LoadedPkgs stores the original *packages.Package results, which include type information.
 	LoadedPkgs []*packages.Package
@@ -515,9 +520,10 @@ func (c *Compiler) findAssignmentForCallExpr(pkg *packages.Package, targetCall *
 // resolveDependencies analyzes the given rootCall (an *ast.CallExpr) and recursively
 // resolves all its arguments and their sub-dependencies, building an InstantiationPlan.
 func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *ast.AssignStmt, imports map[string]string) (*lift.InstantiationPlan, error) {
-	// resolvedDeps maps types.Object.Id() to *Dependency to cache and avoid re-processing.
+	c.rootAssignStmt = rootAssignStmt // Set for this compilation run
+
+	// resolvedDeps maps a variable's types.Object.Id() to the Dependency that declares it.
 	resolvedDeps := make(map[string]*lift.Dependency)
-	// depGraph maps a dependency to the list of dependencies it directly relies on.
 	depGraph := make(map[*lift.Dependency][]*lift.Dependency)
 	var allDeps []*lift.Dependency
 
@@ -525,6 +531,82 @@ func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *as
 	rootDep, err := c.resolveAssignment(pkg, rootAssignStmt, resolvedDeps, depGraph, &allDeps, imports)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve root dependency: %w", err)
+	}
+
+	// --- Pass 2: Find Relevant Statements that use the variables from Pass 1 ---
+	mainFuncBody, err := c.getMainFuncBody(pkg)
+	if err != nil {
+		return nil, fmt.Errorf("could not find main function body for second pass: %w", err)
+	}
+
+	// Create a map of all statements that are already processed as VariableDeclarations for quick lookup.
+	varDeclStmts := make(map[ast.Stmt]bool)
+	for _, dep := range allDeps {
+		if dep.Kind == lift.VariableDeclaration {
+			varDeclStmts[dep.OriginalStmt] = true
+		}
+	}
+
+	for _, stmt := range mainFuncBody.List {
+		// Stop processing if we go past the root service declaration.
+		if stmt.Pos() > c.rootAssignStmt.Pos() {
+			break
+		}
+
+		// Skip statements we've already processed as variable declarations.
+		if varDeclStmts[stmt] {
+			continue
+		}
+
+		// Heuristic: Only consider control flow or expression statements for relevance.
+		isControlFlow := false
+		isExprStmt := false
+		switch stmt.(type) {
+		case *ast.IfStmt, *ast.ForStmt, *ast.SwitchStmt:
+			isControlFlow = true
+		case *ast.ExprStmt:
+			isExprStmt = true
+		}
+		if !isControlFlow && !isExprStmt {
+			continue
+		}
+
+		// Check if this statement uses any of the variables from our dependency graph.
+		usedVars := c.findVarsUsedInStatement(stmt, pkg)
+		var relevantPrereqs []*lift.Dependency
+		for usedObj := range usedVars {
+			if dep, ok := resolvedDeps[usedObj.Id()]; ok {
+				relevantPrereqs = append(relevantPrereqs, dep)
+			}
+		}
+
+		if len(relevantPrereqs) > 0 {
+			// This is a relevant statement.
+			renderedStmt, err := c.stmtToString(stmt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to render relevant statement to string: %w", err)
+			}
+
+			relevantDep := &lift.Dependency{
+				Kind:         lift.RelevantStatement,
+				ProviderID:   fmt.Sprintf("%s-%s", c.Fset.Position(stmt.Pos()), c.Fset.Position(stmt.End())),
+				RenderedForm: renderedStmt,
+				OriginalStmt: stmt,
+			}
+
+			// Ensure unique prerequisites.
+			uniquePrereqs := make(map[*lift.Dependency]bool)
+			finalPrereqs := []*lift.Dependency{}
+			for _, p := range relevantPrereqs {
+				if !uniquePrereqs[p] {
+					uniquePrereqs[p] = true
+					finalPrereqs = append(finalPrereqs, p)
+				}
+			}
+			depGraph[relevantDep] = finalPrereqs
+			allDeps = append(allDeps, relevantDep)
+			c.collectImportsFromStmt(pkg, stmt, imports)
+		}
 	}
 
 	// Perform topological sort to get the correct instantiation order.
@@ -546,6 +628,7 @@ func (c *Compiler) resolveAssignment(
 	allDeps *[]*lift.Dependency,
 	imports map[string]string,
 ) (*lift.Dependency, error) {
+	// --- Caching Check ---
 	var lhsExprs []ast.Expr
 	var rhsExpr ast.Expr
 
@@ -571,7 +654,16 @@ func (c *Compiler) resolveAssignment(
 	if !ok {
 		return nil, fmt.Errorf("first LHS of assignment is not an identifier: %T", lhsExprs[0])
 	}
-	varName := firstLHSIdent.Name
+
+	// Use the types.Object of the first declared variable as the canonical key for this dependency.
+	obj := pkg.TypesInfo.Defs[firstLHSIdent]
+	if obj == nil {
+		return nil, fmt.Errorf("could not find type object for identifier %s", firstLHSIdent.Name)
+	}
+	providerID := obj.Id()
+	if dep, ok := resolvedDeps[providerID]; ok {
+		return dep, nil // Return cached dependency
+	}
 
 	// Render the full assignment statement to a string for the template
 	renderedAssignment, err := c.stmtToString(assignStmt)
@@ -580,20 +672,23 @@ func (c *Compiler) resolveAssignment(
 	}
 
 	// Create the Dependency object for this variable declaration
-	providerID := fmt.Sprintf("%s-%s", c.Fset.Position(assignStmt.Pos()), c.Fset.Position(assignStmt.End()))
-	if dep, ok := resolvedDeps[providerID]; ok {
-		return dep, nil // Return cached dependency
-	}
-
 	dep := &lift.Dependency{
-		VarName:            varName,
-		Kind:               lift.VariableDeclaration,
-		ProviderID:         providerID,
-		RenderedForm:       renderedAssignment,
-		OriginalAssignStmt: assignStmt, // Store for recursive argument resolution
+		VarName:      firstLHSIdent.Name,
+		Kind:         lift.VariableDeclaration,
+		ProviderID:   fmt.Sprintf("%s-%s", c.Fset.Position(assignStmt.Pos()), c.Fset.Position(assignStmt.End())),
+		RenderedForm: renderedAssignment,
+		OriginalStmt: assignStmt,
 	}
-	resolvedDeps[providerID] = dep
 	*allDeps = append(*allDeps, dep)
+
+	// Add all variables declared by this statement to the cache, pointing to this single dependency.
+	for _, lhs := range lhsExprs {
+		if ident, ok := lhs.(*ast.Ident); ok {
+			if defObj := pkg.TypesInfo.Defs[ident]; defObj != nil {
+				resolvedDeps[defObj.Id()] = dep
+			}
+		}
+	}
 
 	// Now, recursively resolve the arguments/components of the RHS expression
 	// This is where we build the graph of prerequisites.
@@ -672,8 +767,49 @@ func (c *Compiler) resolveAssignment(
 		return nil, fmt.Errorf("unsupported RHS expression type for assignment: %T", rhsExpr)
 	}
 
+	if debugDependencyResolution {
+		var prereqNames []string
+		for _, p := range prereqs {
+			prereqNames = append(prereqNames, p.String())
+		}
+		fmt.Printf("[DEBUG] Adding to graph: %s depends on %v\n", dep, prereqNames)
+	}
+
 	depGraph[dep] = prereqs // Add prerequisites to the graph
+
 	return dep, nil
+}
+
+// collectImportsFromStmt recursively collects imports from a statement.
+// This is used for statements that are copied as a whole (RelevantStatement).
+func (c *Compiler) collectImportsFromStmt(pkg *packages.Package, stmt ast.Stmt, imports map[string]string) {
+	ast.Inspect(stmt, func(n ast.Node) bool {
+		if call, ok := n.(*ast.CallExpr); ok {
+			var funIdent *ast.Ident
+			switch funExpr := call.Fun.(type) {
+			case *ast.Ident:
+				funIdent = funExpr
+			case *ast.SelectorExpr:
+				funIdent = funExpr.Sel
+			}
+			if funIdent != nil {
+				if obj := pkg.TypesInfo.Uses[funIdent]; obj != nil {
+					if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil {
+						imports[fn.Pkg().Path()] = fn.Pkg().Name()
+					}
+				}
+			}
+		} else if sel, ok := n.(*ast.SelectorExpr); ok {
+			if ident, ok := sel.X.(*ast.Ident); ok {
+				if obj := pkg.TypesInfo.Uses[ident]; obj != nil {
+					if pkgName, ok := obj.(*types.PkgName); ok {
+						imports[pkgName.Imported().Path()] = pkgName.Imported().Name()
+					}
+				}
+			}
+		}
+		return true
+	})
 }
 
 // resolveExpr recursively resolves an AST expression that is *not* the RHS of a variable declaration.
@@ -710,7 +846,7 @@ func (c *Compiler) resolveExpr(
 		if obj == nil {
 			return nil, fmt.Errorf("could not find object for identifier %s", n.Name)
 		}
-		providerID = obj.Id()
+		providerID = obj.Id() // Use the variable's unique ID as the cache key
 
 		// Check cache first for identifiers
 		if dep, ok := resolvedDeps[providerID]; ok {
@@ -763,7 +899,6 @@ func (c *Compiler) resolveExpr(
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve declaration for variable %s: %w", n.Name, err)
 			}
-			resolvedDeps[providerID] = resolvedDep
 			return resolvedDep, nil // Return the declarable dependency
 		}
 		// If it's a constant, treat it similarly to a variable: find its declaration.
@@ -801,7 +936,6 @@ func (c *Compiler) resolveExpr(
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve declaration for constant %s: %w", n.Name, err)
 			}
-			resolvedDeps[providerID] = resolvedDep
 			return resolvedDep, nil
 		}
 		return nil, fmt.Errorf("unhandled identifier type: %T for %s", obj, n.Name)
@@ -813,6 +947,26 @@ func (c *Compiler) resolveExpr(
 	default:
 		return nil, fmt.Errorf("unsupported AST expression type for dependency resolution: %T", expr)
 	}
+}
+
+// getMainFuncBody finds the *ast.BlockStmt of the main function in the given package.
+func (c *Compiler) getMainFuncBody(pkg *packages.Package) (*ast.BlockStmt, error) {
+	if pkg.Name != "main" {
+		return nil, fmt.Errorf("package %s is not a main package", pkg.PkgPath)
+	}
+	for _, fileAST := range pkg.Syntax {
+		for _, decl := range fileAST.Decls {
+			if funcDecl, ok := decl.(*ast.FuncDecl); ok {
+				if funcDecl.Name.Name == "main" {
+					if funcDecl.Body == nil {
+						return nil, fmt.Errorf("main function in package %s has no body", pkg.PkgPath)
+					}
+					return funcDecl.Body, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("main function not found in package %s", pkg.PkgPath)
 }
 
 // exprsToStrings converts a slice of AST expressions to their string representations.
@@ -898,8 +1052,80 @@ func topologicalSort(nodes []*lift.Dependency, graph map[*lift.Dependency][]*lif
 	}
 
 	if len(result) != len(nodes) {
+		if debugDependencyResolution {
+			fmt.Println("--- CIRCULAR DEPENDENCY DETECTED ---")
+			fmt.Println("Remaining nodes with unmet dependencies:")
+			for node, degree := range inDegree {
+				if degree > 0 {
+					fmt.Printf("  - Node: %s, In-Degree: %d\n", node, degree)
+				}
+			}
+			fmt.Println("------------------------------------")
+		}
 		return nil, fmt.Errorf("circular dependency detected in dependency graph")
 	}
 
 	return result, nil
+}
+
+// findBlockAndIndex finds the *ast.BlockStmt containing targetStmt and the index of targetStmt within that block.
+func (c *Compiler) findBlockAndIndex(pkg *packages.Package, targetStmt ast.Stmt) (*ast.BlockStmt, int) {
+	var parentBlock *ast.BlockStmt
+	var stmtIndex = -1
+
+	for _, fileAST := range pkg.Syntax {
+		ast.Inspect(fileAST, func(n ast.Node) bool {
+			if block, ok := n.(*ast.BlockStmt); ok {
+				for i, stmt := range block.List {
+					if stmt == targetStmt {
+						parentBlock = block
+						stmtIndex = i
+						return false // Stop inspection
+					}
+				}
+			}
+			return parentBlock == nil // Continue if not found
+		})
+		if parentBlock != nil {
+			break
+		}
+	}
+	return parentBlock, stmtIndex
+}
+
+// getVarsDeclaredByStmt returns a map of *types.Var objects for all variables declared on the LHS of a statement.
+func (c *Compiler) getVarsDeclaredByStmt(stmt ast.Stmt, pkg *packages.Package) map[types.Object]*types.Var {
+	vars := make(map[types.Object]*types.Var)
+	ast.Inspect(stmt, func(n ast.Node) bool {
+		if ident, ok := n.(*ast.Ident); ok {
+			if obj, ok := pkg.TypesInfo.Defs[ident].(*types.Var); ok {
+				vars[obj] = obj
+			}
+		}
+		// Only inspect the LHS of assignments/declarations, not the RHS.
+		if assign, ok := stmt.(*ast.AssignStmt); ok && n == assign.Rhs[0] {
+			return false
+		}
+		if decl, ok := stmt.(*ast.DeclStmt); ok {
+			if vspec, ok := decl.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec); ok && n == vspec.Values[0] {
+				return false
+			}
+		}
+		return true
+	})
+	return vars
+}
+
+// findVarsUsedInStatement returns a map of *types.Var objects for all variables used in a statement.
+func (c *Compiler) findVarsUsedInStatement(stmt ast.Stmt, pkg *packages.Package) map[types.Object]*types.Var {
+	used := make(map[types.Object]*types.Var)
+	ast.Inspect(stmt, func(n ast.Node) bool {
+		if ident, ok := n.(*ast.Ident); ok {
+			if obj, ok := pkg.TypesInfo.Uses[ident].(*types.Var); ok {
+				used[obj] = obj
+			}
+		}
+		return true
+	})
+	return used
 }

@@ -1,7 +1,9 @@
 package lift
 
 import (
+	"fmt"
 	"go/ast"
+	"strings"
 )
 
 // InstantiationKind defines how a dependency is created.
@@ -10,9 +12,9 @@ type InstantiationKind int
 const (
 	// VariableDeclaration indicates this dependency is instantiated via a `:=` or `var =` statement.
 	VariableDeclaration InstantiationKind = iota
-	// InlinedExpression indicates this dependency is an expression that should be inlined directly
-	// as an argument to another function/struct, and does not require its own variable declaration.
-	InlinedExpression
+	// RelevantStatement indicates this is another statement (e.g., if, function call)
+	// that is a direct consequence of a VariableDeclaration.
+	RelevantStatement
 )
 
 // Dependency represents a single variable and how it's instantiated.
@@ -22,13 +24,21 @@ type Dependency struct {
 	Kind       InstantiationKind // How this dependency is created (VariableDeclaration or InlinedExpression).
 	ProviderID string            // A unique ID for the provider of this dependency (e.g., AST position).
 
-	// For VariableDeclaration kind, this is the full string of the assignment statement (e.g., "dbStore, err := database.NewRedisStore(...)").
-	// For InlinedExpression kind, this is the string of the expression itself (e.g., "context.Background()", `"my-string"`).
+	// The full string of the statement to be copied into the generated code.
 	RenderedForm string
 
-	// For VariableDeclaration kind, this stores the AST node of the original assignment.
+	// The original AST node for the statement.
 	// This is used internally during resolution to extract arguments.
-	OriginalAssignStmt ast.Stmt
+	OriginalStmt ast.Stmt
+}
+
+// String provides a simple string representation for debugging.
+func (d *Dependency) String() string {
+	if d.VarName != "" {
+		return fmt.Sprintf("Dep<%s>", d.VarName)
+	}
+	// For relevant statements that don't declare a var, use the first line of the statement.
+	return fmt.Sprintf("Dep<%q>", strings.Split(strings.TrimSpace(d.RenderedForm), "\n")[0])
 }
 
 // InstantiationPlan is the final, ordered list of dependencies to be generated in code.

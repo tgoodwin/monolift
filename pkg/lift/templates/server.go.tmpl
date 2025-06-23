@@ -32,9 +32,9 @@ func (s *{{$.ServerStructName}}) {{.HandlerFuncName}}(w http.ResponseWriter, r *
 func main() {
 	// --- Dependency Instantiation ---
     {{range .InstantiationPlan.Steps}}
-    {{- if eq .Kind 0 }} {{/* VariableDeclaration */}}
+	{{- if or (eq .Kind 0) (eq .Kind 1) }} {{/* VariableDeclaration or RelevantStatement */}}
 	{{.RenderedForm}}
-	{{- end}}
+	{{- end }}
     {{end}}
 
 	// --- Server Setup ---
