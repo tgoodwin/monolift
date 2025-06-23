@@ -571,17 +571,41 @@ func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *as
 			continue
 		}
 
-		// Check if this statement uses any of the variables from our dependency graph.
-		usedVars := c.findVarsUsedInStatement(stmt, pkg)
-		var relevantPrereqs []*lift.Dependency
-		for usedObj := range usedVars {
-			if dep, ok := resolvedDeps[usedObj.Id()]; ok {
-				relevantPrereqs = append(relevantPrereqs, dep)
+		// Check if this statement uses any of the variables from our dependency graph to determine relevance.
+		usedIdents := c.findVarIdentsUsedInStatement(stmt, pkg)
+		isRelevant := false
+		for _, ident := range usedIdents {
+			if obj := pkg.TypesInfo.Uses[ident]; obj != nil {
+				if _, ok := resolvedDeps[obj.Id()]; ok {
+					isRelevant = true
+					break
+				}
 			}
 		}
 
-		if len(relevantPrereqs) > 0 {
-			// This is a relevant statement.
+		if isRelevant {
+			// This is a relevant statement. Resolve all variables it uses to form its prerequisites.
+			var allPrereqs []*lift.Dependency
+			processedVars := make(map[string]bool)
+
+			for _, ident := range usedIdents {
+				obj := pkg.TypesInfo.Uses[ident]
+				if obj == nil || processedVars[obj.Id()] {
+					continue
+				}
+				processedVars[obj.Id()] = true // Mark as processed for this statement
+
+				// resolveExpr finds the declaration of the variable `ident` refers to,
+				// adds it to the dependency graph if needed, and returns the dependency.
+				dep, err := c.resolveExpr(pkg, ident, resolvedDeps, depGraph, &allDeps, imports)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve variable '%s' used in a relevant statement: %w", ident.Name, err)
+				}
+				if dep != nil {
+					allPrereqs = append(allPrereqs, dep)
+				}
+			}
+
 			renderedStmt, err := c.stmtToString(stmt)
 			if err != nil {
 				return nil, fmt.Errorf("failed to render relevant statement to string: %w", err)
@@ -597,12 +621,13 @@ func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *as
 			// Ensure unique prerequisites.
 			uniquePrereqs := make(map[*lift.Dependency]bool)
 			finalPrereqs := []*lift.Dependency{}
-			for _, p := range relevantPrereqs {
+			for _, p := range allPrereqs {
 				if !uniquePrereqs[p] {
 					uniquePrereqs[p] = true
 					finalPrereqs = append(finalPrereqs, p)
 				}
 			}
+			// The prerequisites are now all resolved dependencies for the variables used.
 			depGraph[relevantDep] = finalPrereqs
 			allDeps = append(allDeps, relevantDep)
 			c.collectImportsFromStmt(pkg, stmt, imports)
@@ -1116,13 +1141,13 @@ func (c *Compiler) getVarsDeclaredByStmt(stmt ast.Stmt, pkg *packages.Package) m
 	return vars
 }
 
-// findVarsUsedInStatement returns a map of *types.Var objects for all variables used in a statement.
-func (c *Compiler) findVarsUsedInStatement(stmt ast.Stmt, pkg *packages.Package) map[types.Object]*types.Var {
-	used := make(map[types.Object]*types.Var)
+// findVarIdentsUsedInStatement returns a slice of *ast.Ident for all variables used in a statement.
+func (c *Compiler) findVarIdentsUsedInStatement(stmt ast.Stmt, pkg *packages.Package) []*ast.Ident {
+	var used []*ast.Ident
 	ast.Inspect(stmt, func(n ast.Node) bool {
 		if ident, ok := n.(*ast.Ident); ok {
-			if obj, ok := pkg.TypesInfo.Uses[ident].(*types.Var); ok {
-				used[obj] = obj
+			if _, ok := pkg.TypesInfo.Uses[ident].(*types.Var); ok {
+				used = append(used, ident)
 			}
 		}
 		return true

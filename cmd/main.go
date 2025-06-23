@@ -48,10 +48,12 @@ func rootCmd() *cobra.Command {
 func start(opts *options) {
 	c, err := compiler.New(opts.dirname)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error initializing compiler: %v\n", err)
+		os.Exit(1)
 	}
 	if err := c.Compile(); err != nil {
-		panic(err)
+		fmt.Printf("Error during compilation: %v\n", err)
+		os.Exit(1)
 	}
 }
 
