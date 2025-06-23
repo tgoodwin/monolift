@@ -13,6 +13,10 @@ import (
     {{.InterfacePackageAlias}} "{{.InterfacePackagePath}}"
 )
 
+{{range .PackageScopeDeps}}
+{{.RenderedForm}}
+{{end}}
+
 type {{.ServerStructName}} struct {
     {{.DelegateFieldName}} {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}
 }
@@ -30,17 +34,14 @@ func (s *{{$.ServerStructName}}) {{.HandlerFuncName}}(w http.ResponseWriter, r *
 
 // Main function to set up the HTTP server
 func main() {
-	// --- Dependency Instantiation ---
-    {{range .InstantiationPlan.Steps}}
-	{{- if or (eq .Kind 0) (eq .Kind 1) }} {{/* VariableDeclaration or RelevantStatement */}}
+    {{range .FunctionScopeDeps}}
 	{{.RenderedForm}}
-	{{- end }}
     {{end}}
 
 	// --- Server Setup ---
 	// The root dependency is the service delegate we need to wrap.
 	serverInstance := &{{.ServerStructName}}{
-		{{.DelegateFieldName}}: {{.InstantiationPlan.RootDependency.VarName}},
+		{{.DelegateFieldName}}: {{.RootDependency.VarName}},
 	}
 
 {{range .Methods}}

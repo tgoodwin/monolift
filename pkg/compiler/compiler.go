@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"go/types"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/lift"
@@ -15,6 +16,9 @@ import (
 )
 
 const debugDependencyResolution = true // Set to true to see debug prints
+
+// TODO make this not hardcoded
+const outputDir = "output"
 
 // Compiler holds the parsed ASTs for the application's Go packages.
 // It discovers packages within the application's module starting from a root directory.
@@ -24,8 +28,8 @@ type Compiler struct {
 	// Each *ast.Package contains the files for that specific package.
 	Packages map[string]*ast.Package
 
-	// rootAssignStmt is the root assignment for the current extraction.
-	rootAssignStmt *ast.AssignStmt
+	// rootStmt is the root declaration statement for the current extraction.
+	rootStmt ast.Stmt
 
 	// LoadedPkgs stores the original *packages.Package results, which include type information.
 	LoadedPkgs []*packages.Package
@@ -206,19 +210,18 @@ func (c *Compiler) Compile() error {
 												// fmt.Printf("      Found constructor call for %s in main.go.\n", constructorName)
 
 												mainPkg, _ := c.getMainPackage()
-												rootAssignStmt, err := c.findAssignmentForCallExpr(mainPkg, constructorCall)
+												rootStmt, err := c.findDeclStmtForCallExpr(mainPkg, constructorCall)
 												if err != nil {
 													fmt.Printf("      [ERROR] Could not find assignment for constructor call %s: %v\n", constructorName, err)
 													continue
 												}
 												// Resolve the full dependency graph for the service
 												collectedImports := make(map[string]string)
-												instantiationPlan, err := c.resolveDependencies(mainPkg, rootAssignStmt, collectedImports)
+												instantiationPlan, err := c.resolveDependencies(mainPkg, rootStmt, collectedImports)
 												if err != nil {
 													fmt.Printf("      [ERROR] Failed to resolve dependencies for %s.%s: %v\n", constructorPkgPath, constructorName, err)
 													continue // Skip to the next interface
 												}
-												// fmt.Printf("      Successfully resolved %d dependencies for %s.\n", len(instantiationPlan.Steps), rootVarName)
 
 												// Add the main interface package to imports if it's not already there
 												if _, ok := collectedImports[currentLoadedPkg.PkgPath]; !ok {
@@ -231,21 +234,39 @@ func (c *Compiler) Compile() error {
 													continue // Skip to the next interface if methods can't be extracted
 												}
 
+												// Split dependencies by scope for the template.
+												var pkgScopeDeps, funcScopeDeps []*lift.Dependency
+
+												// instantationPlan.Steps is the topological sort of the dependency graph.
+												// we are now splitting dependencies into package and function scope while
+												// preserving this order
+												for _, dep := range instantiationPlan.Steps {
+													// RelevantStatements are always function-scoped.
+													// VariableDeclarations can be either.
+													if dep.IsPackageScope {
+														pkgScopeDeps = append(pkgScopeDeps, dep)
+													} else {
+														funcScopeDeps = append(funcScopeDeps, dep)
+													}
+												}
+
 												serverStructName := strings.ToLower(typeSpec.Name.Name[:1]) + typeSpec.Name.Name[1:] + "Server"
 												delegateFieldName := strings.ToLower(typeSpec.Name.Name[:1]) + typeSpec.Name.Name[1:] + "Delegate"
 
 												templateData := lift.ServerTemplateData{
-													InterfacePackageAlias: currentLoadedPkg.Name, // Assumes currentLoadedPkg.Name is suitable as an alias
+													InterfacePackageAlias: currentLoadedPkg.Name,
 													InterfacePackagePath:  currentLoadedPkg.PkgPath,
 													InterfaceTypeName:     typeSpec.Name.Name,
 													ServerStructName:      serverStructName,
 													DelegateFieldName:     delegateFieldName,
 													Methods:               methodConfigs,
 													Imports:               collectedImports,
-													InstantiationPlan:     instantiationPlan,
+													PackageScopeDeps:      pkgScopeDeps,
+													FunctionScopeDeps:     funcScopeDeps,
+													RootDependency:        instantiationPlan.RootDependency,
 												}
 
-												lift.ExecuteAndPrintTemplate(typeSpec.Name.Name, "output", templateData) // "output" is hardcoded for now
+												lift.ExecuteAndPrintTemplate(typeSpec.Name.Name, outputDir, templateData)
 											}
 										} else {
 											fmt.Printf("      Could not find loaded package or type info for %s to check implementers for %s\n", importPath, typeSpec.Name.Name)
@@ -481,46 +502,54 @@ func (c *Compiler) findConstructorCallInMain(constructorPkgPath, constructorName
 	return foundCall, mainPkg, nil
 }
 
-// findAssignmentForCallExpr finds the assignment statement
+// findDeclStmtForCallExpr finds the declaration statement (`:=` or `var =`)
 // where the RHS is the given call expression.
-func (c *Compiler) findAssignmentForCallExpr(pkg *packages.Package, targetCall *ast.CallExpr) (*ast.AssignStmt, error) {
-	var foundAssign *ast.AssignStmt
+func (c *Compiler) findDeclStmtForCallExpr(pkg *packages.Package, targetCall *ast.CallExpr) (ast.Stmt, error) {
+	var foundStmt ast.Stmt
 	for _, fileAST := range pkg.Syntax {
 		ast.Inspect(fileAST, func(n ast.Node) bool {
-			if foundAssign != nil {
+			if foundStmt != nil {
 				return false // Stop searching
 			}
-			assign, ok := n.(*ast.AssignStmt)
-			if !ok {
-				return true
+
+			// Check for `:=`
+			if assign, ok := n.(*ast.AssignStmt); ok {
+				if len(assign.Rhs) == 1 && assign.Rhs[0] == targetCall {
+					foundStmt = assign
+					return false
+				}
 			}
 
-			// We only handle assignments where the RHS is a single expression (the targetCall)
-			if len(assign.Rhs) != 1 {
-				return true
+			// Check for `var =`
+			if decl, ok := n.(*ast.DeclStmt); ok {
+				if genDecl, ok := decl.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
+					for _, spec := range genDecl.Specs {
+						if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+							if len(valueSpec.Values) == 1 && valueSpec.Values[0] == targetCall {
+								foundStmt = decl
+								return false
+							}
+						}
+					}
+				}
 			}
 
-			// Check if the RHS is our target call expression
-			if assign.Rhs[0] == targetCall {
-				foundAssign = assign
-				return false
-			}
 			return true
 		})
-		if foundAssign != nil {
+		if foundStmt != nil {
 			break
 		}
 	}
-	if foundAssign == nil {
-		return nil, fmt.Errorf("could not find assignment statement for the given constructor call")
+	if foundStmt == nil {
+		return nil, fmt.Errorf("could not find assignment or declaration statement for the given constructor call")
 	}
-	return foundAssign, nil
+	return foundStmt, nil
 }
 
 // resolveDependencies analyzes the given rootCall (an *ast.CallExpr) and recursively
 // resolves all its arguments and their sub-dependencies, building an InstantiationPlan.
-func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *ast.AssignStmt, imports map[string]string) (*lift.InstantiationPlan, error) {
-	c.rootAssignStmt = rootAssignStmt // Set for this compilation run
+func (c *Compiler) resolveDependencies(pkg *packages.Package, rootStmt ast.Stmt, imports map[string]string) (*lift.InstantiationPlan, error) {
+	c.rootStmt = rootStmt // Set for this compilation run
 
 	// resolvedDeps maps a variable's types.Object.Id() to the Dependency that declares it.
 	resolvedDeps := make(map[string]*lift.Dependency)
@@ -528,15 +557,15 @@ func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *as
 	var allDeps []*lift.Dependency
 
 	// Start the recursive resolution from the root assignment statement.
-	rootDep, err := c.resolveAssignment(pkg, rootAssignStmt, resolvedDeps, depGraph, &allDeps, imports)
+	rootDep, err := c.resolveAssignment(pkg, rootStmt, resolvedDeps, depGraph, &allDeps, imports)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve root dependency: %w", err)
 	}
 
 	// --- Pass 2: Find Relevant Statements that use the variables from Pass 1 ---
-	mainFuncBody, err := c.getMainFuncBody(pkg)
+	executableStmts, err := c.getExecutableStmtsInOrder(pkg)
 	if err != nil {
-		return nil, fmt.Errorf("could not find main function body for second pass: %w", err)
+		return nil, fmt.Errorf("could not find executable statements for second pass: %w", err)
 	}
 
 	// Create a map of all statements that are already processed as VariableDeclarations for quick lookup.
@@ -547,9 +576,9 @@ func (c *Compiler) resolveDependencies(pkg *packages.Package, rootAssignStmt *as
 		}
 	}
 
-	for _, stmt := range mainFuncBody.List {
+	for _, stmt := range executableStmts {
 		// Stop processing if we go past the root service declaration.
-		if stmt.Pos() > c.rootAssignStmt.Pos() {
+		if stmt.Pos() > c.rootStmt.Pos() {
 			break
 		}
 
@@ -653,14 +682,13 @@ func (c *Compiler) resolveAssignment(
 	allDeps *[]*lift.Dependency,
 	imports map[string]string,
 ) (*lift.Dependency, error) {
-	// --- Caching Check ---
 	var lhsExprs []ast.Expr
 	var rhsExpr ast.Expr
 
 	switch stmt := assignStmt.(type) {
 	case *ast.AssignStmt:
 		lhsExprs = stmt.Lhs
-		rhsExpr = stmt.Rhs[0] // Assuming single RHS for now
+		rhsExpr = stmt.Rhs[0] // Only supporting single RHS for now, e.g. `x := f(y)`
 	case *ast.DeclStmt:
 		genDecl := stmt.Decl.(*ast.GenDecl)
 		valueSpec := genDecl.Specs[0].(*ast.ValueSpec) // Assuming single ValueSpec for now
@@ -698,11 +726,12 @@ func (c *Compiler) resolveAssignment(
 
 	// Create the Dependency object for this variable declaration
 	dep := &lift.Dependency{
-		VarName:      firstLHSIdent.Name,
-		Kind:         lift.VariableDeclaration,
-		ProviderID:   fmt.Sprintf("%s-%s", c.Fset.Position(assignStmt.Pos()), c.Fset.Position(assignStmt.End())),
-		RenderedForm: renderedAssignment,
-		OriginalStmt: assignStmt,
+		VarName:        firstLHSIdent.Name,
+		Kind:           lift.VariableDeclaration,
+		ProviderID:     fmt.Sprintf("%s-%s", c.Fset.Position(assignStmt.Pos()), c.Fset.Position(assignStmt.End())),
+		RenderedForm:   renderedAssignment,
+		OriginalStmt:   assignStmt,
+		IsPackageScope: c.isPackageScope(pkg, assignStmt),
 	}
 	*allDeps = append(*allDeps, dep)
 
@@ -805,6 +834,65 @@ func (c *Compiler) resolveAssignment(
 	return dep, nil
 }
 
+// findDeclStmtForVar searches through the package's files to find the declaration
+// statement (*ast.AssignStmt or *ast.DeclStmt) for a given variable or constant object.
+// For top-level `var` or `const` declarations (*ast.GenDecl), it returns a synthetic *ast.DeclStmt.
+func (c *Compiler) findDeclStmtForVar(pkg *packages.Package, v types.Object) (ast.Stmt, error) {
+	var foundStmt ast.Stmt
+	for _, fileAST := range pkg.Syntax {
+		ast.Inspect(fileAST, func(node ast.Node) bool {
+			if foundStmt != nil {
+				return false // Stop searching once found
+			}
+			switch n := node.(type) {
+			case *ast.AssignStmt:
+				for _, lhs := range n.Lhs {
+					if ident, ok := lhs.(*ast.Ident); ok && pkg.TypesInfo.Defs[ident] == v {
+						foundStmt = n
+						return false // Found it
+					}
+				}
+				return true // Continue searching children
+			case *ast.DeclStmt:
+				// This handles `var` or `const` inside a function.
+				if genDecl, ok := n.Decl.(*ast.GenDecl); ok {
+					for _, spec := range genDecl.Specs {
+						if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+							for _, name := range valueSpec.Names {
+								if pkg.TypesInfo.Defs[name] == v {
+									foundStmt = n
+									return false // Found it
+								}
+							}
+						}
+					}
+				}
+				// We've handled this DeclStmt, don't inspect its children (the GenDecl).
+				return false
+			case *ast.GenDecl:
+				// This must be a top-level GenDecl, since we stop traversal at DeclStmt.
+				for _, spec := range n.Specs {
+					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+						for _, name := range valueSpec.Names {
+							if pkg.TypesInfo.Defs[name] == v {
+								// It's a top-level decl. Wrap it in a synthetic DeclStmt.
+								foundStmt = &ast.DeclStmt{Decl: n}
+								return false // Found it
+							}
+						}
+					}
+				}
+				return true // Continue searching children
+			}
+			return true
+		})
+		if foundStmt != nil {
+			return foundStmt, nil
+		}
+	}
+	return nil, fmt.Errorf("declaration not found")
+}
+
 // collectImportsFromStmt recursively collects imports from a statement.
 // This is used for statements that are copied as a whole (RelevantStatement).
 func (c *Compiler) collectImportsFromStmt(pkg *packages.Package, stmt ast.Stmt, imports map[string]string) {
@@ -880,45 +968,11 @@ func (c *Compiler) resolveExpr(
 
 		// If it's a variable or constant, we need to find its declaration and resolve its RHS.
 		if v, isVar := obj.(*types.Var); isVar {
-			// Find the declaration of this variable.
-			var varDeclStmt ast.Stmt
-			// Search all files in the package for the variable's declaration
-			for _, fileAST := range pkg.Syntax {
-				ast.Inspect(fileAST, func(node ast.Node) bool {
-					if varDeclStmt != nil { // Already found
-						return false
-					}
-					if assign, ok := node.(*ast.AssignStmt); ok {
-						for _, lhs := range assign.Lhs {
-							if ident, ok := lhs.(*ast.Ident); ok && pkg.TypesInfo.Defs[ident] == v {
-								varDeclStmt = assign
-								return false // Found it
-							}
-						}
-					} else if decl, ok := node.(*ast.DeclStmt); ok {
-						if genDecl, ok := decl.Decl.(*ast.GenDecl); ok {
-							for _, spec := range genDecl.Specs {
-								if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-									for _, name := range valueSpec.Names {
-										if pkg.TypesInfo.Defs[name] == v {
-											varDeclStmt = decl
-											return false // Found it
-										}
-									}
-								}
-							}
-						}
-					}
-					return true
-				})
-				if varDeclStmt != nil {
-					break
-				}
+			varDeclStmt, err := c.findDeclStmtForVar(pkg, v)
+			if err != nil {
+				return nil, fmt.Errorf("could not find declaration/assignment for variable %s: %w", n.Name, err)
 			}
 
-			if varDeclStmt == nil {
-				return nil, fmt.Errorf("could not find declaration/assignment for variable %s", n.Name)
-			}
 			// Recursively resolve the assignment statement.
 			resolvedDep, err := c.resolveAssignment(pkg, varDeclStmt, resolvedDeps, depGraph, allDeps, imports)
 			if err != nil {
@@ -928,34 +982,9 @@ func (c *Compiler) resolveExpr(
 		}
 		// If it's a constant, treat it similarly to a variable: find its declaration.
 		if cnst, isConst := obj.(*types.Const); isConst {
-			var declStmt ast.Stmt
-			for _, fileAST := range pkg.Syntax {
-				ast.Inspect(fileAST, func(node ast.Node) bool {
-					if declStmt != nil {
-						return false
-					}
-					if decl, ok := node.(*ast.DeclStmt); ok {
-						if genDecl, ok := decl.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.CONST {
-							for _, spec := range genDecl.Specs {
-								if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-									for _, name := range valueSpec.Names {
-										if pkg.TypesInfo.Defs[name] == cnst {
-											declStmt = decl
-											return false
-										}
-									}
-								}
-							}
-						}
-					}
-					return true
-				})
-				if declStmt != nil {
-					break
-				}
-			}
-			if declStmt == nil {
-				return nil, fmt.Errorf("could not find declaration for constant %s", n.Name)
+			declStmt, err := c.findDeclStmtForVar(pkg, cnst)
+			if err != nil {
+				return nil, fmt.Errorf("could not find declaration for constant %s: %w", n.Name, err)
 			}
 			resolvedDep, err := c.resolveAssignment(pkg, declStmt, resolvedDeps, depGraph, allDeps, imports)
 			if err != nil {
@@ -974,24 +1003,63 @@ func (c *Compiler) resolveExpr(
 	}
 }
 
-// getMainFuncBody finds the *ast.BlockStmt of the main function in the given package.
-func (c *Compiler) getMainFuncBody(pkg *packages.Package) (*ast.BlockStmt, error) {
+// getExecutableStmtsInOrder finds all statements from init() and main() functions in the package.
+// It returns them as a single slice, sorted by source position.
+func (c *Compiler) getExecutableStmtsInOrder(pkg *packages.Package) ([]ast.Stmt, error) {
 	if pkg.Name != "main" {
 		return nil, fmt.Errorf("package %s is not a main package", pkg.PkgPath)
 	}
+
+	var allStmts []ast.Stmt
+
 	for _, fileAST := range pkg.Syntax {
-		for _, decl := range fileAST.Decls {
-			if funcDecl, ok := decl.(*ast.FuncDecl); ok {
-				if funcDecl.Name.Name == "main" {
-					if funcDecl.Body == nil {
-						return nil, fmt.Errorf("main function in package %s has no body", pkg.PkgPath)
-					}
-					return funcDecl.Body, nil
+		for _, declNode := range fileAST.Decls {
+			if funcDecl, ok := declNode.(*ast.FuncDecl); ok {
+				// A function is considered an executable entry point if it's `main` or `init`
+				// and it's not a method (has no receiver).
+				isMain := funcDecl.Name.Name == "main" && funcDecl.Recv == nil
+				isInit := funcDecl.Name.Name == "init" && funcDecl.Recv == nil
+
+				if (isMain || isInit) && funcDecl.Body != nil {
+					allStmts = append(allStmts, funcDecl.Body.List...)
 				}
 			}
 		}
 	}
-	return nil, fmt.Errorf("main function not found in package %s", pkg.PkgPath)
+
+	// Sort statements by their position in the source code. This ensures a deterministic
+	// processing order, which is a good approximation of execution order (init functions
+	// are executed based on file dependencies, then filename order; main is last).
+	sort.Slice(allStmts, func(i, j int) bool {
+		return allStmts[i].Pos() < allStmts[j].Pos()
+	})
+
+	return allStmts, nil
+}
+
+// isPackageScope determines if a given statement is a package-level declaration.
+func (c *Compiler) isPackageScope(pkg *packages.Package, targetStmt ast.Stmt) bool {
+	// An assignment statement (:=) can only be inside a function.
+	if _, ok := targetStmt.(*ast.AssignStmt); ok {
+		return false
+	}
+
+	// A declaration statement (var, const) can be at package or function level.
+	declStmt, ok := targetStmt.(*ast.DeclStmt)
+	if !ok {
+		// Not a `var` or `const` declaration statement.
+		return false
+	}
+
+	// Check if it's a top-level declaration in any of the package's files.
+	for _, fileAST := range pkg.Syntax {
+		for _, topLevelDecl := range fileAST.Decls {
+			if topLevelDecl == declStmt.Decl {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // exprsToStrings converts a slice of AST expressions to their string representations.

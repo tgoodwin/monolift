@@ -30,6 +30,9 @@ type Dependency struct {
 	// The original AST node for the statement.
 	// This is used internally during resolution to extract arguments.
 	OriginalStmt ast.Stmt
+
+	// IsPackageScope is true if this is a package-level declaration (var, const).
+	IsPackageScope bool
 }
 
 // String provides a simple string representation for debugging.
