@@ -46,13 +46,13 @@ func rootCmd() *cobra.Command {
 }
 
 func start(opts *options) {
-	_, err := compiler.New(opts.dirname)
+	c, err := compiler.New(opts.dirname)
 	if err != nil {
 		fmt.Println(err)
 	}
-	// if err := k.Compile(opts.outputDir, opts.dockerRegistry); err != nil {
-	// 	panic(err)
-	// }
+	if err := c.Compile(); err != nil {
+		panic(err)
+	}
 }
 
 func main() {

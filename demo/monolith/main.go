@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/tgoodwin/monolift/demo/monolith/database" // Import the new database package
+	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/frontend"
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
-	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"     // Import the socialgraph service
-	"github.com/tgoodwin/monolift/demo/monolith/timelineservice" // Import the timelineservice
-	"github.com/tgoodwin/monolift/demo/monolith/userservice"     // Import the userservice
+	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
+	"github.com/tgoodwin/monolift/demo/monolith/timelineservice"
+	"github.com/tgoodwin/monolift/demo/monolith/userservice"
 	"github.com/tgoodwin/monolift/demo/monolith/util"
 )
 
