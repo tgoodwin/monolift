@@ -19,15 +19,15 @@ func InitGoMod(name, outputDir string) error {
 	if err := initCmd.Run(); err != nil {
 		return fmt.Errorf("could not run go mod init: %w", err)
 	}
-	tidyCmd := exec.Command("go", "mod", "tidy")
-	tidyCmd.Dir = outputDir
-	if err := tidyCmd.Run(); err != nil {
-		return fmt.Errorf("could not run go mod tidy: %w", err)
-	}
 	replaceCmd := exec.Command("go", "mod", "edit", "-replace=github.com/tgoodwin/monolift=../../")
 	replaceCmd.Dir = outputDir
 	if err := replaceCmd.Run(); err != nil {
 		return fmt.Errorf("could not run go mod edit: %w", err)
+	}
+	tidyCmd := exec.Command("go", "mod", "tidy")
+	tidyCmd.Dir = outputDir
+	if err := tidyCmd.Run(); err != nil {
+		return fmt.Errorf("could not run go mod tidy: %w", err)
 	}
 	return nil
 }
