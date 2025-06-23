@@ -30,6 +30,7 @@ type ServerTemplateData struct {
 	DelegateFieldName     string
 	Methods               []MethodConfig    // List of methods to generate handlers for
 	Imports               map[string]string // To collect necessary imports: map[alias]path
+	InstantiationPlan     *InstantiationPlan
 }
 
 func ExecuteAndPrintTemplate(name, outputDir string, data ServerTemplateData) error {
