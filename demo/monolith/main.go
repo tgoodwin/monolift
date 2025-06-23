@@ -15,8 +15,9 @@ import (
 	"github.com/tgoodwin/monolift/demo/monolith/util"
 )
 
+var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags)
+
 func main() {
-	var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags)
 	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")              // Main service address
 	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084")            // Prometheus metrics address
 	redisAddress := util.GetEnvVar("REDIS_ADDRESS", "localhost:6379") // Redis address for future use
