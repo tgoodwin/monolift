@@ -223,16 +223,15 @@ func (c *Compiler) Compile() error {
 													continue // Skip to the next interface
 												}
 
-												// Add the main interface package to imports if it's not already there
-												if _, ok := collectedImports[currentLoadedPkg.PkgPath]; !ok {
-													collectedImports[currentLoadedPkg.PkgPath] = currentLoadedPkg.Name
-												}
-
 												methodConfigs, err := c.getInterfaceMethodConfigs(typeSpec.Name, currentLoadedPkg)
 												if err != nil {
 													fmt.Printf("      Error extracting methods for interface %s: %v\n", typeSpec.Name.Name, err)
 													continue // Skip to the next interface if methods can't be extracted
 												}
+
+												// Add the service's own interface package to collectedImports.
+												// This ensures it's handled by the general import logic.
+												collectedImports[currentLoadedPkg.PkgPath] = determineImportAlias(currentLoadedPkg.PkgPath, currentLoadedPkg.Name)
 
 												// Split dependencies by scope for the template.
 												var pkgScopeDeps, funcScopeDeps []*lift.Dependency
@@ -762,14 +761,14 @@ func (c *Compiler) resolveAssignment(
 		// Add the function's package to imports
 		if funIdent, ok := rhs.Fun.(*ast.Ident); ok {
 			if obj := pkg.TypesInfo.Uses[funIdent]; obj != nil {
-				if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil {
-					imports[fn.Pkg().Path()] = fn.Pkg().Name()
+				if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil && fn.Pkg().Path() != pkg.PkgPath {
+					imports[fn.Pkg().Path()] = determineImportAlias(fn.Pkg().Path(), fn.Pkg().Name())
 				}
 			}
 		} else if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
 			if obj := pkg.TypesInfo.Uses[selExpr.Sel]; obj != nil {
-				if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil {
-					imports[fn.Pkg().Path()] = fn.Pkg().Name()
+				if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil && fn.Pkg().Path() != pkg.PkgPath {
+					imports[fn.Pkg().Path()] = determineImportAlias(fn.Pkg().Path(), fn.Pkg().Name())
 				}
 			}
 		}
@@ -793,13 +792,10 @@ func (c *Compiler) resolveAssignment(
 				if obj := pkg.TypesInfo.Uses[ident]; obj != nil {
 					if pkgName, ok := obj.(*types.PkgName); ok {
 						importedPkg := pkgName.Imported()
-						imports[importedPkg.Path()] = importedPkg.Name()
+						imports[importedPkg.Path()] = determineImportAlias(importedPkg.Path(), importedPkg.Name())
 					}
 				}
 			}
-		} else if _, ok := rhs.Type.(*ast.Ident); ok {
-			// If it's a local type, its package is the current package.
-			imports[pkg.PkgPath] = pkg.Name
 		}
 
 	case *ast.Ident: // RHS is a variable reference (e.g., `x := y`)
@@ -832,6 +828,16 @@ func (c *Compiler) resolveAssignment(
 	depGraph[dep] = prereqs // Add prerequisites to the graph
 
 	return dep, nil
+}
+
+// determineImportAlias decides whether an explicit alias is needed for an import.
+// If the package's declared name is the same as the last component of its import path,
+// no explicit alias is needed, and an empty string is returned. Otherwise, the package name is returned.
+func determineImportAlias(pkgPath, pkgName string) string {
+	if pkgName == filepath.Base(pkgPath) {
+		return "" // No explicit alias needed, Go will use the package name by default
+	}
+	return pkgName // Use the package name as an explicit alias
 }
 
 // findDeclStmtForVar searches through the package's files to find the declaration
@@ -907,16 +913,19 @@ func (c *Compiler) collectImportsFromStmt(pkg *packages.Package, stmt ast.Stmt, 
 			}
 			if funIdent != nil {
 				if obj := pkg.TypesInfo.Uses[funIdent]; obj != nil {
-					if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil {
-						imports[fn.Pkg().Path()] = fn.Pkg().Name()
+					if fn, ok := obj.(*types.Func); ok && fn.Pkg() != nil && fn.Pkg().Path() != pkg.PkgPath { // Don't import current package
+						imports[fn.Pkg().Path()] = determineImportAlias(fn.Pkg().Path(), fn.Pkg().Name())
 					}
 				}
 			}
 		} else if sel, ok := n.(*ast.SelectorExpr); ok {
 			if ident, ok := sel.X.(*ast.Ident); ok {
 				if obj := pkg.TypesInfo.Uses[ident]; obj != nil {
-					if pkgName, ok := obj.(*types.PkgName); ok {
-						imports[pkgName.Imported().Path()] = pkgName.Imported().Name()
+					if pkgName, ok := obj.(*types.PkgName); ok { // This is a package qualifier (e.g., `fmt.Println`)
+						importedPkg := pkgName.Imported()
+						if importedPkg.Path() != pkg.PkgPath { // Don't import current package
+							imports[importedPkg.Path()] = determineImportAlias(importedPkg.Path(), importedPkg.Name())
+						}
 					}
 				}
 			}

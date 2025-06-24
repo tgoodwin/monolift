@@ -8,9 +8,12 @@ import (
 	"net/http"
 
     {{- range $path, $alias := .Imports }}
+	{{- if $alias }}
 	{{$alias}} "{{$path}}"
+	{{- else }}
+	"{{$path}}"
+	{{- end }}
     {{- end }}
-    {{.InterfacePackageAlias}} "{{.InterfacePackagePath}}"
 )
 
 {{range .PackageScopeDeps}}
