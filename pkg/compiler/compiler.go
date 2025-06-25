@@ -19,6 +19,15 @@ const debugDependencyResolution = true // Set to true to see debug prints
 
 const entrypointDirName = "entrypoint"
 
+// extractionResult holds all the necessary information about a service that has been
+// identified for extraction.
+type extractionResult struct {
+	InterfaceTypeName string
+	PackageName       string // e.g., "userservice"
+	RootStmt          ast.Stmt
+	FileAST           *ast.File
+}
+
 // Compiler holds the parsed ASTs for the application's Go packages.
 // It discovers packages within the application's module starting from a root directory.
 type Compiler struct {
@@ -119,24 +128,34 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry string) er
 	}
 
 	// 1. extract code
-	extractedServices, err := c.extractCode(outputDir)
+	extractedResults, err := c.extractCode(outputDir)
 	if err != nil {
 		return err
 	}
-	if len(extractedServices) == 0 {
+	if len(extractedResults) == 0 {
 		fmt.Printf("no @monolift pragmas found.")
 		return nil
 	}
 	fmt.Println("extracted code from the application:")
 
+	// Collect unique package names for the build step.
+	var extractedServiceNames []string
+	seenNames := make(map[string]bool)
+	for _, res := range extractedResults {
+		if !seenNames[res.PackageName] {
+			extractedServiceNames = append(extractedServiceNames, res.PackageName)
+			seenNames[res.PackageName] = true
+		}
+	}
+
 	// 2. Create the entrypoint by recreating the main package in the output directory.
-	if err := c.generateEntrypoint(outputDir, originalAppPath); err != nil {
+	if err := c.generateEntrypoint(outputDir, originalAppPath, extractedResults); err != nil {
 		return fmt.Errorf("recreating main package: %w", err)
 	}
 
 	// 3. build extracted code artifacts
 	builder, _ := newGoBuilder()
-	buildArtifacts := append(extractedServices, entrypointDirName)
+	buildArtifacts := append(extractedServiceNames, entrypointDirName)
 	if err := builder.build(outputDir, dockerRegistry, buildArtifacts); err != nil {
 		return fmt.Errorf("building extracted code artifacts: %w", err)
 	}
@@ -146,7 +165,7 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry string) er
 	return nil
 }
 
-func (c *Compiler) generateEntrypoint(outputDir, originalAppPath string) error {
+func (c *Compiler) generateEntrypoint(outputDir, originalAppPath string, extracted []*extractionResult) error {
 	entrypointDir := filepath.Join(outputDir, entrypointDirName)
 	fmt.Printf("Recreating main package in %s\n", entrypointDir)
 
@@ -156,10 +175,27 @@ func (c *Compiler) generateEntrypoint(outputDir, originalAppPath string) error {
 		return fmt.Errorf("could not find main package to recreate: %w", err)
 	}
 
+	// Group transformations by the file they apply to for efficient processing.
+	replacementsByFile := make(map[*ast.File][]*extractionResult)
+	for _, res := range extracted {
+		replacementsByFile[res.FileAST] = append(replacementsByFile[res.FileAST], res)
+	}
+
 	// Recreate all files from the parsed main package ASTs
 	for i, fileAST := range mainPkg.Syntax {
 		originalFilePath := mainPkg.GoFiles[i]
 		baseName := filepath.Base(originalFilePath)
+
+		// Apply transformations if any are registered for this file.
+		if resultsToApply, ok := replacementsByFile[fileAST]; ok {
+			fmt.Printf("  Rewriting constructor calls in %s\n", baseName)
+			for _, res := range resultsToApply {
+				if err := c.rewriteConstructorCall(res.RootStmt, res.InterfaceTypeName); err != nil {
+					return fmt.Errorf("failed to rewrite constructor in %s: %w", baseName, err)
+				}
+			}
+		}
+
 		destPath := filepath.Join(entrypointDir, baseName)
 
 		outFile, err := os.Create(destPath)
@@ -189,8 +225,8 @@ func (c *Compiler) generateEntrypoint(outputDir, originalAppPath string) error {
 	return nil
 }
 
-func (c *Compiler) extractCode(outputDir string) ([]string, error) {
-	extracted := make([]string, 0)
+func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
+	extracted := make([]*extractionResult, 0)
 	for _, pkg := range c.LoadedPkgs {
 		importPath := pkg.PkgPath
 		for _, fileAst := range pkg.Syntax {
@@ -264,6 +300,17 @@ func (c *Compiler) extractCode(outputDir string) ([]string, error) {
 													fmt.Printf("      [ERROR] Could not find assignment for constructor call %s: %v\n", constructorName, err)
 													continue
 												}
+												var fileForStmt *ast.File
+												for _, f := range mainPkg.Syntax {
+													// A node is in a file if its position is within the file's position range.
+													if f.Pos() <= rootStmt.Pos() && rootStmt.End() <= f.End() {
+														fileForStmt = f
+														break
+													}
+												}
+												// if fileForStmt == nil {
+												// 	return error.Errorf("could not find source file for root statement of %s", constructorName)
+												// }
 												// Resolve the full dependency graph for the service
 												collectedImports := make(map[string]string)
 												instantiationPlan, err := c.resolveDependencies(mainPkg, rootStmt, collectedImports)
@@ -328,8 +375,25 @@ func (c *Compiler) extractCode(outputDir string) ([]string, error) {
 												}
 												fmt.Printf("      Generated client for %s\n", typeSpec.Name.Name)
 
+												// Generate the delegate for this service
+												delegateData, err := lift.GetDelegateTemplateData(typeSpec.Name, currentLoadedPkg)
+												if err != nil {
+													fmt.Printf("      [ERROR] Failed to gather delegate template data for %s: %v\n", typeSpec.Name.Name, err)
+													continue
+												}
+												if err := lift.ExecuteDelegateTemplate(entrypointDir, *delegateData); err != nil {
+													fmt.Printf("      [ERROR] Failed to generate delegate for %s: %v\n", typeSpec.Name.Name, err)
+													continue
+												}
+												fmt.Printf("      Generated delegate for %s\n", typeSpec.Name.Name)
+
 												lift.ExecuteAndPrintTemplate(typeSpec.Name.Name, outputDir, templateData)
-												extracted = append(extracted, currentLoadedPkg.Name)
+												extracted = append(extracted, &extractionResult{
+													InterfaceTypeName: typeSpec.Name.Name,
+													PackageName:       currentLoadedPkg.Name,
+													RootStmt:          rootStmt,
+													FileAST:           fileForStmt,
+												})
 											}
 										} else {
 											fmt.Printf("      Could not find loaded package or type info for %s to check implementers for %s\n", importPath, typeSpec.Name.Name)
@@ -348,6 +412,55 @@ func (c *Compiler) extractCode(outputDir string) ([]string, error) {
 	}
 
 	return extracted, nil
+}
+
+// rewriteConstructorCall modifies an AST statement in place, replacing the original
+// service constructor call with a call to the generated delegate constructor.
+// It transforms `var x = NewService(a, b)` into `var x = NewServiceClientDelegate(NewService(a, b), NewClient("temp"))`.
+func (c *Compiler) rewriteConstructorCall(stmt ast.Stmt, interfaceName string) error {
+	// 1. Create the AST node for the remote client constructor call: NewClient("temp")
+	clientConstructorCall := &ast.CallExpr{
+		Fun: ast.NewIdent("NewServiceClient"), // Assumes NewClient is in the same (main) package
+		Args: []ast.Expr{
+			&ast.BasicLit{
+				Kind:  token.STRING,
+				Value: `"temp"`, // Placeholder TODO
+			},
+		},
+	}
+
+	// 2. Get the original constructor call expression from the statement's RHS.
+	var originalCall ast.Expr
+	switch s := stmt.(type) {
+	case *ast.AssignStmt: // handles `:=`
+		originalCall = s.Rhs[0]
+	case *ast.DeclStmt: // handles `var =`
+		genDecl := s.Decl.(*ast.GenDecl)
+		valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
+		originalCall = valueSpec.Values[0]
+	default:
+		return fmt.Errorf("unsupported statement type for rewrite: %T", stmt)
+	}
+
+	// 3. Create the AST node for the delegate constructor call, wrapping the other two.
+	delegateConstructorName := "New" + interfaceName + "ClientDelegate"
+	delegateConstructorCall := &ast.CallExpr{
+		Fun: ast.NewIdent(delegateConstructorName),
+		Args: []ast.Expr{
+			originalCall,          // First arg: the original local service constructor call
+			clientConstructorCall, // Second arg: the new remote client constructor call
+		},
+	}
+
+	// 4. Replace the original RHS with the new delegate call expression.
+	switch s := stmt.(type) {
+	case *ast.AssignStmt:
+		s.Rhs[0] = delegateConstructorCall
+	case *ast.DeclStmt:
+		valueSpec := s.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec)
+		valueSpec.Values[0] = delegateConstructorCall
+	}
+	return nil
 }
 
 // findSingleImplementer takes an AST identifier for an interface name and its defining package,

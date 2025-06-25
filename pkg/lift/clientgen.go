@@ -20,12 +20,13 @@ var clientTemplate string
 
 // ClientMethodConfig holds information about a single interface method for client generation.
 type ClientMethodConfig struct {
-	Name              string // e.g., "Register"
-	HTTPRoute         string // e.g., "/register"
-	FullSignature     string // e.g., "Register(ctx context.Context, req userTypes.RegisterReq) (userTypes.RegisterResp, error)"
-	RequestArgName    string // e.g., "req"
-	ResponseType      string // e.g., "userTypes.RegisterResp"
-	ResponseZeroValue string // e.g., "userTypes.RegisterResp{}" or "nil"
+	Name              string   // e.g., "Register"
+	HTTPRoute         string   // e.g., "/register"
+	FullSignature     string   // e.g., "Register(ctx context.Context, req userTypes.RegisterReq) (userTypes.RegisterResp, error)"
+	RequestArgName    string   // e.g., "req"
+	ParamNames        []string // e.g., ["ctx", "req"]
+	ResponseType      string   // e.g., "userTypes.RegisterResp"
+	ResponseZeroValue string   // e.g., "userTypes.RegisterResp{}" or "nil"
 }
 
 // ClientTemplateData holds all information needed for generating the client.
@@ -89,6 +90,13 @@ func GetInterfaceClientMethodConfigs(iface *types.Interface, qualifier types.Qua
 		fullSig = strings.TrimPrefix(fullSig, "func") // remove "func" prefix
 		fullSig = method.Name() + fullSig
 
+		// Get all param names
+		var paramNames []string
+		for j := 0; j < sig.Params().Len(); j++ {
+			param := sig.Params().At(j)
+			paramNames = append(paramNames, param.Name())
+		}
+
 		// Get request and response types
 		reqArg := sig.Params().At(1)
 		respResult := sig.Results().At(0)
@@ -117,6 +125,7 @@ func GetInterfaceClientMethodConfigs(iface *types.Interface, qualifier types.Qua
 			HTTPRoute:         "/" + strings.ToLower(method.Name()),
 			FullSignature:     fullSig,
 			RequestArgName:    reqArg.Name(),
+			ParamNames:        paramNames,
 			ResponseType:      respTypeString,
 			ResponseZeroValue: respZeroValue,
 		})

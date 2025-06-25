@@ -1,0 +1,38 @@
+package {{.PackageName}}
+
+import (
+	"context"
+	"fmt"
+)
+
+// {{.DelegateStructName}} allows calling either the local or remote implementation of the {{.InterfaceTypeName}}.
+type {{.DelegateStructName}} struct {
+	{{.InterfacePackageAlias}}.{{.InterfaceTypeName}}
+	remote    *{{.RemoteClientStructName}}
+	useRemote bool
+}
+
+// New{{.DelegateStructName}} creates a new delegate for the {{.InterfaceTypeName}}.
+// It takes the local implementation and the remote client as arguments.
+func New{{.DelegateStructName}}(local {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}, remote *{{.RemoteClientStructName}}) *{{.DelegateStructName}} {
+	return &{{.DelegateStructName}}{
+		{{.InterfaceTypeName}}: local,
+		remote:    remote,
+		useRemote: false, // Default to local
+	}
+}
+
+// SetUseRemote configures the delegate to use the remote client.
+func (d *{{.DelegateStructName}}) SetUseRemote(use bool) {
+	d.useRemote = use
+}
+
+{{range .Methods}}
+// {{.Name}} calls either the local or remote {{.Name}} method based on configuration.
+func (d *{{$.DelegateStructName}}) {{.FullSignature}} {
+	if d.useRemote {
+		return d.remote.{{.Name}}({{ join .ParamNames ", " }})
+	}
+	return d.{{$.InterfaceTypeName}}.{{.Name}}({{ join .ParamNames ", " }})
+}
+{{end}}

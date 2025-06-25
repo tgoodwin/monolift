@@ -24,7 +24,7 @@ type {{ .ClientStructName }} struct {
 
 // New{{ .InterfaceTypeName }}Client creates a new client for the {{ .InterfaceTypeName }} service.
 // It adheres to the {{ .InterfacePackageAlias }}.{{ .InterfaceTypeName }} interface.
-func New{{ .InterfaceTypeName }}Client(baseURL string) {{ .InterfacePackageAlias }}.{{ .InterfaceTypeName }} {
+func New{{ .InterfaceTypeName }}Client(baseURL string) *{{ .ClientStructName }} {
 	return &{{ .ClientStructName }}{
 		baseURL:    baseURL,
 		httpClient: &http.Client{},
