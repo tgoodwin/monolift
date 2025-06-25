@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 )
 
 func GenerateImports(filePath string) error {
@@ -30,4 +31,14 @@ func InitGoMod(name, outputDir string) error {
 		return fmt.Errorf("could not run go mod tidy: %w", err)
 	}
 	return nil
+}
+
+// determineImportAlias decides whether an explicit alias is needed for an import.
+// If the package's declared name is the same as the last component of its import path,
+// no explicit alias is needed, and an empty string is returned. Otherwise, the package name is returned.
+func DetermineImportAlias(pkgPath, pkgName string) string {
+	if pkgName == filepath.Base(pkgPath) {
+		return "" // No explicit alias needed, Go will use the package name by default
+	}
+	return pkgName // Use the package name as an explicit alias
 }

@@ -2,12 +2,16 @@ package lift
 
 import (
 	"fmt"
+	"go/ast"
+	"go/types"
 	"os"
+	"strings"
 	"text/template"
 
 	_ "embed"
 
 	util "github.com/tgoodwin/monolift/pkg/util"
+	"golang.org/x/tools/go/packages"
 )
 
 //go:embed templates/server.go.tmpl
@@ -74,4 +78,33 @@ func ExecuteAndPrintTemplate(name, outputDir string, data ServerTemplateData) er
 	}
 
 	return nil
+}
+
+// GetInterfaceMethodConfigs extracts method information from an interface for template generation.
+func GetInterfaceMethodConfigs(ifaceNameIdent *ast.Ident, pkg *packages.Package) ([]MethodConfig, error) {
+	var methodDataList []MethodConfig
+
+	ifaceObj := pkg.TypesInfo.Defs[ifaceNameIdent]
+	if ifaceObj == nil {
+		return nil, fmt.Errorf("could not find type object for interface %s", ifaceNameIdent.Name)
+	}
+
+	ifaceTypeName, ok := ifaceObj.(*types.TypeName)
+	if !ok {
+		return nil, fmt.Errorf("object for %s is not a TypeName", ifaceNameIdent.Name)
+	}
+
+	ifaceType, ok := ifaceTypeName.Type().Underlying().(*types.Interface)
+	if !ok {
+		return nil, fmt.Errorf("type for %s is not an Interface", ifaceNameIdent.Name)
+	}
+
+	for i := 0; i < ifaceType.NumExplicitMethods(); i++ {
+		method := ifaceType.ExplicitMethod(i)
+		methodName := method.Name()
+		handlerFuncName := "handle" + strings.ToUpper(methodName[:1]) + methodName[1:]
+		httpRoute := "/" + strings.ToLower(methodName)
+		methodDataList = append(methodDataList, MethodConfig{Name: methodName, HandlerFuncName: handlerFuncName, HTTPRoute: httpRoute})
+	}
+	return methodDataList, nil
 }

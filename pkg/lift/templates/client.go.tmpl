@@ -1,0 +1,68 @@
+package {{ .PackageName }}
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	{{ .InterfacePackageAlias }} "{{ .InterfacePackagePath }}"
+	{{- range $path, $alias := .Imports }}
+	{{- if $alias }}
+	{{ $alias }} "{{ $path }}"
+	{{- else }}
+	"{{ $path }}"
+	{{- end }}
+	{{- end }}
+)
+
+// {{ .ClientStructName }} implements the {{ .InterfacePackageAlias }}.{{ .InterfaceTypeName }} interface by making HTTP calls to a remote service.
+type {{ .ClientStructName }} struct {
+	baseURL    string
+	httpClient *http.Client
+}
+
+// New{{ .InterfaceTypeName }}Client creates a new client for the {{ .InterfaceTypeName }} service.
+// It adheres to the {{ .InterfacePackageAlias }}.{{ .InterfaceTypeName }} interface.
+func New{{ .InterfaceTypeName }}Client(baseURL string) {{ .InterfacePackageAlias }}.{{ .InterfaceTypeName }} {
+	return &{{ .ClientStructName }}{
+		baseURL:    baseURL,
+		httpClient: &http.Client{},
+	}
+}
+
+{{ range .Methods }}
+// {{ .Name }} makes an RPC call to the {{ .Name }} method of the remote service.
+func (c *{{ $.ClientStructName }}) {{ .FullSignature }} {
+	// 1. Marshal the request body
+	reqBodyBytes, err := json.Marshal({{ .RequestArgName }})
+	if err != nil {
+		return {{ .ResponseZeroValue }}, fmt.Errorf("failed to marshal request for {{ .Name }}: %w", err)
+	}
+
+	// 2. Create and send the HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"{{ .HTTPRoute }}", bytes.NewBuffer(reqBodyBytes))
+	if err != nil {
+		return {{ .ResponseZeroValue }}, fmt.Errorf("failed to create request for {{ .Name }}: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return {{ .ResponseZeroValue }}, fmt.Errorf("request for {{ .Name }} failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return {{ .ResponseZeroValue }}, fmt.Errorf("received non-200 status code %d for {{ .Name }}", resp.StatusCode)
+	}
+
+	// 3. Unmarshal the response
+	var serviceResp {{ .ResponseType }}
+	if err := json.NewDecoder(resp.Body).Decode(&serviceResp); err != nil {
+		return {{ .ResponseZeroValue }}, fmt.Errorf("failed to unmarshal response for {{ .Name }}: %w", err)
+	}
+
+	return serviceResp, nil
+}
+{{ end }}
