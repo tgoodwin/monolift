@@ -56,8 +56,8 @@ func GetPragmasFromCommentGroup(cg *ast.CommentGroup) []*Pragma {
 	return pragmas
 }
 
-// GetFuncDeclPragmas extracts monolift pragmas associated with a function declaration.
-func GetFuncDeclPragmas(funcDecl *ast.FuncDecl) []*Pragma {
+// getFuncDeclPragmas extracts monolift pragmas associated with a function declaration.
+func getFuncDeclPragmas(funcDecl *ast.FuncDecl) []*Pragma {
 	if funcDecl == nil || funcDecl.Doc == nil {
 		return nil
 	}

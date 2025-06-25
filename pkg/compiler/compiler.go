@@ -17,9 +17,6 @@ import (
 
 const debugDependencyResolution = true // Set to true to see debug prints
 
-// TODO make this not hardcoded
-const outputDir = "output"
-
 // Compiler holds the parsed ASTs for the application's Go packages.
 // It discovers packages within the application's module starting from a root directory.
 type Compiler struct {
@@ -126,20 +123,41 @@ func New(appRootPath string) (*Compiler, error) {
 	return compiler, nil
 }
 
-// targetPackageImportPath := ""
-// Determine the correct import path for userservice.
-// This might be "github.com/tgoodwin/monolift/demo/monolith/userservice" or something based on your go.mod module path + /userservice
-// For example, if your go.mod is "my/project", it might be "my/project/demo/monolith/userservice"
-// You might need to list `compiler.Packages` keys to find the exact one.
-// For now, let's iterate to find it:
-// for pkgPath := range appPackages {
-// 	if strings.HasSuffix(pkgPath, "socialgraph") { // Adjust this heuristic if needed
-// 		targetPackageImportPath = pkgPath
-// 		break
-// 	}
-// }
+var dockerRegistry = "docker.io/tlg2132"
 
-func (c *Compiler) Compile() error {
+func (c *Compiler) Compile(outputDir string) error {
+	// 1. extract code
+	extracted, err := c.extractCode(outputDir)
+	if err != nil {
+		return err
+	}
+	fmt.Println("extracted code from the application:")
+
+	// 2. replace call sites in original program with generated code
+	if err := c.replaceCallSites(outputDir, extracted); err != nil {
+		return fmt.Errorf("replacing call sites in original program: %w", err)
+	}
+
+	// 3. build extracted code artifacts
+	builder, _ := newGoBuilder()
+	if err := builder.build(outputDir, dockerRegistry, extracted); err != nil {
+		return fmt.Errorf("building extracted code artifacts: %w", err)
+	}
+
+	// 4. write Kubernetes deployment manifests for the artifacts
+
+	return nil
+}
+
+func (c *Compiler) replaceCallSites(outputDir string, extracted []string) error {
+	// need to replace call sites in the original program with generated code
+	// might be easier to do this within `extractCode` as we already have the AST nodes available
+	fmt.Printf("TODO")
+	return nil
+}
+
+func (c *Compiler) extractCode(outputDir string) ([]string, error) {
+	extracted := make([]string, 0)
 	for importPath, astPkg := range c.Packages {
 		// fmt.Printf("Found package (import path: %s, name: %s)\n", importPath, astPkg.Name)
 		for _, fileAst := range astPkg.Files {
@@ -147,7 +165,7 @@ func (c *Compiler) Compile() error {
 			ast.Inspect(fileAst, func(n ast.Node) bool {
 				switch node := n.(type) {
 				case *ast.FuncDecl:
-					pragmas := GetFuncDeclPragmas(node)
+					pragmas := getFuncDeclPragmas(node)
 					if len(pragmas) > 0 {
 						fmt.Printf("    Function %s has pragmas:\n", node.Name.Name)
 						for _, pragma := range pragmas {
@@ -265,7 +283,9 @@ func (c *Compiler) Compile() error {
 													RootDependency:        instantiationPlan.RootDependency,
 												}
 
+												// TODO names of extracted code may collide - design a better naming scheme
 												lift.ExecuteAndPrintTemplate(typeSpec.Name.Name, outputDir, templateData)
+												extracted = append(extracted, currentLoadedPkg.Name)
 											}
 										} else {
 											fmt.Printf("      Could not find loaded package or type info for %s to check implementers for %s\n", importPath, typeSpec.Name.Name)
@@ -283,16 +303,7 @@ func (c *Compiler) Compile() error {
 		}
 	}
 
-	// Example: To access the AST for a specific file in a package:
-	// targetImportPath := "your/app/module/pkgname" // Replace with actual import path
-	// if appPkg, ok := compiler.Packages[targetImportPath]; ok {
-	//   fmt.Printf("Package %s (name: %s) has %d files\n", targetImportPath, appPkg.Name, len(appPkg.Files))
-	//   // To get a specific file, you'd need its absolute path:
-	//   // targetFilePath := "/absolute/path/to/your/app/module/pkgname/file.go"
-	//   // if fileAst, ok := appPkg.Files[targetFilePath]; ok { /* ... use fileAst ... */ }
-	// }
-
-	return nil
+	return extracted, nil
 }
 
 // findSingleImplementer takes an AST identifier for an interface name and its defining package,

@@ -17,9 +17,7 @@ type options struct {
 }
 
 func rootCmd() *cobra.Command {
-	opts := options{
-		dirname: "foobar",
-	}
+	opts := options{}
 
 	root := &cobra.Command{
 		Use:   progname,
@@ -51,7 +49,7 @@ func start(opts *options) {
 		fmt.Printf("Error initializing compiler: %v\n", err)
 		os.Exit(1)
 	}
-	if err := c.Compile(); err != nil {
+	if err := c.Compile(opts.outputDir); err != nil {
 		fmt.Printf("Error during compilation: %v\n", err)
 		os.Exit(1)
 	}
