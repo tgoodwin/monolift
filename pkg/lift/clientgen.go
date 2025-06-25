@@ -18,17 +18,6 @@ import (
 //go:embed templates/client.go.tmpl
 var clientTemplate string
 
-// ClientMethodConfig holds information about a single interface method for client generation.
-type ClientMethodConfig struct {
-	Name              string   // e.g., "Register"
-	HTTPRoute         string   // e.g., "/register"
-	FullSignature     string   // e.g., "Register(ctx context.Context, req userTypes.RegisterReq) (userTypes.RegisterResp, error)"
-	RequestArgName    string   // e.g., "req"
-	ParamNames        []string // e.g., ["ctx", "req"]
-	ResponseType      string   // e.g., "userTypes.RegisterResp"
-	ResponseZeroValue string   // e.g., "userTypes.RegisterResp{}" or "nil"
-}
-
 // ClientTemplateData holds all information needed for generating the client.
 type ClientTemplateData struct {
 	PackageName           string // e.g., "userservice" (the client package name)
@@ -36,7 +25,7 @@ type ClientTemplateData struct {
 	InterfacePackageAlias string // e.g., "userservice" (the original interface package alias)
 	InterfacePackagePath  string // e.g., "github.com/tgoodwin/monolift/demo/monolith/userservice"
 	InterfaceTypeName     string // e.g., "Service"
-	Methods               []ClientMethodConfig
+	Methods               []MethodConfig
 	Imports               map[string]string
 }
 
@@ -63,9 +52,9 @@ func ExecuteClientTemplate(entrypointDir string, data ClientTemplateData) error 
 	return util.GenerateImports(outfile)
 }
 
-// GetInterfaceClientMethodConfigs extracts method information from an interface for client template generation.
-func GetInterfaceClientMethodConfigs(iface *types.Interface, qualifier types.Qualifier, imports map[string]string) ([]ClientMethodConfig, error) {
-	var methods []ClientMethodConfig
+// GetInterfaceMethodConfigs extracts method information from an interface for template generation.
+func GetInterfaceMethodConfigs(iface *types.Interface, qualifier types.Qualifier) ([]MethodConfig, error) {
+	var methods []MethodConfig
 
 	for i := 0; i < iface.NumExplicitMethods(); i++ {
 		method := iface.ExplicitMethod(i)
@@ -100,6 +89,7 @@ func GetInterfaceClientMethodConfigs(iface *types.Interface, qualifier types.Qua
 		// Get request and response types
 		reqArg := sig.Params().At(1)
 		respResult := sig.Results().At(0)
+		reqTypeString := types.TypeString(reqArg.Type(), qualifier)
 		respTypeString := types.TypeString(respResult.Type(), qualifier)
 
 		// Determine zero value for the response type
@@ -120,11 +110,13 @@ func GetInterfaceClientMethodConfigs(iface *types.Interface, qualifier types.Qua
 			panic("could not infer zero value for response type: " + respTypeString)
 		}
 
-		methods = append(methods, ClientMethodConfig{
+		methods = append(methods, MethodConfig{
 			Name:              method.Name(),
 			HTTPRoute:         "/" + strings.ToLower(method.Name()),
+			HandlerFuncName:   "handle" + method.Name(),
 			FullSignature:     fullSig,
 			RequestArgName:    reqArg.Name(),
+			RequestType:       reqTypeString,
 			ParamNames:        paramNames,
 			ResponseType:      respTypeString,
 			ResponseZeroValue: respZeroValue,
@@ -133,8 +125,9 @@ func GetInterfaceClientMethodConfigs(iface *types.Interface, qualifier types.Qua
 	return methods, nil
 }
 
-// GetClientTemplateData gathers all necessary information to generate a client for a given interface.
-func GetClientTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Package) (*ClientTemplateData, error) {
+// GetMethodConfigsForInterface is a helper that wraps GetInterfaceMethodConfigs.
+// It takes an interface name and its package, resolves the types, and returns the method configs.
+func GetMethodConfigsForInterface(ifaceNameIdent *ast.Ident, definingPkg *packages.Package, imports map[string]string) ([]MethodConfig, error) {
 	ifaceObj := definingPkg.TypesInfo.Defs[ifaceNameIdent]
 	ifaceTypeName, ok := ifaceObj.(*types.TypeName)
 	if !ok {
@@ -145,9 +138,7 @@ func GetClientTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pack
 		return nil, fmt.Errorf("type for %s is not an Interface", ifaceNameIdent.Name)
 	}
 
-	imports := make(map[string]string)
 	qualifier := func(p *types.Package) string {
-		// The generated client is in the 'main' package, so it must always qualify types from other packages.
 		if p.Path() == "builtin" {
 			return "" // Don't qualify built-in types
 		}
@@ -155,18 +146,20 @@ func GetClientTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pack
 		if _, exists := imports[p.Path()]; !exists {
 			imports[p.Path()] = util.DetermineImportAlias(p.Path(), p.Name())
 		}
-		// Return the package's declared name for use in the type string.
 		return p.Name()
 	}
 
-	methodConfigs, err := GetInterfaceClientMethodConfigs(iface, qualifier, imports)
+	return GetInterfaceMethodConfigs(iface, qualifier)
+}
+
+// GetClientTemplateData gathers all necessary information to generate a client for a given interface.
+func GetClientTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Package) (*ClientTemplateData, error) {
+	imports := make(map[string]string)
+	methodConfigs, err := GetMethodConfigsForInterface(ifaceNameIdent, definingPkg, imports)
 	if err != nil {
 		return nil, err
 	}
 
-	// The client file will be part of the 'main' package in the entrypoint dir.
-	// The template will set the package name to 'main'.
-	// Here, we use the original package name for the file name.
 	clientPackageName := definingPkg.Name
 
 	data := &ClientTemplateData{

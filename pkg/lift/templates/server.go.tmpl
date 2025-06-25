@@ -27,11 +27,28 @@ type {{.ServerStructName}} struct {
 {{range .Methods}}
 // {{.HandlerFuncName}} handles HTTP requests for the {{.Name}} method.
 func (s *{{$.ServerStructName}}) {{.HandlerFuncName}}(w http.ResponseWriter, r *http.Request) {
-    // TODO: Decode request from r.Body (likely JSON)
-    // TODO: Validate request
-    // TODO: Call s.{{$.DelegateFieldName}}.{{.Name}}(...)
-    // TODO: Encode response to w (likely JSON)
-    fmt.Fprintf(w, "Handler for {{.Name}} called. Implement me!\n")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req {{.RequestType}}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("failed to decode request for {{.Name}}: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	resp, err := s.{{$.DelegateFieldName}}.{{.Name}}(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("service call for {{.Name}} failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		// If encoding fails, it's too late to send a different status code.
+		log.Printf("failed to encode response for {{.Name}}: %v", err)
+	}
 }
 {{end}}
 

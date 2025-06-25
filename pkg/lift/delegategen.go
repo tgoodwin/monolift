@@ -3,7 +3,6 @@ package lift
 import (
 	"fmt"
 	"go/ast"
-	"go/types"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +25,7 @@ type DelegateTemplateData struct {
 	InterfacePackagePath   string // e.g., "github.com/tgoodwin/monolift/demo/monolith/userservice"
 	InterfaceTypeName      string // e.g., "Service"
 	RemoteClientStructName string // e.g., "client"
-	Methods                []ClientMethodConfig
+	Methods                []MethodConfig
 	Imports                map[string]string
 }
 
@@ -60,28 +59,9 @@ func ExecuteDelegateTemplate(entrypointDir string, data DelegateTemplateData) er
 
 // GetDelegateTemplateData gathers all necessary information to generate a delegate for a given interface.
 func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Package) (*DelegateTemplateData, error) {
-	ifaceObj := definingPkg.TypesInfo.Defs[ifaceNameIdent]
-	ifaceTypeName, ok := ifaceObj.(*types.TypeName)
-	if !ok {
-		return nil, fmt.Errorf("object for %s is not a TypeName", ifaceNameIdent.Name)
-	}
-	iface, ok := ifaceTypeName.Type().Underlying().(*types.Interface)
-	if !ok {
-		return nil, fmt.Errorf("type for %s is not an Interface", ifaceNameIdent.Name)
-	}
-
 	imports := make(map[string]string)
-	qualifier := func(p *types.Package) string {
-		if p.Path() == "builtin" {
-			return ""
-		}
-		if _, exists := imports[p.Path()]; !exists {
-			imports[p.Path()] = util.DetermineImportAlias(p.Path(), p.Name())
-		}
-		return p.Name()
-	}
 
-	methodConfigs, err := GetInterfaceClientMethodConfigs(iface, qualifier, imports)
+	methodConfigs, err := GetMethodConfigsForInterface(ifaceNameIdent, definingPkg, imports)
 	if err != nil {
 		return nil, err
 	}

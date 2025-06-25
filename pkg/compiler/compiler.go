@@ -149,7 +149,7 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry string) er
 	}
 
 	// 2. Create the entrypoint by recreating the main package in the output directory.
-	if err := c.generateEntrypoint(outputDir, originalAppPath, extractedResults); err != nil {
+	if err := c.generateEntrypoint(outputDir, extractedResults); err != nil {
 		return fmt.Errorf("recreating main package: %w", err)
 	}
 
@@ -165,7 +165,7 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry string) er
 	return nil
 }
 
-func (c *Compiler) generateEntrypoint(outputDir, originalAppPath string, extracted []*extractionResult) error {
+func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionResult) error {
 	entrypointDir := filepath.Join(outputDir, entrypointDirName)
 	fmt.Printf("Recreating main package in %s\n", entrypointDir)
 
@@ -218,7 +218,8 @@ func (c *Compiler) generateEntrypoint(outputDir, originalAppPath string, extract
 	// 	return fmt.Errorf("could not determine module path for entrypoint: %w", err)
 	// }
 
-	if err := util.InitGoMod("entrypoint", entrypointDir); err != nil {
+	entryPointModuleName := "entrypoint"
+	if err := util.InitGoMod(entryPointModuleName, entrypointDir); err != nil {
 		return fmt.Errorf("could not initialize go.mod in entrypoint directory %s: %w", entrypointDir, err)
 	}
 
@@ -308,21 +309,12 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 														break
 													}
 												}
-												// if fileForStmt == nil {
-												// 	return error.Errorf("could not find source file for root statement of %s", constructorName)
-												// }
 												// Resolve the full dependency graph for the service
 												collectedImports := make(map[string]string)
 												instantiationPlan, err := c.resolveDependencies(mainPkg, rootStmt, collectedImports)
 												if err != nil {
 													fmt.Printf("      [ERROR] Failed to resolve dependencies for %s.%s: %v\n", constructorPkgPath, constructorName, err)
 													continue // Skip to the next interface
-												}
-
-												methodConfigs, err := lift.GetInterfaceMethodConfigs(typeSpec.Name, currentLoadedPkg)
-												if err != nil {
-													fmt.Printf("      Error extracting methods for interface %s: %v\n", typeSpec.Name.Name, err)
-													continue // Skip to the next interface if methods can't be extracted
 												}
 
 												// Add the service's own interface package to collectedImports.
@@ -343,6 +335,12 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 													} else {
 														funcScopeDeps = append(funcScopeDeps, dep)
 													}
+												}
+
+												methodConfigs, err := lift.GetMethodConfigsForInterface(typeSpec.Name, currentLoadedPkg, collectedImports)
+												if err != nil {
+													fmt.Printf("      Error extracting methods for interface %s: %v\n", typeSpec.Name.Name, err)
+													continue // Skip to the next interface if methods can't be extracted
 												}
 
 												serverStructName := strings.ToLower(typeSpec.Name.Name[:1]) + typeSpec.Name.Name[1:] + "Server"
@@ -416,15 +414,16 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 
 // rewriteConstructorCall modifies an AST statement in place, replacing the original
 // service constructor call with a call to the generated delegate constructor.
-// It transforms `var x = NewService(a, b)` into `var x = NewServiceClientDelegate(NewService(a, b), NewClient("temp"))`.
+// It transforms `var x = NewService(a, b)` into `var x = NewServiceClientDelegate(NewService(a, b), NewClient(<servicename>))`.
 func (c *Compiler) rewriteConstructorCall(stmt ast.Stmt, interfaceName string) error {
-	// 1. Create the AST node for the remote client constructor call: NewClient("temp")
+	remoteClientConstructorName := "New" + interfaceName + "Client"
+	serviceName := "temp" // TODO get the name of the generated k8s service
 	clientConstructorCall := &ast.CallExpr{
-		Fun: ast.NewIdent("NewServiceClient"), // Assumes NewClient is in the same (main) package
+		Fun: ast.NewIdent(remoteClientConstructorName),
 		Args: []ast.Expr{
 			&ast.BasicLit{
 				Kind:  token.STRING,
-				Value: `"temp"`, // Placeholder TODO
+				Value: `"` + serviceName + `"`,
 			},
 		},
 	}
@@ -447,8 +446,8 @@ func (c *Compiler) rewriteConstructorCall(stmt ast.Stmt, interfaceName string) e
 	delegateConstructorCall := &ast.CallExpr{
 		Fun: ast.NewIdent(delegateConstructorName),
 		Args: []ast.Expr{
-			originalCall,          // First arg: the original local service constructor call
-			clientConstructorCall, // Second arg: the new remote client constructor call
+			originalCall,
+			clientConstructorCall,
 		},
 	}
 

@@ -44,6 +44,19 @@ func (d *Dependency) String() string {
 	return fmt.Sprintf("Dep<%q>", strings.Split(strings.TrimSpace(d.RenderedForm), "\n")[0])
 }
 
+// MethodConfig holds information about a single interface method for code generation.
+type MethodConfig struct {
+	Name              string   // e.g., "Register"
+	HTTPRoute         string   // e.g., "/register"
+	HandlerFuncName   string   // e.g., "handleRegister"
+	FullSignature     string   // e.g., "Register(ctx context.Context, req userTypes.RegisterReq) (userTypes.RegisterResp, error)"
+	RequestArgName    string   // e.g., "req"
+	RequestType       string   // e.g., "userTypes.RegisterReq"
+	ParamNames        []string // e.g., ["ctx", "req"]
+	ResponseType      string   // e.g., "userTypes.RegisterResp"
+	ResponseZeroValue string   // e.g., "userTypes.RegisterResp{}" or "nil"
+}
+
 // InstantiationPlan is the final, ordered list of dependencies to be generated in code.
 // The root service is the last element in the slice.
 type InstantiationPlan struct {
