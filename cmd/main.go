@@ -49,7 +49,7 @@ func start(opts *options) {
 		fmt.Printf("Error initializing compiler: %v\n", err)
 		os.Exit(1)
 	}
-	if err := c.Compile(opts.outputDir); err != nil {
+	if err := c.Compile(opts.outputDir, opts.dirname, opts.dockerRegistry); err != nil {
 		fmt.Printf("Error during compilation: %v\n", err)
 		os.Exit(1)
 	}

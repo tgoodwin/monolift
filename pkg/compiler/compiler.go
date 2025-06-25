@@ -7,6 +7,7 @@ import (
 	"go/printer"
 	"go/token"
 	"go/types"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -21,9 +22,6 @@ const debugDependencyResolution = true // Set to true to see debug prints
 // It discovers packages within the application's module starting from a root directory.
 type Compiler struct {
 	Fset *token.FileSet
-	// Packages are keyed by their import path (e.g., "my/app/main", "my/app/utils").
-	// Each *ast.Package contains the files for that specific package.
-	Packages map[string]*ast.Package
 
 	// rootStmt is the root declaration statement for the current extraction.
 	rootStmt ast.Stmt
@@ -48,7 +46,6 @@ func New(appRootPath string) (*Compiler, error) {
 		return nil, fmt.Errorf("failed to load packages from %s: %w", appRootPath, err)
 	}
 
-	appPackages := make(map[string]*ast.Package)
 	var appLoadedPkgs []*packages.Package
 	var errors []string
 	for _, pkg := range loadedPkgs {
@@ -82,41 +79,24 @@ func New(appRootPath string) (*Compiler, error) {
 			}
 		}
 
-		if isAppPackage && len(pkg.Syntax) > 0 { // Ensure there are ASTs to process
-			astPkg := &ast.Package{
-				Name:  pkg.Name,
-				Files: make(map[string]*ast.File),
-			}
-			for i, filePath := range pkg.GoFiles {
-				if i < len(pkg.Syntax) { // Should always be true if NeedSyntax is met
-					astPkg.Files[filePath] = pkg.Syntax[i]
-				} else {
-					// This case should ideally not happen if packages.Load is successful
-					// and NeedSyntax is properly fulfilled.
-					errors = append(errors, fmt.Sprintf("syntax tree missing for file %s in package %s", filePath, pkg.PkgPath))
-				}
-			}
-			if len(astPkg.Files) > 0 {
-				appPackages[pkg.PkgPath] = astPkg
-				appLoadedPkgs = append(appLoadedPkgs, pkg)
-			}
+		if isAppPackage && len(pkg.GoFiles) > 0 { // Ensure there are source files to process
+			appLoadedPkgs = append(appLoadedPkgs, pkg)
 		}
 	}
 
 	if len(errors) > 0 {
 		fmt.Printf("Warnings during package loading from %s:\n%s\n", appRootPath, strings.Join(errors, "\n"))
-		if len(appPackages) == 0 {
+		if len(appLoadedPkgs) == 0 {
 			return nil, fmt.Errorf("encountered errors during package loading and found no application packages in %s:\n%s", appRootPath, strings.Join(errors, "\n"))
 		}
 	}
 
-	if len(appPackages) == 0 {
+	if len(appLoadedPkgs) == 0 {
 		return nil, fmt.Errorf("no application Go packages found in %s or its subdirectories", appRootPath)
 	}
 
 	compiler := &Compiler{
 		Fset:       fset,
-		Packages:   appPackages,   // This stores the ASTs
 		LoadedPkgs: appLoadedPkgs, // This stores the packages.Package with type info
 	}
 
@@ -125,22 +105,32 @@ func New(appRootPath string) (*Compiler, error) {
 
 var dockerRegistry = "docker.io/tlg2132"
 
-func (c *Compiler) Compile(outputDir string) error {
+func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry string) error {
+	// 0. clean and create output directory
+	if err := os.RemoveAll(outputDir); err != nil {
+		return fmt.Errorf("could not remove output directory %s: %w", outputDir, err)
+	}
+
 	// 1. extract code
-	extracted, err := c.extractCode(outputDir)
+	extractedServices, err := c.extractCode(outputDir)
 	if err != nil {
 		return err
 	}
+	if len(extractedServices) == 0 {
+		fmt.Printf("no @monolift pragmas found.")
+		return nil
+	}
 	fmt.Println("extracted code from the application:")
 
-	// 2. replace call sites in original program with generated code
-	if err := c.replaceCallSites(outputDir, extracted); err != nil {
-		return fmt.Errorf("replacing call sites in original program: %w", err)
+	// 2. Create the entrypoint by recreating the main package in the output directory.
+	if err := c.recreateMainPackage(outputDir, originalAppPath); err != nil {
+		return fmt.Errorf("recreating main package: %w", err)
 	}
 
 	// 3. build extracted code artifacts
 	builder, _ := newGoBuilder()
-	if err := builder.build(outputDir, dockerRegistry, extracted); err != nil {
+	buildArtifacts := append(extractedServices, "entrypoint")
+	if err := builder.build(outputDir, dockerRegistry, buildArtifacts); err != nil {
 		return fmt.Errorf("building extracted code artifacts: %w", err)
 	}
 
@@ -149,19 +139,57 @@ func (c *Compiler) Compile(outputDir string) error {
 	return nil
 }
 
-func (c *Compiler) replaceCallSites(outputDir string, extracted []string) error {
-	// need to replace call sites in the original program with generated code
-	// might be easier to do this within `extractCode` as we already have the AST nodes available
-	fmt.Printf("TODO")
+func (c *Compiler) recreateMainPackage(outputDir, originalAppPath string) error {
+	entrypointDir := filepath.Join(outputDir, "entrypoint")
+	fmt.Printf("Recreating main package in %s\n", entrypointDir)
+
+	if err := os.MkdirAll(entrypointDir, 0755); err != nil {
+		return fmt.Errorf("could not create entrypoint directory: %w", err)
+	}
+
+	// Find the main package from the parsed data
+	mainPkg, err := c.getMainPackage()
+	if err != nil {
+		return fmt.Errorf("could not find main package to recreate: %w", err)
+	}
+
+	// Recreate all files from the main package
+	for i, fileAST := range mainPkg.Syntax {
+		originalFilePath := mainPkg.GoFiles[i]
+		baseName := filepath.Base(originalFilePath)
+		destPath := filepath.Join(entrypointDir, baseName)
+
+		outFile, err := os.Create(destPath)
+		if err != nil {
+			return fmt.Errorf("could not create destination file %s: %w", destPath, err)
+		}
+		defer outFile.Close()
+
+		fmt.Printf("  Writing %s\n", destPath)
+		// Use a standard printer config for nice formatting
+		config := printer.Config{Mode: printer.TabIndent | printer.UseSpaces, Tabwidth: 8}
+		if err := config.Fprint(outFile, c.Fset, fileAST); err != nil {
+			return fmt.Errorf("could not write AST to %s: %w", destPath, err)
+		}
+	}
+
+	// Copy go.mod and go.sum
+	for _, f := range []string{"go.mod", "go.sum"} {
+		src := filepath.Join(originalAppPath, f)
+		dst := filepath.Join(entrypointDir, f)
+		if err := copyFile(src, dst); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (c *Compiler) extractCode(outputDir string) ([]string, error) {
 	extracted := make([]string, 0)
-	for importPath, astPkg := range c.Packages {
-		// fmt.Printf("Found package (import path: %s, name: %s)\n", importPath, astPkg.Name)
-		for _, fileAst := range astPkg.Files {
-			// fmt.Printf("  File: %s\n", filePath)
+	for _, pkg := range c.LoadedPkgs {
+		importPath := pkg.PkgPath
+		for _, fileAst := range pkg.Syntax {
 			ast.Inspect(fileAst, func(n ast.Node) bool {
 				switch node := n.(type) {
 				case *ast.FuncDecl:

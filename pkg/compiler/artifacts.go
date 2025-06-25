@@ -35,7 +35,14 @@ func (self *goBuilder) build(outputDir, dockerRegistry string, names []string) e
 		workingDir := fmt.Sprintf("%s/%s", outputDir, name)
 
 		//nolint:gosec // this is fine dot jpeg
-		buildCmd := exec.Command("go", "build", "-trimpath", "-o", "main", "main.go")
+		var buildCmd *exec.Cmd
+		// The entrypoint is built from its package root, while services have a main.go
+		if name == "entrypoint" {
+			buildCmd = exec.Command("go", "build", "-trimpath", "-o", "main", ".")
+		} else {
+			// specifying main.go assumes that there are no other files in the main package
+			buildCmd = exec.Command("go", "build", "-trimpath", "-o", "main", "main.go")
+		}
 		buildCmd.Dir = workingDir
 		buildCmd.Env = self.goEnv
 		buildCmd.Stderr = os.Stderr
