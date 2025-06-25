@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/printer"
 	"go/types"
+	"slices"
 	"sort"
 
 	"github.com/tgoodwin/monolift/pkg/lift"
@@ -162,11 +163,7 @@ func isPackageScope(pkg *packages.Package, targetStmt ast.Stmt) bool {
 
 	// Check if it's a top-level declaration in any of the package's files.
 	for _, fileAST := range pkg.Syntax {
-		for _, topLevelDecl := range fileAST.Decls {
-			if topLevelDecl == declStmt.Decl {
-				return true
-			}
-		}
+		return slices.Contains(fileAST.Decls, declStmt.Decl)
 	}
 	return false
 }
