@@ -11,9 +11,10 @@ import (
 const progname = "monolift"
 
 type options struct {
-	dirname        string
-	outputDir      string
-	dockerRegistry string
+	dirname                 string
+	outputDir               string
+	dockerRegistry          string
+	originalK8sManifestPath string // New field for the K8s manifest path
 }
 
 func rootCmd() *cobra.Command {
@@ -36,6 +37,13 @@ func rootCmd() *cobra.Command {
 		"docker.io/tlg2132",
 		"location of docker registry to push to",
 	)
+	root.PersistentFlags().StringVarP(
+		&opts.originalK8sManifestPath,
+		"manifest",
+		"m",
+		"",
+		"path to the original application's Kubernetes deployment manifest (for extracting env vars/args)",
+	)
 	if err := root.MarkPersistentFlagRequired("dirname"); err != nil {
 		panic(err)
 	}
@@ -44,12 +52,12 @@ func rootCmd() *cobra.Command {
 }
 
 func start(opts *options) {
-	c, err := compiler.New(opts.dirname)
+	c, err := compiler.New(opts.dirname) // Pass new option
 	if err != nil {
 		fmt.Printf("Error initializing compiler: %v\n", err)
 		os.Exit(1)
-	}
-	if err := c.Compile(opts.outputDir, opts.dirname, opts.dockerRegistry); err != nil {
+	} // Pass new option
+	if err := c.Compile(opts.outputDir, opts.dirname, opts.dockerRegistry, opts.originalK8sManifestPath); err != nil {
 		fmt.Printf("Error during compilation: %v\n", err)
 		os.Exit(1)
 	}

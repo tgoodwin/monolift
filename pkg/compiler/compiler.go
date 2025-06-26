@@ -115,7 +115,7 @@ func New(appRootPath string) (*Compiler, error) {
 
 var dockerRegistry = "docker.io/tlg2132"
 
-func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry string) error {
+func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK8sManifestPath string) error {
 	// 0. clean and create output directories
 	if err := os.RemoveAll(outputDir); err != nil {
 		return fmt.Errorf("could not remove output directory %s: %w", outputDir, err)
@@ -161,6 +161,9 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry string) er
 	}
 
 	// 4. write Kubernetes deployment manifests for the artifacts
+	if err := c.generateK8sManifests(outputDir, dockerRegistry, extractedServiceNames, originalK8sManifestPath); err != nil {
+		return fmt.Errorf("generating Kubernetes manifests: %w", err)
+	}
 
 	return nil
 }
@@ -1139,4 +1142,34 @@ func (c *Compiler) resolveExpr(
 	default:
 		return nil, fmt.Errorf("unsupported AST expression type for dependency resolution: %T", expr)
 	}
+}
+
+// generateK8sManifests creates Kubernetes Deployment and Service YAMLs for each extracted service.
+// It currently focuses on extracted services and does not generate manifests for the entrypoint.
+func (c *Compiler) generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalK8sManifestPath string) error {
+	fmt.Println("\nGenerating Kubernetes manifests:")
+	namespace := "monolift" // Hardcode namespace for now
+	containerPort := 8080   // Default gRPC port for extracted services
+
+	var envVars []lift.EnvVar
+	if originalK8sManifestPath != "" {
+		var err error
+		envVars, err = extractEnvVarsFromK8sManifest(originalK8sManifestPath)
+		if err != nil {
+			return fmt.Errorf("failed to extract environment variables from original K8s manifest: %w", err)
+		}
+		if len(envVars) > 0 {
+			fmt.Printf("  Extracted %d environment variables from %s\n", len(envVars), originalK8sManifestPath)
+		}
+	}
+
+	for _, serviceName := range extractedServiceNames {
+		fmt.Printf("  Generating K8s manifests for service %s\n", serviceName)
+		imageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, serviceName)
+		if err := lift.GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName, containerPort, envVars); err != nil {
+			return fmt.Errorf("failed to generate K8s service manifest for %s: %w", serviceName, err)
+		}
+	}
+	// TODO: In a future step, generate manifests for the entrypoint application.
+	return nil
 }

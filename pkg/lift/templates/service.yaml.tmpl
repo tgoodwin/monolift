@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .ServiceName }}
+  namespace: {{ .Namespace }}
+  labels:
+    app: {{ .ServiceName }}
+spec:
+  selector:
+    app: {{ .ServiceName }}
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 80 # Standard service port
+      targetPort: {{ .TargetPort }}
