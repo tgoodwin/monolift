@@ -419,7 +419,7 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 func rewriteConstructorCall(stmt ast.Stmt, interfaceName, serviceName, namespace string, port int) error {
 	remoteClientConstructorName := "New" + interfaceName + "Client"
 	// The baseURL should be the Kubernetes service DNS name and port.
-	baseURL := fmt.Sprintf("%s.%s:%d", serviceName, namespace, port)
+	baseURL := fmt.Sprintf("http://%s.%s:%d", serviceName, namespace, port)
 	clientConstructorCall := &ast.CallExpr{
 		Fun: ast.NewIdent(remoteClientConstructorName),
 		Args: []ast.Expr{

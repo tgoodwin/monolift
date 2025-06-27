@@ -32,6 +32,8 @@ func (s *{{$.ServerStructName}}) {{.HandlerFuncName}}(w http.ResponseWriter, r *
 		return
 	}
 
+	fmt.Println("Handling request for {{.Name}}")
+
 	var req {{.RequestType}}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("failed to decode request for {{.Name}}: %v", err), http.StatusBadRequest)

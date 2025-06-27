@@ -18,7 +18,7 @@ func New{{.DelegateStructName}}(local {{.InterfacePackageAlias}}.{{.InterfaceTyp
 	return &{{.DelegateStructName}}{
 		{{.InterfaceTypeName}}: local,
 		remote:    remote,
-		useRemote: false, // Default to local
+		useRemote: true, // Default to remote
 	}
 }
 
@@ -31,6 +31,7 @@ func (d *{{.DelegateStructName}}) SetUseRemote(use bool) {
 // {{.Name}} calls either the local or remote {{.Name}} method based on configuration.
 func (d *{{$.DelegateStructName}}) {{.FullSignature}} {
 	if d.useRemote {
+		fmt.Println("Using remote implementation for {{.Name}}")
 		return d.remote.{{.Name}}({{ join .ParamNames ", " }})
 	}
 	return d.{{$.InterfaceTypeName}}.{{.Name}}({{ join .ParamNames ", " }})
