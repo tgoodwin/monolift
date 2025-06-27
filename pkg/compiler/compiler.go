@@ -148,8 +148,12 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK
 		}
 	}
 
+	// Define Kubernetes-related constants that are needed across different stages.
+	namespace := "monolift"
+	servicePort := 80 // The port exposed by the Kubernetes Service, not the container's targetPort.
+
 	// 2. Create the entrypoint by recreating the main package in the output directory.
-	if err := c.generateEntrypoint(outputDir, extractedResults); err != nil {
+	if err := c.generateEntrypoint(outputDir, extractedResults, namespace, servicePort); err != nil {
 		return fmt.Errorf("recreating main package: %w", err)
 	}
 
@@ -161,14 +165,14 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK
 	}
 
 	// 4. write Kubernetes deployment manifests for the artifacts
-	if err := c.generateK8sManifests(outputDir, dockerRegistry, extractedServiceNames, originalK8sManifestPath); err != nil {
+	if err := generateK8sManifests(outputDir, dockerRegistry, extractedServiceNames, originalK8sManifestPath, namespace); err != nil {
 		return fmt.Errorf("generating Kubernetes manifests: %w", err)
 	}
 
 	return nil
 }
 
-func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionResult) error {
+func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionResult, namespace string, servicePort int) error {
 	entrypointDir := filepath.Join(outputDir, entrypointDirName)
 	fmt.Printf("Recreating main package in %s\n", entrypointDir)
 
@@ -193,7 +197,7 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		if resultsToApply, ok := replacementsByFile[fileAST]; ok {
 			fmt.Printf("  Rewriting constructor calls in %s\n", baseName)
 			for _, res := range resultsToApply {
-				if err := c.rewriteConstructorCall(res.RootStmt, res.InterfaceTypeName); err != nil {
+				if err := rewriteConstructorCall(res.RootStmt, res.InterfaceTypeName, res.PackageName, namespace, servicePort); err != nil {
 					return fmt.Errorf("failed to rewrite constructor in %s: %w", baseName, err)
 				}
 			}
@@ -214,12 +218,6 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 			return fmt.Errorf("could not write AST to %s: %w", destPath, err)
 		}
 	}
-
-	// Initialize go.mod for the entrypoint package.
-	// modulePath, err := c.getModulePath()
-	// if err != nil {
-	// 	return fmt.Errorf("could not determine module path for entrypoint: %w", err)
-	// }
 
 	entryPointModuleName := "entrypoint"
 	if err := util.InitGoMod(entryPointModuleName, entrypointDir); err != nil {
@@ -417,16 +415,17 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 
 // rewriteConstructorCall modifies an AST statement in place, replacing the original
 // service constructor call with a call to the generated delegate constructor.
-// It transforms `var x = NewService(a, b)` into `var x = NewServiceClientDelegate(NewService(a, b), NewClient(<servicename>))`.
-func (c *Compiler) rewriteConstructorCall(stmt ast.Stmt, interfaceName string) error {
+// It transforms `var x = NewService(a, b)` into `var x = New<InterfaceName>ClientDelegate(NewService(a, b), New<InterfaceName>Client(<serviceName>))`.
+func rewriteConstructorCall(stmt ast.Stmt, interfaceName, serviceName, namespace string, port int) error {
 	remoteClientConstructorName := "New" + interfaceName + "Client"
-	serviceName := "temp" // TODO get the name of the generated k8s service
+	// The baseURL should be the Kubernetes service DNS name and port.
+	baseURL := fmt.Sprintf("%s.%s:%d", serviceName, namespace, port)
 	clientConstructorCall := &ast.CallExpr{
 		Fun: ast.NewIdent(remoteClientConstructorName),
 		Args: []ast.Expr{
 			&ast.BasicLit{
 				Kind:  token.STRING,
-				Value: `"` + serviceName + `"`,
+				Value: `"` + baseURL + `"`,
 			},
 		},
 	}
@@ -1146,10 +1145,9 @@ func (c *Compiler) resolveExpr(
 
 // generateK8sManifests creates Kubernetes Deployment and Service YAMLs for each extracted service.
 // It currently focuses on extracted services and does not generate manifests for the entrypoint.
-func (c *Compiler) generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalK8sManifestPath string) error {
+func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalK8sManifestPath, namespace string) error {
 	fmt.Println("\nGenerating Kubernetes manifests:")
-	namespace := "monolift" // Hardcode namespace for now
-	containerPort := 8080   // Default gRPC port for extracted services
+	containerPort := 8080
 
 	var envVars []lift.EnvVar
 	if originalK8sManifestPath != "" {
@@ -1170,6 +1168,21 @@ func (c *Compiler) generateK8sManifests(outputDir, dockerRegistry string, extrac
 			return fmt.Errorf("failed to generate K8s service manifest for %s: %w", serviceName, err)
 		}
 	}
-	// TODO: In a future step, generate manifests for the entrypoint application.
+
+	// Generate manifests for the entrypoint application.
+	if originalK8sManifestPath != "" {
+		fmt.Println("  Generating K8s manifests for the entrypoint application")
+		entrypointImageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, entrypointDirName)
+
+		originalManifestData, err := os.ReadFile(originalK8sManifestPath)
+		if err != nil {
+			return fmt.Errorf("failed to read original entrypoint manifest %s: %w", originalK8sManifestPath, err)
+		}
+
+		if err := lift.GenerateEntrypointManifests(outputDir, namespace, entrypointImageName, originalManifestData, containerPort); err != nil {
+			return fmt.Errorf("failed to generate K8s entrypoint manifests: %w", err)
+		}
+	}
+
 	return nil
 }

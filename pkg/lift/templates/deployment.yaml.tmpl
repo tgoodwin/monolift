@@ -4,16 +4,16 @@ metadata:
   name: {{ .ServiceName }}
   namespace: {{ .Namespace }}
   labels:
-    app: {{ .ServiceName }}
+    app.kubernetes.io/name: {{ .ServiceName }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .ServiceName }}
+      app.kubernetes.io/name: {{ .ServiceName }}
   template:
     metadata:
       labels:
-        app: {{ .ServiceName }}
+        app.kubernetes.io/name: {{ .ServiceName }}
     spec:
       containers:
         - name: {{ .ServiceName }}

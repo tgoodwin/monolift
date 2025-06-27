@@ -3,13 +3,14 @@ kind: Service
 metadata:
   name: {{ .ServiceName }}
   namespace: {{ .Namespace }}
-  labels:
-    app: {{ .ServiceName }}
+  labels: # Recommended labels for Kubernetes
+    app.kubernetes.io/name: {{ .ServiceName }}
 spec:
+  type: ClusterIP
   selector:
-    app: {{ .ServiceName }}
+    app.kubernetes.io/name: {{ .ServiceName }}
   ports:
-    - name: grpc
+    - name: http
       protocol: TCP
       port: 80 # Standard service port
       targetPort: {{ .TargetPort }}
