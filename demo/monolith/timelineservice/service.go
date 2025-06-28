@@ -12,7 +12,6 @@ import (
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
 	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
-	socialGraphTypes "github.com/tgoodwin/monolift/demo/monolith/types/socialgraph"
 	timelineTypes "github.com/tgoodwin/monolift/demo/monolith/types/timeline"
 	"github.com/tgoodwin/monolift/demo/monolith/util"
 
@@ -210,7 +209,7 @@ func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateRe
 
 	// 2. Update home timelines of followers (only if adding a post)
 	if req.Add {
-		followersReq := socialGraphTypes.GetReq{UserIds: []string{req.UserId}, SendUnixMilli: time.Now().UnixMilli()}
+		followersReq := socialgraph.GetReq{UserIds: []string{req.UserId}, SendUnixMilli: time.Now().UnixMilli()}
 		followersResp, err := s.socialGraphService.GetFollowers(ctx, followersReq)
 		if err != nil {
 			logger.Printf("UpdateTimeline: failed to get followers for user %s: %v. Skipping home timeline updates.", req.UserId, err)

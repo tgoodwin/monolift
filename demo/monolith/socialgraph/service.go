@@ -9,35 +9,35 @@ import (
 	"time"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
-	social "github.com/tgoodwin/monolift/demo/monolith/types/socialgraph"
 	"github.com/tgoodwin/monolift/demo/monolith/util"
 
 	"github.com/pkg/errors"
 )
 
-var logger = log.New(os.Stdout, "monolith-socialgraph: ", log.LstdFlags|log.Lshortfile)
+var logger = log.New(os.Stdout, "monolith-raph: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	followeesStoreName = "socialgraph_followees"
-	followersStoreName = "socialgraph_followers"
+	followeesStoreName = "raph_followees"
+	followersStoreName = "raph_followers"
 	maxRetries         = 5    // Max retries for optimistic concurrency
-	maxFollows         = 2000 // Max number of followees/followers (from original Dapr socialgraph)
+	maxFollows         = 2000 // Max number of followees/followers (from original Dapr raph)
 )
 
-// Service defines the interface for social graph operations.
+// Service defines the interface for graph operations.
+// @monolift trigger=CPU threshold=0.5
 type Service interface {
-	GetFollowees(ctx context.Context, req social.GetReq) (social.GetFollowResp, error)
-	GetFollowers(ctx context.Context, req social.GetReq) (social.GetFollowerResp, error)
-	GetRecommendations(ctx context.Context, req social.GetRecmdReq) (social.GetRecmdResp, error)
-	Follow(ctx context.Context, req social.FollowReq) (social.UpdateResp, error)
-	Unfollow(ctx context.Context, req social.UnfollowReq) (social.UpdateResp, error) // Corrected return type
+	GetFollowees(ctx context.Context, req GetReq) (GetFollowResp, error)
+	GetFollowers(ctx context.Context, req GetReq) (GetFollowerResp, error)
+	GetRecommendations(ctx context.Context, req GetRecmdReq) (GetRecmdResp, error)
+	Follow(ctx context.Context, req FollowReq) (UpdateResp, error)
+	Unfollow(ctx context.Context, req UnfollowReq) (UpdateResp, error) // Corrected return type
 }
 
 type service struct {
 	db database.Store
 }
 
-// NewService creates a new social graph service instance.
+// NewService creates a new graph service instance.
 func NewService(store database.Store) Service {
 	return &service{
 		db: store,
@@ -94,7 +94,7 @@ func (s *service) updateFollowList(ctx context.Context, storeName, key, valueToU
 				currentList = append(currentList, valueToUpdate)
 				if maxListSize > 0 && len(currentList) > maxListSize {
 					// Trim from the beginning if exceeding max size (oldest entries)
-					// This matches the original Dapr socialgraph logic (newest are appended)
+					// This matches the original Dapr raph logic (newest are appended)
 					currentList = currentList[len(currentList)-maxListSize:]
 				}
 			} else {
@@ -132,7 +132,7 @@ func (s *service) updateFollowList(ctx context.Context, storeName, key, valueToU
 
 // --- Interface Implementations (Stubs for now) ---
 
-func (s *service) GetFollowees(ctx context.Context, req social.GetReq) (social.GetFollowResp, error) {
+func (s *service) GetFollowees(ctx context.Context, req GetReq) (GetFollowResp, error) {
 	opStartTime := time.Now()
 	readCtr.Inc()
 	logger.Printf("GetFollowees called for UserIds: %v", req.UserIds)
@@ -163,10 +163,10 @@ func (s *service) GetFollowees(ctx context.Context, req social.GetReq) (social.G
 
 	serviceProcessingDuration := float64(time.Since(opStartTime).Milliseconds())
 	util.ObserveHist(reqLatHist, serviceProcessingDuration)
-	return social.GetFollowResp{SendUnixMilli: time.Now().UnixMilli(), FollowIds: respMap}, nil
+	return GetFollowResp{SendUnixMilli: time.Now().UnixMilli(), FollowIds: respMap}, nil
 }
 
-func (s *service) GetFollowers(ctx context.Context, req social.GetReq) (social.GetFollowerResp, error) {
+func (s *service) GetFollowers(ctx context.Context, req GetReq) (GetFollowerResp, error) {
 	opStartTime := time.Now()
 	readCtr.Inc()
 	logger.Printf("GetFollowers called for UserIds: %v", req.UserIds)
@@ -197,20 +197,20 @@ func (s *service) GetFollowers(ctx context.Context, req social.GetReq) (social.G
 
 	serviceProcessingDuration := float64(time.Since(opStartTime).Milliseconds())
 	util.ObserveHist(reqLatHist, serviceProcessingDuration)
-	return social.GetFollowerResp{SendUnixMilli: time.Now().UnixMilli(), FollowerIds: respMap}, nil
+	return GetFollowerResp{SendUnixMilli: time.Now().UnixMilli(), FollowerIds: respMap}, nil
 }
 
-func (s *service) GetRecommendations(ctx context.Context, req social.GetRecmdReq) (social.GetRecmdResp, error) {
+func (s *service) GetRecommendations(ctx context.Context, req GetRecmdReq) (GetRecmdResp, error) {
 	opStartTime := time.Now()
 	recmdCtr.Inc()
 	logger.Printf("GetRecommendations called for UserIds: %v", req.UserIds)
 
 	// The original recommendation logic is essentially the same as GetFollowees for this benchmark.
 	// We'll call GetFollowees internally.
-	getFolloweesReq := social.GetReq{UserIds: req.UserIds, SendUnixMilli: req.SendUnixMilli}
+	getFolloweesReq := GetReq{UserIds: req.UserIds, SendUnixMilli: req.SendUnixMilli}
 	followeesResp, err := s.GetFollowees(ctx, getFolloweesReq) // This will record its own reqLatHist
 	if err != nil {
-		return social.GetRecmdResp{}, errors.Wrap(err, "GetRecommendations: failed to get followees for recommendations")
+		return GetRecmdResp{}, errors.Wrap(err, "GetRecommendations: failed to get followees for recommendations")
 	}
 
 	// Latency calculation for recommendations specifically
@@ -223,10 +223,10 @@ func (s *service) GetRecommendations(ctx context.Context, req social.GetRecmdReq
 		util.ObserveHist(recmdLatHist, serviceProcessingDuration)
 	}
 
-	return social.GetRecmdResp{SendUnixMilli: time.Now().UnixMilli(), FollowIds: followeesResp.FollowIds, Latency: time.Now().UnixMilli() - req.SendUnixMilli}, nil
+	return GetRecmdResp{SendUnixMilli: time.Now().UnixMilli(), FollowIds: followeesResp.FollowIds, Latency: time.Now().UnixMilli() - req.SendUnixMilli}, nil
 }
 
-func (s *service) Follow(ctx context.Context, req social.FollowReq) (social.UpdateResp, error) {
+func (s *service) Follow(ctx context.Context, req FollowReq) (UpdateResp, error) {
 	opStartTime := time.Now()
 	updateCtr.Inc()
 	logger.Printf("Follow called: User %s wants to follow %s", req.UserId, req.FollowId)
@@ -243,7 +243,7 @@ func (s *service) Follow(ctx context.Context, req social.FollowReq) (social.Upda
 	userKey := followKey(req.UserId)
 	err := s.updateFollowList(ctx, followeesStoreName, userKey, req.FollowId, true, maxFollows)
 	if err != nil {
-		return social.UpdateResp{}, errors.Wrapf(err, "Follow: failed to update followee list for user %s", req.UserId)
+		return UpdateResp{}, errors.Wrapf(err, "Follow: failed to update followee list for user %s", req.UserId)
 	}
 
 	// 2. Add UserId to FollowId's follower list
@@ -251,15 +251,15 @@ func (s *service) Follow(ctx context.Context, req social.FollowReq) (social.Upda
 	err = s.updateFollowList(ctx, followersStoreName, followeeKey, req.UserId, true, maxFollows)
 	if err != nil {
 		// Potentially inconsistent state. Consider compensating action or logging severity.
-		return social.UpdateResp{}, errors.Wrapf(err, "Follow: failed to update follower list for user %s", req.FollowId)
+		return UpdateResp{}, errors.Wrapf(err, "Follow: failed to update follower list for user %s", req.FollowId)
 	}
 
 	serviceProcessingDuration := float64(time.Since(opStartTime).Milliseconds())
 	util.ObserveHist(reqLatHist, serviceProcessingDuration)
-	return social.UpdateResp{SendUnixMilli: time.Now().UnixMilli()}, nil
+	return UpdateResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 }
 
-func (s *service) Unfollow(ctx context.Context, req social.UnfollowReq) (social.UpdateResp, error) {
+func (s *service) Unfollow(ctx context.Context, req UnfollowReq) (UpdateResp, error) {
 	opStartTime := time.Now()
 	updateCtr.Inc()
 	logger.Printf("Unfollow called: User %s wants to unfollow %s", req.UserId, req.UnfollowId)
@@ -268,17 +268,17 @@ func (s *service) Unfollow(ctx context.Context, req social.UnfollowReq) (social.
 	userKey := followKey(req.UserId)
 	err := s.updateFollowList(ctx, followeesStoreName, userKey, req.UnfollowId, false, maxFollows)
 	if err != nil {
-		return social.UpdateResp{}, errors.Wrapf(err, "Unfollow: failed to update followee list for user %s", req.UserId)
+		return UpdateResp{}, errors.Wrapf(err, "Unfollow: failed to update followee list for user %s", req.UserId)
 	}
 
 	// 2. Remove UserId from UnfollowId's follower list
 	unfolloweeKey := followerKey(req.UnfollowId)
 	err = s.updateFollowList(ctx, followersStoreName, unfolloweeKey, req.UserId, false, maxFollows)
 	if err != nil {
-		return social.UpdateResp{}, errors.Wrapf(err, "Unfollow: failed to update follower list for user %s", req.UnfollowId)
+		return UpdateResp{}, errors.Wrapf(err, "Unfollow: failed to update follower list for user %s", req.UnfollowId)
 	}
 
 	serviceProcessingDuration := float64(time.Since(opStartTime).Milliseconds())
 	util.ObserveHist(reqLatHist, serviceProcessingDuration)
-	return social.UpdateResp{SendUnixMilli: time.Now().UnixMilli()}, nil
+	return UpdateResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 }

@@ -11,7 +11,6 @@ import (
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
-	socialGraphTypes "github.com/tgoodwin/monolift/demo/monolith/types/socialgraph"
 	userTypes "github.com/tgoodwin/monolift/demo/monolith/types/user"
 	"github.com/tgoodwin/monolift/demo/monolith/util"
 
@@ -95,7 +94,7 @@ func (s *service) Register(ctx context.Context, req userTypes.RegisterReq) (user
 	logger.Printf("Register: UserId %s credentials stored", req.UserId)
 
 	// After successful registration, make the user follow themselves.
-	followReq := socialGraphTypes.FollowReq{
+	followReq := socialgraph.FollowReq{
 		UserId:        req.UserId,
 		FollowId:      req.UserId,             // User follows themselves
 		SendUnixMilli: time.Now().UnixMilli(), // Use current time for this internal request
