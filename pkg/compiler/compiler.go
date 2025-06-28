@@ -197,7 +197,7 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		if resultsToApply, ok := replacementsByFile[fileAST]; ok {
 			fmt.Printf("  Rewriting constructor calls in %s\n", baseName)
 			for _, res := range resultsToApply {
-				if err := rewriteConstructorCall(res.RootStmt, res.InterfaceTypeName, res.PackageName, namespace, servicePort); err != nil {
+				if err := rewriteConstructorCall(res.RootStmt, res.PackageName, res.PackageName, namespace, servicePort); err != nil {
 					return fmt.Errorf("failed to rewrite constructor in %s: %w", baseName, err)
 				}
 			}
@@ -416,8 +416,8 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 // rewriteConstructorCall modifies an AST statement in place, replacing the original
 // service constructor call with a call to the generated delegate constructor.
 // It transforms `var x = NewService(a, b)` into `var x = New<InterfaceName>ClientDelegate(NewService(a, b), New<InterfaceName>Client(<serviceName>))`.
-func rewriteConstructorCall(stmt ast.Stmt, interfaceName, serviceName, namespace string, port int) error {
-	remoteClientConstructorName := "New" + interfaceName + "Client"
+func rewriteConstructorCall(stmt ast.Stmt, pkgName, serviceName, namespace string, port int) error {
+	remoteClientConstructorName := "New" + pkgName + "Client"
 	// The baseURL should be the Kubernetes service DNS name and port.
 	baseURL := fmt.Sprintf("http://%s.%s:%d", serviceName, namespace, port)
 	clientConstructorCall := &ast.CallExpr{
@@ -444,7 +444,7 @@ func rewriteConstructorCall(stmt ast.Stmt, interfaceName, serviceName, namespace
 	}
 
 	// 3. Create the AST node for the delegate constructor call, wrapping the other two.
-	delegateConstructorName := "New" + interfaceName + "ClientDelegate"
+	delegateConstructorName := "New" + pkgName + "ClientDelegate"
 	delegateConstructorCall := &ast.CallExpr{
 		Fun: ast.NewIdent(delegateConstructorName),
 		Args: []ast.Expr{

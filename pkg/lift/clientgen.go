@@ -163,8 +163,8 @@ func GetClientTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pack
 	clientPackageName := definingPkg.Name
 
 	data := &ClientTemplateData{
-		PackageName:           clientPackageName, // Used for filename, e.g., "userservice_client.go"
-		ClientStructName:      "client",          // A simple, unexported name.
+		PackageName:           clientPackageName,
+		ClientStructName:      clientPackageName + "Client", // n.b. delegategen relies on this naming scheme
 		InterfacePackageAlias: definingPkg.Name,
 		InterfacePackagePath:  definingPkg.PkgPath,
 		InterfaceTypeName:     ifaceNameIdent.Name,

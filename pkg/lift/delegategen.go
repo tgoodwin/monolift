@@ -66,9 +66,11 @@ func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pa
 		return nil, err
 	}
 
+	fmt.Println("Generating delegate for interface:", definingPkg.Name)
+
 	data := &DelegateTemplateData{
-		DelegateStructName:     ifaceNameIdent.Name + "ClientDelegate",
-		RemoteClientStructName: "client", // This is hardcoded in client.go.tmpl
+		DelegateStructName:     definingPkg.Name + "ClientDelegate",
+		RemoteClientStructName: definingPkg.Name + "Client", // corresponds with client.go.tmpl
 		InterfacePackageAlias:  definingPkg.Name,
 		InterfacePackagePath:   definingPkg.PkgPath,
 		InterfaceTypeName:      ifaceNameIdent.Name,

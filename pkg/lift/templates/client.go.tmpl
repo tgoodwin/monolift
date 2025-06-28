@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	{{ .InterfacePackageAlias }} "{{ .InterfacePackagePath }}"
 	{{- range $path, $alias := .Imports }}
 	{{- if $alias }}
 	{{ $alias }} "{{ $path }}"
@@ -24,7 +23,7 @@ type {{ .ClientStructName }} struct {
 
 // New{{ .InterfaceTypeName }}Client creates a new client for the {{ .InterfaceTypeName }} service.
 // It adheres to the {{ .InterfacePackageAlias }}.{{ .InterfaceTypeName }} interface.
-func New{{ .InterfaceTypeName }}Client(baseURL string) *{{ .ClientStructName }} {
+func New{{ .ClientStructName }}(baseURL string) *{{ .ClientStructName }} {
 	return &{{ .ClientStructName }}{
 		baseURL:    baseURL,
 		httpClient: &http.Client{},
