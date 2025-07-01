@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	_ "net/http/pprof"
+
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/frontend"
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
