@@ -17,7 +17,7 @@ spec:
       containers:
       - name: monolith-app
         imagePullPolicy: Always
-        image: docker.io/tlg2132/demo-monolith:latest
+        image: docker.io/eirn/demo-monolith:latest
         ports:
         - containerPort: 8080
         env:

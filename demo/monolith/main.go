@@ -4,9 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	httppprof "net/http/pprof"
 	"os"
-
-	_ "net/http/pprof"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/frontend"
@@ -53,6 +52,12 @@ func main() {
 
 	// Expose Prometheus metrics on the main server's mux
 	mux.Handle("/metrics", frontend.GetPrometheusHandler())
+
+	logger.Printf("Registering pprof handlers")
+	mux.HandleFunc("/debug/pprof/", httppprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", httppprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", httppprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", httppprof.Symbol)
 
 	logger.Printf("Monolith Social Network server starting on %s", serviceAddress)
 	if err := http.ListenAndServe(serviceAddress, mux); err != nil {
