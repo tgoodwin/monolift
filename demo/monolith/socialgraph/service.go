@@ -14,13 +14,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-var logger = log.New(os.Stdout, "monolith-raph: ", log.LstdFlags|log.Lshortfile)
+var logger = log.New(os.Stdout, "monolith-graph: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	followeesStoreName = "raph_followees"
-	followersStoreName = "raph_followers"
-	maxRetries         = 5    // Max retries for optimistic concurrency
-	maxFollows         = 2000 // Max number of followees/followers (from original Dapr raph)
+	followeesStoreName = "graph_followees"
+	followersStoreName = "graph_followers"
+	maxRetries         = 5 // Max retries for optimistic concurrency
+	maxFollows         = 2000
 )
 
 // Service defines the interface for graph operations.
@@ -130,8 +130,6 @@ func (s *service) updateFollowList(ctx context.Context, storeName, key, valueToU
 	return fmt.Errorf("updateFollowList: failed to update list for store %s, key %s after %d retries", storeName, key, maxRetries)
 }
 
-// --- Interface Implementations (Stubs for now) ---
-
 func (s *service) GetFollowees(ctx context.Context, req GetReq) (GetFollowResp, error) {
 	opStartTime := time.Now()
 	readCtr.Inc()
@@ -230,14 +228,6 @@ func (s *service) Follow(ctx context.Context, req FollowReq) (UpdateResp, error)
 	opStartTime := time.Now()
 	updateCtr.Inc()
 	logger.Printf("Follow called: User %s wants to follow %s", req.UserId, req.FollowId)
-
-	if req.UserId == req.FollowId {
-		logger.Printf("Follow: User %s cannot follow themselves. Operation skipped.", req.UserId)
-		// Original Dapr service allowed self-follow for simplicity in user registration.
-		// If strict "no self-follow" is desired *except* for registration,
-		// userservice.Register would be the only place calling Follow with UserId == FollowId.
-		// For now, we allow it as per original behavior.
-	}
 
 	// 1. Add FollowId to UserId's followee list
 	userKey := followKey(req.UserId)
