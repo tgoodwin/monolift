@@ -1,6 +1,7 @@
 # wrk2
   # Run with Docker image
 
+  - git submodule update --init
   - docker build -t wrk2-image:latest .
   - bin/wrk2.sh
 
