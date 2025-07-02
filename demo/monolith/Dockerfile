@@ -1,29 +1,26 @@
 FROM golang:1.23-alpine AS builder
 
-LABEL stage="builder"
-
 WORKDIR /app
 
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
-RUN go mod verify
 
-# Copy the source code into the container
-COPY . .
+COPY demo/monolith ./demo/monolith
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /monolith-server .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o /app/monolith-server ./demo/monolith/main.go
 
-# Stage 2: Create the runtime image
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+# A non-root user is a good security practice
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+WORKDIR /home/appuser/
 
 # Copy the pre-built binary from the builder stage
-COPY --from=builder /monolith-server .
+COPY --from=builder /app/monolith-server .
 
 EXPOSE 8080
 
