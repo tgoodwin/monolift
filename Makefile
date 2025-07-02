@@ -2,7 +2,7 @@ IMAGE_NAME ?= docker.io/tlg2132/demo-monolith
 IMAGE_TAG  ?= latest
 
 # Kubernetes manifest files location
-K8S_DIR ?= k8s
+K8S_DIR ?= demo/monolith/k8s
 K8S_DEPLOYMENT_FILE = $(K8S_DIR)/monolith-deployment.yaml
 K8S_SERVICE_FILE    = $(K8S_DIR)/monolith-service.yaml
 
