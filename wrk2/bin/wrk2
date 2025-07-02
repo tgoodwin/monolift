@@ -1,0 +1,42 @@
+#!/bin/bash
+# Resolve the absolute path of the first path argument (if it exists)
+# and the working directory
+WORKDIR=$(pwd)
+ARGS=()
+MOUNTS=("-v" "$WORKDIR:$WORKDIR")
+
+is_url() {
+  [[ "$1" =~ ^https?:// ]] || [[ "$1" =~ ^ftp:// ]]
+}
+
+rewrite_localhost_url() {
+  local url="$1"
+  if [[ "$url" =~ ^http://localhost ]]; then
+    echo "${url/localhost/host.docker.internal}"
+  elif [[ "$url" =~ ^http://127\.0\.0\.1 ]]; then
+    echo "${url/127.0.0.1/host.docker.internal}"
+  else
+    echo "$url"
+  fi
+}
+
+for arg in "$@"; do
+  if is_url "$arg"; then
+    # URL: pass as-is
+    ARGS+=("$(rewrite_localhost_url "$arg")")
+  elif  [[ -e "$arg" ]]; then
+    ABS_ARG=$(realpath "$arg")
+    MOUNT_POINT=$(dirname "$ABS_ARG")
+    MOUNTS+=("-v" "$MOUNT_POINT:$MOUNT_POINT")
+    ARGS+=("$ABS_ARG")
+  else
+    ARGS+=("$arg")
+  fi
+done
+
+echo docker run "${MOUNTS[@]}" wrk2-image "wrk" "${ARGS[@]}"
+docker run --rm \
+  -v "$PWD":/workdir \
+  -w "$WORKDIR"  \
+    "${MOUNTS[@]}" \
+  wrk2-image "wrk" "${ARGS[@]}"
