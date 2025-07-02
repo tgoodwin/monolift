@@ -52,6 +52,13 @@ var (
 			Help: "Number of frontend timeline read requests received.",
 		},
 	)
+	followReqCtr = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "frontend_follow_req",
+			Help: "Number of frontend follow requests received.",
+		},
+	)
+
 	// Latency Histograms (simplified for now, will be expanded as services are ported)
 	e2eReqLatHist = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
