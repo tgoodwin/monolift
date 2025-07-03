@@ -89,59 +89,67 @@ def printResults(results):
 
 
 async def register(addr, nodes, limit=200):
-  tasks = []
-  conn = aiohttp.TCPConnector(limit=limit)
-  async with aiohttp.ClientSession(connector=conn) as session:
-    print('Registering Users...')
-    for user_id in range(nodes):
-      task = asyncio.ensure_future(upload_register(session, addr, str(user_id)))
-      tasks.append(task)
-      if user_id % limit == 0:
-        _ = await asyncio.gather(*tasks)
-    _ = await asyncio.gather(*tasks)
-    print(user_id)
-    results = await asyncio.gather(*tasks)
-    printResults(results)
+    tasks = []
+    all_results = []
+    conn = aiohttp.TCPConnector(limit=limit)
+    async with aiohttp.ClientSession(connector=conn) as session:
+        print('Registering Users...')
+        for user_id in range(nodes):
+            task = asyncio.create_task(upload_register(session, addr, str(user_id)))
+            tasks.append(task)
+            if len(tasks) >= limit:
+                results = await asyncio.gather(*tasks)
+                all_results.extend(results)
+                tasks = []
+                print(f"Registered {len(all_results)}/{nodes} users...")
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            all_results.extend(results)
+        print(f"Finished registering {len(all_results)} users.")
+        printResults(all_results)
 
 
 async def follow(addr, edges, limit=200):
-  idx = 0
-  tasks = []
-  conn = aiohttp.TCPConnector(limit=limit)
-  async with aiohttp.ClientSession(connector=conn) as session:
-    print('Adding follows...')
-    for edge in edges:
-      user_id, follow_id = edge[0], edge[1]
-      task = asyncio.ensure_future(
-          upload_follow(session, addr, user_id, follow_id))
-      tasks.append(task)
-      task = asyncio.ensure_future(
-          upload_follow(session, addr, follow_id, user_id))
-      tasks.append(task)
-      idx += 1
-      if idx % limit == 0:
-        _ = await asyncio.gather(*tasks)
-        print(idx)
-    results = await asyncio.gather(*tasks)
-    printResults(results)
+    tasks = []
+    all_results = []
+    conn = aiohttp.TCPConnector(limit=limit)
+    async with aiohttp.ClientSession(connector=conn) as session:
+        print('Adding follows...')
+        for i, edge in enumerate(edges):
+            user_id, follow_id = edge[0], edge[1]
+            tasks.append(asyncio.create_task(upload_follow(session, addr, user_id, follow_id)))
+            tasks.append(asyncio.create_task(upload_follow(session, addr, follow_id, user_id)))
+            if len(tasks) >= limit:
+                results = await asyncio.gather(*tasks)
+                all_results.extend(results)
+                tasks = []
+                print(f"Processed {i+1}/{len(edges)} edges...")
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            all_results.extend(results)
+        print(f"Finished adding {len(all_results)} follows.")
+        printResults(all_results)
 
 
 async def compose(addr, nodes, limit=200):
-  idx = 0
-  tasks = []
-  conn = aiohttp.TCPConnector(limit=limit)
-  async with aiohttp.ClientSession(connector=conn) as session:
-    print('Composing posts...')
-    for user_id in range(nodes):
-      for _ in range(random.randint(0, 10)):  # up to 10 posts per user, average 5
-        task = asyncio.ensure_future(upload_save(session, addr, str(user_id), nodes))
-        tasks.append(task)
-        idx += 1
-        if idx % limit == 0:
-          _ = await asyncio.gather(*tasks)
-          print(idx)
-    results = await asyncio.gather(*tasks)
-    printResults(results)
+    tasks = []
+    all_results = []
+    conn = aiohttp.TCPConnector(limit=limit)
+    async with aiohttp.ClientSession(connector=conn) as session:
+        print('Composing posts...')
+        for user_id in range(nodes):
+            for _ in range(random.randint(0, 10)):  # up to 10 posts per user, average 5
+                tasks.append(asyncio.create_task(upload_save(session, addr, str(user_id), nodes)))
+                if len(tasks) >= limit:
+                    results = await asyncio.gather(*tasks)
+                    all_results.extend(results)
+                    tasks = []
+                    print(f"Composed {len(all_results)} posts...")
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            all_results.extend(results)
+        print(f"Finished composing {len(all_results)} posts.")
+        printResults(all_results)
 
 
 if __name__ == '__main__':
