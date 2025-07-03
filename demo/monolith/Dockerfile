@@ -5,7 +5,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY demo/monolith ./demo/monolith
+# copy whole monolift lib in addition to the demo app
+COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /app/monolith-server ./demo/monolith/main.go
 
