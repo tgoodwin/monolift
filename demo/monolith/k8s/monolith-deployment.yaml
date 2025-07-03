@@ -25,6 +25,28 @@ spec:
           value: "monolith-redis.default.svc.cluster.local:6379"
         - name: REDIS_PASSWORD
           value: "redispass" # matches the password in redis.yaml
+        - name: K8S_CPU_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              resource: requests.cpu # Expresses value in millicores
+              divisor: "1m"
+        - name: K8S_CPU_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              resource: limits.cpu # Expresses value in millicores
+              divisor: "1m"
+        - name: K8S_MEM_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              resource: requests.memory # Expresses value in bytes
+        - name: K8S_MEM_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              resource: limits.memory # Expresses value in bytes
         # If using a Kubernetes Secret for the password, it would look like this:
         # - name: REDIS_PASSWORD
         #   valueFrom:

@@ -55,6 +55,7 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Failed to create metrics monitor: %v", err)
 	}
+	defer metricsMonitor.Close()
 
 	// Start polling for metrics in the background
 	go metricsMonitor.PollPrint(1 * time.Second)
