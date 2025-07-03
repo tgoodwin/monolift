@@ -20,6 +20,11 @@ type DelReq struct {
 	SendUnixMilli int64  `json:"send_unix_milli"`
 }
 
+type FollowAPIReq struct {
+	UserId   string `json:"user_id"`
+	FollowId string `json:"follow_id"`
+}
+
 // FrontendCommentAPIRq is the request to add a comment received at the frontend API layer.
 type FrontendCommentAPIRq struct {
 	PostId        string `json:"post_id"`

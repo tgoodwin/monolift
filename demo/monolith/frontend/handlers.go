@@ -13,12 +13,12 @@ import (
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
-	"github.com/tgoodwin/monolift/demo/monolith/socialgraph" // Import for socialgraph.Service
+	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
 	"github.com/tgoodwin/monolift/demo/monolith/timelineservice"
 	postTypes "github.com/tgoodwin/monolift/demo/monolith/types/post"
-	timelineTypes "github.com/tgoodwin/monolift/demo/monolith/types/timeline" // Import timeline types
-	userTypes "github.com/tgoodwin/monolift/demo/monolith/types/user"         // Import user types for API requests
-	"github.com/tgoodwin/monolift/demo/monolith/userservice"                  // Import for userservice.Service
+	timelineTypes "github.com/tgoodwin/monolift/demo/monolith/types/timeline"
+	userTypes "github.com/tgoodwin/monolift/demo/monolith/types/user"
+	"github.com/tgoodwin/monolift/demo/monolith/userservice"
 	"github.com/tgoodwin/monolift/demo/monolith/util"
 )
 
@@ -70,6 +70,7 @@ func RegisterHandlers(mux *http.ServeMux,
 	// User service handlers
 	mux.HandleFunc("/register", h.RegisterHandler)
 	mux.HandleFunc("/login", h.LoginHandler)
+	mux.HandleFunc("/follow", h.FollowHandler)
 }
 
 // SaveHandler saves a new post
@@ -114,12 +115,12 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 		imageIds[i] = util.ImageId(postId, i)
 
 		file, err := fileHeader.Open()
-		defer file.Close()
 		if err != nil {
 			logger.Printf("SaveHandler: error opening image file %s: %v", fileHeader.Filename, err)
 			http.Error(w, "Invalid image data", http.StatusBadRequest)
 			return
 		}
+		defer file.Close()
 		imageData, err := io.ReadAll(file)
 
 		err = expensiveProcessingStep(imageData)
@@ -502,6 +503,71 @@ func (h *APIHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	writeJSONResponse(w, http.StatusOK, resp)
 	util.ObserveHist(e2eReqLatHist.WithLabelValues("login"), float64(time.Since(startTime).Milliseconds()))
+}
+
+// FollowHandler handles following and unfollowing users.
+// POST to /follow will follow a user.
+// DELETE to /follow will unfollow a user.
+func (h *APIHandlers) FollowHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	logger.Println("FollowHandler received request")
+	followReqCtr.Inc() // Increment follow request counter
+
+	var req FollowAPIReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logger.Printf("FollowHandler json.Decode err: %s", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	if req.UserId == "" || req.FollowId == "" {
+		http.Error(w, "user_id and follow_id are required", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+
+	switch r.Method {
+	case http.MethodPost:
+		// Follow
+		followReq := socialgraph.FollowReq{
+			UserId:        req.UserId,
+			FollowId:      req.FollowId,
+			SendUnixMilli: time.Now().UnixMilli(),
+		}
+		resp, err := h.SocialGraphService.Follow(ctx, followReq)
+		if err != nil {
+			logger.Printf("FollowHandler error calling SocialGraphService.Follow: %v", err)
+			http.Error(w, "Failed to follow user", http.StatusInternalServerError)
+			return
+		}
+		logger.Printf("FollowHandler: User %s followed %s", req.UserId, req.FollowId)
+		writeJSONResponse(w, http.StatusOK, resp)
+		util.ObserveHist(e2eReqLatHist.WithLabelValues("follow"), float64(time.Since(startTime).Milliseconds()))
+
+	case http.MethodDelete:
+		// Unfollow
+		unfollowReq := socialgraph.UnfollowReq{
+			UserId:        req.UserId,
+			UnfollowId:    req.FollowId, // map follow_id to UnfollowId
+			SendUnixMilli: time.Now().UnixMilli(),
+		}
+		resp, err := h.SocialGraphService.Unfollow(ctx, unfollowReq)
+		if err != nil {
+			logger.Printf("FollowHandler error calling SocialGraphService.Unfollow: %v", err)
+			http.Error(w, "Failed to unfollow user", http.StatusInternalServerError)
+			return
+		}
+		logger.Printf("FollowHandler: User %s unfollowed %s", req.UserId, req.FollowId)
+		writeJSONResponse(w, http.StatusOK, resp)
+		util.ObserveHist(e2eReqLatHist.WithLabelValues("unfollow"), float64(time.Since(startTime).Milliseconds()))
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+
+		return
+	}
 }
 
 // @monolift extractionType=lambda trigger=invocationsPerSecond threholdValue = 10
