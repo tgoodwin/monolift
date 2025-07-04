@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/frontend"
@@ -13,6 +14,7 @@ import (
 	"github.com/tgoodwin/monolift/demo/monolith/timelineservice"
 	"github.com/tgoodwin/monolift/demo/monolith/userservice"
 	"github.com/tgoodwin/monolift/demo/monolith/util"
+	"github.com/tgoodwin/monolift/pkg/metrics"
 )
 
 var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags)
@@ -48,6 +50,15 @@ func main() {
 	// Register API handlers from the frontend package
 	// Pass dbStore for direct storage access like images
 	frontend.RegisterHandlers(mux, postSvc, socialGraphSvc, userSvc, timelineSvc, dbStore)
+
+	metricsMonitor, err := metrics.NewMonitor(5 * time.Second)
+	if err != nil {
+		logger.Fatalf("Failed to create metrics monitor: %v", err)
+	}
+	defer metricsMonitor.Close()
+
+	// Start polling for metrics in the background
+	go metricsMonitor.PollPrint(1 * time.Second)
 
 	// Expose Prometheus metrics on the main server's mux
 	mux.Handle("/metrics", frontend.GetPrometheusHandler())
