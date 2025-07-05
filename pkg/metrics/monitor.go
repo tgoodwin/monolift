@@ -87,7 +87,7 @@ func (m *Monitor) CPUUsagePercent() (float64, bool) {
 		return 0, true // Limit is 0, so usage is technically 0% of an unconstrained resource.
 	}
 
-	percent := (m.cpuUsage / m.cpuLimitCores) * 100.0
+	percent := m.cpuUsage / m.cpuLimitCores
 	return percent, true
 }
 
@@ -113,7 +113,7 @@ func (m *Monitor) MemoryUsagePercent() (float64, bool) {
 		return 0, true
 	}
 
-	percent := (float64(m.memoryUsage) / float64(m.memoryLimitBytes)) * 100.0
+	percent := float64(m.memoryUsage) / float64(m.memoryLimitBytes)
 	return percent, true
 }
 

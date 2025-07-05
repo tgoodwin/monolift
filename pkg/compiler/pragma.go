@@ -42,8 +42,8 @@ func parsePragmaLine(line string) *Pragma {
 	return &Pragma{Raw: line, Attributes: attributes}
 }
 
-// GetPragmasFromCommentGroup extracts all monolift pragmas from a comment group.
-func GetPragmasFromCommentGroup(cg *ast.CommentGroup) []*Pragma {
+// getPragmasFromCommentGroup extracts all monolift pragmas from a comment group.
+func getPragmasFromCommentGroup(cg *ast.CommentGroup) []*Pragma {
 	if cg == nil {
 		return nil
 	}
@@ -61,7 +61,7 @@ func getFuncDeclPragmas(funcDecl *ast.FuncDecl) []*Pragma {
 	if funcDecl == nil || funcDecl.Doc == nil {
 		return nil
 	}
-	return GetPragmasFromCommentGroup(funcDecl.Doc)
+	return getPragmasFromCommentGroup(funcDecl.Doc)
 }
 
 // GetTypeSpecPragmas extracts monolift pragmas associated with a type specification.
@@ -70,7 +70,7 @@ func GetTypeSpecPragmas(typeSpec *ast.TypeSpec) []*Pragma {
 	if typeSpec == nil || typeSpec.Doc == nil {
 		return nil
 	}
-	return GetPragmasFromCommentGroup(typeSpec.Doc)
+	return getPragmasFromCommentGroup(typeSpec.Doc)
 }
 
 // IsInterface checks if an ast.TypeSpec represents an interface type.

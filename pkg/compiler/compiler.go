@@ -1,17 +1,22 @@
 package compiler
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/printer"
 	"go/token"
 	"go/types"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/lift"
+	"github.com/tgoodwin/monolift/pkg/pragma"
 	"github.com/tgoodwin/monolift/pkg/util"
+	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -26,6 +31,7 @@ type extractionResult struct {
 	PackageName       string // e.g., "userservice"
 	RootStmt          ast.Stmt
 	FileAST           *ast.File
+	Pragma            *pragma.Pragma
 }
 
 // Compiler holds the parsed ASTs for the application's Go packages.
@@ -196,9 +202,19 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		// Apply transformations if any are registered for this file.
 		if resultsToApply, ok := replacementsByFile[fileAST]; ok {
 			fmt.Printf("  Rewriting constructor calls in %s\n", baseName)
+			// Add necessary imports for the generated code block.
+			astutil.AddImport(c.Fset, fileAST, "log")
+			astutil.AddImport(c.Fset, fileAST, "time")
+			astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/metrics")
+			astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/pragma")
+
 			for _, res := range resultsToApply {
-				if err := rewriteConstructorCall(res.RootStmt, res.PackageName, res.PackageName, namespace, servicePort); err != nil {
-					return fmt.Errorf("failed to rewrite constructor in %s: %w", baseName, err)
+				newStmts, err := generateDelegateBlockStmts(res, namespace, servicePort)
+				if err != nil {
+					return fmt.Errorf("failed to generate delegate block for %s: %w", res.PackageName, err)
+				}
+				if !findAndReplaceStmts(fileAST, res.RootStmt, newStmts) {
+					return fmt.Errorf("failed to find and replace root statement for %s in %s", res.PackageName, baseName)
 				}
 			}
 		}
@@ -212,10 +228,24 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		defer outFile.Close()
 
 		fmt.Printf("  Writing %s\n", destPath)
-		// Use a standard printer config for nice formatting
-		config := printer.Config{Mode: printer.TabIndent | printer.UseSpaces, Tabwidth: 8}
-		if err := config.Fprint(outFile, c.Fset, fileAST); err != nil {
-			return fmt.Errorf("could not write AST to %s: %w", destPath, err)
+
+		// Print the AST to a buffer first.
+		var buf bytes.Buffer
+		if err := printer.Fprint(&buf, c.Fset, fileAST); err != nil {
+			return fmt.Errorf("failed to print AST to buffer: %w", err)
+		}
+
+		// Run the generated code through gofmt.
+		formattedSrc, err := format.Source(buf.Bytes())
+		if err != nil {
+			// For debugging, write the unformatted source to see what's wrong.
+			_ = os.WriteFile(destPath+".err", buf.Bytes(), 0644)
+			return fmt.Errorf("failed to format generated code for %s: %w", baseName, err)
+		}
+
+		// Write the formatted code to the file.
+		if _, err := outFile.Write(formattedSrc); err != nil {
+			return fmt.Errorf("failed to write formatted code to %s: %w", destPath, err)
 		}
 	}
 
@@ -256,12 +286,21 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 									} else if node.Doc != nil {
 										docCommentGroup = node.Doc
 									}
-									pragmas := GetPragmasFromCommentGroup(docCommentGroup)
+
+									// we currently only support one prama
+									pragmas := getPragmasFromCommentGroup(docCommentGroup)
 
 									if len(pragmas) > 0 {
-										fmt.Printf("    Interface %s has pragmas:\n", typeSpec.Name.Name)
-										for _, pragma := range pragmas {
-											fmt.Printf("      %s\n", pragma.Raw)
+										if len(pragmas) > 1 {
+											fmt.Printf("    Warning: Interface %s has multiple pragmas, only the first will be processed.\n", typeSpec.Name.Name)
+										}
+										pragmaLine := pragmas[0]
+										fmt.Printf("    Interface %s has pragma: %s\n", typeSpec.Name.Name, pragmaLine.Raw)
+
+										p, err := pragma.ParsePragma(pragmaLine.Attributes)
+										if err != nil {
+											fmt.Printf("      Error parsing pragma: %v\n", err)
+											continue
 										}
 
 										// Now, attempt to find the implementer since it has pragmas
@@ -392,6 +431,7 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 													PackageName:       currentLoadedPkg.Name,
 													RootStmt:          rootStmt,
 													FileAST:           fileForStmt,
+													Pragma:            p,
 												})
 											}
 										} else {
@@ -413,55 +453,176 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 	return extracted, nil
 }
 
-// rewriteConstructorCall modifies an AST statement in place, replacing the original
-// service constructor call with a call to the generated delegate constructor.
-// It transforms `var x = NewService(a, b)` into `var x = New<InterfaceName>ClientDelegate(NewService(a, b), New<InterfaceName>Client(<serviceName>))`.
-func rewriteConstructorCall(stmt ast.Stmt, pkgName, serviceName, namespace string, port int) error {
-	remoteClientConstructorName := "New" + pkgName + "Client"
-	// The baseURL should be the Kubernetes service DNS name and port.
-	baseURL := fmt.Sprintf("http://%s.%s:%d", serviceName, namespace, port)
-	clientConstructorCall := &ast.CallExpr{
-		Fun: ast.NewIdent(remoteClientConstructorName),
-		Args: []ast.Expr{
-			&ast.BasicLit{
-				Kind:  token.STRING,
-				Value: `"` + baseURL + `"`,
+// findAndReplaceStmts finds a statement list containing `oldStmt` and replaces `oldStmt` with `newStmts`.
+// It inspects the AST of the given file to find the correct list (e.g., a function body).
+func findAndReplaceStmts(file *ast.File, oldStmt ast.Stmt, newStmts []ast.Stmt) bool {
+	var replaced bool
+	ast.Inspect(file, func(n ast.Node) bool {
+		if replaced {
+			return false // Stop searching
+		}
+		var stmts *[]ast.Stmt
+		switch x := n.(type) {
+		case *ast.BlockStmt:
+			stmts = &x.List
+		case *ast.File:
+			// For top-level declarations, we need to check the file's Decls list.
+			// The `oldStmt` will be a `*ast.DeclStmt` wrapping a `*ast.GenDecl`.
+			if declStmt, ok := oldStmt.(*ast.DeclStmt); ok {
+				for i, decl := range x.Decls {
+					if decl == declStmt.Decl {
+						// Reconstruct the Decls slice to replace the old one.
+						newDecls := make([]ast.Decl, 0, len(x.Decls)-1+len(newStmts))
+						newDecls = append(newDecls, x.Decls[:i]...)
+						for _, newS := range newStmts {
+							if newD, ok := newS.(*ast.DeclStmt); ok {
+								newDecls = append(newDecls, newD.Decl)
+							} else {
+								// This is a problem, we can't put non-declarations at the top level.
+								// For now, we assume generateDelegateBlockStmts produces valid top-level stmts.
+							}
+						}
+						newDecls = append(newDecls, x.Decls[i+1:]...)
+						x.Decls = newDecls
+						replaced = true
+						return false
+					}
+				}
+			}
+			return true // Not a block, but continue searching children
+		default:
+			return true // Not a block, continue searching
+		}
+
+		for i, s := range *stmts {
+			if s == oldStmt {
+				// Found the statement to replace.
+				// Create a new slice to hold the modified list of statements.
+				newStmtList := make([]ast.Stmt, 0, len(*stmts)-1+len(newStmts))
+				newStmtList = append(newStmtList, (*stmts)[:i]...)
+				newStmtList = append(newStmtList, newStmts...)
+				newStmtList = append(newStmtList, (*stmts)[i+1:]...)
+				*stmts = newStmtList
+				replaced = true
+				return false // Stop inner loop and outer inspect
+			}
+		}
+		return true
+	})
+	return replaced
+}
+
+// generateDelegateBlockStmts creates the full block of code that instantiates
+// the local service, remote client, metrics monitor, decider, and the final delegate.
+func generateDelegateBlockStmts(res *extractionResult, namespace string, port int) ([]ast.Stmt, error) {
+	// 1. Extract info from the original statement (e.g., `userService := ...`)
+	var varIdent *ast.Ident
+	var originalCall ast.Expr
+	switch s := res.RootStmt.(type) {
+	case *ast.AssignStmt:
+		varIdent = s.Lhs[0].(*ast.Ident)
+		originalCall = s.Rhs[0]
+	case *ast.DeclStmt:
+		genDecl := s.Decl.(*ast.GenDecl)
+		valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
+		varIdent = valueSpec.Names[0]
+		originalCall = valueSpec.Values[0]
+	default:
+		return nil, fmt.Errorf("unsupported root statement type: %T", res.RootStmt)
+	}
+
+	// 2. Create the `var userService userservice.Service` declaration
+	varDecl := &ast.DeclStmt{
+		Decl: &ast.GenDecl{
+			Tok: token.VAR,
+			Specs: []ast.Spec{
+				&ast.ValueSpec{
+					Names: []*ast.Ident{ast.NewIdent(varIdent.Name)},
+					Type: &ast.SelectorExpr{
+						X:   ast.NewIdent(res.PackageName),
+						Sel: ast.NewIdent(res.InterfaceTypeName),
+					},
+				},
 			},
 		},
 	}
 
-	// 2. Get the original constructor call expression from the statement's RHS.
-	var originalCall ast.Expr
-	switch s := stmt.(type) {
-	case *ast.AssignStmt: // handles `:=`
-		originalCall = s.Rhs[0]
-	case *ast.DeclStmt: // handles `var =`
-		genDecl := s.Decl.(*ast.GenDecl)
-		valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
-		originalCall = valueSpec.Values[0]
-	default:
-		return fmt.Errorf("unsupported statement type for rewrite: %T", stmt)
-	}
+	// 3. Build the statements for inside the new `{...}` block
+	localSvcIdent := ast.NewIdent("localSvc")
+	remoteSvcIdent := ast.NewIdent("remoteSvc")
+	monitorIdent := ast.NewIdent("monitor")
+	deciderIdent := ast.NewIdent("decider")
 
-	// 3. Create the AST node for the delegate constructor call, wrapping the other two.
-	delegateConstructorName := "New" + pkgName + "ClientDelegate"
-	delegateConstructorCall := &ast.CallExpr{
-		Fun: ast.NewIdent(delegateConstructorName),
-		Args: []ast.Expr{
-			originalCall,
-			clientConstructorCall,
+	// `localSvc := original.NewService(...)`
+	localDecl := &ast.AssignStmt{Lhs: []ast.Expr{localSvcIdent}, Tok: token.DEFINE, Rhs: []ast.Expr{originalCall}}
+
+	// `remoteSvc := NewuserserviceClient("http://...")`
+	remoteDecl := &ast.AssignStmt{
+		Lhs: []ast.Expr{remoteSvcIdent},
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{
+			&ast.CallExpr{
+				Fun:  ast.NewIdent("New" + res.PackageName + "Client"),
+				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s:%d"`, res.PackageName, namespace, port)}},
+			},
 		},
 	}
 
-	// 4. Replace the original RHS with the new delegate call expression.
-	switch s := stmt.(type) {
-	case *ast.AssignStmt:
-		s.Rhs[0] = delegateConstructorCall
-	case *ast.DeclStmt:
-		valueSpec := s.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec)
-		valueSpec.Values[0] = delegateConstructorCall
+	// `monitor, err := metrics.NewMonitor(1 * time.Second)`
+	monitorDecl := &ast.AssignStmt{
+		Lhs: []ast.Expr{monitorIdent, ast.NewIdent("err")},
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("metrics"), Sel: ast.NewIdent("NewMonitor")}, Args: []ast.Expr{&ast.BinaryExpr{X: &ast.BasicLit{Kind: token.INT, Value: "1"}, Op: token.MUL, Y: &ast.SelectorExpr{X: ast.NewIdent("time"), Sel: ast.NewIdent("Second")}}}}},
 	}
-	return nil
+	// `if err != nil { log.Fatalf(...) }`
+	monitorErrCheck := &ast.IfStmt{
+		Cond: &ast.BinaryExpr{X: ast.NewIdent("err"), Op: token.NEQ, Y: ast.NewIdent("nil")},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ExprStmt{
+					X: &ast.CallExpr{
+						Fun: &ast.SelectorExpr{X: ast.NewIdent("log"), Sel: ast.NewIdent("Fatalf")},
+						Args: []ast.Expr{
+							&ast.BasicLit{Kind: token.STRING, Value: `"failed to create metrics monitor: %v"`}, ast.NewIdent("err")},
+					},
+				},
+			},
+		},
+	}
+	// `defer monitor.Close()`
+	monitorClose := &ast.DeferStmt{Call: &ast.CallExpr{Fun: &ast.SelectorExpr{X: monitorIdent, Sel: ast.NewIdent("Close")}}}
+
+	// `decider := pragma.NewCPUDecider(monitor, 0.5)`
+	deciderDecl := &ast.AssignStmt{
+		Lhs: []ast.Expr{deciderIdent},
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{
+			&ast.CallExpr{
+				Fun: &ast.SelectorExpr{X: ast.NewIdent("pragma"), Sel: ast.NewIdent(fmt.Sprintf("New%sDecider", res.Pragma.SignalType))},
+				Args: []ast.Expr{
+					monitorIdent,
+					&ast.BasicLit{Kind: token.FLOAT, Value: strconv.FormatFloat(res.Pragma.Threshold, 'f', -1, 64)},
+				},
+			},
+		},
+	}
+
+	// `userService = NewuserserviceDelegate(localSvc, remoteSvc, decider)`
+	finalAssign := &ast.AssignStmt{
+		Lhs: []ast.Expr{ast.NewIdent(varIdent.Name)},
+		Tok: token.ASSIGN,
+		Rhs: []ast.Expr{&ast.CallExpr{
+			Fun:  ast.NewIdent("New" + res.PackageName + "ClientDelegate"),
+			Args: []ast.Expr{localSvcIdent, remoteSvcIdent, deciderIdent},
+		}},
+	}
+
+	// 4. Assemble the final block
+	block := &ast.BlockStmt{
+		List: []ast.Stmt{localDecl, remoteDecl, monitorDecl, monitorErrCheck, monitorClose, deciderDecl, finalAssign},
+	}
+
+	return []ast.Stmt{varDecl, block}, nil
 }
 
 // findSingleImplementer takes an AST identifier for an interface name and its defining package,

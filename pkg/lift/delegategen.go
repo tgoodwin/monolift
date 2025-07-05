@@ -66,6 +66,9 @@ func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pa
 		return nil, err
 	}
 
+	// Add the pragma package to imports, as the delegate will use the Decider interface.
+	imports["github.com/tgoodwin/monolift/pkg/pragma"] = "pragma"
+
 	fmt.Println("Generating delegate for interface:", definingPkg.Name)
 
 	data := &DelegateTemplateData{
