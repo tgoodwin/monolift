@@ -194,6 +194,40 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		replacementsByFile[res.FileAST] = append(replacementsByFile[res.FileAST], res)
 	}
 
+	// --- Shared Metrics Monitor Injection ---
+	// Check if any extracted service needs a metrics monitor and inject a shared one if so.
+	var monitorIdent *ast.Ident
+	needsMonitor := false
+	for _, res := range extracted {
+		// TODO : Check if the pragma requires a metrics monitor.
+		if res.Pragma != nil {
+			needsMonitor = true
+			break
+		}
+	}
+
+	if needsMonitor {
+		mainFunc, err := findFuncDeclInPackage(mainPkg, "main")
+		if err != nil {
+			return fmt.Errorf("could not find main function to inject metrics monitor: %w", err)
+		}
+
+		// Use a unique name to avoid conflicts with user-defined monitors.
+		monitorIdent = ast.NewIdent("monoliftMetricsMonitor")
+		monitorStmts := generateMonitorStmts(monitorIdent)
+
+		// Prepend the monitor setup statements to the main function's body.
+		mainFunc.Body.List = append(monitorStmts, mainFunc.Body.List...)
+
+		// Find the file containing the main function to add imports to it.
+		mainFuncFile := findFileForNode(mainPkg, mainFunc)
+		if mainFuncFile != nil {
+			astutil.AddImport(c.Fset, mainFuncFile, "log")
+			astutil.AddImport(c.Fset, mainFuncFile, "time")
+			astutil.AddImport(c.Fset, mainFuncFile, "github.com/tgoodwin/monolift/pkg/metrics")
+		}
+	}
+
 	// Recreate all files from the parsed main package ASTs
 	for i, fileAST := range mainPkg.Syntax {
 		originalFilePath := mainPkg.GoFiles[i]
@@ -202,14 +236,12 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		// Apply transformations if any are registered for this file.
 		if resultsToApply, ok := replacementsByFile[fileAST]; ok {
 			fmt.Printf("  Rewriting constructor calls in %s\n", baseName)
-			// Add necessary imports for the generated code block.
-			astutil.AddImport(c.Fset, fileAST, "log")
-			astutil.AddImport(c.Fset, fileAST, "time")
-			astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/metrics")
+			// The delegate block itself only needs the pragma import.
+			// Other imports are handled by the shared monitor injection.
 			astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/pragma")
 
 			for _, res := range resultsToApply {
-				newStmts, err := generateDelegateBlockStmts(res, namespace, servicePort)
+				newStmts, err := generateDelegateBlockStmts(res, namespace, servicePort, monitorIdent)
 				if err != nil {
 					return fmt.Errorf("failed to generate delegate block for %s: %w", res.PackageName, err)
 				}
@@ -514,7 +546,7 @@ func findAndReplaceStmts(file *ast.File, oldStmt ast.Stmt, newStmts []ast.Stmt) 
 
 // generateDelegateBlockStmts creates the full block of code that instantiates
 // the local service, remote client, metrics monitor, decider, and the final delegate.
-func generateDelegateBlockStmts(res *extractionResult, namespace string, port int) ([]ast.Stmt, error) {
+func generateDelegateBlockStmts(res *extractionResult, namespace string, port int, monitorIdent *ast.Ident) ([]ast.Stmt, error) {
 	// 1. Extract info from the original statement (e.g., `userService := ...`)
 	var varIdent *ast.Ident
 	var originalCall ast.Expr
@@ -550,7 +582,6 @@ func generateDelegateBlockStmts(res *extractionResult, namespace string, port in
 	// 3. Build the statements for inside the new `{...}` block
 	localSvcIdent := ast.NewIdent("localSvc")
 	remoteSvcIdent := ast.NewIdent("remoteSvc")
-	monitorIdent := ast.NewIdent("monitor")
 	deciderIdent := ast.NewIdent("decider")
 
 	// `localSvc := original.NewService(...)`
@@ -567,30 +598,6 @@ func generateDelegateBlockStmts(res *extractionResult, namespace string, port in
 			},
 		},
 	}
-
-	// `monitor, err := metrics.NewMonitor(1 * time.Second)`
-	monitorDecl := &ast.AssignStmt{
-		Lhs: []ast.Expr{monitorIdent, ast.NewIdent("err")},
-		Tok: token.DEFINE,
-		Rhs: []ast.Expr{&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("metrics"), Sel: ast.NewIdent("NewMonitor")}, Args: []ast.Expr{&ast.BinaryExpr{X: &ast.BasicLit{Kind: token.INT, Value: "1"}, Op: token.MUL, Y: &ast.SelectorExpr{X: ast.NewIdent("time"), Sel: ast.NewIdent("Second")}}}}},
-	}
-	// `if err != nil { log.Fatalf(...) }`
-	monitorErrCheck := &ast.IfStmt{
-		Cond: &ast.BinaryExpr{X: ast.NewIdent("err"), Op: token.NEQ, Y: ast.NewIdent("nil")},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				&ast.ExprStmt{
-					X: &ast.CallExpr{
-						Fun: &ast.SelectorExpr{X: ast.NewIdent("log"), Sel: ast.NewIdent("Fatalf")},
-						Args: []ast.Expr{
-							&ast.BasicLit{Kind: token.STRING, Value: `"failed to create metrics monitor: %v"`}, ast.NewIdent("err")},
-					},
-				},
-			},
-		},
-	}
-	// `defer monitor.Close()`
-	monitorClose := &ast.DeferStmt{Call: &ast.CallExpr{Fun: &ast.SelectorExpr{X: monitorIdent, Sel: ast.NewIdent("Close")}}}
 
 	// `decider := pragma.NewCPUDecider(monitor, 0.5)`
 	deciderDecl := &ast.AssignStmt{
@@ -619,10 +626,58 @@ func generateDelegateBlockStmts(res *extractionResult, namespace string, port in
 
 	// 4. Assemble the final block
 	block := &ast.BlockStmt{
-		List: []ast.Stmt{localDecl, remoteDecl, monitorDecl, monitorErrCheck, monitorClose, deciderDecl, finalAssign},
+		List: []ast.Stmt{localDecl, remoteDecl, deciderDecl, finalAssign},
 	}
 
 	return []ast.Stmt{varDecl, block}, nil
+}
+
+// generateMonitorStmts creates the AST statements for instantiating and closing a metrics monitor.
+// It generates:
+//
+//	monitor, err := metrics.NewMonitor(1 * time.Second)
+//	if err != nil {
+//		log.Fatalf("failed to create metrics monitor: %v", err)
+//	}
+//	defer monitor.Close()
+func generateMonitorStmts(monitorIdent *ast.Ident) []ast.Stmt {
+	// `monitor, err := metrics.NewMonitor(1 * time.Second)`
+	monitorDecl := &ast.AssignStmt{
+		Lhs: []ast.Expr{monitorIdent, ast.NewIdent("err")},
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("metrics"), Sel: ast.NewIdent("NewMonitor")}, Args: []ast.Expr{&ast.BinaryExpr{X: &ast.BasicLit{Kind: token.INT, Value: "1"}, Op: token.MUL, Y: &ast.SelectorExpr{X: ast.NewIdent("time"), Sel: ast.NewIdent("Second")}}}}},
+	}
+	// `if err != nil { log.Fatalf(...) }`
+	monitorErrCheck := &ast.IfStmt{
+		Cond: &ast.BinaryExpr{X: ast.NewIdent("err"), Op: token.NEQ, Y: ast.NewIdent("nil")},
+		Body: &ast.BlockStmt{List: []ast.Stmt{&ast.ExprStmt{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("log"), Sel: ast.NewIdent("Fatalf")}, Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: `"failed to create metrics monitor: %v"`}, ast.NewIdent("err")}}}}},
+	}
+	// `defer monitor.Close()`
+	monitorClose := &ast.DeferStmt{Call: &ast.CallExpr{Fun: &ast.SelectorExpr{X: monitorIdent, Sel: ast.NewIdent("Close")}}}
+
+	return []ast.Stmt{monitorDecl, monitorErrCheck, monitorClose}
+}
+
+// findFuncDeclInPackage finds a function declaration by name within a given package.
+func findFuncDeclInPackage(pkg *packages.Package, funcName string) (*ast.FuncDecl, error) {
+	for _, fileAST := range pkg.Syntax {
+		for _, decl := range fileAST.Decls {
+			if fn, ok := decl.(*ast.FuncDecl); ok && fn.Name.Name == funcName {
+				return fn, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("function %q not found in package %s", funcName, pkg.PkgPath)
+}
+
+// findFileForNode finds the *ast.File that a given ast.Node belongs to within a package.
+func findFileForNode(pkg *packages.Package, target ast.Node) *ast.File {
+	for _, fileAST := range pkg.Syntax {
+		if fileAST.Pos() <= target.Pos() && target.End() <= fileAST.End() {
+			return fileAST
+		}
+	}
+	return nil
 }
 
 // findSingleImplementer takes an AST identifier for an interface name and its defining package,
