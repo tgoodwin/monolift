@@ -8,6 +8,8 @@ metadata:
   labels:
     # These labels are for the ServiceMonitor itself, for organization.
     app.kubernetes.io/name: monolith
+    # This label is CRUCIAL for the Prometheus Operator to discover this ServiceMonitor.
+    release: prometheus-stack
 spec:
   # This selector tells the ServiceMonitor which Services to target.
   # It will match the 'monolith-metrics' Service we created.
