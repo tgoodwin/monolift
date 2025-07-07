@@ -83,7 +83,8 @@ var (
 	// saveReqLatHist = prometheus.NewHistogram(...)
 )
 
-func SetupPrometheus(promAddress string) {
+// RegisterMetrics registers all the metrics defined in this package.
+func RegisterMetrics() {
 	prometheus.MustRegister(saveReqCtr)
 	prometheus.MustRegister(delReqCtr)
 	prometheus.MustRegister(commentReqCtr)
@@ -101,14 +102,7 @@ func SetupPrometheus(promAddress string) {
 	// prometheus.MustRegister(readStoreLatHist)
 	// prometheus.MustRegister(updateStoreLatHist)
 
-	// The Handler function provides a default handler to expose metrics
-	// via an HTTP server. "/metrics" is the usual endpoint for that.
-	// This will be handled by the main HTTP server in monolith/main.go
-	// http.Handle("/metrics", promhttp.Handler())
-	// logger.Fatal(http.ListenAndServe(promAddress, nil))
-	// Instead, we just register. The main server will expose promhttp.Handler().
-
-	logger.Printf("Prometheus metrics registered. Metrics will be available at /metrics on the main server.")
+	logger.Printf("Prometheus metrics registered.")
 }
 
 // GetPrometheusHandler returns the promhttp.Handler() to be used by the main server
