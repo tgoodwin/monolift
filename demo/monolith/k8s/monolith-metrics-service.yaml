@@ -1,15 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: monolith-service
+  name: monolith-metrics
   labels:
     app.kubernetes.io/name: monolith
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: monolith
   ports:
-  - protocol: TCP
-    name: http-app
-    port: 80
-    targetPort: 8080
+    - name: http-metrics
+      port: 8084
+      targetPort: 8084

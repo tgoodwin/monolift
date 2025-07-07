@@ -3,23 +3,26 @@ kind: Deployment
 metadata:
   name: monolith-deployment
   labels:
-    app: monolith
+    app.kubernetes.io/name: monolith
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: monolith
+      app.kubernetes.io/name: monolith
   template:
     metadata:
       labels:
-        app: monolith
+        app.kubernetes.io/name: monolith
     spec:
       containers:
       - name: monolith-app
         imagePullPolicy: Always
         image: docker.io/tlg2132/demo-monolith:latest
         ports:
-        - containerPort: 8080
+        - name: http-app
+          containerPort: 8080
+        - name: http-metrics
+          containerPort: 8084
         env:
         - name: REDIS_ADDRESS
           value: "monolith-redis.default.svc.cluster.local:6379"
