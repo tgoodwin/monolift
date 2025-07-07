@@ -76,7 +76,7 @@ func RegisterHandlers(mux *http.ServeMux,
 // SaveHandler saves a new post
 func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	saveReqCtr.Inc()
+	frontendReqsTotal.WithLabelValues("save").Inc()
 	logger.Println("SaveHandler received request")
 
 	if r.Method != http.MethodPost {
@@ -183,7 +183,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 // DelHandler deletes a post
 func (h *APIHandlers) DelHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	delReqCtr.Inc() // Assuming you'll add delReqCtr similar to saveReqCtr
+	frontendReqsTotal.WithLabelValues("delete").Inc()
 	logger.Println("DelHandler received request")
 
 	if r.Method != http.MethodPost {
@@ -235,7 +235,7 @@ func (h *APIHandlers) DelHandler(w http.ResponseWriter, r *http.Request) {
 // CommentHandler adds a comment to a post
 func (h *APIHandlers) CommentHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	commentReqCtr.Inc()
+	frontendReqsTotal.WithLabelValues("comment").Inc()
 	logger.Println("CommentHandler received request")
 
 	if r.Method != http.MethodPost {
@@ -279,7 +279,7 @@ func (h *APIHandlers) CommentHandler(w http.ResponseWriter, r *http.Request) {
 // UpvoteHandler upvotes a post
 func (h *APIHandlers) UpvoteHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	upvoteReqCtr.Inc()
+	frontendReqsTotal.WithLabelValues("upvote").Inc()
 	logger.Println("UpvoteHandler received request")
 
 	if r.Method != http.MethodPost {
@@ -315,7 +315,7 @@ func (h *APIHandlers) UpvoteHandler(w http.ResponseWriter, r *http.Request) {
 // ImageHandler returns the given image
 func (h *APIHandlers) ImageHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	imageReqCtr.Inc()
+	frontendReqsTotal.WithLabelValues("image").Inc()
 	logger.Println("ImageHandler received request")
 
 	imageId := r.URL.Query().Get("id")
@@ -350,7 +350,7 @@ func (h *APIHandlers) ImageHandler(w http.ResponseWriter, r *http.Request) {
 // TimelineHandler reads all the post in a given timeline
 func (h *APIHandlers) TimelineHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	tlReqCtr.Inc()
+	frontendReqsTotal.WithLabelValues("timeline").Inc()
 	logger.Println("TimelineHandler received request")
 
 	if r.Method != http.MethodGet {
@@ -511,7 +511,7 @@ func (h *APIHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 func (h *APIHandlers) FollowHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger.Println("FollowHandler received request")
-	followReqCtr.Inc() // Increment follow request counter
+	frontendReqsTotal.WithLabelValues("follow").Inc()
 
 	var req FollowAPIReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

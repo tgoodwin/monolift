@@ -15,48 +15,14 @@ var logger = log.New(os.Stdout, "monolith-frontend: ", log.LstdFlags|log.Lshortf
 
 // prometheus metric
 var (
-	// flow counters
-	saveReqCtr = prometheus.NewCounter(
+	// A single counter vector for all frontend requests, partitioned by type.
+	// This is the idiomatic way to handle this kind of metric.
+	frontendReqsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "frontend_save_req",
-			Help: "Number of frontend save requests received.",
+			Name: "frontend_requests_total",
+			Help: "Total number of frontend requests, partitioned by type.",
 		},
-	)
-	delReqCtr = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "frontend_del_req",
-			Help: "Number of frontend delete requests received.",
-		},
-	)
-	commentReqCtr = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "frontend_comment_req",
-			Help: "Number of frontend comment requests received.",
-		},
-	)
-	upvoteReqCtr = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "frontend_upvote_req",
-			Help: "Number of frontend upvote requests received.",
-		},
-	)
-	imageReqCtr = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "frontend_image_req",
-			Help: "Number of frontend image read requests received.",
-		},
-	)
-	tlReqCtr = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "frontend_tl_req",
-			Help: "Number of frontend timeline read requests received.",
-		},
-	)
-	followReqCtr = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "frontend_follow_req",
-			Help: "Number of frontend follow requests received.",
-		},
+		[]string{"request_type"},
 	)
 
 	// Latency Histograms (simplified for now, will be expanded as services are ported)
@@ -85,12 +51,7 @@ var (
 
 // RegisterMetrics registers all the metrics defined in this package.
 func RegisterMetrics() {
-	prometheus.MustRegister(saveReqCtr)
-	prometheus.MustRegister(delReqCtr)
-	prometheus.MustRegister(commentReqCtr)
-	prometheus.MustRegister(upvoteReqCtr)
-	prometheus.MustRegister(imageReqCtr)
-	prometheus.MustRegister(tlReqCtr)
+	prometheus.MustRegister(frontendReqsTotal)
 	prometheus.MustRegister(e2eReqLatHist)
 	prometheus.MustRegister(readImageStoreLatHist)
 	prometheus.MustRegister(writeImageStoreLatHist)

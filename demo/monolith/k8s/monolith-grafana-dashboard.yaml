@@ -65,8 +65,8 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "prometheus" },
               "editorMode": "code",
-              "expr": "sum(rate({__name__=~\"frontend_.*_req\"}[5m])) by (__name__)",
-              "legendFormat": "{{__name__}}",
+              "expr": "sum(rate(frontend_requests_total[5m])) by (request_type)",
+              "legendFormat": "{{request_type}}",
               "range": true,
               "refId": "A"
             }
@@ -86,6 +86,44 @@ data:
               "editorMode": "code",
               "expr": "histogram_quantile(0.95, sum(rate(frontend_e2e_latency_ms_bucket[5m])) by (le, request_type))",
               "legendFormat": "{{request_type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 80 } ] }, "unit": "percent" }, "overrides": [] },
+          "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+          "id": 5,
+          "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+          "title": "CPU Utilization (%)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{namespace=\"default\", pod=~\"monolith-deployment-.*\", container=\"monolith-app\"}[5m])) by (pod) / sum(kube_pod_container_resource_limits{namespace=\"default\", pod=~\"monolith-deployment-.*\", container=\"monolith-app\", resource=\"cpu\"}) by (pod) * 100",
+              "legendFormat": "{{pod}}",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 80 } ] }, "unit": "mebibytes" }, "overrides": [] },
+          "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+          "id": 6,
+          "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+          "title": "Memory Usage (MiB)",
+          "type": "timeseries",
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "editorMode": "code",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"default\", pod=~\"monolith-deployment-.*\", container=\"monolith-app\"}) by (pod) / (1024 * 1024)",
+              "legendFormat": "{{pod}}",
               "range": true,
               "refId": "A"
             }
