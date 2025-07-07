@@ -1,16 +1,17 @@
-apiVersion: grafana.integreatly.org/v1beta1
-kind: GrafanaDashboard
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: monolith-dashboard
+  name: monolith-dashboard-cm
   # Deploy this to the same namespace as Grafana, usually 'monitoring'
   namespace: monitoring
   labels:
     # This label is what the Grafana Operator uses to discover dashboards.
     # It might be different depending on your chart's values.
     grafana_dashboard: "1"
-spec:
-  # The 'json' field contains the entire Grafana dashboard model.
-  json: |
+data:
+  # The key here becomes the filename inside Grafana's dashboard directory.
+  # The value is the entire Grafana dashboard model as a JSON string.
+  monolith-dashboard.json: |
     {
       "__inputs": [],
       "__requires": [
