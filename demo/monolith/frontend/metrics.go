@@ -25,6 +25,15 @@ var (
 		[]string{"request_type"},
 	)
 
+	serviceCallLatHist = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "frontend_service_call_latency_ms",
+			Help:    "Latency (ms) of internal service calls from the frontend by service and method.",
+			Buckets: util.LatBuckets(),
+		},
+		[]string{"service", "method"},
+	)
+
 	// Latency Histograms (simplified for now, will be expanded as services are ported)
 	e2eReqLatHist = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -52,6 +61,7 @@ var (
 // RegisterMetrics registers all the metrics defined in this package.
 func RegisterMetrics() {
 	prometheus.MustRegister(frontendReqsTotal)
+	prometheus.MustRegister(serviceCallLatHist)
 	prometheus.MustRegister(e2eReqLatHist)
 	prometheus.MustRegister(readImageStoreLatHist)
 	prometheus.MustRegister(writeImageStoreLatHist)

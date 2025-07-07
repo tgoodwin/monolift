@@ -147,7 +147,9 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 		SendUnixMilli: time.Now().UnixMilli(), // Timestamp for the service call itself
 	}
 
+	serviceCallStart := time.Now()
 	_, err := h.PostService.SavePost(context.Background(), postServiceReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("postservice", "SavePost"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("SaveHandler error calling PostService.SavePost: %v", err)
 		http.Error(w, "Failed to save post", http.StatusInternalServerError)
@@ -165,7 +167,9 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 		// ClientUnixMilli: req.SendUnixMilli, // Original client timestamp from frontend request
 		SendUnixMilli: time.Now().UnixMilli(),
 	}
+	serviceCallStart = time.Now()
 	err = h.TimelineService.UpdateTimeline(context.Background(), timelineUpdateReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		// Log error, but don't fail the entire Save operation for a timeline update failure
 		logger.Printf("SaveHandler: failed to update timeline for user %s, post %s: %v", userId, postId, err)
@@ -204,7 +208,9 @@ func (h *APIHandlers) DelHandler(w http.ResponseWriter, r *http.Request) {
 		SendUnixMilli: time.Now().UnixMilli(),
 	}
 
+	serviceCallStart := time.Now()
 	_, err := h.PostService.DeletePost(context.Background(), postServiceReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("postservice", "DeletePost"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("DelHandler error calling PostService.DeletePost: %v", err)
 		http.Error(w, "Failed to delete post", http.StatusInternalServerError)
@@ -220,7 +226,9 @@ func (h *APIHandlers) DelHandler(w http.ResponseWriter, r *http.Request) {
 		ClientUnixMilli: req.SendUnixMilli,
 		SendUnixMilli:   time.Now().UnixMilli(),
 	}
+	serviceCallStart = time.Now()
 	err = h.TimelineService.UpdateTimeline(context.Background(), timelineUpdateReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("DelHandler: failed to update timeline for user %s, post %s: %v", req.UserId, req.PostId, err)
 	}
@@ -263,7 +271,9 @@ func (h *APIHandlers) CommentHandler(w http.ResponseWriter, r *http.Request) {
 		SendUnixMilli: time.Now().UnixMilli(),
 	}
 
+	serviceCallStart := time.Now()
 	_, err := h.PostService.AddComment(context.Background(), postServiceReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("postservice", "AddComment"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("CommentHandler error calling PostService.AddComment: %v", err)
 		http.Error(w, "Failed to add comment", http.StatusInternalServerError)
@@ -299,7 +309,9 @@ func (h *APIHandlers) UpvoteHandler(w http.ResponseWriter, r *http.Request) {
 	postServiceReq := req
 	postServiceReq.SendUnixMilli = time.Now().UnixMilli() // Update timestamp for service call
 
+	serviceCallStart := time.Now()
 	_, err := h.PostService.UpvotePost(context.Background(), postServiceReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("postservice", "UpvotePost"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("UpvoteHandler error calling PostService.UpvotePost: %v", err)
 		http.Error(w, "Failed to upvote post", http.StatusInternalServerError)
@@ -405,7 +417,9 @@ func (h *APIHandlers) TimelineHandler(w http.ResponseWriter, r *http.Request) {
 		SendUnixMilli: time.Now().UnixMilli(),
 	}
 
+	serviceCallStart := time.Now()
 	timelineResp, err := h.TimelineService.ReadTimeline(context.Background(), timelineReadReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "ReadTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("TimelineHandler: Error reading timeline: %v", err)
 		http.Error(w, "Failed to read timeline", http.StatusInternalServerError)
@@ -422,7 +436,9 @@ func (h *APIHandlers) TimelineHandler(w http.ResponseWriter, r *http.Request) {
 		PostIds:       timelineResp.PostIds,
 		SendUnixMilli: time.Now().UnixMilli(),
 	}
+	serviceCallStart = time.Now()
 	postReadResp, err := h.PostService.ReadPosts(context.Background(), postReadReq)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("postservice", "ReadPosts"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("TimelineHandler: Error reading posts: %v", err)
 		http.Error(w, "Failed to read posts for timeline", http.StatusInternalServerError)
@@ -461,7 +477,9 @@ func (h *APIHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	// The userTypes.RegisterReq matches what the userservice expects.
+	serviceCallStart := time.Now()
 	resp, err := h.UserService.Register(context.Background(), req)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("userservice", "Register"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("RegisterHandler error calling UserService.Register: %v", err)
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
@@ -493,7 +511,9 @@ func (h *APIHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	serviceCallStart := time.Now()
 	resp, err := h.UserService.Login(context.Background(), req)
+	util.ObserveHist(serviceCallLatHist.WithLabelValues("userservice", "Login"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		// This path might not be hit often with the current stubbed Login always succeeding.
 		logger.Printf("LoginHandler error calling UserService.Login: %v", err)
@@ -536,7 +556,9 @@ func (h *APIHandlers) FollowHandler(w http.ResponseWriter, r *http.Request) {
 			FollowId:      req.FollowId,
 			SendUnixMilli: time.Now().UnixMilli(),
 		}
+		serviceCallStart := time.Now()
 		resp, err := h.SocialGraphService.Follow(ctx, followReq)
+		util.ObserveHist(serviceCallLatHist.WithLabelValues("socialgraph", "Follow"), float64(time.Since(serviceCallStart).Milliseconds()))
 		if err != nil {
 			logger.Printf("FollowHandler error calling SocialGraphService.Follow: %v", err)
 			http.Error(w, "Failed to follow user", http.StatusInternalServerError)
@@ -553,7 +575,9 @@ func (h *APIHandlers) FollowHandler(w http.ResponseWriter, r *http.Request) {
 			UnfollowId:    req.FollowId, // map follow_id to UnfollowId
 			SendUnixMilli: time.Now().UnixMilli(),
 		}
+		serviceCallStart := time.Now()
 		resp, err := h.SocialGraphService.Unfollow(ctx, unfollowReq)
+		util.ObserveHist(serviceCallLatHist.WithLabelValues("socialgraph", "Unfollow"), float64(time.Since(serviceCallStart).Milliseconds()))
 		if err != nil {
 			logger.Printf("FollowHandler error calling SocialGraphService.Unfollow: %v", err)
 			http.Error(w, "Failed to unfollow user", http.StatusInternalServerError)
