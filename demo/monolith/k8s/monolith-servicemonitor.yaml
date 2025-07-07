@@ -20,5 +20,6 @@ spec:
       - default
   endpoints:
   - port: http-metrics
+    scheme: http # Explicitly tell Prometheus to scrape over HTTP.
     interval: 15s # How often to scrape the endpoint.
     path: "/metrics" # The path to scrape metrics from.
