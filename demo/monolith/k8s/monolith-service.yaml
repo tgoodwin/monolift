@@ -5,7 +5,7 @@ metadata:
   labels:
     app: monolith
 spec:
-  type: ClusterIP # Change to LoadBalancer or NodePort for external access if needed
+  type: LoadBalancer
   selector:
     app: monolith # This must match the labels of your Pods (defined in the Deployment)
   ports:
