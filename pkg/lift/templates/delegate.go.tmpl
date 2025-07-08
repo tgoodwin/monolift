@@ -1,39 +1,30 @@
 package {{.PackageName}}
 
-import (
-	"context"
-	"fmt"
-)
-
-// {{.DelegateStructName}} allows calling either the local or remote implementation of the {{.InterfaceTypeName}}.
+// {{.DelegateStructName}} is a client that can delegate calls to a remote service
+// based on the decision of a pragma.Decider.
 type {{.DelegateStructName}} struct {
-	{{.InterfacePackageAlias}}.{{.InterfaceTypeName}}
-	remote    *{{.RemoteClientStructName}}
-	useRemote bool
+	local   {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}
+	remote  {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}
+	decider pragma.Decider
 }
 
-// New{{.DelegateStructName}} creates a new delegate for the {{.InterfaceTypeName}}.
-// It takes the local implementation and the remote client as arguments.
-func New{{.DelegateStructName}}(local {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}, remote *{{.RemoteClientStructName}}) *{{.DelegateStructName}} {
+// New{{.DelegateStructName}} creates a new delegate client.
+// It takes a local implementation, a remote client, and a decider which determines
+// when to use the remote client.
+func New{{.DelegateStructName}}(local, remote {{.InterfacePackageAlias}}.{{.InterfaceTypeName}}, decider pragma.Decider) *{{.DelegateStructName}} {
 	return &{{.DelegateStructName}}{
-		{{.InterfaceTypeName}}: local,
-		remote:    remote,
-		useRemote: true, // Default to remote
+		local:   local,
+		remote:  remote,
+		decider: decider,
 	}
-}
-
-// SetUseRemote configures the delegate to use the remote client.
-func (d *{{.DelegateStructName}}) SetUseRemote(use bool) {
-	d.useRemote = use
 }
 
 {{range .Methods}}
-// {{.Name}} calls either the local or remote {{.Name}} method based on configuration.
+// {{.Name}} delegates the call to either the local or remote implementation.
 func (d *{{$.DelegateStructName}}) {{.FullSignature}} {
-	if d.useRemote {
-		fmt.Println("Using remote implementation for {{.Name}}")
-		return d.remote.{{.Name}}({{ join .ParamNames ", " }})
+	if d.decider.ShouldDelegate() {
+		return d.remote.{{.Name}}({{join .ParamNames ", "}})
 	}
-	return d.{{$.InterfaceTypeName}}.{{.Name}}({{ join .ParamNames ", " }})
+	return d.local.{{.Name}}({{join .ParamNames ", "}})
 }
 {{end}}

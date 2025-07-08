@@ -123,7 +123,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 		imageData, err := io.ReadAll(file)
 
-		err = expensiveProcessingStep(imageData)
+		// err = expensiveProcessingStep(imageData)
 
 		storeWriteStartTime := time.Now()
 		_, err = h.DBStore.SaveState(context.Background(), imageStoreName, imageIds[i], imageData, nil)

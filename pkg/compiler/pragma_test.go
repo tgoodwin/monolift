@@ -157,7 +157,7 @@ func TestGetPragmasFromCommentGroup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GetPragmasFromCommentGroup(tt.cg)
+			got := getPragmasFromCommentGroup(tt.cg)
 			if len(got) == 0 && len(tt.expected) == 0 { // Handle empty slices being non-nil vs nil
 				return
 			}
