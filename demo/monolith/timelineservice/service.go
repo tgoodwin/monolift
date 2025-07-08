@@ -21,8 +21,8 @@ import (
 var logger = log.New(os.Stdout, "monolith-timelineservice: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	userTimelineStoreName = "user_timeline"
-	homeTimelineStoreName = "home_timeline"
+	userTimelineStoreName = "timeline-store"
+	homeTimelineStoreName = "timeline-store"
 	maxTimelineSize       = 1000 // Max number of posts in a timeline (like original Dapr version)
 	maxRetries            = 5    // Max retries for optimistic concurrency
 )
