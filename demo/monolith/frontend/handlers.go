@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	dapr "github.com/dapr/go-sdk/client"
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
@@ -110,7 +111,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	// Step 2: Handle and save images from file parts
 	files := r.MultipartForm.File["images"]
 	imageIds := make([]string, len(files))
-	stateItems := make([]*database.StateItem, len(files))
+	stateItems := make([]*dapr.SetStateItem, len(files))
 
 	for i, fileHeader := range files {
 		imageIds[i] = util.ImageId(postId, i)
@@ -129,7 +130,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		stateItems[i] = &database.StateItem{
+		stateItems[i] = &dapr.SetStateItem{
 			Key:   imageIds[i],
 			Value: imageData,
 		}

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	dapr "github.com/dapr/go-sdk/client"
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
 	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
@@ -130,11 +131,14 @@ func (s *service) updateSpecificTimeline(ctx context.Context, storeName, timelin
 
 		opStartTime = time.Now()
 		// Use the more performant SaveBulkState
-		saveErr := s.db.SaveBulkState(ctx, storeName, &database.StateItem{
+		itemToSave := &dapr.SetStateItem{
 			Key:   timelineKey,
 			Value: updatedData,
-			Etag:  etag,
-		})
+		}
+		if etag != "" {
+			itemToSave.Etag = &dapr.ETag{Value: etag}
+		}
+		saveErr := s.db.SaveBulkState(ctx, storeName, itemToSave)
 		util.ObserveHist(writeStoreLatHist, float64(time.Since(opStartTime).Milliseconds()))
 		if saveErr == nil {
 			return nil // Success

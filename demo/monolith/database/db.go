@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	dapr "github.com/dapr/go-sdk/client"
 )
 
 // Sentinel errors for Store operations.
@@ -37,7 +39,7 @@ type Store interface {
 
 	// SaveBulkState saves one or more state items. It is a "fire-and-forget" operation
 	// and does not return new ETags, making it more efficient for bulk writes.
-	SaveBulkState(ctx context.Context, storeName string, items ...*StateItem) error
+	SaveBulkState(ctx context.Context, storeName string, items ...*dapr.SetStateItem) error
 
 	// GetState retrieves data and ETag for a given key.
 	// Returns (nil, nil) if the key is not found.
