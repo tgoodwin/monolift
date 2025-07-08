@@ -17,8 +17,8 @@ import (
 var logger = log.New(os.Stdout, "monolith-graph: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	followeesStoreName = "graph_followees"
-	followersStoreName = "graph_followers"
+	followeesStoreName = "socialgraph-store"
+	followersStoreName = "socialgraph-store"
 	maxRetries         = 5 // Max retries for optimistic concurrency
 	maxFollows         = 2000
 )
@@ -46,12 +46,12 @@ func NewService(store database.Store) Service {
 
 // followKey generates the key for a user's followee list.
 func followKey(userId string) string {
-	return userId // storeName provides namespacing
+	return userId + "-followees"
 }
 
 // followerKey generates the key for a user's follower list.
 func followerKey(userId string) string {
-	return userId // storeName provides namespacing
+	return userId + "-followers"
 }
 
 // updateFollowList is a helper function for updating a follow/follower list in the store.

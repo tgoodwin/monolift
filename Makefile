@@ -1,5 +1,5 @@
 IMAGE_NAME ?= docker.io/tlg2132/demo-monolith
-IMAGE_TAG  ?= latest
+IMAGE_TAG  ?= dapr
 
 # Kubernetes manifest files location
 K8S_DIR ?= demo/monolith/k8s
