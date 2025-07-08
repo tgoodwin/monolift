@@ -462,6 +462,7 @@ func (h *APIHandlers) TimelineHandler(w http.ResponseWriter, r *http.Request) {
 func (h *APIHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger.Println("RegisterHandler received request")
+	frontendReqsTotal.WithLabelValues("register").Inc()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -494,6 +495,7 @@ func (h *APIHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 func (h *APIHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger.Println("LoginHandler received request")
+	frontendReqsTotal.WithLabelValues("login").Inc()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
