@@ -31,7 +31,7 @@ var (
 			Help:    "Latency (ms) of internal service calls from the frontend by service and method.",
 			Buckets: util.LatBuckets(),
 		},
-		[]string{"service", "method"},
+		[]string{"internal_service", "method"},
 	)
 
 	// Latency Histograms (simplified for now, will be expanded as services are ported)
