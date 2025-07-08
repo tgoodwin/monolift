@@ -160,12 +160,12 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	// In a full system, this would fan out to followers as well,
 	// potentially handled within timelineservice or orchestrated here.
 	timelineUpdateReq := timelineTypes.UpdateReq{
-		UserId:        userId, // From form value
-		PostId:        postId,
-		Add:           true,
-		ImageIncluded: len(imageIds) > 0,
-		// ClientUnixMilli: req.SendUnixMilli, // Original client timestamp from frontend request
-		SendUnixMilli: time.Now().UnixMilli(),
+		UserId:          userId, // From form value
+		PostId:          postId,
+		Add:             true,
+		ImageIncluded:   len(imageIds) > 0,
+		ClientUnixMilli: sendUnixMilli, // Original client timestamp from frontend request
+		SendUnixMilli:   time.Now().UnixMilli(),
 	}
 
 	// update timeline asynchronously to match DeathStarBench use of a queue

@@ -31,22 +31,30 @@ func (s *DaprStore) SaveState(ctx context.Context, storeName, key string, data [
 		Key:   key,
 		Value: data,
 	}
-	if etag != nil {
+	if etag != nil && *etag != "" {
 		item.Etag = &dapr.ETag{
 			Value: *etag,
 		}
 	}
 
-	err := s.client.SaveState(ctx, storeName, key, data, nil)
+	// Use SaveBulkState to pass a SetStateItem, which prevents double-encoding.
+	err := s.client.SaveBulkState(ctx, storeName, item)
 	if err != nil {
 		return "", err
 	}
-	// Dapr does not return the new ETag on save, so we have to do a get
-	newItem, err := s.GetState(ctx, storeName, key)
+
+	// Dapr does not return the new ETag on save, so we have to do a get.
+	// This is inefficient but necessary to fulfill the Store interface contract.
+	savedItem, err := s.GetState(ctx, storeName, key)
 	if err != nil {
-		return "", err
+		// If the get fails, the state might be inconsistent.
+		return "", fmt.Errorf("failed to get new ETag after saving state for key %s: %w", key, err)
 	}
-	return newItem.Etag, nil
+	if savedItem == nil {
+		// This case should ideally not be reached if the save was successful.
+		return "", fmt.Errorf("failed to retrieve item for key %s immediately after saving", key)
+	}
+	return savedItem.Etag, nil
 }
 
 // GetState retrieves data and ETag for a given key from the specified storeName.

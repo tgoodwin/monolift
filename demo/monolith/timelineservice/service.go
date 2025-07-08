@@ -63,11 +63,11 @@ func NewService(store database.Store, sgService socialgraph.Service, pService po
 
 // --- Key generation functions ---
 func userTimelineKey(userId string) string {
-	return userId
+	return userId + "-user"
 }
 
 func homeTimelineKey(userId string) string {
-	return userId
+	return userId + "-home"
 }
 
 // --- Helper to update a single timeline (user or home) ---
