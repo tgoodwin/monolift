@@ -57,6 +57,22 @@ func (s *DaprStore) SaveState(ctx context.Context, storeName, key string, data [
 	return savedItem.Etag, nil
 }
 
+// SaveBulkState saves one or more state items using Dapr's SaveBulkState.
+// This is a "fire-and-forget" operation and does not return new ETags.
+func (s *DaprStore) SaveBulkState(ctx context.Context, storeName string, items ...*StateItem) error {
+	daprItems := make([]*dapr.SetStateItem, len(items))
+	for i, item := range items {
+		daprItems[i] = &dapr.SetStateItem{
+			Key:   item.Key,
+			Value: item.Value,
+		}
+		if item.Etag != "" {
+			daprItems[i].Etag = &dapr.ETag{Value: item.Etag}
+		}
+	}
+	return s.client.SaveBulkState(ctx, storeName, daprItems...)
+}
+
 // GetState retrieves data and ETag for a given key from the specified storeName.
 // Returns (nil, nil) if the key is not found.
 func (s *DaprStore) GetState(ctx context.Context, storeName, key string) (*StateItem, error) {
@@ -68,6 +84,7 @@ func (s *DaprStore) GetState(ctx context.Context, storeName, key string) (*State
 		return nil, nil
 	}
 	return &StateItem{
+		Key:   item.Key,
 		Value: item.Value,
 		Etag:  item.Etag,
 	}, nil

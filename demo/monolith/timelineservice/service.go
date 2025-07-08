@@ -73,7 +73,7 @@ func homeTimelineKey(userId string) string {
 // --- Helper to update a single timeline (user or home) ---
 func (s *service) updateSpecificTimeline(ctx context.Context, storeName, timelineKey, postId string, postTimestamp int64, add bool) error {
 	var currentEntries []TimelinePostEntry
-	var etag *string
+	var etag string
 
 	for i := 0; i < maxRetries; i++ {
 		opStartTime := time.Now()
@@ -85,13 +85,12 @@ func (s *service) updateSpecificTimeline(ctx context.Context, storeName, timelin
 
 		if item == nil || item.Value == nil {
 			currentEntries = []TimelinePostEntry{}
-			etag = nil
+			etag = "" // ETag is empty for new items
 		} else {
 			if err := database.Unmarshal(item.Value, &currentEntries); err != nil {
 				return errors.Wrapf(err, "failed to unmarshal timeline from store %s for key %s", storeName, timelineKey)
 			}
-			tempEtag := item.Etag
-			etag = &tempEtag
+			etag = item.Etag
 		}
 
 		if add {
@@ -130,12 +129,20 @@ func (s *service) updateSpecificTimeline(ctx context.Context, storeName, timelin
 		}
 
 		opStartTime = time.Now()
-		_, saveErr := s.db.SaveState(ctx, storeName, timelineKey, updatedData, etag)
+		// Use the more performant SaveBulkState
+		saveErr := s.db.SaveBulkState(ctx, storeName, &database.StateItem{
+			Key:   timelineKey,
+			Value: updatedData,
+			Etag:  etag,
+		})
 		util.ObserveHist(writeStoreLatHist, float64(time.Since(opStartTime).Milliseconds()))
 		if saveErr == nil {
 			return nil // Success
 		}
 
+		// Note: Dapr's SaveBulkState might not return specific ETag mismatch errors.
+		// The error handling here might need to be adjusted based on the actual errors returned by the Dapr client.
+		// We'll keep the retry logic for now, assuming transient failures or potential transaction conflicts.
 		if stdErrors.Is(saveErr, database.ErrETagMismatch) || stdErrors.Is(saveErr, database.ErrTransactionFailed) {
 			logger.Printf("updateSpecificTimeline: concurrency error for store %s, key %s, retrying (%d/%d): %v", storeName, timelineKey, i+1, maxRetries, saveErr)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)

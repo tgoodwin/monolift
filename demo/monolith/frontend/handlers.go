@@ -110,6 +110,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	// Step 2: Handle and save images from file parts
 	files := r.MultipartForm.File["images"]
 	imageIds := make([]string, len(files))
+	stateItems := make([]*database.StateItem, len(files))
 
 	for i, fileHeader := range files {
 		imageIds[i] = util.ImageId(postId, i)
@@ -122,18 +123,28 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 		imageData, err := io.ReadAll(file)
-
-		// err = expensiveProcessingStep(imageData)
-
-		storeWriteStartTime := time.Now()
-		_, err = h.DBStore.SaveState(context.Background(), imageStoreName, imageIds[i], imageData, nil)
-		util.ObserveHist(writeImageStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 		if err != nil {
-			logger.Printf("SaveHandler: error saving image %s to store: %v", imageIds[i], err)
-			http.Error(w, "Failed to save image", http.StatusInternalServerError)
+			logger.Printf("SaveHandler: error reading image file %s: %v", fileHeader.Filename, err)
+			http.Error(w, "Invalid image data", http.StatusBadRequest)
 			return
 		}
-		logger.Printf("SaveHandler: Saved image %s", imageIds[i])
+
+		stateItems[i] = &database.StateItem{
+			Key:   imageIds[i],
+			Value: imageData,
+		}
+	}
+
+	if len(stateItems) > 0 {
+		storeWriteStartTime := time.Now()
+		err := h.DBStore.SaveBulkState(context.Background(), imageStoreName, stateItems...)
+		util.ObserveHist(writeImageStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
+		if err != nil {
+			logger.Printf("SaveHandler: error saving images to store: %v", err)
+			http.Error(w, "Failed to save images", http.StatusInternalServerError)
+			return
+		}
+		logger.Printf("SaveHandler: Saved %d images", len(imageIds))
 	}
 
 	// Step 3: Invoke post service to save post content
