@@ -2,10 +2,10 @@ package postservice
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
@@ -211,9 +211,9 @@ func (s *service) UpdateMeta(ctx context.Context, req post.MetaReq) (post.Update
 			return post.UpdatePostResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 		}
 
-		if strings.Contains(err.Error(), "ETag mismatch") { // Check if it's an ETag error
-			logger.Printf("UpdateMeta: ETag mismatch for PostId %s, retrying (%d/%d)", req.PostId, i+1, maxRetries)
-			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond) // Exponential backoff
+		if stdErrors.Is(err, database.ErrETagMismatch) || stdErrors.Is(err, database.ErrTransactionFailed) {
+			logger.Printf("UpdateMeta: concurrency error for PostId %s, retrying (%d/%d): %v", req.PostId, i+1, maxRetries, err)
+			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}
 		return post.UpdatePostResp{}, errors.Wrap(err, "UpdateMeta: failed to save updated post meta")
@@ -268,8 +268,8 @@ func (s *service) AddComment(ctx context.Context, req post.CommentReq) (post.Upd
 			return post.UpdatePostResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 		}
 
-		if strings.Contains(err.Error(), "ETag mismatch") {
-			logger.Printf("AddComment: ETag mismatch for PostId %s, retrying (%d/%d)", req.PostId, i+1, maxRetries)
+		if stdErrors.Is(err, database.ErrETagMismatch) || stdErrors.Is(err, database.ErrTransactionFailed) {
+			logger.Printf("AddComment: concurrency error for PostId %s, retrying (%d/%d): %v", req.PostId, i+1, maxRetries, err)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}
@@ -338,8 +338,8 @@ func (s *service) UpvotePost(ctx context.Context, req post.UpvoteReq) (post.Upda
 			return post.UpdatePostResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 		}
 
-		if strings.Contains(err.Error(), "ETag mismatch") {
-			logger.Printf("UpvotePost: ETag mismatch for PostId %s, retrying (%d/%d)", req.PostId, i+1, maxRetries)
+		if stdErrors.Is(err, database.ErrETagMismatch) || stdErrors.Is(err, database.ErrTransactionFailed) {
+			logger.Printf("UpvotePost: concurrency error for PostId %s, retrying (%d/%d): %v", req.PostId, i+1, maxRetries, err)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}

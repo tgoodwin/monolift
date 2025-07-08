@@ -3,23 +3,13 @@ package database
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"errors" // For errors.Is
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
 )
 
 var _ Store = (*RedisStore)(nil)
-
-// Sentinel errors for Store ETag operations.
-// Clients can use errors.Is() to check for these.
-var (
-	ErrETagMismatch       = errors.New("ETag mismatch")
-	ErrKeyNotFoundForETag = errors.New("ETag specified for key that does not exist")
-)
-
-// Note: redis.TxFailedErr from the go-redis client also indicates a concurrency conflict
-// (optimistic lock failure) that services might want to retry on, similar to an ETag mismatch.
 
 // redisItemInternal is the structure stored in Redis, containing the actual value and ETag.
 type redisItemInternal struct {
@@ -100,7 +90,12 @@ func (s *RedisStore) SaveState(ctx context.Context, storeName, userKey string, d
 		}, redisKey)
 
 		if txErr != nil {
-			return "", txErr // err could be ErrKeyNotFoundForETag, ErrETagMismatch, redis.TxFailedErr, or other Redis errors
+			if errors.Is(txErr, redis.TxFailedErr) {
+				// Wrap the specific redis transaction error with our generic one for the service layer.
+				return "", fmt.Errorf("%w: %v", ErrTransactionFailed, txErr)
+			}
+			// Other errors from the transaction (like ErrETagMismatch) are returned as is.
+			return "", txErr
 		}
 		return newEtagVal, nil
 	}
@@ -163,7 +158,13 @@ func (s *RedisStore) DeleteState(ctx context.Context, storeName, userKey string,
 			})
 			return errPipe // Returns redis.TxFailedErr if WATCH was triggered before EXEC
 		}, redisKey)
-		return txErr
+		if txErr != nil {
+			if errors.Is(txErr, redis.TxFailedErr) {
+				return fmt.Errorf("%w: %v", ErrTransactionFailed, txErr)
+			}
+			return txErr
+		}
+		return nil
 	}
 
 	// No ETag provided, direct delete

@@ -2,10 +2,10 @@ package socialgraph
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
@@ -120,8 +120,8 @@ func (s *service) updateFollowList(ctx context.Context, storeName, key, valueToU
 			return nil // Success
 		}
 
-		if strings.Contains(saveErr.Error(), "ETag mismatch") {
-			logger.Printf("updateFollowList: ETag mismatch for store %s, key %s, retrying (%d/%d)", storeName, key, i+1, maxRetries)
+		if stdErrors.Is(saveErr, database.ErrETagMismatch) || stdErrors.Is(saveErr, database.ErrTransactionFailed) {
+			logger.Printf("updateFollowList: concurrency error for store %s, key %s, retrying (%d/%d): %v", storeName, key, i+1, maxRetries, saveErr)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}

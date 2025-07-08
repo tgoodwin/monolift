@@ -3,10 +3,19 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
 	"time"
+)
+
+// Sentinel errors for Store operations.
+// Clients can use errors.Is() to check for these.
+var (
+	ErrETagMismatch       = errors.New("ETag mismatch")
+	ErrKeyNotFoundForETag = errors.New("ETag specified for key that does not exist")
+	ErrTransactionFailed  = errors.New("optimistic lock transaction failed")
 )
 
 // StateItem represents a single state item with an ETag.
