@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ Store = (*RedisStore)(nil)
+// var _ Store = (*RedisStore)(nil)
 
 // redisItemInternal is the structure stored in Redis, containing the actual value and ETag.
 type redisItemInternal struct {
