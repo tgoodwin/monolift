@@ -2,10 +2,10 @@ package postservice
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
@@ -18,11 +18,8 @@ import (
 var logger = log.New(os.Stdout, "monolith-postservice: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	postContentStoreName  = "post_content"
-	postMetaStoreName     = "post_meta"
-	postCommentsStoreName = "post_comments"
-	postUpvotesStoreName  = "post_upvotes"
-	maxRetries            = 5 // Max retries for optimistic concurrency
+	postStoreName = "post-store"
+	maxRetries    = 5 // Max retries for optimistic concurrency
 )
 
 // Service defines the interface for post-related operations.
@@ -82,7 +79,7 @@ func (s *service) SavePost(ctx context.Context, req post.SavePostReq) (post.Upda
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to marshal post content")
 	}
 	storeWriteStartTime := time.Now()
-	_, err = s.db.SaveState(ctx, postContentStoreName, contKey(req.PostId), contentData, nil)
+	_, err = s.db.SaveState(ctx, postStoreName, contKey(req.PostId), contentData, nil)
 	util.ObserveHist(writeStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 	if err != nil {
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to save post content")
@@ -99,7 +96,7 @@ func (s *service) SavePost(ctx context.Context, req post.SavePostReq) (post.Upda
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to marshal initial post meta")
 	}
 	storeWriteStartTime = time.Now()
-	_, err = s.db.SaveState(ctx, postMetaStoreName, metaKey(req.PostId), metaData, nil)
+	_, err = s.db.SaveState(ctx, postStoreName, metaKey(req.PostId), metaData, nil)
 	util.ObserveHist(writeStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 	if err != nil {
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to save initial post meta")
@@ -111,7 +108,7 @@ func (s *service) SavePost(ctx context.Context, req post.SavePostReq) (post.Upda
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to marshal empty comments")
 	}
 	storeWriteStartTime = time.Now()
-	_, err = s.db.SaveState(ctx, postCommentsStoreName, commKey(req.PostId), commentsData, nil)
+	_, err = s.db.SaveState(ctx, postStoreName, commKey(req.PostId), commentsData, nil)
 	util.ObserveHist(writeStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 	if err != nil {
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to save empty comments")
@@ -123,7 +120,7 @@ func (s *service) SavePost(ctx context.Context, req post.SavePostReq) (post.Upda
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to marshal empty upvotes")
 	}
 	storeWriteStartTime = time.Now()
-	_, err = s.db.SaveState(ctx, postUpvotesStoreName, upvoteKey(req.PostId), upvotesData, nil)
+	_, err = s.db.SaveState(ctx, postStoreName, upvoteKey(req.PostId), upvotesData, nil)
 	util.ObserveHist(writeStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 	if err != nil {
 		return post.UpdatePostResp{}, errors.Wrap(err, "SavePost: failed to save empty upvotes")
@@ -145,10 +142,10 @@ func (s *service) DeletePost(ctx context.Context, req post.DelPostReq) (post.Upd
 		storeName string
 		key       string
 	}{
-		{postContentStoreName, contKey(req.PostId)},
-		{postMetaStoreName, metaKey(req.PostId)},
-		{postCommentsStoreName, commKey(req.PostId)},
-		{postUpvotesStoreName, upvoteKey(req.PostId)},
+		{postStoreName, contKey(req.PostId)},
+		{postStoreName, metaKey(req.PostId)},
+		{postStoreName, commKey(req.PostId)},
+		{postStoreName, upvoteKey(req.PostId)},
 	}
 
 	for _, item := range keysAndStores {
@@ -177,7 +174,7 @@ func (s *service) UpdateMeta(ctx context.Context, req post.MetaReq) (post.Update
 
 	for i := 0; i < maxRetries; i++ {
 		storeReadStartTime := time.Now()
-		item, err := s.db.GetState(ctx, postMetaStoreName, key)
+		item, err := s.db.GetState(ctx, postStoreName, key)
 		util.ObserveHist(readStoreLatHist, float64(time.Since(storeReadStartTime).Milliseconds()))
 		if err != nil {
 			return post.UpdatePostResp{}, errors.Wrap(err, "UpdateMeta: failed to get post meta")
@@ -202,7 +199,7 @@ func (s *service) UpdateMeta(ctx context.Context, req post.MetaReq) (post.Update
 		}
 
 		storeWriteStartTime := time.Now()
-		newEtag, err := s.db.SaveState(ctx, postMetaStoreName, key, updatedMetaData, etag)
+		newEtag, err := s.db.SaveState(ctx, postStoreName, key, updatedMetaData, etag)
 		util.ObserveHist(writeStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 		if err == nil {
 			logger.Printf("UpdateMeta successful for PostId: %s, new ETag: %s", req.PostId, newEtag)
@@ -211,9 +208,9 @@ func (s *service) UpdateMeta(ctx context.Context, req post.MetaReq) (post.Update
 			return post.UpdatePostResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 		}
 
-		if strings.Contains(err.Error(), "ETag mismatch") { // Check if it's an ETag error
-			logger.Printf("UpdateMeta: ETag mismatch for PostId %s, retrying (%d/%d)", req.PostId, i+1, maxRetries)
-			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond) // Exponential backoff
+		if stdErrors.Is(err, database.ErrETagMismatch) || stdErrors.Is(err, database.ErrTransactionFailed) {
+			logger.Printf("UpdateMeta: concurrency error for PostId %s, retrying (%d/%d): %v", req.PostId, i+1, maxRetries, err)
+			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}
 		return post.UpdatePostResp{}, errors.Wrap(err, "UpdateMeta: failed to save updated post meta")
@@ -233,7 +230,7 @@ func (s *service) AddComment(ctx context.Context, req post.CommentReq) (post.Upd
 
 	for i := 0; i < maxRetries; i++ {
 		storeReadStartTime := time.Now()
-		item, err := s.db.GetState(ctx, postCommentsStoreName, key)
+		item, err := s.db.GetState(ctx, postStoreName, key)
 		util.ObserveHist(readStoreLatHist, float64(time.Since(storeReadStartTime).Milliseconds()))
 		if err != nil {
 			return post.UpdatePostResp{}, errors.Wrap(err, "AddComment: failed to get comments")
@@ -259,7 +256,7 @@ func (s *service) AddComment(ctx context.Context, req post.CommentReq) (post.Upd
 		}
 
 		storeWriteStartTime := time.Now()
-		newEtag, err := s.db.SaveState(ctx, postCommentsStoreName, key, updatedCommentsData, etag)
+		newEtag, err := s.db.SaveState(ctx, postStoreName, key, updatedCommentsData, etag)
 		util.ObserveHist(writeStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 		if err == nil {
 			logger.Printf("AddComment successful for PostId: %s, new ETag: %s", req.PostId, newEtag)
@@ -268,8 +265,8 @@ func (s *service) AddComment(ctx context.Context, req post.CommentReq) (post.Upd
 			return post.UpdatePostResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 		}
 
-		if strings.Contains(err.Error(), "ETag mismatch") {
-			logger.Printf("AddComment: ETag mismatch for PostId %s, retrying (%d/%d)", req.PostId, i+1, maxRetries)
+		if stdErrors.Is(err, database.ErrETagMismatch) || stdErrors.Is(err, database.ErrTransactionFailed) {
+			logger.Printf("AddComment: concurrency error for PostId %s, retrying (%d/%d): %v", req.PostId, i+1, maxRetries, err)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}
@@ -290,7 +287,7 @@ func (s *service) UpvotePost(ctx context.Context, req post.UpvoteReq) (post.Upda
 
 	for i := 0; i < maxRetries; i++ {
 		storeReadStartTime := time.Now()
-		item, err := s.db.GetState(ctx, postUpvotesStoreName, upvotersKey)
+		item, err := s.db.GetState(ctx, postStoreName, upvotersKey)
 		util.ObserveHist(readStoreLatHist, float64(time.Since(storeReadStartTime).Milliseconds()))
 		if err != nil {
 			return post.UpdatePostResp{}, errors.Wrap(err, "UpvotePost: failed to get upvoters list")
@@ -328,7 +325,7 @@ func (s *service) UpvotePost(ctx context.Context, req post.UpvoteReq) (post.Upda
 		}
 
 		storeWriteStartTime := time.Now()
-		newEtag, err := s.db.SaveState(ctx, postUpvotesStoreName, upvotersKey, updatedUpvotersData, etag)
+		newEtag, err := s.db.SaveState(ctx, postStoreName, upvotersKey, updatedUpvotersData, etag)
 		util.ObserveHist(writeStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 		if err == nil {
 			logger.Printf("UpvotePost: upvoters list updated for PostId: %s, User: %s. New ETag: %s", req.PostId, req.UserId, newEtag)
@@ -338,8 +335,8 @@ func (s *service) UpvotePost(ctx context.Context, req post.UpvoteReq) (post.Upda
 			return post.UpdatePostResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 		}
 
-		if strings.Contains(err.Error(), "ETag mismatch") {
-			logger.Printf("UpvotePost: ETag mismatch for PostId %s, retrying (%d/%d)", req.PostId, i+1, maxRetries)
+		if stdErrors.Is(err, database.ErrETagMismatch) || stdErrors.Is(err, database.ErrTransactionFailed) {
+			logger.Printf("UpvotePost: concurrency error for PostId %s, retrying (%d/%d): %v", req.PostId, i+1, maxRetries, err)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}
@@ -362,7 +359,7 @@ func (s *service) ReadPosts(ctx context.Context, req post.ReadPostReq) (post.Rea
 
 		// 1. Read Content
 		storeReadStartTime := time.Now()
-		contentItem, err := s.db.GetState(ctx, postContentStoreName, contKey(postId))
+		contentItem, err := s.db.GetState(ctx, postStoreName, contKey(postId))
 		util.ObserveHist(readStoreLatHist, float64(time.Since(storeReadStartTime).Milliseconds()))
 		if err != nil {
 			logger.Printf("ReadPosts: failed to get content for PostId %s: %v. Skipping post.", postId, err)
@@ -379,7 +376,7 @@ func (s *service) ReadPosts(ctx context.Context, req post.ReadPostReq) (post.Rea
 
 		// 2. Read Meta
 		storeReadStartTime = time.Now()
-		metaItem, err := s.db.GetState(ctx, postMetaStoreName, metaKey(postId))
+		metaItem, err := s.db.GetState(ctx, postStoreName, metaKey(postId))
 		util.ObserveHist(readStoreLatHist, float64(time.Since(storeReadStartTime).Milliseconds()))
 		if err != nil {
 			logger.Printf("ReadPosts: failed to get meta for PostId %s: %v. Using zero meta.", postId, err)
@@ -391,7 +388,7 @@ func (s *service) ReadPosts(ctx context.Context, req post.ReadPostReq) (post.Rea
 
 		// 3. Read Comments
 		storeReadStartTime = time.Now()
-		commentsItem, err := s.db.GetState(ctx, postCommentsStoreName, commKey(postId))
+		commentsItem, err := s.db.GetState(ctx, postStoreName, commKey(postId))
 		util.ObserveHist(readStoreLatHist, float64(time.Since(storeReadStartTime).Milliseconds()))
 		if err != nil {
 			logger.Printf("ReadPosts: failed to get comments for PostId %s: %v. Using empty comments.", postId, err)
@@ -403,7 +400,7 @@ func (s *service) ReadPosts(ctx context.Context, req post.ReadPostReq) (post.Rea
 
 		// 4. Read Upvotes (list of user IDs)
 		storeReadStartTime = time.Now()
-		upvotesItem, err := s.db.GetState(ctx, postUpvotesStoreName, upvoteKey(postId))
+		upvotesItem, err := s.db.GetState(ctx, postStoreName, upvoteKey(postId))
 		util.ObserveHist(readStoreLatHist, float64(time.Since(storeReadStartTime).Milliseconds()))
 		if err != nil {
 			logger.Printf("ReadPosts: failed to get upvotes for PostId %s: %v. Using empty upvotes.", postId, err)

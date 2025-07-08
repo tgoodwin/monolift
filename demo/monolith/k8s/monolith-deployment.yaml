@@ -3,28 +3,31 @@ kind: Deployment
 metadata:
   name: monolith-deployment
   labels:
-    app: monolith
+    app.kubernetes.io/name: monolith
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: monolith
+      app.kubernetes.io/name: monolith
   template:
     metadata:
       labels:
-        app: monolith
+        app.kubernetes.io/name: monolith
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "monolith"
+        dapr.io/app-port: "8080"
     spec:
       containers:
       - name: monolith-app
         imagePullPolicy: Always
         image: docker.io/eirn/demo-monolith:latest
         ports:
-        - containerPort: 8080
+        - name: http-app
+          containerPort: 8080
+        - name: http-metrics
+          containerPort: 8084
         env:
-        - name: REDIS_ADDRESS
-          value: "monolith-redis.default.svc.cluster.local:6379"
-        - name: REDIS_PASSWORD
-          value: "redispass" # matches the password in redis.yaml
         - name: K8S_CPU_REQUEST
           valueFrom:
             resourceFieldRef:
@@ -56,7 +59,7 @@ spec:
         resources:
           requests:
             memory: "128Mi"
-            cpu: "250m"
+            cpu: "500m"
           limits:
             memory: "256Mi"
-            cpu: "500m"
+            cpu: "4000m"

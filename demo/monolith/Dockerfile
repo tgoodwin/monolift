@@ -1,5 +1,7 @@
 FROM golang:1.23-alpine AS builder
 
+ARG TARGETARCH=amd64
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -8,7 +10,7 @@ RUN go mod download
 # copy whole monolift lib in addition to the demo app
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -o /app/monolith-server ./demo/monolith/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -a -o /app/monolith-server ./demo/monolith/main.go
 
 FROM alpine:latest
 

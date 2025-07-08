@@ -2,10 +2,10 @@ package socialgraph
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
@@ -17,8 +17,8 @@ import (
 var logger = log.New(os.Stdout, "monolith-graph: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	followeesStoreName = "graph_followees"
-	followersStoreName = "graph_followers"
+	followeesStoreName = "socialgraph-store"
+	followersStoreName = "socialgraph-store"
 	maxRetries         = 5 // Max retries for optimistic concurrency
 	maxFollows         = 2000
 )
@@ -46,12 +46,12 @@ func NewService(store database.Store) Service {
 
 // followKey generates the key for a user's followee list.
 func followKey(userId string) string {
-	return userId // storeName provides namespacing
+	return userId + "-followees"
 }
 
 // followerKey generates the key for a user's follower list.
 func followerKey(userId string) string {
-	return userId // storeName provides namespacing
+	return userId + "-followers"
 }
 
 // updateFollowList is a helper function for updating a follow/follower list in the store.
@@ -120,8 +120,8 @@ func (s *service) updateFollowList(ctx context.Context, storeName, key, valueToU
 			return nil // Success
 		}
 
-		if strings.Contains(saveErr.Error(), "ETag mismatch") {
-			logger.Printf("updateFollowList: ETag mismatch for store %s, key %s, retrying (%d/%d)", storeName, key, i+1, maxRetries)
+		if stdErrors.Is(saveErr, database.ErrETagMismatch) || stdErrors.Is(saveErr, database.ErrTransactionFailed) {
+			logger.Printf("updateFollowList: concurrency error for store %s, key %s, retrying (%d/%d): %v", storeName, key, i+1, maxRetries, saveErr)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
 			continue
 		}

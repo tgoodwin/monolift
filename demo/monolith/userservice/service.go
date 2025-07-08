@@ -20,7 +20,7 @@ import (
 var logger = log.New(os.Stdout, "monolith-userservice: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	userCredentialsStoreName = "user_credentials"
+	userCredentialsStoreName = "user-store"
 	// maxRetries could be added if optimistic concurrency was needed for user data, but not for simple credential storage.
 )
 

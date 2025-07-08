@@ -21,7 +21,7 @@ func newGoBuilder() (*goBuilder, error) {
 	goEnv := []string{
 		"CGO_ENABLED=0",
 		"GOOS=linux",
-		"GOARCH=arm64",
+		"GOARCH=amd64", // Changed to amd64 for broader server compatibility. Make this configurable for more flexibility.
 		fmt.Sprintf("GOPATH=%s/go", home),
 		fmt.Sprintf("HOME=%s", home),
 	}
