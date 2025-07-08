@@ -30,7 +30,25 @@ local function decRandom(length)
   end
 end
 
+
 local function compose_post()
+  local boundary = "----LuaFormBoundary" .. stringRandom(16)
+  local boundary_line = "--" .. boundary
+  local body_parts = {}
+
+  local function add_field(name, value)
+    table.insert(body_parts, "--" .. boundary)
+    table.insert(body_parts, 'Content-Disposition: form-data; name="' .. name .. '\r\n')
+    table.insert(body_parts, value)
+  end
+
+  local function add_file(name, filename, content_type, data)
+    table.insert(body_parts, "--" .. boundary)
+    table.insert(body_parts,'Content-Disposition: form-data; name="' .. name .. '"; filename="' .. filename .. '"')
+    table.insert(body_parts, 'Content-Type: ' .. content_type .. '\r\n')
+    table.insert(body_parts, data)
+  end
+
   local user_index = math.random(0, max_user_index - 1)
   local username = "username_" .. tostring(user_index)
   local user_id = tostring(user_index)
@@ -38,8 +56,7 @@ local function compose_post()
   local num_user_mentions = math.random(0, 5)
   local num_urls = math.random(0, 5)
   local num_media = math.random(0, 4)
-  local media_ids = '['
-  local media_types = '['
+
 
   for i = 0, num_user_mentions, 1 do
     local user_mention_id
@@ -56,42 +73,45 @@ local function compose_post()
     text = text .. " http://" .. stringRandom(64)
   end
 
-  for i = 0, num_media, 1 do
-    local media_id = decRandom(18)
-    media_ids = media_ids .. "\"" .. media_id .. "\","
-    media_types = media_types .. "\"png\","
+  -- Add form fields
+  add_field("user_id", tostring(user_id))
+  add_field("text", text)
+
+  for i = 0, num_media - 1 do
+    local bytes = {}
+    for j = 1, 1024 do
+      bytes[#bytes + 1] = string.char(math.random(0, 255))
+    end
+    local img_data = table.concat(bytes)
+    add_file("images", "image_" .. i .. ".jpg", "image/jpeg", img_data)
   end
 
-  media_ids = media_ids:sub(1, #media_ids - 1) .. "]"
-  media_types = media_types:sub(1, #media_types - 1) .. "]"
+    -- Finish boundary
+  table.insert(body_parts, "--" .. boundary .. "--\r\n")
+
+  -- Combine body as a single string
+  local body = table.concat(body_parts, "\r\n")
 
   local method = "POST"
-  local path = "http://localhost:8080/wrk2-api/post/compose"
+  local path = "http://localhost:8080/save"
   local headers = {}
-  local body
   headers["Content-Type"] = "application/x-www-form-urlencoded"
-  if num_media then
-    body   = "username=" .. username .. "&user_id=" .. user_id ..
-        "&text=" .. text .. "&media_ids=" .. media_ids ..
-        "&media_types=" .. media_types .. "&post_type=0"
-  else
-    body   = "username=" .. username .. "&user_id=" .. user_id ..
-        "&text=" .. text .. "&media_ids=" .. "&post_type=0"
-  end
 
   return wrk.format(method, path, headers, body)
 end
 
 local function read_user_timeline()
   local user_id = tostring(math.random(0, max_user_index - 1))
-  local start = tostring(math.random(0, 100))
+  local start = tostring(time)
   local stop = tostring(start + 10)
+  local user_ti = tostring(true) 
+  local args = "user_id=" .. user_id .. "user_ti=" .. user_ti 
 
-  local args = "user_id=" .. user_id .. "&start=" .. start .. "&stop=" .. stop
   local method = "GET"
+  
   local headers = {}
   headers["Content-Type"] = "application/x-www-form-urlencoded"
-  local path = "http://localhost:8080/wrk2-api/user-timeline/read?" .. args
+  local path = "http://localhost:8080/timeline" .. args
   return wrk.format(method, path, headers, nil)
 end
 
@@ -99,12 +119,12 @@ local function read_home_timeline()
     local user_id = tostring(math.random(0, max_user_index - 1))
     local start = tostring(math.random(0, 100))
     local stop = tostring(start + 10)
-
-    local args = "user_id=" .. user_id .. "&start=" .. start .. "&stop=" .. stop
+    local user_ti = tostring(false)
+    local args = "user_id=" .. user_id .. "user_ti=" .. user_ti 
     local method = "GET"
     local headers = {}
     headers["Content-Type"] = "application/x-www-form-urlencoded"
-    local path = "http://localhost:8080/wrk2-api/home-timeline/read?" .. args
+    local path = "http://localhost:8080/timeline" .. args
     return wrk.format(method, path, headers, nil)
   end
 
