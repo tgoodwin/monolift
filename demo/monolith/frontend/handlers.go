@@ -167,17 +167,18 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 		// ClientUnixMilli: req.SendUnixMilli, // Original client timestamp from frontend request
 		SendUnixMilli: time.Now().UnixMilli(),
 	}
-	serviceCallStart = time.Now()
-	err = h.TimelineService.UpdateTimeline(context.Background(), timelineUpdateReq)
-	util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
-	if err != nil {
-		// Log error, but don't fail the entire Save operation for a timeline update failure
-		logger.Printf("SaveHandler: failed to update timeline for user %s, post %s: %v", userId, postId, err)
-	}
-	// 4. Publish timeline update event (Phase 4 - Go channels)
-	// 5. Publish object detection event (Phase 4 - Go channels, stubbed)
-	// 6. Publish sentiment analysis event (Phase 4 - Go channels, stubbed)
-	logger.Printf("SaveHandler: PostId %s, User %s, Text: %s, Image IDs: %v", postId, userId, text, imageIds)
+
+	// update timeline asynchronously to match DeathStarBench use of a queue
+	go func(req timelineTypes.UpdateReq) {
+		serviceCallStart := time.Now()
+		err = h.TimelineService.UpdateTimeline(context.Background(), req)
+		util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
+		if err != nil {
+			// Log error, but don't fail the entire Save operation for a timeline update failure
+			logger.Printf("SaveHandler: failed to update timeline for user %s, post %s: %v", userId, postId, err)
+		}
+		logger.Printf("SaveHandler: PostId %s, User %s, Text: %s, Image IDs: %v", postId, userId, text, imageIds)
+	}(timelineUpdateReq)
 
 	resp := UpdateResp{PostId: postId} // Use type from frontend/types.go
 	writeJSONResponse(w, http.StatusOK, resp)
