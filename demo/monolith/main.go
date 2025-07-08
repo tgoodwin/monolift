@@ -20,8 +20,8 @@ import (
 var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags)
 
 func main() {
-	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")              // Main service address
-	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084")            // Prometheus metrics address
+	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")   // Main service address
+	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084") // Prometheus metrics address
 
 	// Register all metrics for Prometheus to expose.
 	frontend.RegisterMetrics()
@@ -68,10 +68,10 @@ func main() {
 	}()
 
 	logger.Printf("Registering pprof handlers")
-	mux.HandleFunc("/debug/pprof/", httppprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", httppprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", httppprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", httppprof.Symbol)
+	promMux.HandleFunc("/debug/pprof/", httppprof.Index)
+	promMux.HandleFunc("/debug/pprof/cmdline", httppprof.Cmdline)
+	promMux.HandleFunc("/debug/pprof/profile", httppprof.Profile)
+	promMux.HandleFunc("/debug/pprof/symbol", httppprof.Symbol)
 
 	logger.Printf("Monolith Social Network server starting on %s", serviceAddress)
 	if err := http.ListenAndServe(serviceAddress, appMux); err != nil {
