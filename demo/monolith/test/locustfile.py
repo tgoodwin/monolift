@@ -86,12 +86,12 @@ def read_home_timeline(self):
     """
     # 1. Pick a random user ID from the total number of registered users
     user_id = str(random.randint(0, settings["num_users"] - 1))
-
-    num_posts = random.randint(1, 10)
+    user_ti = str(False)
+    num_posts = str(random.randint(1, 10))
 
     # 2. Send the GET request to the /timeline endpoint
     self.client.get(
-        f"/timeline?user_id={user_id}&user_ti=false&num_posts={num_posts}",
+        f"/timeline?user_id={user_id}&user_tl={user_ti}&posts={num_posts}",
         name="/timeline [read_home_timeline]" # Group stats under a more descriptive name
     )
 
@@ -103,12 +103,12 @@ def read_user_timeline(self):
     """
     # 1. Pick a random user ID from the total number of registered users
     user_id = str(random.randint(0, settings["num_users"] - 1))
-
-    num_posts = random.randint(1, 10)
+    user_ti = str(True)
+    num_posts = str(random.randint(1, 10))
 
     # 2. Send the GET request to the /timeline endpoint for that user
     self.client.get(
-        f"/timeline?user_id={user_id}&user_ti=true&num_posts={num_posts}",
+        f"/timeline?user_id={user_id}&user_tl={user_ti}&posts={num_posts}",
         name="/timeline [read_user_timeline]" # Group stats under a more descriptive name
     )
 
@@ -144,6 +144,10 @@ def compose_post(self):
             ('images', (f'image_{i}.jpg', dummy_image_data, 'image/jpeg'))
         )
 
+
+    if num_images == 0:
+        # If no images, we still need to send an empty 'images' field
+        files_to_upload.append(('images', ('', None, '')))
     # 4. Send the POST request to the /save endpoint
     self.client.post(
         "/save",
