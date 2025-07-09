@@ -60,18 +60,18 @@ func main() {
 	promMux := http.NewServeMux()
 	promMux.Handle("/metrics", frontend.GetPrometheusHandler())
 
+	logger.Printf("Registering pprof handlers")
+	promMux.HandleFunc("/debug/pprof/", httppprof.Index)
+	promMux.HandleFunc("/debug/pprof/cmdline", httppprof.Cmdline)
+	promMux.HandleFunc("/debug/pprof/profile", httppprof.Profile)
+	promMux.HandleFunc("/debug/pprof/symbol", httppprof.Symbol)
+
 	go func() {
 		logger.Printf("Prometheus metrics server starting on %s", promAddress)
 		if err := http.ListenAndServe(promAddress, promMux); err != nil {
 			logger.Fatalf("Failed to start Prometheus metrics server: %v", err)
 		}
 	}()
-
-	logger.Printf("Registering pprof handlers")
-	promMux.HandleFunc("/debug/pprof/", httppprof.Index)
-	promMux.HandleFunc("/debug/pprof/cmdline", httppprof.Cmdline)
-	promMux.HandleFunc("/debug/pprof/profile", httppprof.Profile)
-	promMux.HandleFunc("/debug/pprof/symbol", httppprof.Symbol)
 
 	logger.Printf("Monolith Social Network server starting on %s", serviceAddress)
 	if err := http.ListenAndServe(serviceAddress, appMux); err != nil {
