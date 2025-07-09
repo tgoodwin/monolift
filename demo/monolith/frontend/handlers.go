@@ -122,8 +122,9 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid image data", http.StatusBadRequest)
 			return
 		}
-		defer file.Close()
+
 		imageData, err := io.ReadAll(file)
+		file.Close() // Close the file immediately after reading
 		if err != nil {
 			logger.Printf("SaveHandler: error reading image file %s: %v", fileHeader.Filename, err)
 			http.Error(w, "Invalid image data", http.StatusBadRequest)

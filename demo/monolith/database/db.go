@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	dapr "github.com/dapr/go-sdk/client"
 )
 
@@ -17,7 +19,18 @@ import (
 var (
 	ErrETagMismatch       = errors.New("ETag mismatch")
 	ErrKeyNotFoundForETag = errors.New("ETag specified for key that does not exist")
-	ErrTransactionFailed  = errors.New("optimistic lock transaction failed")
+	ErrTransactionFailed  = errors.New("optimistic lock transaction failed") // This error is returned when a transaction (e.g., Redis WATCH/EXEC) fails due to a concurrent modification.
+)
+
+// Prometheus metric for concurrency control errors
+var (
+	concurrencyErrorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "database_concurrency_errors_total",
+			Help: "Total number of optimistic concurrency control errors (ETag mismatch or transaction failed).",
+		},
+		[]string{"store_name"},
+	)
 )
 
 // StateItem represents a single state item with an ETag.
@@ -152,4 +165,9 @@ func Marshal(v interface{}) ([]byte, error) {
 // Helper to unmarshal JSON bytes from storage
 func Unmarshal(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
+}
+
+// RegisterMetrics registers the Prometheus metrics for the database package.
+func RegisterMetrics() {
+	prometheus.MustRegister(concurrencyErrorsTotal)
 }

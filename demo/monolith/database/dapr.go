@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	dapr "github.com/dapr/go-sdk/client"
@@ -40,6 +41,9 @@ func (s *DaprStore) SaveState(ctx context.Context, storeName, key string, data [
 	// Use SaveBulkState to pass a SetStateItem, which prevents double-encoding.
 	err := s.client.SaveBulkState(ctx, storeName, item)
 	if err != nil {
+		if errors.Is(err, ErrETagMismatch) || errors.Is(err, ErrTransactionFailed) {
+			concurrencyErrorsTotal.WithLabelValues(storeName).Inc()
+		}
 		return "", err
 	}
 
@@ -60,7 +64,13 @@ func (s *DaprStore) SaveState(ctx context.Context, storeName, key string, data [
 // SaveBulkState saves one or more state items using Dapr's SaveBulkState.
 // This is a "fire-and-forget" operation and does not return new ETags.
 func (s *DaprStore) SaveBulkState(ctx context.Context, storeName string, items ...*dapr.SetStateItem) error {
-	return s.client.SaveBulkState(ctx, storeName, items...)
+	if err := s.client.SaveBulkState(ctx, storeName, items...); err != nil {
+		if errors.Is(err, ErrETagMismatch) || errors.Is(err, ErrTransactionFailed) {
+			concurrencyErrorsTotal.WithLabelValues(storeName).Inc()
+		}
+		return err
+	}
+	return nil
 }
 
 // GetState retrieves data and ETag for a given key from the specified storeName.

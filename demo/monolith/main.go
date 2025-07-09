@@ -19,10 +19,11 @@ import (
 var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags)
 
 func main() {
-	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")              // Main service address
-	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084")            // Prometheus metrics address
+	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")   // Main service address
+	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084") // Prometheus metrics address
 
 	// Register all metrics for Prometheus to expose.
+	database.RegisterMetrics()
 	frontend.RegisterMetrics()
 	postservice.RegisterMetrics()
 	socialgraph.RegisterMetrics()
