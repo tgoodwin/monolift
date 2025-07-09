@@ -37,11 +37,11 @@ type PostComments struct {
 
 // Post complete structure (actual structure sent to user)
 type Post struct {
-	PostId   string       `json:"post_id"`
-	Content  PostCont     `json:"content"`
-	Meta     PostMeta     `json:"meta"`
-	Comments PostComments `json:"comments"`
-	Upvotes  []string     `json:"upvotes"`
+	PostId       string       `json:"post_id"`
+	Content      PostCont     `json:"content"`
+	Meta         PostMeta     `json:"meta"`
+	PostComments PostComments `json:"post_comments"`
+	Upvotes      []string     `json:"upvotes"`
 }
 
 // data structures to communicate with PostService
