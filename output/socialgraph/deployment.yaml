@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: socialgraph
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: socialgraph
+        dapr.io/app-port: "8080"
     spec:
       containers:
         - name: socialgraph

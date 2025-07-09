@@ -14,6 +14,10 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: timelineservice
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: timelineservice
+        dapr.io/app-port: "8080"
     spec:
       containers:
         - name: timelineservice
