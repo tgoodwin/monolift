@@ -49,7 +49,7 @@ func extractEnvVarsFromK8sManifest(manifestPath string) ([]lift.EnvVar, error) {
 		return nil, fmt.Errorf("decoded object is not an apps/v1 Deployment: %T", obj)
 	}
 
-	if deployment.Spec.Template.Spec.Containers == nil || len(deployment.Spec.Template.Spec.Containers) == 0 {
+	if len(deployment.Spec.Template.Spec.Containers) == 0 {
 		return nil, fmt.Errorf("deployment %s has no containers defined", deployment.Name)
 	}
 
