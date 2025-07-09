@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: userservice
-          image: docker.io/tlg2132/userservice:latest
+          image: ghcr.io/tgoodwin/userservice:latest
           ports:
             - containerPort: 8080
           env:

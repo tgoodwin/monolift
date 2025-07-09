@@ -47,7 +47,7 @@ spec:
               containerName: monolith-app
               divisor: "0"
               resource: limits.memory
-        image: docker.io/tlg2132/entrypoint:latest
+        image: ghcr.io/tgoodwin/entrypoint:latest
         imagePullPolicy: Always
         name: monolith-app
         ports:

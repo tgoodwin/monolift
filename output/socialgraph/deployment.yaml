@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: socialgraph
-          image: docker.io/tlg2132/socialgraph:latest
+          image: ghcr.io/tgoodwin/socialgraph:latest
           ports:
             - containerPort: 8080
           env:

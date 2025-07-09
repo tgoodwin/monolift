@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: postservice
-          image: docker.io/tlg2132/postservice:latest
+          image: ghcr.io/tgoodwin/postservice:latest
           ports:
             - containerPort: 8080
           env:

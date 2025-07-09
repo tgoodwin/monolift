@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: timelineservice
-          image: docker.io/tlg2132/timelineservice:latest
+          image: ghcr.io/tgoodwin/timelineservice:latest
           ports:
             - containerPort: 8080
           env:
