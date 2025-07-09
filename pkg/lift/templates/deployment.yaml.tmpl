@@ -25,6 +25,28 @@ spec:
           ports:
             - containerPort: {{ .ContainerPort }}
           env:
+            - name: K8S_CPU_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: {{ .ServiceName }}
+                  resource: requests.cpu
+                  divisor: "1m"
+            - name: K8S_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: {{ .ServiceName }}
+                  resource: limits.cpu
+                  divisor: "1m"
+            - name: K8S_MEMORY_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: {{ .ServiceName }}
+                  resource: requests.memory
+            - name: K8S_MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: {{ .ServiceName }}
+                  resource: limits.memory
 {{- range .EnvVars }}
             - name: {{ .Name }}
               value: {{ .Value }}
