@@ -79,14 +79,13 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 		EnvVars:       envVars,
 	}
 
-	serviceOutputDir := filepath.Join(outputDir, serviceName)
-	// Ensure the directory exists
-	if err := os.MkdirAll(serviceOutputDir, 0755); err != nil {
-		return fmt.Errorf("creating service output directory %s: %w", serviceOutputDir, err)
+	k8sOutputDir := filepath.Join(outputDir, "k8s")
+	if err := os.MkdirAll(k8sOutputDir, 0755); err != nil {
+		return fmt.Errorf("creating k8s output directory %s: %w", k8sOutputDir, err)
 	}
 
 	// Generate Service manifest
-	serviceFilePath := filepath.Join(serviceOutputDir, "service.yaml")
+	serviceFilePath := filepath.Join(k8sOutputDir, fmt.Sprintf("%s-service.yaml", serviceName))
 	serviceFile, err := os.Create(serviceFilePath)
 	if err != nil {
 		return fmt.Errorf("creating service.yaml for %s: %w", serviceName, err)
@@ -97,7 +96,7 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 	}
 
 	// Generate Deployment manifest
-	deploymentFilePath := filepath.Join(serviceOutputDir, "deployment.yaml")
+	deploymentFilePath := filepath.Join(k8sOutputDir, fmt.Sprintf("%s-deployment.yaml", serviceName))
 	deploymentFile, err := os.Create(deploymentFilePath)
 	if err != nil {
 		return fmt.Errorf("creating deployment.yaml for %s: %w", serviceName, err)
@@ -161,8 +160,11 @@ func GenerateEntrypointManifests(outputDir, namespace, entrypointImageName strin
 		return fmt.Errorf("failed to marshal modified entrypoint deployment: %w", err)
 	}
 
-	entrypointOutputDir := filepath.Join(outputDir, entrypointDeploymentName)
-	deploymentFilePath := filepath.Join(entrypointOutputDir, "deployment.yaml")
+	k8sOutputDir := filepath.Join(outputDir, "k8s")
+	if err := os.MkdirAll(k8sOutputDir, 0755); err != nil {
+		return fmt.Errorf("creating k8s output directory %s: %w", k8sOutputDir, err)
+	}
+	deploymentFilePath := filepath.Join(k8sOutputDir, "entrypoint-deployment.yaml")
 	if err := os.WriteFile(deploymentFilePath, modifiedDeploymentYAML, 0644); err != nil {
 		return fmt.Errorf("failed to write entrypoint deployment.yaml: %w", err)
 	}
@@ -180,7 +182,7 @@ func GenerateEntrypointManifests(outputDir, namespace, entrypointImageName strin
 		TargetPort:     targetPort,
 	}
 
-	serviceFilePath := filepath.Join(entrypointOutputDir, "service.yaml")
+	serviceFilePath := filepath.Join(k8sOutputDir, "entrypoint-service.yaml")
 	serviceFile, err := os.Create(serviceFilePath)
 	if err != nil {
 		return fmt.Errorf("creating entrypoint service.yaml: %w", err)
