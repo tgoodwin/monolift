@@ -1,4 +1,5 @@
-IMAGE_NAME ?= docker.io/tlg2132/demo-monolith
+CONTAINER_REGISTRY ?= ghcr.io/tgoodwin
+IMAGE_NAME ?= $(CONTAINER_REGISTRY)/demo-monolith
 IMAGE_TAG  ?= dapr
 
 # Kubernetes manifest files location

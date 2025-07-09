@@ -119,8 +119,6 @@ func New(appRootPath string) (*Compiler, error) {
 	return compiler, nil
 }
 
-var dockerRegistry = "docker.io/tlg2132"
-
 func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK8sManifestPath string) error {
 	// 0. clean and create output directories
 	if err := os.RemoveAll(outputDir); err != nil {
