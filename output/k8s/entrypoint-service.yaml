@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: entrypoint
 spec:
-  type: ClusterIP # TODO respect the original service configuration if there was one
+  type: LoadBalancer # TODO respect the original service configuration if there was one
   selector:
     app.kubernetes.io/name: entrypoint
   ports:
