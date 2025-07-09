@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: dapr-sidecar-monitor
+  namespace: default # Or the namespace where Prometheus is running if you want to centralize
+  labels:
+    # This label MUST match the selector on your Prometheus instance.
+    # For kube-prometheus-stack, this is typically 'release: prometheus-stack'.
+    release: prometheus-stack
+spec:
+  # Select pods based on Dapr annotations
+  selector:
+    matchLabels:
+      dapr.io/app-id: "monolith" # Or just use dapr.io/enabled: "true"
+      # You could also use app: monolith if your Deployment has that label
+
+  # Namespace where the pods are located
+  namespaceSelector:
+    matchNames:
+      - default # e.g., default
+
+  podMetricsEndpoints:
+  - port: metrics
+
+    targetPort: 9090
+    path: /metrics
+    interval: 15s # How often to scrape
