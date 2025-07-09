@@ -35,6 +35,7 @@ type TimelinePostEntry struct {
 }
 
 // Service defines the interface for timeline-related operations.
+// @monolift trigger=CPU threshold=0.5
 type Service interface {
 	// ReadTimeline retrieves post IDs for a user's timeline.
 	// Full post content fetching might be orchestrated by the caller (e.g., frontend)
@@ -44,7 +45,7 @@ type Service interface {
 
 	// UpdateTimeline adds or removes a post from a user's timeline.
 	// This replaces the pub/sub mechanism of the original timeline-write-service.
-	UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) error
+	UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error)
 }
 
 type service struct {
@@ -205,7 +206,7 @@ func (s *service) ReadTimeline(ctx context.Context, req timelineTypes.ReadReq) (
 	return timelineTypes.ReadResp{SendUnixMilli: time.Now().UnixMilli(), PostIds: resultPostIds}, nil
 }
 
-func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) error {
+func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error) {
 	opStartTime := time.Now()
 	updateTimelineReqCtr.Inc()
 	logger.Printf("UpdateTimeline called for PosterId: %s, PostId: %s, Add: %t, PostTimestamp: %d", req.UserId, req.PostId, req.Add, req.ClientUnixMilli)
@@ -243,5 +244,5 @@ func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateRe
 
 	serviceProcessingDuration := float64(time.Since(opStartTime).Milliseconds())
 	util.ObserveHist(reqLatHist, serviceProcessingDuration)
-	return nil
+	return timelineTypes.UpdateResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 }
