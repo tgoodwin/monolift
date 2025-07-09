@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: socialgraph
+  namespace: monolift
+  labels:
+    app.kubernetes.io/name: socialgraph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: socialgraph
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: socialgraph
+    spec:
+      containers:
+        - name: socialgraph
+          image: docker.io/tlg2132/socialgraph:latest
+          ports:
+            - containerPort: 8080
+          env:

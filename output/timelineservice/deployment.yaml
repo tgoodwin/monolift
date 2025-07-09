@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timelineservice
+  namespace: monolift
+  labels:
+    app.kubernetes.io/name: timelineservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: timelineservice
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: timelineservice
+    spec:
+      containers:
+        - name: timelineservice
+          image: docker.io/tlg2132/timelineservice:latest
+          ports:
+            - containerPort: 8080
+          env:

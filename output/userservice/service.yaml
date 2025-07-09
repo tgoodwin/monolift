@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: userservice
+  namespace: monolift
+  labels: # Recommended labels for Kubernetes
+    app.kubernetes.io/name: userservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: userservice
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80 # Standard service port
+      targetPort: 8080
