@@ -5,6 +5,7 @@ metadata:
   namespace: {{ .Namespace }}
   labels:
     app.kubernetes.io/name: {{ .ServiceName }}
+    discrete.events/experiment: monolift
 spec:
   replicas: 1
   selector:
@@ -14,6 +15,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: {{ .ServiceName }}
+        discrete.events/experiment: monolift
       annotations:
         dapr.io/enabled: "true"
         dapr.io/app-id: {{ .ServiceName }}

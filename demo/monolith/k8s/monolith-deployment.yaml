@@ -4,6 +4,7 @@ metadata:
   name: monolith-deployment
   labels:
     app.kubernetes.io/name: monolith
+    discrete.events/experiment: monolift
 spec:
   replicas: 4
   selector:
@@ -13,6 +14,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: monolith
+        discrete.events/experiment: monolift
       annotations:
         dapr.io/enabled: "true"
         dapr.io/app-id: "monolith"
