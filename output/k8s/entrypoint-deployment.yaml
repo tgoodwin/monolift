@@ -20,6 +20,7 @@ spec:
       creationTimestamp: null
       labels:
         app.kubernetes.io/name: entrypoint
+        discrete.events/experiment: monolift
     spec:
       containers:
       - env:
