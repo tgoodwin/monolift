@@ -152,12 +152,20 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK
 		}
 	}
 
-	// Define Kubernetes-related constants that are needed across different stages.
-	namespace := "monolift"
-	servicePort := 80 // The port exposed by the Kubernetes Service, not the container's targetPort.
+	// Read the original manifest to extract the namespace.
+	originalManifestData, err := os.ReadFile(originalK8sManifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to read original entrypoint manifest %s: %w", originalK8sManifestPath, err)
+	}
+
+	// TODO just use a scheme to parse the data into an appsv1.Deployment object
+	namespace, err := lift.ExtractNamespaceFromManifest(originalManifestData)
+	if err != nil {
+		return fmt.Errorf("failed to extract namespace from original manifest: %w", err)
+	}
 
 	// 2. Create the entrypoint by recreating the main package in the output directory.
-	if err := c.generateEntrypoint(outputDir, extractedResults, namespace, servicePort); err != nil {
+	if err := c.generateEntrypoint(outputDir, extractedResults, namespace); err != nil {
 		return fmt.Errorf("recreating main package: %w", err)
 	}
 
@@ -169,14 +177,14 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK
 	}
 
 	// 4. write Kubernetes deployment manifests for the artifacts
-	if err := generateK8sManifests(outputDir, dockerRegistry, extractedServiceNames, originalK8sManifestPath, namespace); err != nil {
+	if err := generateK8sManifests(outputDir, dockerRegistry, extractedServiceNames, originalManifestData, namespace); err != nil {
 		return fmt.Errorf("generating Kubernetes manifests: %w", err)
 	}
 
 	return nil
 }
 
-func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionResult, namespace string, servicePort int) error {
+func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionResult, namespace string) error {
 	entrypointDir := filepath.Join(outputDir, entrypointDirName)
 	fmt.Printf("Recreating main package in %s\n", entrypointDir)
 
@@ -233,9 +241,9 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 				var newStmts []ast.Stmt
 				var err error
 				if res.Pragma.SignalType == "" {
-					newStmts, err = generateClientBlockStmts(res, namespace, servicePort)
+					newStmts, err = generateClientBlockStmts(res, namespace)
 				} else {
-					newStmts, err = generateDelegateBlockStmts(res, namespace, servicePort, monitorIdent)
+					newStmts, err = generateDelegateBlockStmts(res, namespace, monitorIdent)
 				}
 
 				if err != nil {
@@ -537,7 +545,7 @@ func findAndReplaceStmts(file *ast.File, oldStmt ast.Stmt, newStmts []ast.Stmt) 
 
 // generateClientBlockStmts creates the block of code that instantiates
 // the remote client directly.
-func generateClientBlockStmts(res *extractionResult, namespace string, port int) ([]ast.Stmt, error) {
+func generateClientBlockStmts(res *extractionResult, namespace string) ([]ast.Stmt, error) {
 	// 1. Extract info from the original statement (e.g., `userService := ...`)
 	var varIdent *ast.Ident
 	switch s := res.RootStmt.(type) {
@@ -574,7 +582,7 @@ func generateClientBlockStmts(res *extractionResult, namespace string, port int)
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
 				Fun:  ast.NewIdent("New" + res.PackageName + "Client"),
-				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s:%d"`, res.PackageName, namespace, port)}},
+				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s"`, res.PackageName, namespace)}},
 			},
 		},
 	}
@@ -584,7 +592,7 @@ func generateClientBlockStmts(res *extractionResult, namespace string, port int)
 
 // generateDelegateBlockStmts creates the full block of code that instantiates
 // the local service, remote client, metrics monitor, decider, and the final delegate.
-func generateDelegateBlockStmts(res *extractionResult, namespace string, port int, monitorIdent *ast.Ident) ([]ast.Stmt, error) {
+func generateDelegateBlockStmts(res *extractionResult, namespace string, monitorIdent *ast.Ident) ([]ast.Stmt, error) {
 	// 1. Extract info from the original statement (e.g., `userService := ...`)
 	var varIdent *ast.Ident
 	var originalCall ast.Expr
@@ -632,7 +640,7 @@ func generateDelegateBlockStmts(res *extractionResult, namespace string, port in
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
 				Fun:  ast.NewIdent("New" + res.PackageName + "Client"),
-				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s:%d"`, res.PackageName, namespace, port)}},
+				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s"`, res.PackageName, namespace)}},
 			},
 		},
 	}
@@ -1399,22 +1407,19 @@ func (c *Compiler) resolveExpr(
 
 // generateK8sManifests creates Kubernetes Deployment and Service YAMLs for each extracted service.
 // It currently focuses on extracted services and does not generate manifests for the entrypoint.
-func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalK8sManifestPath, namespace string) error {
-	if originalK8sManifestPath == "" {
-		return fmt.Errorf("original K8s manifest path must be provided to generate entrypoint manifests")
+func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalManifestData []byte, namespace string) error {
+	if len(originalManifestData) == 0 {
+		return fmt.Errorf("original K8s manifest data must be provided to generate entrypoint manifests")
 	}
 	fmt.Println("\nGenerating Kubernetes manifests:")
 
 	var envVars []lift.EnvVar
-	if originalK8sManifestPath != "" {
-		var err error
-		envVars, err = extractEnvVarsFromK8sManifest(originalK8sManifestPath)
-		if err != nil {
-			return fmt.Errorf("failed to extract environment variables from original K8s manifest: %w", err)
-		}
-		if len(envVars) > 0 {
-			fmt.Printf("  Extracted %d environment variables from %s\n", len(envVars), originalK8sManifestPath)
-		}
+	envVars, err := extractEnvVarsFromK8sManifest(originalManifestData)
+	if err != nil {
+		return fmt.Errorf("failed to extract environment variables from original K8s manifest: %w", err)
+	}
+	if len(envVars) > 0 {
+		fmt.Printf("  Extracted %d environment variables from the original manifest\n", len(envVars))
 	}
 
 	for _, serviceName := range extractedServiceNames {
@@ -1429,10 +1434,6 @@ func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceName
 	fmt.Println("  Generating K8s manifests for the entrypoint application")
 	entrypointImageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, entrypointDirName)
 
-	originalManifestData, err := os.ReadFile(originalK8sManifestPath)
-	if err != nil {
-		return fmt.Errorf("failed to read original entrypoint manifest %s: %w", originalK8sManifestPath, err)
-	}
 	if err := lift.GenerateEntrypointManifests(outputDir, entrypointImageName, originalManifestData); err != nil {
 		return fmt.Errorf("failed to generate K8s entrypoint manifests: %w", err)
 	}
