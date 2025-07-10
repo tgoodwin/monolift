@@ -180,44 +180,37 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 	entrypointDir := filepath.Join(outputDir, entrypointDirName)
 	fmt.Printf("Recreating main package in %s\n", entrypointDir)
 
-	// Find the main package from the parsed data
 	mainPkg, err := c.getMainPackage()
 	if err != nil {
 		return fmt.Errorf("could not find main package to recreate: %w", err)
 	}
 
-	// Group transformations by the file they apply to for efficient processing.
 	replacementsByFile := make(map[*ast.File][]*extractionResult)
 	for _, res := range extracted {
 		replacementsByFile[res.FileAST] = append(replacementsByFile[res.FileAST], res)
 	}
 
-	// --- Shared Metrics Monitor Injection ---
-	// Check if any extracted service needs a metrics monitor and inject a shared one if so.
-	var monitorIdent *ast.Ident
-	needsMonitor := false
+	needsDelegate := false
 	for _, res := range extracted {
-		// TODO : Check if the pragma requires a metrics monitor.
-		if res.Pragma != nil {
-			needsMonitor = true
+		if res.Pragma != nil && res.Pragma.SignalType != "" {
+			needsDelegate = true
 			break
 		}
 	}
 
-	if needsMonitor {
+	var monitorIdent *ast.Ident
+	// if any of the pragmas require the generated code to listen to metrics,
+	// then generate the metrics monitor and inject it into the main function.
+	if needsDelegate {
 		mainFunc, err := findFuncDeclInPackage(mainPkg, "main")
 		if err != nil {
 			return fmt.Errorf("could not find main function to inject metrics monitor: %w", err)
 		}
 
-		// Use a unique name to avoid conflicts with user-defined monitors.
 		monitorIdent = ast.NewIdent("monoliftMetricsMonitor")
 		monitorStmts := generateMonitorStmts(monitorIdent)
-
-		// Prepend the monitor setup statements to the main function's body.
 		mainFunc.Body.List = append(monitorStmts, mainFunc.Body.List...)
 
-		// Find the file containing the main function to add imports to it.
 		mainFuncFile := findFileForNode(mainPkg, mainFunc)
 		if mainFuncFile != nil {
 			astutil.AddImport(c.Fset, mainFuncFile, "log")
@@ -226,22 +219,27 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		}
 	}
 
-	// Recreate all files from the parsed main package ASTs
 	for i, fileAST := range mainPkg.Syntax {
 		originalFilePath := mainPkg.GoFiles[i]
 		baseName := filepath.Base(originalFilePath)
 
-		// Apply transformations if any are registered for this file.
 		if resultsToApply, ok := replacementsByFile[fileAST]; ok {
 			fmt.Printf("  Rewriting constructor calls in %s\n", baseName)
-			// The delegate block itself only needs the pragma import.
-			// Other imports are handled by the shared monitor injection.
-			astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/pragma")
+			if needsDelegate {
+				astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/pragma")
+			}
 
 			for _, res := range resultsToApply {
-				newStmts, err := generateDelegateBlockStmts(res, namespace, servicePort, monitorIdent)
+				var newStmts []ast.Stmt
+				var err error
+				if res.Pragma.SignalType == "" {
+					newStmts, err = generateClientBlockStmts(res, namespace, servicePort)
+				} else {
+					newStmts, err = generateDelegateBlockStmts(res, namespace, servicePort, monitorIdent)
+				}
+
 				if err != nil {
-					return fmt.Errorf("failed to generate delegate block for %s: %w", res.PackageName, err)
+					return fmt.Errorf("failed to generate replacement block for %s: %w", res.PackageName, err)
 				}
 				if !findAndReplaceStmts(fileAST, res.RootStmt, newStmts) {
 					return fmt.Errorf("failed to find and replace root statement for %s in %s", res.PackageName, baseName)
@@ -250,7 +248,6 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		}
 
 		destPath := filepath.Join(entrypointDir, baseName)
-
 		outFile, err := os.Create(destPath)
 		if err != nil {
 			return fmt.Errorf("could not create destination file %s: %w", destPath, err)
@@ -259,21 +256,17 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 
 		fmt.Printf("  Writing %s\n", destPath)
 
-		// Print the AST to a buffer first.
 		var buf bytes.Buffer
 		if err := printer.Fprint(&buf, c.Fset, fileAST); err != nil {
 			return fmt.Errorf("failed to print AST to buffer: %w", err)
 		}
 
-		// Run the generated code through gofmt.
 		formattedSrc, err := format.Source(buf.Bytes())
 		if err != nil {
-			// For debugging, write the unformatted source to see what's wrong.
 			_ = os.WriteFile(destPath+".err", buf.Bytes(), 0644)
 			return fmt.Errorf("failed to format generated code for %s: %w", baseName, err)
 		}
 
-		// Write the formatted code to the file.
 		if _, err := outFile.Write(formattedSrc); err != nil {
 			return fmt.Errorf("failed to write formatted code to %s: %w", destPath, err)
 		}
@@ -540,6 +533,53 @@ func findAndReplaceStmts(file *ast.File, oldStmt ast.Stmt, newStmts []ast.Stmt) 
 		return true
 	})
 	return replaced
+}
+
+// generateClientBlockStmts creates the block of code that instantiates
+// the remote client directly.
+func generateClientBlockStmts(res *extractionResult, namespace string, port int) ([]ast.Stmt, error) {
+	// 1. Extract info from the original statement (e.g., `userService := ...`)
+	var varIdent *ast.Ident
+	switch s := res.RootStmt.(type) {
+	case *ast.AssignStmt:
+		varIdent = s.Lhs[0].(*ast.Ident)
+	case *ast.DeclStmt:
+		genDecl := s.Decl.(*ast.GenDecl)
+		valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
+		varIdent = valueSpec.Names[0]
+	default:
+		return nil, fmt.Errorf("unsupported root statement type: %T", res.RootStmt)
+	}
+
+	// 2. Create the `var userService userservice.Service` declaration
+	varDecl := &ast.DeclStmt{
+		Decl: &ast.GenDecl{
+			Tok: token.VAR,
+			Specs: []ast.Spec{
+				&ast.ValueSpec{
+					Names: []*ast.Ident{ast.NewIdent(varIdent.Name)},
+					Type: &ast.SelectorExpr{
+						X:   ast.NewIdent(res.PackageName),
+						Sel: ast.NewIdent(res.InterfaceTypeName),
+					},
+				},
+			},
+		},
+	}
+
+	// 3. Create the `userService = NewuserserviceClient("http://...")` assignment
+	assignStmt := &ast.AssignStmt{
+		Lhs: []ast.Expr{ast.NewIdent(varIdent.Name)},
+		Tok: token.ASSIGN,
+		Rhs: []ast.Expr{
+			&ast.CallExpr{
+				Fun:  ast.NewIdent("New" + res.PackageName + "Client"),
+				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s:%d"`, res.PackageName, namespace, port)}},
+			},
+		},
+	}
+
+	return []ast.Stmt{varDecl, assignStmt}, nil
 }
 
 // generateDelegateBlockStmts creates the full block of code that instantiates
