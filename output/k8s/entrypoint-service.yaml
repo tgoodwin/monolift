@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: entrypoint-service
+  namespace: default
+  labels:
+    app.kubernetes.io/name: entrypoint
+spec:
+  type: LoadBalancer # TODO respect the original service configuration if there was one
+  selector:
+    app.kubernetes.io/name: entrypoint
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: entrypoint-service-metrics
+  namespace: default
+  labels:
+    app.kubernetes.io/name: entrypoint
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: entrypoint
+  ports:
+    - name: http-metrics
+      port: 8084
+      targetPort: 8084
