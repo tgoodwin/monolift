@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: {{ .ServiceName }}
+        discrete.events/experiment: monolift
       annotations:
         dapr.io/enabled: "true"
         dapr.io/app-id: {{ .ServiceName }}
