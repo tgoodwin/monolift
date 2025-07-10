@@ -1,26 +1,19 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{.ServiceName}}-monitor
-  # The ServiceMonitor MUST be in the same namespace as the Prometheus Operator
-  # that is going to consume it.
+  name: monolift-monitor
   namespace: monitoring
   labels:
-    # These labels are for the ServiceMonitor itself, for organization.
-    app.kubernetes.io/name: {{.ServiceName}}
-    # This label is CRUCIAL for the Prometheus Operator to discover this ServiceMonitor.
     release: prometheus-stack
 spec:
-  # This selector tells the ServiceMonitor which Services to target.
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: {{.DeploymentName}}
-  # This tells the ServiceMonitor which namespace to look for the target Service in.
   namespaceSelector:
     matchNames:
       - {{.Namespace}}
+  selector:
+    matchLabels:
+      monolift.com/metrics: "true"
   endpoints:
   - port: http-metrics
-    scheme: http # Explicitly tell Prometheus to scrape over HTTP.
-    interval: 15s # How often to scrape the endpoint.
-    path: "/metrics" # The path to scrape metrics from.
+    scheme: http
+    interval: 15s
+    path: "/metrics"

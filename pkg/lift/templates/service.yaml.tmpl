@@ -23,7 +23,7 @@ metadata:
   namespace: {{ .Namespace }}
   labels:
     app.kubernetes.io/name: {{ .ServiceName }}
-    discrete.events/experiment: monolift
+    # TODO add monolift.com/metrics label to scrape if prometheus is set up
 spec:
   type: ClusterIP
   selector:

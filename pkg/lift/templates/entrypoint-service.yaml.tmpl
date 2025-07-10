@@ -22,6 +22,7 @@ metadata:
   namespace: {{ .Namespace }}
   labels:
     app.kubernetes.io/name: {{ .DeploymentName }}
+    monolift.com/metrics: "true"
 spec:
   type: ClusterIP
   selector:

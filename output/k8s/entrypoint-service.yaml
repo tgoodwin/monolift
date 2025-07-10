@@ -22,6 +22,7 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: entrypoint
+    monolift.com/metrics: "true"
 spec:
   type: ClusterIP
   selector:
