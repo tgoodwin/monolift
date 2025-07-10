@@ -1,7 +1,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: monolith-monitor
+  name: monolift-monitor
   # The ServiceMonitor MUST be in the same namespace as the Prometheus Operator
   # that is going to consume it.
   namespace: monitoring
@@ -15,7 +15,8 @@ spec:
   # It will match the 'monolith-metrics' Service we created.
   selector:
     matchLabels:
-      app.kubernetes.io/name: monolith
+      # app.kubernetes.io/name: monolith
+      discrete.events/experiment: monolift
   # This tells the ServiceMonitor which namespace to look for the target Service in.
   namespaceSelector:
     matchNames:
