@@ -5,6 +5,7 @@ metadata:
   namespace: default
   labels: # Recommended labels for Kubernetes
     app.kubernetes.io/name: socialgraph
+    discrete.events/experiment: monolift # Custom label for the experiment
 spec:
   type: ClusterIP
   selector:
