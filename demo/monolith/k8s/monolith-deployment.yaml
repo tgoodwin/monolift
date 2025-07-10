@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: monolith
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app.kubernetes.io/name: monolith
