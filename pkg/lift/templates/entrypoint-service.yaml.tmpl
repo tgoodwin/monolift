@@ -14,3 +14,19 @@ spec:
       protocol: TCP
       port: 80
       targetPort: {{ .TargetPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .ServiceName }}-metrics
+  namespace: {{ .Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .DeploymentName }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ .DeploymentName }}
+  ports:
+    - name: http-metrics
+      port: 8084
+      targetPort: 8084
