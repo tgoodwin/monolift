@@ -22,6 +22,9 @@ var deploymentTemplate string
 //go:embed templates/entrypoint-service.yaml.tmpl
 var entrypointServiceTemplate string
 
+//go:embed templates/servicemonitor.yaml.tmpl
+var serviceMonitorTemplate string
+
 const entrypointDeploymentName = "entrypoint"
 const entrypointServiceName = "entrypoint-service"
 
@@ -57,6 +60,33 @@ type EntrypointServiceTemplateData struct {
 	TargetPort     int
 }
 
+// ServiceMonitorTemplateData holds data for the ServiceMonitor.
+type ServiceMonitorTemplateData struct {
+	ServiceName    string
+	DeploymentName string
+	Namespace      string
+}
+
+// ManifestMetadata is used to unmarshal just the metadata section of a K8s manifest.
+type ManifestMetadata struct {
+	Metadata struct {
+		Namespace string `yaml:"namespace"`
+	} `yaml:"metadata"`
+}
+
+// ExtractNamespaceFromManifest extracts the namespace from a Kubernetes manifest file.
+func ExtractNamespaceFromManifest(manifestData []byte) (string, error) {
+	var meta ManifestMetadata
+	if err := yaml.Unmarshal(manifestData, &meta); err != nil {
+		return "", fmt.Errorf("failed to unmarshal manifest to extract namespace: %w", err)
+	}
+	namespace := meta.Metadata.Namespace
+	if namespace == "" {
+		namespace = "default"
+	}
+	return namespace, nil
+}
+
 // GenerateExtractedServiceManifests creates Kubernetes Service and Deployment manifests for an extracted service.
 func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName string, envVars []EnvVar) error {
 	serviceTmpl, err := template.New("service").Parse(serviceTemplate)
@@ -66,6 +96,10 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 	deploymentTmpl, err := template.New("deployment").Parse(deploymentTemplate)
 	if err != nil {
 		return fmt.Errorf("parsing deployment template: %w", err)
+	}
+	serviceMonitorTmpl, err := template.New("servicemonitor").Parse(serviceMonitorTemplate)
+	if err != nil {
+		return fmt.Errorf("parsing servicemonitor template: %w", err)
 	}
 
 	serviceData := ServiceTemplateData{
@@ -79,6 +113,11 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 		ImageName:     imageName,
 		ContainerPort: extractedServicePort,
 		EnvVars:       envVars,
+	}
+	serviceMonitorData := ServiceMonitorTemplateData{
+		ServiceName:    serviceName,
+		DeploymentName: serviceName,
+		Namespace:      namespace,
 	}
 
 	k8sOutputDir := filepath.Join(outputDir, "k8s")
@@ -104,7 +143,18 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 		return fmt.Errorf("creating deployment.yaml for %s: %w", serviceName, err)
 	}
 	defer deploymentFile.Close()
-	return deploymentTmpl.Execute(deploymentFile, deploymentData)
+	if err := deploymentTmpl.Execute(deploymentFile, deploymentData); err != nil {
+		return fmt.Errorf("executing deployment template for %s: %w", serviceName, err)
+	}
+
+	// Generate ServiceMonitor manifest
+	serviceMonitorFilePath := filepath.Join(k8sOutputDir, fmt.Sprintf("%s-servicemonitor.yaml", serviceName))
+	serviceMonitorFile, err := os.Create(serviceMonitorFilePath)
+	if err != nil {
+		return fmt.Errorf("creating servicemonitor.yaml for %s: %w", serviceName, err)
+	}
+	defer serviceMonitorFile.Close()
+	return serviceMonitorTmpl.Execute(serviceMonitorFile, serviceMonitorData)
 }
 
 // GenerateEntrypointManifests creates K8s Deployment and Service for the rewritten entrypoint.
@@ -189,12 +239,21 @@ func GenerateEntrypointManifests(outputDir, entrypointImageName string, original
 	if err != nil {
 		return fmt.Errorf("parsing entrypoint service template: %w", err)
 	}
+	serviceMonitorTmpl, err := template.New("servicemonitor").Parse(serviceMonitorTemplate)
+	if err != nil {
+		return fmt.Errorf("parsing servicemonitor template: %w", err)
+	}
 
 	serviceData := EntrypointServiceTemplateData{
 		ServiceName:    entrypointServiceName,
 		DeploymentName: entrypointDeploymentName,
 		Namespace:      namespace,
 		TargetPort:     int(targetPort),
+	}
+	serviceMonitorData := ServiceMonitorTemplateData{
+		ServiceName:    entrypointServiceName,
+		DeploymentName: entrypointDeploymentName,
+		Namespace:      namespace,
 	}
 
 	serviceFilePath := filepath.Join(k8sOutputDir, "entrypoint-service.yaml")
@@ -204,5 +263,16 @@ func GenerateEntrypointManifests(outputDir, entrypointImageName string, original
 	}
 	defer serviceFile.Close()
 
-	return serviceTmpl.Execute(serviceFile, serviceData)
+	if err := serviceTmpl.Execute(serviceFile, serviceData); err != nil {
+		return fmt.Errorf("executing entrypoint service template: %w", err)
+	}
+
+	serviceMonitorFilePath := filepath.Join(k8sOutputDir, "entrypoint-servicemonitor.yaml")
+	serviceMonitorFile, err := os.Create(serviceMonitorFilePath)
+	if err != nil {
+		return fmt.Errorf("creating entrypoint servicemonitor.yaml: %w", err)
+	}
+	defer serviceMonitorFile.Close()
+
+	return serviceMonitorTmpl.Execute(serviceMonitorFile, serviceMonitorData)
 }
