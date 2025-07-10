@@ -11,6 +11,9 @@ GENERATED_MANIFEST_DIR ?= output/k8s
 
 .PHONY: demo build push deploy undeploy build-and-deploy-local help
 
+build:
+	go build -o monolift ./cmd/main.go
+
 demo: build-demo push-demo deploy-demo
 
 build-demo:
