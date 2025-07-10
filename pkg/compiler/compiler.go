@@ -1400,8 +1400,10 @@ func (c *Compiler) resolveExpr(
 // generateK8sManifests creates Kubernetes Deployment and Service YAMLs for each extracted service.
 // It currently focuses on extracted services and does not generate manifests for the entrypoint.
 func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalK8sManifestPath, namespace string) error {
+	if originalK8sManifestPath == "" {
+		return fmt.Errorf("original K8s manifest path must be provided to generate entrypoint manifests")
+	}
 	fmt.Println("\nGenerating Kubernetes manifests:")
-	containerPort := 8080
 
 	var envVars []lift.EnvVar
 	if originalK8sManifestPath != "" {
@@ -1418,24 +1420,21 @@ func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceName
 	for _, serviceName := range extractedServiceNames {
 		fmt.Printf("  Generating K8s manifests for service %s\n", serviceName)
 		imageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, serviceName)
-		if err := lift.GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName, containerPort, envVars); err != nil {
+		if err := lift.GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName, envVars); err != nil {
 			return fmt.Errorf("failed to generate K8s service manifest for %s: %w", serviceName, err)
 		}
 	}
 
 	// Generate manifests for the entrypoint application.
-	if originalK8sManifestPath != "" {
-		fmt.Println("  Generating K8s manifests for the entrypoint application")
-		entrypointImageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, entrypointDirName)
+	fmt.Println("  Generating K8s manifests for the entrypoint application")
+	entrypointImageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, entrypointDirName)
 
-		originalManifestData, err := os.ReadFile(originalK8sManifestPath)
-		if err != nil {
-			return fmt.Errorf("failed to read original entrypoint manifest %s: %w", originalK8sManifestPath, err)
-		}
-
-		if err := lift.GenerateEntrypointManifests(outputDir, namespace, entrypointImageName, originalManifestData, containerPort); err != nil {
-			return fmt.Errorf("failed to generate K8s entrypoint manifests: %w", err)
-		}
+	originalManifestData, err := os.ReadFile(originalK8sManifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to read original entrypoint manifest %s: %w", originalK8sManifestPath, err)
+	}
+	if err := lift.GenerateEntrypointManifests(outputDir, entrypointImageName, originalManifestData); err != nil {
+		return fmt.Errorf("failed to generate K8s entrypoint manifests: %w", err)
 	}
 
 	return nil

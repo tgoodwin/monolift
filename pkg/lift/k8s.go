@@ -25,6 +25,8 @@ var entrypointServiceTemplate string
 const entrypointDeploymentName = "entrypoint"
 const entrypointServiceName = "entrypoint-service"
 
+const extractedServicePort = 8080 // Default port for extracted services
+
 // EnvVar represents an environment variable for a container.
 type EnvVar struct {
 	Name  string
@@ -56,7 +58,7 @@ type EntrypointServiceTemplateData struct {
 }
 
 // GenerateExtractedServiceManifests creates Kubernetes Service and Deployment manifests for an extracted service.
-func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName string, containerPort int, envVars []EnvVar) error {
+func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName string, envVars []EnvVar) error {
 	serviceTmpl, err := template.New("service").Parse(serviceTemplate)
 	if err != nil {
 		return fmt.Errorf("parsing service template: %w", err)
@@ -69,13 +71,13 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 	serviceData := ServiceTemplateData{
 		ServiceName: serviceName,
 		Namespace:   namespace,
-		TargetPort:  containerPort, // Service targetPort should match containerPort
+		TargetPort:  extractedServicePort, // Service targetPort should match extractedServicePort
 	}
 	deploymentData := DeploymentTemplateData{
 		ServiceName:   serviceName,
 		Namespace:     namespace,
 		ImageName:     imageName,
-		ContainerPort: containerPort,
+		ContainerPort: extractedServicePort,
 		EnvVars:       envVars,
 	}
 
@@ -107,7 +109,7 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 
 // GenerateEntrypointManifests creates K8s Deployment and Service for the rewritten entrypoint.
 // It reuses the original deployment manifest and just updates the image and labels.
-func GenerateEntrypointManifests(outputDir, namespace, entrypointImageName string, originalManifestData []byte, targetPort int) error {
+func GenerateEntrypointManifests(outputDir, entrypointImageName string, originalManifestData []byte) error {
 	// --- Step 1: Generate the Deployment manifest ---
 	// We read the original manifest, modify it in memory, and write it back out.
 	// This is more robust than templating as it preserves all original settings (volumes, probes, etc.).
@@ -127,6 +129,13 @@ func GenerateEntrypointManifests(outputDir, namespace, entrypointImageName strin
 	deployment, ok := obj.(*appsv1.Deployment)
 	if !ok {
 		return fmt.Errorf("decoded object is not an *appsv1.Deployment: %T", obj)
+	}
+
+	// Extract namespace from the original manifest
+	namespace := deployment.ObjectMeta.Namespace
+	if namespace == "" {
+		// If no namespace is specified, use "default"
+		namespace = "default"
 	}
 
 	// Modify the deployment for the new entrypoint
@@ -154,6 +163,12 @@ func GenerateEntrypointManifests(outputDir, namespace, entrypointImageName strin
 	}
 	deployment.Spec.Template.Spec.Containers[0].Image = entrypointImageName
 
+	// Extract the container port from the original deployment
+	if len(deployment.Spec.Template.Spec.Containers[0].Ports) == 0 {
+		return fmt.Errorf("original deployment has no container ports defined")
+	}
+	targetPort := deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort
+
 	// Marshal the modified deployment back to YAML
 	modifiedDeploymentYAML, err := yaml.Marshal(deployment)
 	if err != nil {
@@ -179,7 +194,7 @@ func GenerateEntrypointManifests(outputDir, namespace, entrypointImageName strin
 		ServiceName:    entrypointServiceName,
 		DeploymentName: entrypointDeploymentName,
 		Namespace:      namespace,
-		TargetPort:     targetPort,
+		TargetPort:     int(targetPort),
 	}
 
 	serviceFilePath := filepath.Join(k8sOutputDir, "entrypoint-service.yaml")
