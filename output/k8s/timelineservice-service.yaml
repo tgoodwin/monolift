@@ -5,6 +5,7 @@ metadata:
   namespace: default
   labels: # Recommended labels for Kubernetes
     app.kubernetes.io/name: timelineservice
+    discrete.events/experiment: monolift
 spec:
   type: ClusterIP
   selector:
@@ -22,6 +23,7 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: timelineservice
+    discrete.events/experiment: monolift
 spec:
   type: ClusterIP
   selector:
