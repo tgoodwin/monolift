@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postservice
+  namespace: default
+  labels: # Recommended labels for Kubernetes
+    app.kubernetes.io/name: postservice
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: postservice
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80 # Standard service port
+      targetPort: 8080
