@@ -8,6 +8,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+
+	dapr "github.com/dapr/go-sdk/client"
 )
 
 // Sentinel errors for Store operations.
@@ -15,11 +19,23 @@ import (
 var (
 	ErrETagMismatch       = errors.New("ETag mismatch")
 	ErrKeyNotFoundForETag = errors.New("ETag specified for key that does not exist")
-	ErrTransactionFailed  = errors.New("optimistic lock transaction failed")
+	ErrTransactionFailed  = errors.New("optimistic lock transaction failed") // This error is returned when a transaction (e.g., Redis WATCH/EXEC) fails due to a concurrent modification.
+)
+
+// Prometheus metric for concurrency control errors
+var (
+	concurrencyErrorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "database_concurrency_errors_total",
+			Help: "Total number of optimistic concurrency control errors (ETag mismatch or transaction failed).",
+		},
+		[]string{"store_name"},
+	)
 )
 
 // StateItem represents a single state item with an ETag.
 type StateItem struct {
+	Key   string
 	Value []byte
 	Etag  string
 	// LastUpdated time.Time // Optional: for debugging or TTL later
@@ -34,6 +50,10 @@ type Store interface {
 	// If etag is nil or empty, it overwrites. A new ETag is generated upon successful save.
 	SaveState(ctx context.Context, storeName, key string, data []byte, etag *string) (newEtag string, err error)
 
+	// SaveBulkState saves one or more state items. It is a "fire-and-forget" operation
+	// and does not return new ETags, making it more efficient for bulk writes.
+	SaveBulkState(ctx context.Context, storeName string, items ...*dapr.SetStateItem) error
+
 	// GetState retrieves data and ETag for a given key.
 	// Returns (nil, nil) if the key is not found.
 	GetState(ctx context.Context, storeName, key string) (*StateItem, error)
@@ -41,10 +61,6 @@ type Store interface {
 	// DeleteState deletes data for a given key.
 	// If etag is provided and non-empty, it performs an optimistic concurrency check.
 	DeleteState(ctx context.Context, storeName, key string, etag *string) error
-
-	// TODO: Consider adding Bulk operations later if needed for performance:
-	// GetBulkState(ctx context.Context, storeName string, keys []string) ([]*StateItem, error)
-	// SaveBulkState(ctx context.Context, storeName string, items map[string][]byte) error // Or a slice of StateItems
 }
 
 // InMemoryKVStore is an in-memory implementation of the Store interface.
@@ -149,4 +165,9 @@ func Marshal(v interface{}) ([]byte, error) {
 // Helper to unmarshal JSON bytes from storage
 func Unmarshal(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
+}
+
+// RegisterMetrics registers the Prometheus metrics for the database package.
+func RegisterMetrics() {
+	prometheus.MustRegister(concurrencyErrorsTotal)
 }

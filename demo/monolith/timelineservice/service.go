@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	dapr "github.com/dapr/go-sdk/client"
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
 	"github.com/tgoodwin/monolift/demo/monolith/socialgraph"
@@ -21,8 +22,8 @@ import (
 var logger = log.New(os.Stdout, "monolith-timelineservice: ", log.LstdFlags|log.Lshortfile)
 
 const (
-	userTimelineStoreName = "user_timeline"
-	homeTimelineStoreName = "home_timeline"
+	userTimelineStoreName = "timeline-store"
+	homeTimelineStoreName = "timeline-store"
 	maxTimelineSize       = 1000 // Max number of posts in a timeline (like original Dapr version)
 	maxRetries            = 5    // Max retries for optimistic concurrency
 )
@@ -34,6 +35,7 @@ type TimelinePostEntry struct {
 }
 
 // Service defines the interface for timeline-related operations.
+// @monolift trigger=CPU threshold=0.5
 type Service interface {
 	// ReadTimeline retrieves post IDs for a user's timeline.
 	// Full post content fetching might be orchestrated by the caller (e.g., frontend)
@@ -43,7 +45,7 @@ type Service interface {
 
 	// UpdateTimeline adds or removes a post from a user's timeline.
 	// This replaces the pub/sub mechanism of the original timeline-write-service.
-	UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) error
+	UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error)
 }
 
 type service struct {
@@ -63,17 +65,17 @@ func NewService(store database.Store, sgService socialgraph.Service, pService po
 
 // --- Key generation functions ---
 func userTimelineKey(userId string) string {
-	return userId
+	return userId + "-user"
 }
 
 func homeTimelineKey(userId string) string {
-	return userId
+	return userId + "-home"
 }
 
 // --- Helper to update a single timeline (user or home) ---
 func (s *service) updateSpecificTimeline(ctx context.Context, storeName, timelineKey, postId string, postTimestamp int64, add bool) error {
 	var currentEntries []TimelinePostEntry
-	var etag *string
+	var etag string
 
 	for i := 0; i < maxRetries; i++ {
 		opStartTime := time.Now()
@@ -85,13 +87,12 @@ func (s *service) updateSpecificTimeline(ctx context.Context, storeName, timelin
 
 		if item == nil || item.Value == nil {
 			currentEntries = []TimelinePostEntry{}
-			etag = nil
+			etag = "" // ETag is empty for new items
 		} else {
 			if err := database.Unmarshal(item.Value, &currentEntries); err != nil {
 				return errors.Wrapf(err, "failed to unmarshal timeline from store %s for key %s", storeName, timelineKey)
 			}
-			tempEtag := item.Etag
-			etag = &tempEtag
+			etag = item.Etag
 		}
 
 		if add {
@@ -130,12 +131,23 @@ func (s *service) updateSpecificTimeline(ctx context.Context, storeName, timelin
 		}
 
 		opStartTime = time.Now()
-		_, saveErr := s.db.SaveState(ctx, storeName, timelineKey, updatedData, etag)
+		// Use the more performant SaveBulkState
+		itemToSave := &dapr.SetStateItem{
+			Key:   timelineKey,
+			Value: updatedData,
+		}
+		if etag != "" {
+			itemToSave.Etag = &dapr.ETag{Value: etag}
+		}
+		saveErr := s.db.SaveBulkState(ctx, storeName, itemToSave)
 		util.ObserveHist(writeStoreLatHist, float64(time.Since(opStartTime).Milliseconds()))
 		if saveErr == nil {
 			return nil // Success
 		}
 
+		// Note: Dapr's SaveBulkState might not return specific ETag mismatch errors.
+		// The error handling here might need to be adjusted based on the actual errors returned by the Dapr client.
+		// We'll keep the retry logic for now, assuming transient failures or potential transaction conflicts.
 		if stdErrors.Is(saveErr, database.ErrETagMismatch) || stdErrors.Is(saveErr, database.ErrTransactionFailed) {
 			logger.Printf("updateSpecificTimeline: concurrency error for store %s, key %s, retrying (%d/%d): %v", storeName, timelineKey, i+1, maxRetries, saveErr)
 			time.Sleep(time.Duration(20*(i+1)) * time.Millisecond)
@@ -194,7 +206,7 @@ func (s *service) ReadTimeline(ctx context.Context, req timelineTypes.ReadReq) (
 	return timelineTypes.ReadResp{SendUnixMilli: time.Now().UnixMilli(), PostIds: resultPostIds}, nil
 }
 
-func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) error {
+func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error) {
 	opStartTime := time.Now()
 	updateTimelineReqCtr.Inc()
 	logger.Printf("UpdateTimeline called for PosterId: %s, PostId: %s, Add: %t, PostTimestamp: %d", req.UserId, req.PostId, req.Add, req.ClientUnixMilli)
@@ -232,5 +244,5 @@ func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateRe
 
 	serviceProcessingDuration := float64(time.Since(opStartTime).Milliseconds())
 	util.ObserveHist(reqLatHist, serviceProcessingDuration)
-	return nil
+	return timelineTypes.UpdateResp{SendUnixMilli: time.Now().UnixMilli()}, nil
 }

@@ -13,7 +13,7 @@ async def upload_follow(session, addr, user_0, user_1):
       'follow_id': user_1
   }
   async with session.post(addr + '/follow', json=payload) as resp:
-    return await resp.text()
+    return (resp.status, await resp.text())
 
 
 async def upload_register(session, addr, user):
@@ -26,7 +26,7 @@ async def upload_register(session, addr, user):
       'password': 'password_' + user
   }
   async with session.post(addr + '/register', json=payload) as resp:
-    return await resp.text()
+    return (resp.status, await resp.text())
 
 
 async def upload_save(session, addr, user_id, num_users):
@@ -47,7 +47,7 @@ async def upload_save(session, addr, user_id, num_users):
   data.add_field('text', text)
 
   # 3. Generate and add dummy image files
-  num_images = random.randint(0, 4)
+  num_images = random.randint(1, 4)
   for i in range(num_images):
       dummy_image_data = os.urandom(1024)  # 1KB of random data
       data.add_field(
@@ -57,7 +57,7 @@ async def upload_save(session, addr, user_id, num_users):
           content_type='image/jpeg'
       )
   async with session.post(addr + '/save', data=data) as resp:
-    return await resp.text()
+    return (resp.status, await resp.text())
 
 
 def getNumNodes(file):
@@ -73,19 +73,27 @@ def getEdges(file):
 
 
 def printResults(results):
-  result_type_count = {}
+  success_count = 0
+  failures = []
   for result in results:
-    try:
-      result_type_count[result] += 1
-    except KeyError:
-      result_type_count[result] = 1
-  for result_type, count in result_type_count.items():
-    if result_type == '' or result_type.startswith('Success'):
-      print('Succeeded:', count)
-    elif '500 Internal Server Error' in result_type:
-      print('Failed:', count, 'Error:', 'Internal Server Error')
+    status, text = result
+    if 200 <= status < 300:
+      success_count += 1
     else:
-      print('Failed:', count, 'Error:', result_type.strip())
+      failures.append(result)
+
+  if success_count > 0:
+    print('Succeeded:', success_count)
+
+  if failures:
+    print(f'Failed: {len(failures)}')
+    failure_groups = {}
+    for status, text in failures:
+      key = (status, text.strip())
+      failure_groups[key] = failure_groups.get(key, 0) + 1
+
+    for (status, text), count in sorted(failure_groups.items()):
+      print(f'  - Status {status} ({count} times): {text}')
 
 
 async def register(addr, nodes, limit=200):

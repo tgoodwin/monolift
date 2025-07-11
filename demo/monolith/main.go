@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"os"
@@ -20,22 +19,20 @@ import (
 var logger = log.New(os.Stdout, "monolith-main: ", log.LstdFlags)
 
 func main() {
-	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")              // Main service address
-	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084")            // Prometheus metrics address
-	redisAddress := util.GetEnvVar("REDIS_ADDRESS", "localhost:6379") // Redis address for future use
-	redisPassword := util.GetEnvVar("REDIS_PASSWORD", "")             // Redis password, if any
+	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")   // Main service address
+	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084") // Prometheus metrics address
 
 	// Register all metrics for Prometheus to expose.
+	database.RegisterMetrics()
 	frontend.RegisterMetrics()
 	postservice.RegisterMetrics()
 	socialgraph.RegisterMetrics()
 	userservice.RegisterMetrics()
 	timelineservice.RegisterMetrics()
 
-	// dbStore := database.NewInMemoryKVStore()
-	dbStore, err := database.NewRedisStore(context.Background(), redisAddress, redisPassword, 0)
+	dbStore, err := database.NewDaprStore()
 	if err != nil {
-		logger.Fatalf("Failed to connect to Redis at %s: %v", redisAddress, err)
+		logger.Fatalf("Failed to create dapr store: %v", err)
 	}
 
 	// Instantiate service modules

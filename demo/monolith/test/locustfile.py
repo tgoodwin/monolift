@@ -3,17 +3,17 @@ import random
 import string
 import time
 import math
-from locust import HttpUser, task, between, events
+from locust import HttpUser, task, constant_pacing, events
 from locust.shape import LoadTestShape
 
 # --- Global settings for custom arguments ---
 # This will be populated by the init_parser event listener
 settings = {
     "num_users": 1000,  # Default, should match the initialized graph
-    "total_duration": 600, # Default: 10 minutes
+    "total_duration": 300, # Default: 10 minutes
     "cycle_duration": 300, # Default: 5 minute cycle
     "min_users": 10,
-    "max_users": 100,
+    "max_users": 500,
 }
 
 @events.init_command_line_parser.add_listener
@@ -82,7 +82,12 @@ class SocialUser(HttpUser):
     """
     User that composes posts on the social network.
     """
-    wait_time = between(1, 5) # Time between executing tasks
+    # To achieve a target of ~1000 req/s with the default 100 max_users,
+    # each user must generate 10 requests per second. This means each
+    # task execution cycle (task + wait) should take 0.1 seconds.
+    # The `constant_pacing` wait time is perfect for this, as it ensures
+    # a task runs every N seconds, automatically subtracting the task's execution time.
+    wait_time = constant_pacing(0.5)
 
     @task
     def compose_post(self):
@@ -109,7 +114,7 @@ class SocialUser(HttpUser):
         }
 
         files_to_upload = []
-        num_images = random.randint(0, 4)
+        num_images = random.randint(1, 4)
         for i in range(num_images):
             dummy_image_data = os.urandom(1024)  # 1KB of random data
             files_to_upload.append(
@@ -117,9 +122,15 @@ class SocialUser(HttpUser):
             )
 
         # 4. Send the POST request to the /save endpoint
-        self.client.post(
+        with self.client.post(
             "/save",
             data=form_data,
             files=files_to_upload,
-            name="/save [compose_post]" # Group stats under a more descriptive name
-        )
+            name="/save [compose_post]", # Group stats under a more descriptive name
+            catch_response=True # Important: allows us to check the response
+        ) as response:
+            if not response.ok:
+                print(f"Request to /save failed with status {response.status_code}: {response.text}")
+                response.failure(f"Status code {response.status_code}")
+            else:
+                response.success()

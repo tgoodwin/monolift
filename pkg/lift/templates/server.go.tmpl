@@ -42,6 +42,7 @@ func (s *{{$.ServerStructName}}) {{.HandlerFuncName}}(w http.ResponseWriter, r *
 
 	resp, err := s.{{$.DelegateFieldName}}.{{.Name}}(r.Context(), req)
 	if err != nil {
+		fmt.Printf("service call for {{.Name}} failed: %v\n", err)
 		http.Error(w, fmt.Sprintf("service call for {{.Name}} failed: %v", err), http.StatusInternalServerError)
 		return
 	}

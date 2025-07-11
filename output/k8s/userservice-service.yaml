@@ -1,33 +1,33 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .ServiceName }}
-  namespace: {{ .Namespace }}
+  name: userservice
+  namespace: default
   labels: # Recommended labels for Kubernetes
-    app.kubernetes.io/name: {{ .ServiceName }}
+    app.kubernetes.io/name: userservice
     discrete.events/experiment: monolift
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: {{ .ServiceName }}
+    app.kubernetes.io/name: userservice
   ports:
     - name: http
       protocol: TCP
       port: 80 # Standard service port
-      targetPort: {{ .TargetPort }}
+      targetPort: 8080
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .ServiceName }}-metrics
-  namespace: {{ .Namespace }}
+  name: userservice-metrics
+  namespace: default
   labels:
-    app.kubernetes.io/name: {{ .ServiceName }}
+    app.kubernetes.io/name: userservice
     # TODO add monolift.com/metrics label to scrape if prometheus is set up
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: {{ .ServiceName }}
+    app.kubernetes.io/name: userservice
   ports:
     - name: http-metrics
       port: 8084
