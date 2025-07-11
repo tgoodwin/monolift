@@ -10,7 +10,7 @@ Content-Type: application/json
 
 ### registration / auth
 
-POST https://130.127.132.200:8080/register
+POST http://130.127.132.202/register
 Content-Type: application/json
 
 {
