@@ -24,6 +24,7 @@ func main() {
 	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084") // Prometheus metrics address
 
 	// Register all metrics for Prometheus to expose.
+	database.RegisterMetrics()
 	frontend.RegisterMetrics()
 	postservice.RegisterMetrics()
 	socialgraph.RegisterMetrics()

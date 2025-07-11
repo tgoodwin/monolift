@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	dapr "github.com/dapr/go-sdk/client"
 	"github.com/tgoodwin/monolift/demo/monolith/database"
 
 	"github.com/tgoodwin/monolift/demo/monolith/postservice"
@@ -78,6 +79,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	frontendReqsTotal.WithLabelValues("save").Inc()
 	logger.Println("SaveHandler received request")
+	ctx := context.Background()
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -94,7 +96,6 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	// Get text and user_id from form values
 	userId := r.FormValue("user_id")
 	text := r.FormValue("text")
-	// send_unix_ms might be needed for PostId, but it's not standard in multipart.
 	// We'll generate PostId based on current time and user_id, similar to original Dapr.
 	// Or, if the client *must* provide it, it would be another form value.
 	// Let's use current time for PostId generation for simplicity, aligning with util.PostId signature.
@@ -110,7 +111,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	// Step 2: Handle and save images from file parts
 	files := r.MultipartForm.File["images"]
 	imageIds := make([]string, len(files))
-	stateItems := make([]*database.StateItem, len(files))
+	stateItems := make([]*dapr.SetStateItem, len(files))
 
 	for i, fileHeader := range files {
 		imageIds[i] = util.ImageId(postId, i)
@@ -129,7 +130,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		stateItems[i] = &database.StateItem{
+		stateItems[i] = &dapr.SetStateItem{
 			Key:   imageIds[i],
 			Value: imageData,
 		}
@@ -137,7 +138,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 
 	if len(stateItems) > 0 {
 		storeWriteStartTime := time.Now()
-		err := h.DBStore.SaveBulkState(context.Background(), imageStoreName, stateItems...)
+		err := h.DBStore.SaveBulkState(ctx, imageStoreName, stateItems...)
 		util.ObserveHist(writeImageStoreLatHist, float64(time.Since(storeWriteStartTime).Milliseconds()))
 		if err != nil {
 			logger.Printf("SaveHandler: error saving images to store: %v", err)
@@ -159,7 +160,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceCallStart := time.Now()
-	_, err := h.PostService.SavePost(context.Background(), postServiceReq)
+	_, err := h.PostService.SavePost(ctx, postServiceReq)
 	util.ObserveHist(serviceCallLatHist.WithLabelValues("postservice", "SavePost"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("SaveHandler error calling PostService.SavePost: %v", err)
@@ -182,7 +183,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	// update timeline asynchronously to match DeathStarBench use of a queue
 	go func(req timelineTypes.UpdateReq) {
 		serviceCallStart := time.Now()
-		err = h.TimelineService.UpdateTimeline(context.Background(), req)
+		_, err = h.TimelineService.UpdateTimeline(ctx, req)
 		util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
 		if err != nil {
 			// Log error, but don't fail the entire Save operation for a timeline update failure
@@ -239,7 +240,7 @@ func (h *APIHandlers) DelHandler(w http.ResponseWriter, r *http.Request) {
 		SendUnixMilli:   time.Now().UnixMilli(),
 	}
 	serviceCallStart = time.Now()
-	err = h.TimelineService.UpdateTimeline(context.Background(), timelineUpdateReq)
+	_, err = h.TimelineService.UpdateTimeline(context.Background(), timelineUpdateReq)
 	util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		logger.Printf("DelHandler: failed to update timeline for user %s, post %s: %v", req.UserId, req.PostId, err)

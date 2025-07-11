@@ -3,17 +3,17 @@ import random
 import string
 import time
 import math
-from locust import HttpUser, task, between, events
+from locust import HttpUser, task, constant_pacing, events
 from locust.shape import LoadTestShape
 
 # --- Global settings for custom arguments ---
 # This will be populated by the init_parser event listener
 settings = {
     "num_users": 1000,  # Default, should match the initialized graph
-    "total_duration": 600, # Default: 10 minutes
+    "total_duration": 300, # Default: 10 minutes
     "cycle_duration": 300, # Default: 5 minute cycle
     "min_users": 10,
-    "max_users": 100,
+    "max_users": 500,
 }
 
 @events.init_command_line_parser.add_listener
@@ -162,8 +162,13 @@ class SocialUser(HttpUser):
     """
     User that composes posts on the social network.
     """
-    wait_time = between(1, 5) # Time between executing tasks
     tasks = {read_home_timeline: 6, read_user_timeline:3, compose_post: 1}
+    # To achieve a target of ~1000 req/s with the default 100 max_users,
+    # each user must generate 10 requests per second. This means each
+    # task execution cycle (task + wait) should take 0.1 seconds.
+    # The `constant_pacing` wait time is perfect for this, as it ensures
+    # a task runs every N seconds, automatically subtracting the task's execution time.
+    wait_time = constant_pacing(0.5)
 
 
-    
+        

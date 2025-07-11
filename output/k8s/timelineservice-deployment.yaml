@@ -1,55 +1,51 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .ServiceName }}
-  namespace: {{ .Namespace }}
+  name: timelineservice
+  namespace: default
   labels:
-    app.kubernetes.io/name: {{ .ServiceName }}
+    app.kubernetes.io/name: timelineservice
     discrete.events/experiment: monolift
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .ServiceName }}
+      app.kubernetes.io/name: timelineservice
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ .ServiceName }}
+        app.kubernetes.io/name: timelineservice
         discrete.events/experiment: monolift
       annotations:
         dapr.io/enabled: "true"
-        dapr.io/app-id: {{ .ServiceName }}
-        dapr.io/app-port: "{{ .ContainerPort }}"
+        dapr.io/app-id: timelineservice
+        dapr.io/app-port: "8080"
     spec:
       containers:
-        - name: {{ .ServiceName }}
-          image: {{ .ImageName }}
+        - name: timelineservice
+          image: ghcr.io/tgoodwin/timelineservice:latest
           ports:
-            - containerPort: {{ .ContainerPort }}
+            - containerPort: 8080
           env:
             - name: K8S_CPU_REQUEST
               valueFrom:
                 resourceFieldRef:
-                  containerName: {{ .ServiceName }}
+                  containerName: timelineservice
                   resource: requests.cpu
                   divisor: "1m"
             - name: K8S_CPU_LIMIT
               valueFrom:
                 resourceFieldRef:
-                  containerName: {{ .ServiceName }}
+                  containerName: timelineservice
                   resource: limits.cpu
                   divisor: "1m"
             - name: K8S_MEMORY_REQUEST
               valueFrom:
                 resourceFieldRef:
-                  containerName: {{ .ServiceName }}
+                  containerName: timelineservice
                   resource: requests.memory
             - name: K8S_MEMORY_LIMIT
               valueFrom:
                 resourceFieldRef:
-                  containerName: {{ .ServiceName }}
+                  containerName: timelineservice
                   resource: limits.memory
-{{- range .EnvVars }}
-            - name: {{ .Name }}
-              value: {{ .Value }}
-{{- end }}

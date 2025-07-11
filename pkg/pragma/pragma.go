@@ -30,13 +30,14 @@ type Pragma struct {
 }
 
 func ParsePragma(attrs map[string]string) (*Pragma, error) {
-	if attrs == nil {
-		return nil, errors.New("attributes map is nil")
+	// If there are no attributes, it's a simple extraction without a delegate.
+	if len(attrs) == 0 {
+		return &Pragma{}, nil
 	}
 
 	triggerVal, ok := attrs["trigger"]
 	if !ok {
-		return nil, errors.New("pragma is missing required 'trigger' attribute")
+		return nil, errors.New("pragma is missing required 'trigger' attribute for delegate")
 	}
 	signalType, ok := getSignalType(triggerVal)
 	if !ok {
@@ -45,7 +46,7 @@ func ParsePragma(attrs map[string]string) (*Pragma, error) {
 
 	thresholdVal, ok := attrs["threshold"]
 	if !ok {
-		return nil, errors.New("pragma is missing required 'threshold' attribute")
+		return nil, errors.New("pragma is missing required 'threshold' attribute for delegate")
 	}
 	threshold, err := strconv.ParseFloat(thresholdVal, 64)
 	if err != nil {

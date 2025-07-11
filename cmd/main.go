@@ -34,7 +34,7 @@ func rootCmd() *cobra.Command {
 		&opts.dockerRegistry,
 		"docker-registry",
 		"r",
-		"docker.io/tlg2132",
+		"localhost:5000",
 		"location of docker registry to push to",
 	)
 	root.PersistentFlags().StringVarP(

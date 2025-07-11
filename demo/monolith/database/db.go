@@ -8,6 +8,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+
+	dapr "github.com/dapr/go-sdk/client"
 )
 
 // Sentinel errors for Store operations.
@@ -15,7 +19,18 @@ import (
 var (
 	ErrETagMismatch       = errors.New("ETag mismatch")
 	ErrKeyNotFoundForETag = errors.New("ETag specified for key that does not exist")
-	ErrTransactionFailed  = errors.New("optimistic lock transaction failed")
+	ErrTransactionFailed  = errors.New("optimistic lock transaction failed") // This error is returned when a transaction (e.g., Redis WATCH/EXEC) fails due to a concurrent modification.
+)
+
+// Prometheus metric for concurrency control errors
+var (
+	concurrencyErrorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "database_concurrency_errors_total",
+			Help: "Total number of optimistic concurrency control errors (ETag mismatch or transaction failed).",
+		},
+		[]string{"store_name"},
+	)
 )
 
 // StateItem represents a single state item with an ETag.
@@ -37,7 +52,7 @@ type Store interface {
 
 	// SaveBulkState saves one or more state items. It is a "fire-and-forget" operation
 	// and does not return new ETags, making it more efficient for bulk writes.
-	SaveBulkState(ctx context.Context, storeName string, items ...*StateItem) error
+	SaveBulkState(ctx context.Context, storeName string, items ...*dapr.SetStateItem) error
 
 	// GetState retrieves data and ETag for a given key.
 	// Returns (nil, nil) if the key is not found.
@@ -150,4 +165,9 @@ func Marshal(v interface{}) ([]byte, error) {
 // Helper to unmarshal JSON bytes from storage
 func Unmarshal(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
+}
+
+// RegisterMetrics registers the Prometheus metrics for the database package.
+func RegisterMetrics() {
+	prometheus.MustRegister(concurrencyErrorsTotal)
 }

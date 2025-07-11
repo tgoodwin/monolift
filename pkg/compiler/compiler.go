@@ -119,8 +119,6 @@ func New(appRootPath string) (*Compiler, error) {
 	return compiler, nil
 }
 
-var dockerRegistry = "docker.io/tlg2132"
-
 func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK8sManifestPath string) error {
 	// 0. clean and create output directories
 	if err := os.RemoveAll(outputDir); err != nil {
@@ -154,12 +152,20 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK
 		}
 	}
 
-	// Define Kubernetes-related constants that are needed across different stages.
-	namespace := "monolift"
-	servicePort := 80 // The port exposed by the Kubernetes Service, not the container's targetPort.
+	// Read the original manifest to extract the namespace.
+	originalManifestData, err := os.ReadFile(originalK8sManifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to read original entrypoint manifest %s: %w", originalK8sManifestPath, err)
+	}
+
+	// TODO just use a scheme to parse the data into an appsv1.Deployment object
+	namespace, err := lift.ExtractNamespaceFromManifest(originalManifestData)
+	if err != nil {
+		return fmt.Errorf("failed to extract namespace from original manifest: %w", err)
+	}
 
 	// 2. Create the entrypoint by recreating the main package in the output directory.
-	if err := c.generateEntrypoint(outputDir, extractedResults, namespace, servicePort); err != nil {
+	if err := c.generateEntrypoint(outputDir, extractedResults, namespace); err != nil {
 		return fmt.Errorf("recreating main package: %w", err)
 	}
 
@@ -171,55 +177,48 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK
 	}
 
 	// 4. write Kubernetes deployment manifests for the artifacts
-	if err := generateK8sManifests(outputDir, dockerRegistry, extractedServiceNames, originalK8sManifestPath, namespace); err != nil {
+	if err := generateK8sManifests(outputDir, dockerRegistry, extractedServiceNames, originalManifestData, namespace); err != nil {
 		return fmt.Errorf("generating Kubernetes manifests: %w", err)
 	}
 
 	return nil
 }
 
-func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionResult, namespace string, servicePort int) error {
+func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionResult, namespace string) error {
 	entrypointDir := filepath.Join(outputDir, entrypointDirName)
 	fmt.Printf("Recreating main package in %s\n", entrypointDir)
 
-	// Find the main package from the parsed data
 	mainPkg, err := c.getMainPackage()
 	if err != nil {
 		return fmt.Errorf("could not find main package to recreate: %w", err)
 	}
 
-	// Group transformations by the file they apply to for efficient processing.
 	replacementsByFile := make(map[*ast.File][]*extractionResult)
 	for _, res := range extracted {
 		replacementsByFile[res.FileAST] = append(replacementsByFile[res.FileAST], res)
 	}
 
-	// --- Shared Metrics Monitor Injection ---
-	// Check if any extracted service needs a metrics monitor and inject a shared one if so.
-	var monitorIdent *ast.Ident
-	needsMonitor := false
+	needsDelegate := false
 	for _, res := range extracted {
-		// TODO : Check if the pragma requires a metrics monitor.
-		if res.Pragma != nil {
-			needsMonitor = true
+		if res.Pragma != nil && res.Pragma.SignalType != "" {
+			needsDelegate = true
 			break
 		}
 	}
 
-	if needsMonitor {
+	var monitorIdent *ast.Ident
+	// if any of the pragmas require the generated code to listen to metrics,
+	// then generate the metrics monitor and inject it into the main function.
+	if needsDelegate {
 		mainFunc, err := findFuncDeclInPackage(mainPkg, "main")
 		if err != nil {
 			return fmt.Errorf("could not find main function to inject metrics monitor: %w", err)
 		}
 
-		// Use a unique name to avoid conflicts with user-defined monitors.
 		monitorIdent = ast.NewIdent("monoliftMetricsMonitor")
 		monitorStmts := generateMonitorStmts(monitorIdent)
-
-		// Prepend the monitor setup statements to the main function's body.
 		mainFunc.Body.List = append(monitorStmts, mainFunc.Body.List...)
 
-		// Find the file containing the main function to add imports to it.
 		mainFuncFile := findFileForNode(mainPkg, mainFunc)
 		if mainFuncFile != nil {
 			astutil.AddImport(c.Fset, mainFuncFile, "log")
@@ -228,22 +227,27 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		}
 	}
 
-	// Recreate all files from the parsed main package ASTs
 	for i, fileAST := range mainPkg.Syntax {
 		originalFilePath := mainPkg.GoFiles[i]
 		baseName := filepath.Base(originalFilePath)
 
-		// Apply transformations if any are registered for this file.
 		if resultsToApply, ok := replacementsByFile[fileAST]; ok {
 			fmt.Printf("  Rewriting constructor calls in %s\n", baseName)
-			// The delegate block itself only needs the pragma import.
-			// Other imports are handled by the shared monitor injection.
-			astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/pragma")
+			if needsDelegate {
+				astutil.AddImport(c.Fset, fileAST, "github.com/tgoodwin/monolift/pkg/pragma")
+			}
 
 			for _, res := range resultsToApply {
-				newStmts, err := generateDelegateBlockStmts(res, namespace, servicePort, monitorIdent)
+				var newStmts []ast.Stmt
+				var err error
+				if res.Pragma.SignalType == "" {
+					newStmts, err = generateClientBlockStmts(res, namespace)
+				} else {
+					newStmts, err = generateDelegateBlockStmts(res, namespace, monitorIdent)
+				}
+
 				if err != nil {
-					return fmt.Errorf("failed to generate delegate block for %s: %w", res.PackageName, err)
+					return fmt.Errorf("failed to generate replacement block for %s: %w", res.PackageName, err)
 				}
 				if !findAndReplaceStmts(fileAST, res.RootStmt, newStmts) {
 					return fmt.Errorf("failed to find and replace root statement for %s in %s", res.PackageName, baseName)
@@ -252,7 +256,6 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 		}
 
 		destPath := filepath.Join(entrypointDir, baseName)
-
 		outFile, err := os.Create(destPath)
 		if err != nil {
 			return fmt.Errorf("could not create destination file %s: %w", destPath, err)
@@ -261,21 +264,17 @@ func (c *Compiler) generateEntrypoint(outputDir string, extracted []*extractionR
 
 		fmt.Printf("  Writing %s\n", destPath)
 
-		// Print the AST to a buffer first.
 		var buf bytes.Buffer
 		if err := printer.Fprint(&buf, c.Fset, fileAST); err != nil {
 			return fmt.Errorf("failed to print AST to buffer: %w", err)
 		}
 
-		// Run the generated code through gofmt.
 		formattedSrc, err := format.Source(buf.Bytes())
 		if err != nil {
-			// For debugging, write the unformatted source to see what's wrong.
 			_ = os.WriteFile(destPath+".err", buf.Bytes(), 0644)
 			return fmt.Errorf("failed to format generated code for %s: %w", baseName, err)
 		}
 
-		// Write the formatted code to the file.
 		if _, err := outFile.Write(formattedSrc); err != nil {
 			return fmt.Errorf("failed to write formatted code to %s: %w", destPath, err)
 		}
@@ -544,9 +543,56 @@ func findAndReplaceStmts(file *ast.File, oldStmt ast.Stmt, newStmts []ast.Stmt) 
 	return replaced
 }
 
+// generateClientBlockStmts creates the block of code that instantiates
+// the remote client directly.
+func generateClientBlockStmts(res *extractionResult, namespace string) ([]ast.Stmt, error) {
+	// 1. Extract info from the original statement (e.g., `userService := ...`)
+	var varIdent *ast.Ident
+	switch s := res.RootStmt.(type) {
+	case *ast.AssignStmt:
+		varIdent = s.Lhs[0].(*ast.Ident)
+	case *ast.DeclStmt:
+		genDecl := s.Decl.(*ast.GenDecl)
+		valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
+		varIdent = valueSpec.Names[0]
+	default:
+		return nil, fmt.Errorf("unsupported root statement type: %T", res.RootStmt)
+	}
+
+	// 2. Create the `var userService userservice.Service` declaration
+	varDecl := &ast.DeclStmt{
+		Decl: &ast.GenDecl{
+			Tok: token.VAR,
+			Specs: []ast.Spec{
+				&ast.ValueSpec{
+					Names: []*ast.Ident{ast.NewIdent(varIdent.Name)},
+					Type: &ast.SelectorExpr{
+						X:   ast.NewIdent(res.PackageName),
+						Sel: ast.NewIdent(res.InterfaceTypeName),
+					},
+				},
+			},
+		},
+	}
+
+	// 3. Create the `userService = NewuserserviceClient("http://...")` assignment
+	assignStmt := &ast.AssignStmt{
+		Lhs: []ast.Expr{ast.NewIdent(varIdent.Name)},
+		Tok: token.ASSIGN,
+		Rhs: []ast.Expr{
+			&ast.CallExpr{
+				Fun:  ast.NewIdent("New" + res.PackageName + "Client"),
+				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s"`, res.PackageName, namespace)}},
+			},
+		},
+	}
+
+	return []ast.Stmt{varDecl, assignStmt}, nil
+}
+
 // generateDelegateBlockStmts creates the full block of code that instantiates
 // the local service, remote client, metrics monitor, decider, and the final delegate.
-func generateDelegateBlockStmts(res *extractionResult, namespace string, port int, monitorIdent *ast.Ident) ([]ast.Stmt, error) {
+func generateDelegateBlockStmts(res *extractionResult, namespace string, monitorIdent *ast.Ident) ([]ast.Stmt, error) {
 	// 1. Extract info from the original statement (e.g., `userService := ...`)
 	var varIdent *ast.Ident
 	var originalCall ast.Expr
@@ -594,7 +640,7 @@ func generateDelegateBlockStmts(res *extractionResult, namespace string, port in
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
 				Fun:  ast.NewIdent("New" + res.PackageName + "Client"),
-				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s:%d"`, res.PackageName, namespace, port)}},
+				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: fmt.Sprintf(`"http://%s.%s"`, res.PackageName, namespace)}},
 			},
 		},
 	}
@@ -1361,43 +1407,35 @@ func (c *Compiler) resolveExpr(
 
 // generateK8sManifests creates Kubernetes Deployment and Service YAMLs for each extracted service.
 // It currently focuses on extracted services and does not generate manifests for the entrypoint.
-func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalK8sManifestPath, namespace string) error {
+func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceNames []string, originalManifestData []byte, namespace string) error {
+	if len(originalManifestData) == 0 {
+		return fmt.Errorf("original K8s manifest data must be provided to generate entrypoint manifests")
+	}
 	fmt.Println("\nGenerating Kubernetes manifests:")
-	containerPort := 8080
 
 	var envVars []lift.EnvVar
-	if originalK8sManifestPath != "" {
-		var err error
-		envVars, err = extractEnvVarsFromK8sManifest(originalK8sManifestPath)
-		if err != nil {
-			return fmt.Errorf("failed to extract environment variables from original K8s manifest: %w", err)
-		}
-		if len(envVars) > 0 {
-			fmt.Printf("  Extracted %d environment variables from %s\n", len(envVars), originalK8sManifestPath)
-		}
+	envVars, err := extractEnvVarsFromK8sManifest(originalManifestData)
+	if err != nil {
+		return fmt.Errorf("failed to extract environment variables from original K8s manifest: %w", err)
+	}
+	if len(envVars) > 0 {
+		fmt.Printf("  Extracted %d environment variables from the original manifest\n", len(envVars))
 	}
 
 	for _, serviceName := range extractedServiceNames {
 		fmt.Printf("  Generating K8s manifests for service %s\n", serviceName)
 		imageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, serviceName)
-		if err := lift.GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName, containerPort, envVars); err != nil {
+		if err := lift.GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName, envVars); err != nil {
 			return fmt.Errorf("failed to generate K8s service manifest for %s: %w", serviceName, err)
 		}
 	}
 
 	// Generate manifests for the entrypoint application.
-	if originalK8sManifestPath != "" {
-		fmt.Println("  Generating K8s manifests for the entrypoint application")
-		entrypointImageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, entrypointDirName)
+	fmt.Println("  Generating K8s manifests for the entrypoint application")
+	entrypointImageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, entrypointDirName)
 
-		originalManifestData, err := os.ReadFile(originalK8sManifestPath)
-		if err != nil {
-			return fmt.Errorf("failed to read original entrypoint manifest %s: %w", originalK8sManifestPath, err)
-		}
-
-		if err := lift.GenerateEntrypointManifests(outputDir, namespace, entrypointImageName, originalManifestData, containerPort); err != nil {
-			return fmt.Errorf("failed to generate K8s entrypoint manifests: %w", err)
-		}
+	if err := lift.GenerateEntrypointManifests(outputDir, entrypointImageName, originalManifestData); err != nil {
+		return fmt.Errorf("failed to generate K8s entrypoint manifests: %w", err)
 	}
 
 	return nil

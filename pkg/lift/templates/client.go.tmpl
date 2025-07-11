@@ -48,6 +48,7 @@ func (c *{{ $.ClientStructName }}) {{ .FullSignature }} {
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
+		fmt.Printf("HTTP request for {{ .Name }} failed: %v\n", err)
 		return {{ .ResponseZeroValue }}, fmt.Errorf("request for {{ .Name }} failed: %w", err)
 	}
 	defer resp.Body.Close()

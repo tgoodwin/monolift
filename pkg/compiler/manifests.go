@@ -2,7 +2,6 @@ package compiler
 
 import (
 	"fmt"
-	"os"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,16 +13,7 @@ import (
 // extractEnvVarsFromK8sManifest parses a Kubernetes Deployment manifest
 // and extracts environment variables from the first container.
 // It currently only supports simple value environment variables and skips ValueFrom.
-func extractEnvVarsFromK8sManifest(manifestPath string) ([]lift.EnvVar, error) {
-	if manifestPath == "" {
-		return nil, nil // No manifest path provided, no env vars to extract
-	}
-
-	data, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read Kubernetes manifest file %s: %w", manifestPath, err)
-	}
-
+func extractEnvVarsFromK8sManifest(manifestData []byte) ([]lift.EnvVar, error) {
 	// Create a new scheme and add apps/v1 types to it
 	sch := runtime.NewScheme()
 	if err := appsv1.AddToScheme(sch); err != nil {
@@ -34,14 +24,14 @@ func extractEnvVarsFromK8sManifest(manifestPath string) ([]lift.EnvVar, error) {
 	deserializer := serializer.NewCodecFactory(sch).UniversalDeserializer()
 
 	// Decode the YAML into a runtime.Object
-	obj, gvk, err := deserializer.Decode(data, nil, nil)
+	obj, gvk, err := deserializer.Decode(manifestData, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode Kubernetes manifest %s: %w", manifestPath, err)
+		return nil, fmt.Errorf("failed to decode Kubernetes manifest %s: %w", manifestData, err)
 	}
 
 	// Check if the decoded object is an apps/v1 Deployment
 	if gvk == nil || gvk.Group != "apps" || gvk.Kind != "Deployment" {
-		return nil, fmt.Errorf("manifest %s is not an apps/v1 Deployment (found %s/%s)", manifestPath, gvk.Group, gvk.Kind)
+		return nil, fmt.Errorf("manifest %s is not an apps/v1 Deployment (found %s/%s)", string(manifestData), gvk.Group, gvk.Kind)
 	}
 
 	deployment, ok := obj.(*appsv1.Deployment)
@@ -49,7 +39,7 @@ func extractEnvVarsFromK8sManifest(manifestPath string) ([]lift.EnvVar, error) {
 		return nil, fmt.Errorf("decoded object is not an apps/v1 Deployment: %T", obj)
 	}
 
-	if deployment.Spec.Template.Spec.Containers == nil || len(deployment.Spec.Template.Spec.Containers) == 0 {
+	if len(deployment.Spec.Template.Spec.Containers) == 0 {
 		return nil, fmt.Errorf("deployment %s has no containers defined", deployment.Name)
 	}
 
