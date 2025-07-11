@@ -87,8 +87,8 @@ def generate_compose_post_data(num_total_users):
 
     # 3. Generate and add dummy image files
     num_images = random.randint(1, 4)
+    dummy_image_data = os.urandom(1024000)  # 100KB of random data
     for i in range(num_images):
-        dummy_image_data = os.urandom(1024)  # 1KB of random data
         data.add_field(
             'images',
             dummy_image_data,
@@ -226,8 +226,8 @@ async def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('True Open-Loop Load Generator')
     parser.add_argument("--num-users", type=int, default=962, help="Total number of users in the social graph (for generating random data)")
-    parser.add_argument("--total-duration", type=int, default=600, help="Total experiment duration in seconds")
-    parser.add_argument("--cycle-duration", type=int, default=600, help="Duration of one diurnal cycle in seconds")
+    parser.add_argument("--total-duration", type=int, default=300, help="Total experiment duration in seconds")
+    parser.add_argument("--cycle-duration", type=int, default=300, help="Duration of one diurnal cycle in seconds")
     parser.add_argument("--min-rps", type=int, default=20, help="Minimum requests per second in a cycle")
     parser.add_argument("--max-rps", type=int, default=600, help="Maximum requests per second in a cycle")
     parser.add_argument('--ip', help='IP address of the target server.', default='127.0.0.1')
