@@ -24,7 +24,7 @@ const (
 )
 
 // Service defines the interface for graph operations.
-// @monolift trigger=CPU threshold=0.5
+// @monolift
 type Service interface {
 	GetFollowees(ctx context.Context, req GetReq) (GetFollowResp, error)
 	GetFollowers(ctx context.Context, req GetReq) (GetFollowerResp, error)
