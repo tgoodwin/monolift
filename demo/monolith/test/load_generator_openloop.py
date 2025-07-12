@@ -6,6 +6,7 @@ import random
 import string
 import os
 import argparse
+import numpy as np
 
 
 class DiurnalShape:
@@ -87,7 +88,7 @@ def generate_compose_post_data(num_total_users):
 
     # 3. Generate and add dummy image files
     num_images = random.randint(1, 4)
-    dummy_image_data = os.urandom(1024000)  # 100KB of random data
+    dummy_image_data = os.urandom(1024)  # 1KB of random data
     for i in range(num_images):
         data.add_field(
             'images',
@@ -99,18 +100,21 @@ def generate_compose_post_data(num_total_users):
 
 
 async def send_request(session, url, num_total_users, results_queue):
-    """Sends a single request and puts its status code in the results queue."""
+    """Sends a single request and puts its status and latency in the results queue."""
+    start_time = time.time()
     try:
         data = generate_compose_post_data(num_total_users)
         # The `timeout` here prevents a single slow request from holding a connection indefinitely.
         # The generator will continue firing new requests even if old ones are slow.
         async with session.post(url, data=data, timeout=aiohttp.ClientTimeout(total=30)) as response:
+            latency = (time.time() - start_time) * 1000  # Convert to milliseconds
             # We don't need the response body, just the status.
             # This is a "fire-and-forget" action from the perspective of the main loop.
-            await results_queue.put(response.status)
+            await results_queue.put((response.status, latency))
     except Exception as e:
         # Put the exception in the queue to be counted as a failure.
-        await results_queue.put(e)
+        # Latency is 0 for failed requests.
+        await results_queue.put((e, 0))
 
 
 async def process_results(results_queue, total_duration, status_tracker):
@@ -127,17 +131,26 @@ async def process_results(results_queue, total_duration, status_tracker):
 
     # Per-interval stats for periodic reporting
     interval_req_count = 0
+    interval_latencies = []
 
     print("Starting results processor...")
+    print(
+        "Time      | Target RPS | Interval RPS | Avg Latency (ms) | p95 Latency (ms) | Total Success | Total Fail"
+    )
+    print(
+        "----------+------------+--------------+------------------+------------------+---------------+-----------"
+    )
+
 
     while time.time() - start_time < total_duration + 5:  # Run for 5 extra secs to catch trailing results
         try:
             # Wait for a result, but with a timeout so we can print stats periodically.
-            result = await asyncio.wait_for(results_queue.get(), timeout=1.0)
+            result, latency = await asyncio.wait_for(results_queue.get(), timeout=1.0)
             interval_req_count += 1
             if isinstance(result, int):
                 if 200 <= result < 300:
                     total_success_count += 1
+                    interval_latencies.append(latency)
                 else:
                     total_failure_count += 1
                 status_counts[result] = status_counts.get(result, 0) + 1
@@ -160,16 +173,27 @@ async def process_results(results_queue, total_duration, status_tracker):
             # Calculate RPS for the last interval, not the cumulative average
             interval_rps = interval_req_count / interval_duration if interval_duration > 0 else 0
 
+            # Calculate latency stats for the interval
+            if interval_latencies:
+                avg_latency = np.mean(interval_latencies)
+                p95_latency = np.percentile(interval_latencies, 95)
+            else:
+                avg_latency = 0
+                p95_latency = 0
+
             print(
-                f"Time: {run_time:3d}s | "
-                f"Target RPS: {status_tracker['target_rps']:4d} | "
-                f"Interval RPS: {interval_rps:7.1f} | "
-                f"Total Success: {total_success_count:6d} | "
-                f"Total Fail: {total_failure_count:5d}"
+                f"{run_time:5d}s | "
+                f"{status_tracker['target_rps']:10d} | "
+                f"{interval_rps:12.1f} | "
+                f"{avg_latency:16.1f} | "
+                f"{p95_latency:16.1f} | "
+                f"{total_success_count:13d} | "
+                f"{total_failure_count:10d}"
             )
             # Reset for the next interval
             last_print_time = current_time
             interval_req_count = 0
+            interval_latencies.clear()
 
     print("\n--- Final Results ---")
     print(f"Total requests: {total_success_count + total_failure_count}")
