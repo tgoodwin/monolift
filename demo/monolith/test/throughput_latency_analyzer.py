@@ -6,6 +6,7 @@ import random
 import string
 import os
 import argparse
+import csv
 import numpy as np
 
 
@@ -102,7 +103,23 @@ async def main(args):
     print(f"RPS levels: {', '.join([f'{rps:.1f}' for rps in rps_levels])}")
     print(f"Duration per level: {args.step_duration}s")
     print(f"Cool-off period: {args.cool_off}s")
+    if args.output_file:
+        print(f"Output CSV file: {args.output_file}")
     print("-" * 80)
+    
+    # Setup CSV writer if a file is specified
+    csv_file = None
+    csv_writer = None
+    if args.output_file:
+        csv_file = open(args.output_file, 'w', newline='')
+        csv_writer = csv.writer(csv_file)
+        header = [
+            "Target RPS", "Actual RPS", "Avg Latency (ms)", "p95 Latency (ms)", 
+            "Success Count", "Failure Count"
+        ]
+        csv_writer.writerow(header)
+    
+    # Print console header
     print(
         "Target RPS | Actual RPS | Avg Latency (ms) | p95 Latency (ms) | Success | Fail"
     )
@@ -156,6 +173,7 @@ async def main(args):
             avg_latency = np.mean(latencies) if latencies else 0
             p95_latency = np.percentile(latencies, 95) if latencies else 0
 
+            # Print to console
             print(
                 f"{rps:10.1f} | "
                 f"{actual_rps:10.1f} | "
@@ -169,10 +187,22 @@ async def main(args):
                 fail_details = ", ".join([f"{k}: {v}" for k, v in status_counts.items() if not (isinstance(k, int) and 200 <= k < 300)])
                 print(f"           | Failures: {fail_details}")
 
+            # Write to CSV if a file is specified
+            if csv_writer:
+                row = [
+                    f"{rps:.1f}", f"{actual_rps:.1f}", f"{avg_latency:.1f}", 
+                    f"{p95_latency:.1f}", success_count, failure_count
+                ]
+                csv_writer.writerow(row)
+
             # --- Cool-off period ---
             if args.cool_off > 0 and i < len(rps_levels) - 1:
                 print(f"Cooling off for {args.cool_off} seconds...")
                 await asyncio.sleep(args.cool_off)
+    
+    if csv_file:
+        csv_file.close()
+        print(f"\nResults saved to {args.output_file}")
 
 
 if __name__ == "__main__":
@@ -183,6 +213,7 @@ if __name__ == "__main__":
     parser.add_argument("--min-rps", type=int, default=20, help="Starting requests per second")
     parser.add_argument("--max-rps", type=int, default=2560, help="Maximum requests per second")
     parser.add_argument("--cool-off", type=int, default=10, help="Cool-off period in seconds between load steps")
+    parser.add_argument("--output-file", type=str, default=None, help="Optional path to the output CSV file")
     parser.add_argument('--ip', help='IP address of the target server.', default='127.0.0.1')
     parser.add_argument('--port', help='IP port of the target server.', default=8080)
     args = parser.parse_args()
