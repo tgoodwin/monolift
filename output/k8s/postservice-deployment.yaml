@@ -26,6 +26,13 @@ spec:
           image: ghcr.io/tgoodwin/postservice:latest
           ports:
             - containerPort: 8080
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "256Mi"
+            limits:
+              cpu: 2
+              memory: 2Gi
           env:
             - name: K8S_CPU_REQUEST
               valueFrom:
