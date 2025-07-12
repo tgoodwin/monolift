@@ -59,8 +59,8 @@ spec:
           name: http-metrics
         resources:
           limits:
-            cpu: "4"
-            memory: 4Gi
+            cpu: "2"
+            memory: 2Gi
           requests:
             cpu: 500m
             memory: 128Mi
