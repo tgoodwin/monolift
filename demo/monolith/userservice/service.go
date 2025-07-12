@@ -25,7 +25,7 @@ const (
 )
 
 // Service defines the interface for user-related operations.
-// @monolift trigger=CPU threshold=0.5
+// @monolift
 type Service interface {
 	Register(ctx context.Context, req userTypes.RegisterReq) (userTypes.RegisterResp, error)
 	Login(ctx context.Context, req userTypes.LoginReq) (userTypes.LoginResp, error)
