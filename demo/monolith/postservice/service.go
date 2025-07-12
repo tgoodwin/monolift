@@ -23,6 +23,7 @@ const (
 )
 
 // Service defines the interface for post-related operations.
+// @monolift
 type Service interface {
 	SavePost(ctx context.Context, req post.SavePostReq) (post.UpdatePostResp, error)
 	DeletePost(ctx context.Context, req post.DelPostReq) (post.UpdatePostResp, error)
