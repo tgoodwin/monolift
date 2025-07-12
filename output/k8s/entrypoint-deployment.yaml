@@ -49,7 +49,7 @@ spec:
               containerName: monolith-app
               divisor: "0"
               resource: limits.memory
-        image: ghcr.io/tgoodwin/entrypoint:latest
+        image: ghcr.io/tgoodwin/entrypoint:full-decomposition
         imagePullPolicy: Always
         name: monolith-app
         ports:

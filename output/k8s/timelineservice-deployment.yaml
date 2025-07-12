@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: timelineservice
-          image: ghcr.io/tgoodwin/timelineservice:latest
+          image: ghcr.io/tgoodwin/timelineservice:full-decomposition
           ports:
             - containerPort: 8080
           resources:

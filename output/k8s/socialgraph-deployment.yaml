@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: socialgraph
-          image: ghcr.io/tgoodwin/socialgraph:latest
+          image: ghcr.io/tgoodwin/socialgraph:full-decomposition
           ports:
             - containerPort: 8080
           resources:

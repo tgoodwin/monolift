@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: postservice
-          image: ghcr.io/tgoodwin/postservice:latest
+          image: ghcr.io/tgoodwin/postservice:full-decomposition
           ports:
             - containerPort: 8080
           resources:
