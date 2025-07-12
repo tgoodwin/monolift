@@ -49,7 +49,7 @@ spec:
               containerName: monolith-app
               divisor: "0"
               resource: limits.memory
-        image: ghcr.io/tgoodwin/entrypoint:full-decomposition
+        image: ghcr.io/tgoodwin/entrypoint:timeline-decomposition
         imagePullPolicy: Always
         name: monolith-app
         ports:
@@ -59,8 +59,8 @@ spec:
           name: http-metrics
         resources:
           limits:
-            cpu: "4"
-            memory: 4Gi
+            cpu: "2"
+            memory: 2Gi
           requests:
             cpu: 500m
             memory: 128Mi

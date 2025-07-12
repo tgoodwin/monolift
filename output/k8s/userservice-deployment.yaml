@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: userservice
-          image: ghcr.io/tgoodwin/userservice:full-decomposition
+          image: ghcr.io/tgoodwin/userservice:timeline-decomposition
           ports:
             - containerPort: 8080
           resources:
