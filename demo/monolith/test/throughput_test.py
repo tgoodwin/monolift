@@ -30,7 +30,7 @@ class GeometricLoadShape:
             ratio = (max_rps / min_rps) ** (1 / (num_steps - 1))
             for i in range(num_steps):
                 self.rps_levels.append(min_rps * (ratio ** i))
-        
+
         # Ensure the last step is exactly max_rps to avoid float precision issues
         if num_steps > 1:
             self.rps_levels[-1] = float(max_rps)
@@ -95,10 +95,11 @@ async def send_request(session, url, num_total_users, results_queue):
 async def main(args):
     """The main function to orchestrate the throughput-latency analysis."""
     # A handcrafted sequence of RPS levels designed to produce a detailed curve.
-    rps_levels = [
-        20, 40, 60, 80, 100, 150, 200, 250, 300, 350, 400, 450, 500, 
+    default_rps_levels = [
+        20, 40, 60, 80, 100, 150, 200, 250, 300, 350, 400, 450, 500,
         600, 800, 1000, 1200, 1500, 2000, 2500, 3000
     ]
+    rps_levels = default_rps_levels if args.rps_levels is None else [float(r) for r in args.rps_levels.split(',')]
     url = f"http://{args.ip}:{args.port}/save"
 
     print("--- Throughput-Latency Analyzer ---")
@@ -109,7 +110,7 @@ async def main(args):
     if args.output_file:
         print(f"Output CSV file: {args.output_file}")
     print("-" * 80)
-    
+
     # Setup CSV writer if a file is specified
     csv_file = None
     csv_writer = None
@@ -117,11 +118,11 @@ async def main(args):
         csv_file = open(args.output_file, 'w', newline='')
         csv_writer = csv.writer(csv_file)
         header = [
-            "Target RPS", "Actual RPS", "Avg Latency (ms)", "p95 Latency (ms)", 
+            "Target RPS", "Actual RPS", "Avg Latency (ms)", "p95 Latency (ms)",
             "Success Count", "Failure Count"
         ]
         csv_writer.writerow(header)
-    
+
     # Print console header
     print(
         "Target RPS | Actual RPS | Avg Latency (ms) | p95 Latency (ms) | Success | Fail"
@@ -131,10 +132,22 @@ async def main(args):
     )
 
     async with aiohttp.ClientSession() as session:
+        # --- Warm-up Phase ---
+        # Send a few requests sequentially to warm up the service without measuring them.
+        print("Warming up the service (5 requests over 5 seconds)...")
+        warmup_queue = asyncio.Queue()
+        for _ in range(5):
+            # Awaiting send_request makes this part run sequentially.
+            await send_request(session, url, args.num_users, warmup_queue)
+            await asyncio.sleep(1)
+        print("Warm-up complete. Starting main test.")
+        print("-" * 80)
+        # --- End Warm-up ---
+
         for i, rps in enumerate(rps_levels):
             results_queue = asyncio.Queue()
             start_time = time.time()
-            
+
             # Fire requests at a constant rate for the defined step duration
             requests_fired = 0
             while time.time() - start_time < args.step_duration:
@@ -163,14 +176,14 @@ async def main(args):
                         latencies.append(latency)
                     else:
                         failure_count += 1
-                    
+
                     # Track status codes/exceptions for detailed error reporting
                     status_key = type(result).__name__ if isinstance(result, Exception) else result
                     status_counts[status_key] = status_counts.get(status_key, 0) + 1
 
                 except asyncio.QueueEmpty:
                     break
-            
+
             # --- Calculate and print stats for the step ---
             actual_rps = success_count / args.step_duration if args.step_duration > 0 else 0
             avg_latency = np.mean(latencies) if latencies else 0
@@ -193,7 +206,7 @@ async def main(args):
             # Write to CSV if a file is specified
             if csv_writer:
                 row = [
-                    f"{rps:.1f}", f"{actual_rps:.1f}", f"{avg_latency:.1f}", 
+                    f"{rps:.1f}", f"{actual_rps:.1f}", f"{avg_latency:.1f}",
                     f"{p95_latency:.1f}", success_count, failure_count
                 ]
                 csv_writer.writerow(row)
@@ -202,7 +215,7 @@ async def main(args):
             if args.cool_off > 0 and i < len(rps_levels) - 1:
                 print(f"Cooling off for {args.cool_off} seconds...")
                 await asyncio.sleep(args.cool_off)
-    
+
     if csv_file:
         csv_file.close()
         print(f"\nResults saved to {args.output_file}")
@@ -216,6 +229,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-file", type=str, default=None, help="Optional path to the output CSV file")
     parser.add_argument('--ip', help='IP address of the target server.', default='127.0.0.1')
     parser.add_argument('--port', help='IP port of the target server.', default=8080)
+    parser.add_argument("--rps-levels", type=str, default=None, help="Comma-separated list of RPS levels to test")
     args = parser.parse_args()
 
     random.seed(1)  # Deterministic random data generation
