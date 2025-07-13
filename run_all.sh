@@ -1,15 +1,15 @@
 #! /bin/bash
 
-function init_social_graph () {
+init_social_graph() {
     python demo/monolith/test/init_social_graph.py --ip 128.110.223.23 --port 80 --compose
 }
 
-function get_public_ip () {
+get_public_ip() {
     # Get the public IP address of the Kubernetes cluster
     kubectl get svc entrypoint-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 }
 
-function run_step () {
+run_step() {
     echo "Running step: $1"
     echo "Resetting Redis..."
     make reset-redis
@@ -33,7 +33,7 @@ function run_step () {
     echo "Resources for $1 cleaned up."
 }
 
-function run_all () {
+run_all() {
     echo "Running all steps..."
     run_step full
     run_step user
@@ -43,3 +43,5 @@ function run_all () {
 
     echo "All steps completed."
 }
+
+run_all
