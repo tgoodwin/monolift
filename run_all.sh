@@ -10,8 +10,13 @@ get_public_ip() {
 }
 
 function run_step() {
+    echo "Running step: $1"
+    echo "Resetting Redis..."
     make reset-redis
+    sleep 10
+    echo "initializing social graph..."
     init_social_graph
+    echo "Applying manifests for $1..."
     kubectl apply -f manifests/$1
 
     # wait 10 seconds before running the load test
@@ -20,6 +25,12 @@ function run_step() {
     echo "Running load test for $1..."
     # Run the load test
     python throughput_test.py --ip $(get_public_ip) --port 80 --output results/$1-throughput-01.csv
+
+    echo "Load test for $1 completed."
+    echo "Cleaning up resources for $1..."
+
+    kubectl delete -f manifests/$1
+    echo "Resources for $1 cleaned up."
 }
 
 function run_all() {
