@@ -1,4 +1,4 @@
-package main
+package profiling
 
 import (
 	"os"
@@ -6,8 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	pprofProfile "github.com/google/pprof/profile"
 	"monolift/profiling/internal/tree"
+
+	pprofProfile "github.com/google/pprof/profile"
 )
 
 // Helper to create a minimal profile for testing
@@ -110,7 +111,8 @@ func TestInspectPprofFiles(t *testing.T) {
 	}
 	f.Close()
 
-	inspector := InspectPprofFiles([]string{path})
+	inspector := &ProfileInspector{}
+	inspector.InspectPprofFiles([]string{path})
 	if len(inspector.profiles) != 1 {
 		t.Errorf("expected 1 profile, got %d", len(inspector.profiles))
 	}
@@ -130,7 +132,8 @@ func TestMergeProfiles(t *testing.T) {
 	f1.Close()
 	f2.Close()
 
-	inspector := InspectPprofFiles([]string{path1, path2})
+	inspector := &ProfileInspector{}
+	inspector.InspectPprofFiles([]string{path1, path2})
 	merged := inspector.MergeProfiles([]string{path1, path2})
 	if merged.Profile == nil {
 		t.Errorf("expected merged profile, got nil")

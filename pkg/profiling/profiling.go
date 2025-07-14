@@ -1,19 +1,67 @@
-package main
+package profiling
 
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"sort"
+	"strings"
 
 	pprofProfile "github.com/google/pprof/profile"
 
 	"monolift/profiling/internal/tree"
 )
 
+func intakeCPUProfileURL(path string, sampleSeconds int) (*pprofProfile.Profile, error) {
+
+	// pprof cpu endpoint of form "http://localhost:6060/debug/pprof/profile"
+	// Parse the URL
+	parsedURL, err := url.Parse(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid URL: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Check if the path ends with "/profile"
+	// Add sampleSeconds as a query parameter if it does
+	if strings.HasSuffix(parsedURL.Path, "/profile") {
+		q := parsedURL.Query()
+		q.Set("seconds", fmt.Sprintf("%d", sampleSeconds))
+		parsedURL.RawQuery = q.Encode()
+		fmt.Printf("Fetching CPU profile for %d seconds...\n", sampleSeconds)
+	} else {
+		fmt.Printf("Fetching profile from %s...\n", parsedURL.String())
+	}
+
+	// Make HTTP request
+	resp, err := http.Get(parsedURL.String())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to GET profile: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	profileData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read profile data: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Parse it using pprof's profile parser
+	profile, err := pprofProfile.ParseData(profileData)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse profile: %v\n", err)
+		os.Exit(1)
+	}
+	return profile, nil
+}
+
 // Intake file return profile object
-func intakeProfile(path string) (*pprofProfile.Profile, error) {
+func intakeProfileFile(path string) (*pprofProfile.Profile, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open profile: %w", err)
@@ -103,22 +151,22 @@ type ProfileInspector struct {
 }
 
 // TODO: Test
-func InspectPprofFiles(paths []string) ProfileInspector {
+func (inspector *ProfileInspector) InspectPprofEndpoints(paths []string, sampleSeconds int) error {
 
-	profileInspector := ProfileInspector{
-		profiles: make(map[string]ProfileUnit),
-	}
+	inspector.profiles = make(map[string]ProfileUnit)
 
 	for _, p := range paths {
-		log.Printf("Inspecting profile file: %s", p)
+		log.Printf("Inspecting profile endpoint: %s", p)
 
-		prof, err := intakeProfile(p)
+		prof, err := intakeCPUProfileURL(p, sampleSeconds)
 		if err != nil {
-			log.Fatalf("Error reading profile file: %v", err)
+			log.Fatalf("Error reading profile URL: %v", err)
+			return err
 		}
 		root, err := BuildTree(prof)
 		if err != nil {
 			log.Fatalf("Error building profile tree: %v", err)
+			return err
 		}
 		profileUnit := ProfileUnit{
 			Name:                 p,
@@ -129,14 +177,45 @@ func InspectPprofFiles(paths []string) ProfileInspector {
 			FunctionRootNode:     nil, // Will be set later
 		}
 
-		profileInspector.profiles[p] = profileUnit
+		inspector.profiles[p] = profileUnit
 	}
-
-	return profileInspector
+	return nil
 }
 
 // TODO: Test
-func (inspector ProfileInspector) MergeProfiles(profileNames []string) ProfileUnit {
+func (inspector *ProfileInspector) InspectPprofFiles(paths []string) error {
+
+	inspector.profiles = make(map[string]ProfileUnit)
+
+	for _, p := range paths {
+		log.Printf("Inspecting profile file: %s", p)
+
+		prof, err := intakeProfileFile(p)
+		if err != nil {
+			log.Fatalf("Error reading profile file: %v", err)
+			return err
+		}
+		root, err := BuildTree(prof)
+		if err != nil {
+			log.Fatalf("Error building profile tree: %v", err)
+			return err
+		}
+		profileUnit := ProfileUnit{
+			Name:                 p,
+			Type:                 "cpu",      // Default type, can be changed later
+			TotalValue:           root.Value, // Will be calculated later
+			Profile:              prof,
+			FlamegraphSourceRoot: root,
+			FunctionRootNode:     nil, // Will be set later
+		}
+
+		inspector.profiles[p] = profileUnit
+	}
+	return nil
+}
+
+// TODO: Test
+func (inspector *ProfileInspector) MergeProfiles(profileNames []string) ProfileUnit {
 
 	concatenatedName := ""
 	for _, name := range profileNames {
@@ -179,7 +258,7 @@ func (inspector ProfileInspector) MergeProfiles(profileNames []string) ProfileUn
 }
 
 // TODO: Test
-func (inspector ProfileInspector) GetProfileFunctionSubset(profileName string, functions []string) *FunctionNode {
+func (inspector *ProfileInspector) GetProfileFunctionSubset(profileName string, functions []string) *FunctionNode {
 	// Check if the profile exists in the inspector
 	if inspector.profiles[profileName].Profile == nil {
 		log.Printf("Profile %s not found in inspector", profileName)
@@ -364,7 +443,8 @@ func main() {
 	}
 
 	pathList := flag.Args()
-	profileInspector := InspectPprofFiles(pathList)
+	profileInspector := &ProfileInspector{}
+	profileInspector.InspectPprofFiles(pathList)
 	profileUnit := profileInspector.profiles[pathList[0]]
 
 	funcs := profileUnit.FindTopNFunction(10, false)
