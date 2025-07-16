@@ -445,7 +445,7 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 												fmt.Printf("      Generated client for %s\n", typeSpec.Name.Name)
 
 												// Generate the delegate for this service
-												delegateData, err := lift.GetDelegateTemplateData(typeSpec.Name, currentLoadedPkg)
+												delegateData, err := lift.GetDelegateTemplateData(typeSpec.Name, currentLoadedPkg, p)
 												if err != nil {
 													fmt.Printf("      [ERROR] Failed to gather delegate template data for %s: %v\n", typeSpec.Name.Name, err)
 													continue
@@ -645,17 +645,24 @@ func generateDelegateBlockStmts(res *extractionResult, namespace string, monitor
 		},
 	}
 
-	// `decider := pragma.NewCPUDecider(monitor, 0.5)`
+	// `decider := pragma.New...Decider(...)`
+	var deciderArgs []ast.Expr
+	if res.Pragma.SignalType == pragma.IPSTrigger {
+		// For IPS, the "name" is the service name, which we'll use to record invocations.
+		deciderArgs = append(deciderArgs, &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(res.PackageName)})
+		deciderArgs = append(deciderArgs, &ast.BasicLit{Kind: token.FLOAT, Value: strconv.FormatFloat(res.Pragma.Threshold, 'f', -1, 64)})
+	} else {
+		deciderArgs = append(deciderArgs, monitorIdent)
+		deciderArgs = append(deciderArgs, &ast.BasicLit{Kind: token.FLOAT, Value: strconv.FormatFloat(res.Pragma.Threshold, 'f', -1, 64)})
+	}
+
 	deciderDecl := &ast.AssignStmt{
 		Lhs: []ast.Expr{deciderIdent},
 		Tok: token.DEFINE,
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
-				Fun: &ast.SelectorExpr{X: ast.NewIdent("pragma"), Sel: ast.NewIdent(fmt.Sprintf("New%sDecider", res.Pragma.SignalType))},
-				Args: []ast.Expr{
-					monitorIdent,
-					&ast.BasicLit{Kind: token.FLOAT, Value: strconv.FormatFloat(res.Pragma.Threshold, 'f', -1, 64)},
-				},
+				Fun:  &ast.SelectorExpr{X: ast.NewIdent("pragma"), Sel: ast.NewIdent(fmt.Sprintf("New%sDecider", res.Pragma.SignalType))},
+				Args: deciderArgs,
 			},
 		},
 	}

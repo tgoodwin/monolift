@@ -22,6 +22,7 @@ func New{{.DelegateStructName}}(local, remote {{.InterfacePackageAlias}}.{{.Inte
 {{range .Methods}}
 // {{.Name}} delegates the call to either the local or remote implementation.
 func (d *{{$.DelegateStructName}}) {{.FullSignature}} {
+	{{if $.IPSMonitoringEnabled}}ips.Record("{{$.ServiceName}}"){{end}}
 	if d.decider.ShouldDelegate() {
 		return d.remote.{{.Name}}({{join .ParamNames ", "}})
 	}
