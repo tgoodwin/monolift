@@ -32,7 +32,7 @@ spec:
       containers:
       - name: monolith-app
         imagePullPolicy: Always
-        image: docker.io/tlg2132/demo-monolith:workpool
+        image: ghcr.io/tgoodwin/demo-monolith:workpool
         ports:
         - name: http-app
           containerPort: 8080
