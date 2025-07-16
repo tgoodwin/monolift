@@ -13,7 +13,7 @@ import (
 
 	pprofProfile "github.com/google/pprof/profile"
 
-	"monolift/profiling/internal/tree"
+	"github.com/tgoodwin/monolift/pkg/profiling/internal/tree"
 )
 
 func intakeCPUProfileURL(path string, sampleSeconds int) (*pprofProfile.Profile, error) {
@@ -136,24 +136,24 @@ type ProfileUnit struct {
 	// Flamegraph tree representation
 	FlamegraphSourceRoot *tree.FlameGraphNode
 
-	// Reduced profile tree for CPU profiles
+	// Reduced profile tree for CPU Profiles
 	// functions given in the profile
 	FunctionRootNode *FunctionNode
 }
 
-// ProfileInspector is a struct that holds multiple profiles
+// ProfileInspector is a struct that holds multiple Profiles
 // Methods:
 // - InspectPprofFile(path []string) ProfileInspector
 // - MergeProfiles(inspector ProfileInspector, profileNames []string) ProfileUnit
 // - GetProfileFunctionSubset(profileName string, functions []string) *FunctionNode
 type ProfileInspector struct {
-	profiles map[string]ProfileUnit
+	Profiles map[string]ProfileUnit
 }
 
 // TODO: Test
 func (inspector *ProfileInspector) InspectPprofEndpoints(paths []string, sampleSeconds int) error {
 
-	inspector.profiles = make(map[string]ProfileUnit)
+	inspector.Profiles = make(map[string]ProfileUnit)
 
 	for _, p := range paths {
 		log.Printf("Inspecting profile endpoint: %s", p)
@@ -177,7 +177,7 @@ func (inspector *ProfileInspector) InspectPprofEndpoints(paths []string, sampleS
 			FunctionRootNode:     nil, // Will be set later
 		}
 
-		inspector.profiles[p] = profileUnit
+		inspector.Profiles[p] = profileUnit
 	}
 	return nil
 }
@@ -185,7 +185,7 @@ func (inspector *ProfileInspector) InspectPprofEndpoints(paths []string, sampleS
 // TODO: Test
 func (inspector *ProfileInspector) InspectPprofFiles(paths []string) error {
 
-	inspector.profiles = make(map[string]ProfileUnit)
+	inspector.Profiles = make(map[string]ProfileUnit)
 
 	for _, p := range paths {
 		log.Printf("Inspecting profile file: %s", p)
@@ -209,7 +209,7 @@ func (inspector *ProfileInspector) InspectPprofFiles(paths []string) error {
 			FunctionRootNode:     nil, // Will be set later
 		}
 
-		inspector.profiles[p] = profileUnit
+		inspector.Profiles[p] = profileUnit
 	}
 	return nil
 }
@@ -219,7 +219,7 @@ func (inspector *ProfileInspector) MergeProfiles(profileNames []string) ProfileU
 
 	concatenatedName := ""
 	for _, name := range profileNames {
-		if _, exists := inspector.profiles[name]; !exists {
+		if _, exists := inspector.Profiles[name]; !exists {
 			log.Printf("Profile %s not found in inspector", name)
 			return ProfileUnit{} // Return empty ProfileUnit if profile not found
 		}
@@ -229,13 +229,13 @@ func (inspector *ProfileInspector) MergeProfiles(profileNames []string) ProfileU
 
 	rawProfiles := make([]*pprofProfile.Profile, 0, len(profileNames))
 	for _, name := range profileNames {
-		profile := inspector.profiles[name]
+		profile := inspector.Profiles[name]
 		rawProfiles = append(rawProfiles, profile.Profile)
 	}
 
 	rawMergedProfile, err := pprofProfile.Merge(rawProfiles)
 	if err != nil {
-		log.Fatalf("Error merging profiles: %v", err)
+		log.Fatalf("Error merging Profiles: %v", err)
 	}
 
 	mergedFlameGraphRoot, err := BuildTree(rawMergedProfile)
@@ -252,7 +252,7 @@ func (inspector *ProfileInspector) MergeProfiles(profileNames []string) ProfileU
 		FlamegraphSourceRoot: mergedFlameGraphRoot,
 		FunctionRootNode:     nil, // Will be set later
 	}
-	inspector.profiles[concatenatedName] = mergedProfile
+	inspector.Profiles[concatenatedName] = mergedProfile
 
 	return mergedProfile
 }
@@ -260,12 +260,12 @@ func (inspector *ProfileInspector) MergeProfiles(profileNames []string) ProfileU
 // TODO: Test
 func (inspector *ProfileInspector) GetProfileFunctionSubset(profileName string, functions []string) *FunctionNode {
 	// Check if the profile exists in the inspector
-	if inspector.profiles[profileName].Profile == nil {
+	if inspector.Profiles[profileName].Profile == nil {
 		log.Printf("Profile %s not found in inspector", profileName)
 		return nil // Return nil if profile not found
 	}
 	// Get the profile unit from the inspector
-	profileUnit := inspector.profiles[profileName]
+	profileUnit := inspector.Profiles[profileName]
 	return profileUnit.GetProfileFunctionSubset(functions)
 }
 
@@ -445,7 +445,7 @@ func main() {
 	pathList := flag.Args()
 	profileInspector := &ProfileInspector{}
 	profileInspector.InspectPprofFiles(pathList)
-	profileUnit := profileInspector.profiles[pathList[0]]
+	profileUnit := profileInspector.Profiles[pathList[0]]
 
 	funcs := profileUnit.FindTopNFunction(10, false)
 	fmt.Printf("Top Functions: \n")

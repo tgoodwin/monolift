@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"monolift/profiling/internal/tree"
+	"github.com/tgoodwin/monolift/pkg/profiling/internal/tree"
 
 	pprofProfile "github.com/google/pprof/profile"
 )
@@ -113,8 +113,8 @@ func TestInspectPprofFiles(t *testing.T) {
 
 	inspector := &ProfileInspector{}
 	inspector.InspectPprofFiles([]string{path})
-	if len(inspector.profiles) != 1 {
-		t.Errorf("expected 1 profile, got %d", len(inspector.profiles))
+	if len(inspector.Profiles) != 1 {
+		t.Errorf("expected 1 profile, got %d", len(inspector.Profiles))
 	}
 }
 
@@ -213,7 +213,7 @@ func TestFindTopNFunction(t *testing.T) {
 
 func TestProfileInspector_GetProfileFunctionSubset(t *testing.T) {
 	inspector := ProfileInspector{
-		profiles: map[string]ProfileUnit{
+		Profiles: map[string]ProfileUnit{
 			"test": {
 				FlamegraphSourceRoot: createTestFlameGraph(),
 			},

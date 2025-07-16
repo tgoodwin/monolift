@@ -1,4 +1,4 @@
-CONTAINER_REGISTRY ?= docker.io/eirn/
+CONTAINER_REGISTRY ?= docker.io/eirn
 IMAGE_NAME ?= $(CONTAINER_REGISTRY)/demo-monolith
 IMAGE_TAG  ?= dapr
 
