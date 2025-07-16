@@ -7,69 +7,107 @@ import (
 
 const (
 	// window is the duration over which to calculate IPS.
-	window = 10 * time.Second
+	window = 5 * time.Second
+	// updateInterval is how often the background worker calculates the IPS values.
+	updateInterval = 1 * time.Second
 )
 
-// Monitor tracks invocations per second for different named entities (functions or services).
+// Monitor tracks invocations per second for different named entities.
+// It uses a background goroutine to periodically calculate IPS values,
+// making reads from GetIPS fast and non-blocking.
 type Monitor struct {
-	mu          sync.Mutex
-	invocations map[string][]time.Time
+	// mu protects access to both invocations and ipsValues maps.
+	mu sync.RWMutex
+	// invocations stores counts per second (unix timestamp) for each named entity.
+	invocations map[string]map[int64]int
+	// ipsValues stores the latest calculated IPS value for each named entity.
+	ipsValues map[string]float64
+	// ticker triggers the periodic calculation.
+	ticker *time.Ticker
+	// done is used to signal the background goroutine to stop.
+	done chan struct{}
 }
 
-// NewMonitor creates a new IPS monitor.
+// NewMonitor creates a new IPS monitor and starts its background calculation worker.
 func NewMonitor() *Monitor {
-	return &Monitor{
-		invocations: make(map[string][]time.Time),
+	m := &Monitor{
+		invocations: make(map[string]map[int64]int),
+		ipsValues:   make(map[string]float64),
+		ticker:      time.NewTicker(updateInterval),
+		done:        make(chan struct{}),
 	}
+	go m.runCalculator()
+	return m
 }
 
 // RecordInvocation records a single invocation for the given name.
+// It increments a counter for the current second.
 func (m *Monitor) RecordInvocation(name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	now := time.Now()
-	m.invocations[name] = append(m.invocations[name], now)
-	m.cleanup(name, now)
+	now := time.Now().Unix()
+	if _, ok := m.invocations[name]; !ok {
+		m.invocations[name] = make(map[int64]int)
+	}
+	m.invocations[name][now]++
 }
 
-// GetIPS returns the invocations per second for the given name over the last `window` duration.
+// GetIPS returns the most recently calculated invocations per second for the given name.
+// This is a fast read operation.
 func (m *Monitor) GetIPS(name string) float64 {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	now := time.Now()
-	m.cleanup(name, now)
-
-	invocationsInWindow := len(m.invocations[name])
-	return float64(invocationsInWindow) / window.Seconds()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	// Return the pre-calculated value.
+	return m.ipsValues[name]
 }
 
-// cleanup removes timestamps that are older than the window.
-// This must be called with the mutex held.
-func (m *Monitor) cleanup(name string, now time.Time) {
-	if invs, ok := m.invocations[name]; ok {
-		cutoff := now.Add(-window)
+// Close stops the background worker.
+func (m *Monitor) Close() {
+	close(m.done)
+}
 
-		// Find the first index that is not older than the window.
-		// This is faster than re-slicing in a loop for long slices.
-		firstValidIndex := 0
-		for i, ts := range invs {
-			if !ts.Before(cutoff) {
-				firstValidIndex = i
-				break
-			}
-			// If the last element is still before the cutoff, all elements are old.
-			if i == len(invs)-1 {
-				m.invocations[name] = []time.Time{}
-				return
-			}
+// runCalculator is the background worker loop.
+func (m *Monitor) runCalculator() {
+	for {
+		select {
+		case <-m.ticker.C:
+			m.calculateAll()
+		case <-m.done:
+			m.ticker.Stop()
+			return
 		}
-		m.invocations[name] = invs[firstValidIndex:]
 	}
 }
 
-// Global monitor instance
+// calculateAll iterates through all monitored entities to update their IPS
+// and clean up old data.
+func (m *Monitor) calculateAll() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	now := time.Now().Unix()
+	// Cutoff for invocations to include in the window.
+	cutoff := now - int64(window.Seconds())
+
+	for name, buckets := range m.invocations {
+		var totalInvocationsInWindow int
+		// Sum invocations within the window and clean up old buckets.
+		for timestamp, count := range buckets {
+			if timestamp >= cutoff {
+				totalInvocationsInWindow += count
+			} else {
+				// This timestamp bucket is outside the window, so delete it.
+				delete(buckets, timestamp)
+			}
+		}
+		// Update the calculated IPS value for the current entity.
+		m.ipsValues[name] = float64(totalInvocationsInWindow) / window.Seconds()
+	}
+}
+
+// --- Global Monitor Instance ---
+
 var globalMonitor = NewMonitor()
 
 // Record records an invocation for a globally accessible monitor.

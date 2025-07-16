@@ -40,7 +40,7 @@ type Pragma struct {
 
 // ParsePragma parses a map of attributes into a Pragma struct.
 // Example pragma: trigger=CPU threshold=0.8
-// Example pragma: trigger=IPS value=100
+// Example pragma: trigger=IPS threshold=100
 func ParsePragma(attrs map[string]string) (*Pragma, error) {
 	// If there are no attributes, it's a simple extraction without a delegate.
 	if len(attrs) == 0 {
