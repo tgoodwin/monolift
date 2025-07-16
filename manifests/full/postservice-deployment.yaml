@@ -21,6 +21,11 @@ spec:
         dapr.io/app-id: postservice
         dapr.io/app-port: "8080"
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "backend"
+        effect: "PreferNoSchedule"
       containers:
         - name: postservice
           image: ghcr.io/tgoodwin/postservice:full-decomposition

@@ -21,6 +21,11 @@ spec:
         dapr.io/app-id: userservice
         dapr.io/app-port: "8080"
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "backend"
+        effect: "PreferNoSchedule"
       containers:
         - name: userservice
           image: ghcr.io/tgoodwin/userservice:user-decomposition

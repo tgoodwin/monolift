@@ -23,6 +23,11 @@ spec:
         app.kubernetes.io/name: entrypoint
         discrete.events/experiment: monolift
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "entrypoint"
+        effect: "PreferNoSchedule"
       containers:
       - env:
         - name: K8S_CPU_REQUEST

@@ -21,6 +21,11 @@ spec:
         dapr.io/app-id: timelineservice
         dapr.io/app-port: "8080"
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "backend"
+        effect: "PreferNoSchedule"
       containers:
         - name: timelineservice
           image: ghcr.io/tgoodwin/timelineservice:full-decomposition
