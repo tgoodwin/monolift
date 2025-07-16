@@ -648,8 +648,9 @@ func generateDelegateBlockStmts(res *extractionResult, namespace string, monitor
 	// `decider := pragma.New...Decider(...)`
 	var deciderArgs []ast.Expr
 	if res.Pragma.SignalType == pragma.IPSTrigger {
-		// For IPS, the "name" is the service name, which we'll use to record invocations.
-		deciderArgs = append(deciderArgs, &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(res.PackageName)})
+		// For IPS, the "name" is the fully qualified interface name (e.g., "timelineservice.Service")
+		qualifiedName := res.PackageName + "." + res.InterfaceTypeName
+		deciderArgs = append(deciderArgs, &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(qualifiedName)})
 		deciderArgs = append(deciderArgs, &ast.BasicLit{Kind: token.FLOAT, Value: strconv.FormatFloat(res.Pragma.Threshold, 'f', -1, 64)})
 	} else {
 		deciderArgs = append(deciderArgs, monitorIdent)

@@ -88,7 +88,7 @@ func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pa
 		Methods:                methodConfigs,
 		Imports:                imports,
 		IPSMonitoringEnabled:   ipsEnabled,
-		ServiceName:            definingPkg.Name,
+		ServiceName:            definingPkg.Name + "." + ifaceNameIdent.Name,
 	}
 
 	return data, nil
