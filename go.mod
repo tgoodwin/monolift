@@ -11,6 +11,7 @@ require (
 	github.com/redis/go-redis/v9 v9.10.0
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/tools v0.34.0
+	gonum.org/v1/gonum v0.16.0
 	k8s.io/api v0.31.0
 	k8s.io/apimachinery v0.31.1
 	sigs.k8s.io/yaml v1.4.0

@@ -1,6 +1,6 @@
 CONTAINER_REGISTRY ?= ghcr.io/tgoodwin
 IMAGE_NAME ?= $(CONTAINER_REGISTRY)/demo-monolith
-IMAGE_TAG  ?= dapr
+IMAGE_TAG  ?= workpool
 
 # Kubernetes manifest files location
 K8S_DIR ?= demo/monolith/k8s
