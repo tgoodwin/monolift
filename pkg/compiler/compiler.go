@@ -1430,9 +1430,15 @@ func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceName
 		fmt.Printf("  Extracted %d environment variables from the original manifest\n", len(envVars))
 	}
 
+	// Determine the Docker image tag from environment variable or use a default.
+	tag := "latest"
+	if tagEnv := os.Getenv("MONOLIFT_DOCKER_TAG"); tagEnv != "" {
+		tag = tagEnv
+	}
+
 	for _, serviceName := range extractedServiceNames {
 		fmt.Printf("  Generating K8s manifests for service %s\n", serviceName)
-		imageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, serviceName)
+		imageName := fmt.Sprintf("%s/%s:%s", dockerRegistry, serviceName, tag)
 		if err := lift.GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageName, envVars); err != nil {
 			return fmt.Errorf("failed to generate K8s service manifest for %s: %w", serviceName, err)
 		}
@@ -1440,7 +1446,7 @@ func generateK8sManifests(outputDir, dockerRegistry string, extractedServiceName
 
 	// Generate manifests for the entrypoint application.
 	fmt.Println("  Generating K8s manifests for the entrypoint application")
-	entrypointImageName := fmt.Sprintf("%s/%s:latest", dockerRegistry, entrypointDirName)
+	entrypointImageName := fmt.Sprintf("%s/%s:%s", dockerRegistry, entrypointDirName, tag)
 
 	if err := lift.GenerateEntrypointManifests(outputDir, entrypointImageName, originalManifestData); err != nil {
 		return fmt.Errorf("failed to generate K8s entrypoint manifests: %w", err)

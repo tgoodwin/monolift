@@ -12,6 +12,8 @@ import (
 //go:embed embeds/Dockerfile
 var dockerfile string
 
+const defaultTag = "latest"
+
 type goBuilder struct {
 	goEnv []string
 }
@@ -48,6 +50,11 @@ func (self *goBuilder) build(outputDir, dockerRegistry string, names []string) e
 		buildCmd.Stderr = os.Stderr
 		fmt.Printf("  Running %v\n", buildCmd)
 
+		tag := defaultTag
+		if tagEnv := os.Getenv("MONOLIFT_DOCKER_TAG"); tagEnv != "" {
+			tag = tagEnv
+		}
+
 		if err := buildCmd.Run(); err != nil {
 			return fmt.Errorf("could not run go build for %s: %w", name, err)
 		}
@@ -61,7 +68,7 @@ func (self *goBuilder) build(outputDir, dockerRegistry string, names []string) e
 		fmt.Fprint(f, dockerfile)
 
 		// TODO add some prefix to the docker image name that identifies the application the code was extracted from
-		dockerPath := strings.ToLower(fmt.Sprintf("%s/%s:latest", dockerRegistry, name))
+		dockerPath := strings.ToLower(fmt.Sprintf("%s/%s:%s", dockerRegistry, name, tag))
 		dockerBuildCmd := exec.Command("docker", "build", ".", "-t", dockerPath)
 		dockerBuildCmd.Dir = workingDir
 		dockerBuildCmd.Stderr = os.Stderr
