@@ -26,6 +26,17 @@ EOF
 curl -sS https://webinstall.dev/k9s | bash
 source ~/.config/envman/PATH.env
 
+# install dapr
+echo "Installing Dapr CLI..."
+wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+
+echo "Initializing Dapr..."
+sudo dapr init -k
+
+echo "Dapr installed and initialized."
+sudo dapr status -k
+
+
 # reminders
 echo "reminder to login to docker! docker login -u tlg2132"
 

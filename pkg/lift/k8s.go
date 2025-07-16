@@ -30,6 +30,9 @@ const entrypointServiceName = "entrypoint-service"
 
 const extractedServicePort = 8080 // Default port for extracted services
 
+const defaultCPULimit = "2"      // Default CPU limit for extracted services
+const defaultMemoryLimit = "2Gi" // Default memory limit for extracted services
+
 // EnvVar represents an environment variable for a container.
 type EnvVar struct {
 	Name  string
@@ -49,6 +52,8 @@ type DeploymentTemplateData struct {
 	Namespace     string
 	ImageName     string
 	ContainerPort int
+	CpuLimit      string // e.g., "1" for 1 CPU
+	MemoryLimit   string // e.g., "512Mi" for 512 MiB
 	EnvVars       []EnvVar
 }
 
@@ -106,6 +111,8 @@ func GenerateExtractedServiceManifests(outputDir, serviceName, namespace, imageN
 		Namespace:     namespace,
 		ImageName:     imageName,
 		ContainerPort: extractedServicePort,
+		CpuLimit:      defaultCPULimit,    // Default CPU limit, can be adjusted
+		MemoryLimit:   defaultMemoryLimit, // Default memory limit, can be adjusted
 		EnvVars:       envVars,
 	}
 

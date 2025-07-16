@@ -26,6 +26,13 @@ spec:
           image: {{ .ImageName }}
           ports:
             - containerPort: {{ .ContainerPort }}
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "256Mi"
+            limits:
+              cpu: {{ .CpuLimit }}
+              memory: {{ .MemoryLimit }}
           env:
             - name: K8S_CPU_REQUEST
               valueFrom:
