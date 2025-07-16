@@ -97,6 +97,8 @@ func main() {
 		fmt.Printf("Output CSV file: %s\n", *outputFile)
 	}
 
+	warmup(url) // Perform a warmup request to prime the server
+
 	fmt.Println(
 		"--------------------------------------------------------------------------------",
 	)
@@ -142,6 +144,31 @@ func main() {
 			time.Sleep(*coolOff)
 		}
 	}
+}
+
+func warmup(url string) {
+	// Perform a warmup request to prime the server.
+	client := &http.Client{Timeout: 30 * time.Second} // Use a longer timeout for warmup
+
+	// Generate a dummy payload for the warmup POST request
+	for i := 0; i < 5; i++ {
+		fmt.Println("Warming up the server with a POST request...")
+		body, contentType, err := generatePostData(1) // numUsers doesn't matter much for warmup
+		if err != nil {
+			log.Fatalf("Warmup: failed to generate post data: %v", err)
+		}
+
+		req, err := http.NewRequest("POST", url, body)
+		if err != nil {
+			log.Fatalf("Warmup: failed to create request: %v", err)
+		}
+		req.Header.Set("Content-Type", contentType)
+		resp, err := client.Do(req)
+		if resp.StatusCode != http.StatusOK {
+			log.Fatalf("Warmup request returned bad status: %d", resp.StatusCode)
+		}
+	}
+	fmt.Println("Warmup complete.")
 }
 
 // runTestStep executes the load test for a single RPS level and returns aggregated stats.
