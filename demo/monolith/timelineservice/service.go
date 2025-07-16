@@ -35,7 +35,7 @@ type TimelinePostEntry struct {
 }
 
 // Service defines the interface for timeline-related operations.
-// @monolift trigger=CPU threshold=0.5
+// @monolift trigger=IPS threshold=100
 type Service interface {
 	// ReadTimeline retrieves post IDs for a user's timeline.
 	// Full post content fetching might be orchestrated by the caller (e.g., frontend)

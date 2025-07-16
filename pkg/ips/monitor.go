@@ -1,6 +1,7 @@
 package ips
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -103,6 +104,7 @@ func (m *Monitor) calculateAll() {
 		}
 		// Update the calculated IPS value for the current entity.
 		m.ipsValues[name] = float64(totalInvocationsInWindow) / window.Seconds()
+		fmt.Println("Calculated IPS for", name, ":", m.ipsValues[name])
 	}
 }
 
