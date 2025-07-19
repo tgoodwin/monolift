@@ -269,6 +269,32 @@ func (inspector *ProfileInspector) GetProfileFunctionSubset(profileName string, 
 	return profileUnit.GetProfileFunctionSubset(functions)
 }
 
+func (profile *ProfileUnit) GetFunctionListMatchingPrefixList(prefixList []string) []string {
+	var functions []string
+	visited := make(map[string]bool) // to avoid duplicates
+
+	// Recursive traversal function
+	var traverse func(node *tree.FlameGraphNode)
+
+	traverse = func(node *tree.FlameGraphNode) {
+		for _, prefix := range prefixList {
+			if strings.HasPrefix(node.Name, prefix) {
+				if !visited[node.Name] {
+					functions = append(functions, node.Name)
+					visited[node.Name] = true
+				}
+				break // no need to check other prefixes for this node
+			}
+		}
+		for _, child := range node.Children {
+			traverse(child)
+		}
+	}
+
+	traverse(profile.FlamegraphSourceRoot)
+	return functions
+}
+
 // TODO: Test
 func (profile *ProfileUnit) GetProfileFunctionSubset(functions []string) *FunctionNode {
 

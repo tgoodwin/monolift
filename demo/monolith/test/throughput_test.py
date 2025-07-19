@@ -8,6 +8,10 @@ import os
 import argparse
 import csv
 import numpy as np
+import threading
+import subprocess
+import time
+from datetime import datetime
 
 
 class GeometricLoadShape:
@@ -37,6 +41,38 @@ class GeometricLoadShape:
 
     def get_steps(self):
         return self.rps_levels
+
+def capture_pprof_profile(
+    target_url: str,
+    duration_seconds: int,
+    output_dir: str = ".",
+    **run_params
+):
+    """
+    Captures a pprof profile from a Go application asynchronously.
+
+    Args:
+        target_url (str): Base URL of the pprof server, e.g., http://localhost:8084
+        duration_seconds (int): Number of seconds to run the pprof capture.
+        output_dir (str): Directory to store the profile.
+        **run_params: Arbitrary keyword parameters to encode into the filename.
+    """
+    def profile_thread():
+        os.makedirs(output_dir, exist_ok=True)  # Ensure directory exists
+        # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        params_part = "_".join(f"{k}-{v}" for k, v in run_params.items())
+        filename = f"profile_{params_part}.out"
+        filepath = os.path.join(output_dir, filename)
+        url = f"{target_url}/debug/pprof/profile?seconds={duration_seconds}"
+
+        try:
+            subprocess.run(["curl", "-s", "-o", filepath, url], check=True)
+            print(f"[Profiler] Saved pprof profile to {filepath}")
+        except subprocess.CalledProcessError as e:
+            print(f"[Profiler] Failed to capture profile: {e}")
+
+    thread = threading.Thread(target=profile_thread, daemon=True)
+    thread.start()
 
 
 def generate_compose_post_data(num_total_users):
@@ -76,31 +112,70 @@ def generate_compose_post_data(num_total_users):
 
 async def send_request(session, url, num_total_users, results_queue):
     """Sends a single request and puts its status and latency in the results queue."""
-    start_time = time.time()
-    try:
-        data = generate_compose_post_data(num_total_users)
-        # The `timeout` here prevents a single slow request from holding a connection indefinitely.
-        # The generator will continue firing new requests even if old ones are slow.
-        async with session.post(url, data=data, timeout=aiohttp.ClientTimeout(total=30)) as response:
-            latency = (time.time() - start_time) * 1000  # Convert to milliseconds
-            # We don't need the response body, just the status.
-            # This is a "fire-and-forget" action from the perspective of the main loop.
-            await results_queue.put((response.status, latency))
-    except Exception as e:
-        # Put the exception in the queue to be counted as a failure.
-        # Latency is 0 for failed requests.
-        await results_queue.put((e, 0))
+
+    flip_coin = random.randrange(100)
+    if flip_coin < 60: # Read home timeline
+        try:
+            user_id = str(random.randint(0, num_total_users - 1))
+            user_ti = str(False).lower()  # Convert boolean to string
+            num_posts = str(random.randint(1, 10))
+            start_time = time.time()
+
+            async with session.get(
+            f"{url}/timeline?user_id={user_id}&user_tl={user_ti}&posts={num_posts}", timeout=aiohttp.ClientTimeout(total=30)) as response:
+                latency =  (time.time() - start_time)  * 1000  # Convert to milliseconds
+                await results_queue.put((response.status, latency))
+        except Exception as e:
+            # Put the exception in the queue to be counted as a failure.
+            # Latency is 0 for failed requests.
+            await results_queue.put((e, 0))
+    elif 60 <= flip_coin < 90: # Read user timeline
+        try:
+            user_id = str(random.randint(0, num_total_users - 1))
+            user_ti = str(True).lower()  # Convert boolean to string
+            num_posts = str(random.randint(1, 10))
+            start_time = time.time()
+
+            async with session.get(
+            f"{url}/timeline?user_id={user_id}&user_tl={user_ti}&posts={num_posts}", timeout=aiohttp.ClientTimeout(total=30)) as response:
+                latency =  (time.time() - start_time)  * 1000  # Convert to milliseconds
+                await results_queue.put((response.status, latency))
+        except Exception as e:
+            # Put the exception in the queue to be counted as a failure.
+            # Latency is 0 for failed requests.
+            await results_queue.put((e, 0))
+    elif 90 <= flip_coin < 100: # Compose post
+        try:
+            data = generate_compose_post_data(num_total_users)
+            # The `timeout` here prevents a single slow request from holding a connection indefinitely.
+            # The generator will continue firing new requests even if old ones are slow.
+            async with session.post(f"{url}/save", data=data, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                latency = (time.time() - start_time) * 1000  # Convert to milliseconds
+                # We don't need the response body, just the status.
+                # This is a "fire-and-forget" action from the perspective of the main loop.
+                await results_queue.put((response.status, latency))
+        except Exception as e:
+            # Put the exception in the queue to be counted as a failure.
+            # Latency is 0 for failed requests.
+            await results_queue.put((e, 0))
 
 
 async def main(args):
     """The main function to orchestrate the throughput-latency analysis."""
     # A handcrafted sequence of RPS levels designed to produce a detailed curve.
+    # default_rps_levels = [
+    #     20, 40, 60, 80, 100, 150, 200, 250, 300, 350, 400, 450, 500,
+    #     600, 800, 1000, 1200, 1500, 2000, 2500, 3000
+    # ]
+
     default_rps_levels = [
-        20, 40, 60, 80, 100, 150, 200, 250, 300, 350, 400, 450, 500,
-        600, 800, 1000, 1200, 1500, 2000, 2500, 3000
+        10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+        150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000
     ]
+    # default_rps_levels = [10, 15, 20, 25, 30, 40, 60, 80 , 100]
+    
     rps_levels = default_rps_levels if args.rps_levels is None else [float(r) for r in args.rps_levels.split(',')]
-    url = f"http://{args.ip}:{args.port}/save"
+    url = f"http://{args.ip}:{args.port}"
 
     print("--- Throughput-Latency Analyzer ---")
     print(f"Target URL: {url}")
@@ -144,9 +219,19 @@ async def main(args):
         print("-" * 80)
         # --- End Warm-up ---
 
+      
+
         for i, rps in enumerate(rps_levels):
+        
             results_queue = asyncio.Queue()
             start_time = time.time()
+
+              # Capture a profile trace of the current RPS level
+            capture_pprof_profile(
+                    target_url="http://localhost:8084",
+                duration_seconds= args.step_duration ,
+                output_dir="./profiles",
+                rps= rps,)
 
             # Fire requests at a constant rate for the defined step duration
             requests_fired = 0

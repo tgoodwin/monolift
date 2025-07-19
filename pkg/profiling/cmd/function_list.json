@@ -1,0 +1,6 @@
+[
+	"github.com/tgoodwin/monolift/demo/monolith/frontend.(*APIHandlers)",
+			"github.com/tgoodwin/monolift/demo/monolith/postservice.(*service)",
+			"github.com/tgoodwin/monolift/demo/monolith/timelineservice.(*service)",
+            "github.com/tgoodwin/monolift/demo/monolith/socialgraph.(*service)"
+]
