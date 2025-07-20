@@ -1,0 +1,28 @@
+{{- range .Values.stores }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "redis.fullname" (dict "name" .name) }}
+  namespace: {{ $.Values.redis.namespace }}
+  labels:
+    app: {{ include "redis.fullname" (dict "name" .name) }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "redis.fullname" (dict "name" .name) }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "redis.fullname" (dict "name" .name) }}
+    spec:
+      containers:
+        - name: redis
+          image: {{ $.Values.redis.image }}
+          ports:
+            - containerPort: {{ $.Values.redis.port }}
+          env:
+            - name: REDIS_PASSWORD
+              value: {{ $.Values.redis.password }}
+---
+{{- end }}
