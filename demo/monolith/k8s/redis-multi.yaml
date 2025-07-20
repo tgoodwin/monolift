@@ -1,0 +1,290 @@
+---
+# Source: redis-multi/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-post
+  namespace: default
+  labels:
+    app: redis-post
+spec:
+  selector:
+    app: redis-post
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+# Source: redis-multi/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-user
+  namespace: default
+  labels:
+    app: redis-user
+spec:
+  selector:
+    app: redis-user
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+# Source: redis-multi/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-image
+  namespace: default
+  labels:
+    app: redis-image
+spec:
+  selector:
+    app: redis-image
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+# Source: redis-multi/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-socialgraph
+  namespace: default
+  labels:
+    app: redis-socialgraph
+spec:
+  selector:
+    app: redis-socialgraph
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+# Source: redis-multi/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-timeline
+  namespace: default
+  labels:
+    app: redis-timeline
+spec:
+  selector:
+    app: redis-timeline
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+# Source: redis-multi/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-post
+  namespace: default
+  labels:
+    app: redis-post
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-post
+  template:
+    metadata:
+      labels:
+        app: redis-post
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              value: redispass
+---
+# Source: redis-multi/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-user
+  namespace: default
+  labels:
+    app: redis-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-user
+  template:
+    metadata:
+      labels:
+        app: redis-user
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              value: redispass
+---
+# Source: redis-multi/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-image
+  namespace: default
+  labels:
+    app: redis-image
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-image
+  template:
+    metadata:
+      labels:
+        app: redis-image
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              value: redispass
+---
+# Source: redis-multi/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-socialgraph
+  namespace: default
+  labels:
+    app: redis-socialgraph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-socialgraph
+  template:
+    metadata:
+      labels:
+        app: redis-socialgraph
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              value: redispass
+---
+# Source: redis-multi/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-timeline
+  namespace: default
+  labels:
+    app: redis-timeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-timeline
+  template:
+    metadata:
+      labels:
+        app: redis-timeline
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              value: redispass
+---
+# Source: redis-multi/templates/dapr-components.yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: post-store
+  namespace: default
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis-post.default.svc.cluster.local:6379
+    - name: redisPassword
+      value: redispass
+---
+# Source: redis-multi/templates/dapr-components.yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: user-store
+  namespace: default
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis-user.default.svc.cluster.local:6379
+    - name: redisPassword
+      value: redispass
+---
+# Source: redis-multi/templates/dapr-components.yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: image-store
+  namespace: default
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis-image.default.svc.cluster.local:6379
+    - name: redisPassword
+      value: redispass
+---
+# Source: redis-multi/templates/dapr-components.yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: socialgraph-store
+  namespace: default
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis-socialgraph.default.svc.cluster.local:6379
+    - name: redisPassword
+      value: redispass
+---
+# Source: redis-multi/templates/dapr-components.yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: timeline-store
+  namespace: default
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis-timeline.default.svc.cluster.local:6379
+    - name: redisPassword
+      value: redispass

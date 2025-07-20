@@ -1,0 +1,16 @@
+{{- range .Values.stores }}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{ .name }}-store
+  namespace: {{ $.Values.redis.namespace }}
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: {{ include "redis.fullname" (dict "name" .name) }}.{{ $.Values.redis.namespace }}.svc.cluster.local:{{ $.Values.redis.port }}
+    - name: redisPassword
+      value: {{ $.Values.redis.password }}
+---
+{{- end }}

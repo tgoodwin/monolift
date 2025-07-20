@@ -1,0 +1,5 @@
+apiVersion: v2
+name: redis-multi
+version: 0.1.0
+description: Helm chart for deploying multiple isolated Redis instances for Dapr state stores. Used to generate redis-multi.yaml. Used in with following command; helm template redis-multi ./redis-multi/ -n default > redis-multi.yaml
+

@@ -1,0 +1,17 @@
+{{- range .Values.stores }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis.fullname" (dict "name" .name) }}
+  namespace: {{ $.Values.redis.namespace }}
+  labels:
+    app: {{ include "redis.fullname" (dict "name" .name) }}
+spec:
+  selector:
+    app: {{ include "redis.fullname" (dict "name" .name) }}
+  ports:
+    - protocol: TCP
+      port: {{ $.Values.redis.port }}
+      targetPort: {{ $.Values.redis.port }}
+---
+{{- end }}

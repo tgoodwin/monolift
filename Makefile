@@ -52,8 +52,19 @@ delete-demo:
 delete-generated:
 	kubectl delete -f $(GENERATED_MANIFEST_DIR)
 
+delete-redis:
+	@echo "--- deleting redis manifests ---"
+	kubectl delete -f $(K8S_DIR)/redis.yaml 
+	kubectl wait --for=delete -f $(K8S_DIR)/redis.yaml --timeout=60s || true
+	kubectl delete -f $(K8S_DIR)/redis-multi.yaml 
+	kubectl wait --for=delete -f $(K8S_DIR)/redis-multi.yaml --timeout=60s || true
+
+
 reset-redis:
 	@echo "---deleting and then recreating redis---"
-	kubectl delete -f $(K8S_DIR)/redis.yaml
+	kubectl delete -f $(K8S_DIR)/redis.yaml --ignore-not-found=true
 	kubectl wait --for=delete -f $(K8S_DIR)/redis.yaml --timeout=60s || true
+	kubectl delete -f $(K8S_DIR)/redis-multi.yaml --ignore-not-found=true
+	kubectl wait --for=delete -f $(K8S_DIR)/redis-multi.yaml --timeout=60s || true
 	kubectl apply -f $(K8S_DIR)/redis.yaml
+	kubectl apply -f $(K8S_DIR)/redis-multi.yaml
