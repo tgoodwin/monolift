@@ -57,3 +57,21 @@ reset-redis:
 	kubectl delete -f $(K8S_DIR)/redis.yaml
 	kubectl wait --for=delete -f $(K8S_DIR)/redis.yaml --timeout=60s || true
 	kubectl apply -f $(K8S_DIR)/redis.yaml
+
+delete-redis:
+	@echo "---deleting redis---"
+	kubectl delete -f $(K8S_DIR)/redis.yaml
+
+deploy-redis-cluster:
+	@echo "---creating redis cluster---"
+	kubectl apply -f $(K8S_DIR)/redis-rendered/redis-cluster/templates
+	# kubectl apply -f $(K8S_DIR)/redis-cluster.yaml
+
+reset-redis-cluster:
+	@echo "---deleting and then recreating redis cluster---"
+	kubectl delete -f $(K8S_DIR)/redis-cluster.yaml
+	kubectl wait --for=delete -f $(K8S_DIR)/redis-cluster.yaml --timeout=60s || true
+	kubectl delete  -f $(K8S_DIR)/redis-rendered/redis-cluster/templates
+	kubectl wait --for=delete -f $(K8S_DIR)/redis-rendered/redis-cluster/templates --timeout=60s || true
+	kubectl apply -f $(K8S_DIR)/redis-rendered/redis-cluster/templates
+	kubectl apply -f $(K8S_DIR)/redis-cluster.yaml

@@ -1,0 +1,74 @@
+---
+# Source: redis-cluster/templates/scripts-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cluster-scripts
+  namespace: "default"
+  labels:
+    app.kubernetes.io/instance: redis-cluster
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    app.kubernetes.io/version: 8.0.3
+    helm.sh/chart: redis-cluster-12.0.13
+data:
+  ping_readiness_local.sh: |-
+    #!/bin/bash
+    set -e
+
+    REDIS_STATUS_FILE=/tmp/.redis_cluster_check
+    export REDISCLI_AUTH=`cat $REDIS_PASSWORD_FILE`
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+    if [ ! -f "$REDIS_STATUS_FILE" ]; then
+      response=$(
+        timeout -s 15 $1 \
+        redis-cli \
+          -h localhost \
+          -p $REDIS_PORT_NUMBER \
+          CLUSTER INFO | grep cluster_state | tr -d '[:space:]'
+      )
+      if [ "$?" -eq "124" ]; then
+        echo "Timed out"
+        exit 1
+      fi
+      if [ "$response" != "cluster_state:ok" ]; then
+        echo "$response"
+        exit 1
+      else
+        touch "$REDIS_STATUS_FILE"
+      fi
+    fi
+  ping_liveness_local.sh: |-
+    #!/bin/bash
+    set -e
+    export REDISCLI_AUTH=`cat $REDIS_PASSWORD_FILE`
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ] && [ "$responseFirstWord" != "MASTERDOWN" ]; then
+      echo "$response"
+      exit 1
+    fi

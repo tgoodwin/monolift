@@ -6,6 +6,8 @@ spec:
   type: state.redis
   version: v1
   metadata:
+  - name: redisType
+    value: cluster
   - name: redisHost
     value: monolith-redis.default.svc.cluster.local:6379
   - name: redisPassword
@@ -19,6 +21,8 @@ spec:
   type: state.redis
   version: v1
   metadata:
+  - name: redisType
+    value: cluster
   - name: redisHost
     value: monolith-redis.default.svc.cluster.local:6379
   - name: redisPassword
@@ -32,6 +36,8 @@ spec:
   type: state.redis
   version: v1
   metadata:
+  - name: redisType
+    value: cluster
   - name: redisHost
     value: monolith-redis.default.svc.cluster.local:6379
   - name: redisPassword
@@ -45,6 +51,8 @@ spec:
   type: state.redis
   version: v1
   metadata:
+  - name: redisType
+    value: cluster
   - name: redisHost
     value: monolith-redis.default.svc.cluster.local:6379
   - name: redisPassword
@@ -58,6 +66,8 @@ spec:
   type: state.redis
   version: v1
   metadata:
+  - name: redisType
+    value: cluster
   - name: redisHost
     value: monolith-redis.default.svc.cluster.local:6379
   - name: redisPassword
