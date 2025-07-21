@@ -240,9 +240,7 @@ func (s *service) ReadTimeline(ctx context.Context, req timelineTypes.ReadReq) (
 }
 
 func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error) {
-	// If we had a worker pool, we would submit the job here.
-	// For now, we'll call the handler directly.
-	// In a real-world scenario, you might want to use a worker pool to handle these updates asynchronously.
+	// create a timeline job and enqueue it
 	job := timelineUpdateJob{
 		Req:    req,
 		PostId: req.PostId,
