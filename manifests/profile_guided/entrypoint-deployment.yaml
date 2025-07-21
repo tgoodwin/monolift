@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: entrypoint
+    discrete.events/experiment: monolift
+  name: entrypoint
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: entrypoint
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        dapr.io/app-id: monolith
+        dapr.io/app-port: "8080"
+        dapr.io/enabled: "true"
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: entrypoint
+        discrete.events/experiment: monolift
+    spec:
+      containers:
+      - env:
+        - name: K8S_CPU_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              divisor: 1m
+              resource: requests.cpu
+        - name: K8S_CPU_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              divisor: 1m
+              resource: limits.cpu
+        - name: K8S_MEM_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              divisor: "0"
+              resource: requests.memory
+        - name: K8S_MEM_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: monolith-app
+              divisor: "0"
+              resource: limits.memory
+        image: docker.io/eirn/entrypoint:profile-guided
+        imagePullPolicy: Always
+        name: monolith-app
+        ports:
+        - containerPort: 8080
+          name: http-app
+        - containerPort: 8084
+          name: http-metrics
+        resources:
+          limits:
+            cpu: "4"
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 128Mi
+status: {}

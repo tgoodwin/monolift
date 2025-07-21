@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: monolith-redis # This name is used in the DNS: redis.default.svc.cluster.local
+  namespace: default # Or whichever namespace your Redis and monolith are in
+spec:
+  selector:
+    app: redis # This must match the labels on your Redis pods
+  ports:
+  - protocol: TCP
+    port: 6379       # Port the Service exposes
+    targetPort: 6379 # Port on the Redis pods that traffic is forwarded to
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        ports:
+        - containerPort: 6379
+        env:
+        - name: REDIS_PASSWORD
+          value: "redispass"
+        # Alternatively, you could use command-line arguments:
+        # command: ["redis-server"]
+        # args: ["--requirepass", "redispass"]
