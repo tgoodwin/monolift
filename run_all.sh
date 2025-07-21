@@ -1,13 +1,18 @@
 #! /bin/bash
 
-MANIFEST_RUN='init'
+MANIFEST_RUN='full'
+WORKLOAD_TYPE='save'
 
 init_social_graph() {
     python demo/monolith/test/init_social_graph.py --ip $(get_public_ip)  --port 80 --compose
 }
 
 run_throughput() {
-    go run loadgen.go --ip   $(get_public_ip) --port 80 --output-file $1 --early-exit --workload mixed
+    if [[ $WORKLOAD_TYPE == "save" ]]; then
+        go run loadgen.go --ip   $(get_public_ip) --port 80 --output-file $1 --early-exit --workload save
+    else 
+        go run loadgen.go --ip   $(get_public_ip) --port 80 --output-file $1 --early-exit --workload mixed
+    fi
 }
 
 get_public_ip() {
@@ -44,7 +49,7 @@ run_step() {
     echo "Running load test for $1..."
     # Run the load test
     # python throughput_test.py --ip $(get_public_ip) --port 80 --output results/$1-throughput-01.csv
-    run_throughput results/$1/throughput-utah.csv
+    run_throughput results/$1/$WORKLOAD_TYPE-throughput-$2.csv 
 
     echo "Load test for $1 completed."
     echo "Cleaning up resources for $1..."
@@ -56,16 +61,39 @@ run_step() {
 run_all() {
     echo "Running all steps..."
     deploy_shared_manifests
-    run_step full
-    run_step monolith
-    run_step user
-    run_step socialgraph
-    run_step timeline
-    run_step post
-    run_step simple_profile
-    run_step profile_guided
 
+    WORKLOAD_TYPE='save'
+    echo "Running mixed workload..."
+    for i in {1..5}; do
+        echo "Iteration $i..."
+        run_step "full" "$i"
+        run_step "monolith" "$i"
+        run_step "user" "$i"
+        run_step "socialgraph" "$i"
+        run_step "timeline" "$i"
+        run_step "post" "$i"
+        run_step "simple_profile" "$i"
+        run_step "mixed_profile_half_peak" "$i"
+        run_step "save_profile_half_peak" "$i"
+        run_step "save_profile_peak" "$i"
+        done
     echo "All steps completed."
+
+    WORKLOAD_TYPE='mixed'
+    echo "Running mixed workload..."
+
+    for i in {1..5}; do
+        echo "Iteration $i..."
+        run_step "full" "$i"
+        run_step "monolith" "$i"
+        run_step "user" "$i"
+        run_step "socialgraph" "$i"
+        run_step "timeline" "$i"
+        run_step "post" "$i"
+        run_step "mixed_profile_half_peak" "$i"
+        run_step "save_profile_half_peak" "$i"
+        run_step "save_profile_peak" "$i"
+    done
 }
 
 run_all
