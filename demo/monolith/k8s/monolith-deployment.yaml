@@ -20,10 +20,19 @@ spec:
         dapr.io/app-id: "monolith"
         dapr.io/app-port: "8080"
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "entrypoint"
+        effect: "PreferNoSchedule"
+      - key: "tier"
+        operator: "Equal"
+        value: "backend"
+        effect: "PreferNoSchedule"
       containers:
       - name: monolith-app
         imagePullPolicy: Always
-        image: docker.io/tlg2132/demo-monolith:dapr
+        image: ghcr.io/tgoodwin/demo-monolith:workpool
         ports:
         - name: http-app
           containerPort: 8080
