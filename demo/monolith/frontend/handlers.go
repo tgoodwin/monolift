@@ -183,6 +183,7 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	// update timeline asynchronously to match DeathStarBench use of a queue
 	serviceCallStart = time.Now()
 	_, err = h.TimelineService.UpdateTimeline(ctx, timelineUpdateReq)
+	// TODO measure latency on the worker task instead of here
 	util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
 	if err != nil {
 		// Log error, but don't fail the entire Save operation for a timeline update failure
