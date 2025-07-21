@@ -100,7 +100,10 @@ func main() {
 		fmt.Printf("Output CSV file: %s\n", *outputFile)
 	}
 
+	//Perform Warmup as the first step in rpsLevels for 60 seconds
 	warmup(url) // Perform a warmup request to prime the server
+	fmt.Println("Performing long step warmup...")
+	runTestStep(url, rpsLevels[0], *stepDuration, *numUsers, *workload)
 
 	fmt.Println(
 		"--------------------------------------------------------------------------------",
