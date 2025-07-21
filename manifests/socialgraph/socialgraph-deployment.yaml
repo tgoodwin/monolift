@@ -31,8 +31,8 @@ spec:
               cpu: "500m"
               memory: "256Mi"
             limits:
-              cpu: 2
-              memory: 2Gi
+              cpu: 4
+              memory: 4Gi
           env:
             - name: K8S_CPU_REQUEST
               valueFrom:

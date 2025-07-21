@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: timelineservice
-          image: docker.io/eirn/timelineservice:timeline
+          image: docker.io/eirn/timelineservice:profile-guided
           ports:
             - containerPort: 8080
           resources:

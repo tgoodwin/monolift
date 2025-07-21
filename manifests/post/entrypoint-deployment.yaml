@@ -63,5 +63,5 @@ spec:
             memory: 4Gi
           requests:
             cpu: 500m
-            memory: 128Mi
+            memory: 256Mi
 status: {}
