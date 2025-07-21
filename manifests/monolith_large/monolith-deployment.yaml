@@ -24,7 +24,7 @@ spec:
       - name: monolith-app
         imagePullPolicy: Always
         
-        image: docker.io/eirn/demo-monolith:dapr
+        image: docker.io/eirn/demo-monolith:workpool
         ports:
         - name: http-app
           containerPort: 8080

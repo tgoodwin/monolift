@@ -20,6 +20,15 @@ spec:
         dapr.io/app-id: "monolith"
         dapr.io/app-port: "8080"
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "entrypoint"
+        effect: "PreferNoSchedule"
+      - key: "tier"
+        operator: "Equal"
+        value: "backend"
+        effect: "PreferNoSchedule"
       containers:
       - name: monolith-app
         imagePullPolicy: Always
