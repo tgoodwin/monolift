@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -398,6 +399,138 @@ func (profile *ProfileUnit) GetProfileSubsetCountSortedList(functionNode *Functi
 	})
 
 	return subsetList
+}
+
+// Find smallest value in a map of string to int64
+func findSmallestValueInMap(m map[string]int64) (string, int64) {
+	smallestKey := ""
+	smallestValue := int64(0)
+
+	for key, value := range m {
+		if smallestKey == "" || value < smallestValue {
+			smallestKey = key
+			smallestValue = value
+		}
+	}
+	return smallestKey, smallestValue
+}
+
+func round(x float64) int {
+	return int(math.Floor(x + 0.5))
+}
+
+// Heuristics:
+// Entrypoint service should always have at least one instance
+// If a service has a very small allocation value, it is a candidate for removal and it's value is allocated to the frontend service
+func (profile *ProfileUnit) SimpleAllocationDistributionByFunction(serviceList []string, num_instances int, entrypointService string) map[string]float64 {
+
+	newFunctionList := profile.GetFunctionListMatchingPrefixList(serviceList)
+	functionRootNode := profile.GetProfileFunctionSubset(newFunctionList)
+	// Get Subset Funcs
+	subsetFuncs := profile.GetProfileSubsetCountSortedList(functionRootNode, true)
+
+	costByService := make(map[string]int64)
+	for _, f := range subsetFuncs {
+		if f.Name == functionRootNode.Name {
+			// Skip the root function, we will add its self value later
+			continue
+		}
+		// Check if the function name is in the service list
+		for _, service := range serviceList {
+			if strings.HasPrefix(f.Name, service) {
+				costByService[service] += f.SelfValue
+				break // No need to check other services if we found a match
+			}
+		}
+	}
+
+	totalServiceCost := int64(0)
+	for _, cost := range costByService {
+		totalServiceCost += cost
+	}
+	minimalInstanceWeight := totalServiceCost / int64(num_instances)
+	// print cost by service
+	fmt.Printf("\nCost by Service:\n")
+	fmt.Printf("Total Service Cost: %d\n", totalServiceCost)
+	fmt.Printf("Minimal Instance Weight: %d\n", minimalInstanceWeight)
+
+	valueByService := make(map[string]int64)
+	// Calculate initial costs, identify inital allocation values
+	for service, cost := range costByService {
+		proportion := (float64(cost) / float64(totalServiceCost))
+		fmt.Printf("%s: %d (%.2f%%)\n", service, cost, proportion*100)
+
+		allocationValue := float64(proportion) * float64(num_instances)
+		fmt.Printf("Initial Allocation Value: %.2f /%d\n", allocationValue, num_instances)
+		valueByService[service] = cost
+	}
+
+	// If the frontend service has less than minimalInstanceWeight, steel minimalInstanceWeight from largest service
+	if valueByService[entrypointService] < int64(minimalInstanceWeight) {
+		fmt.Printf("Entrypoint service %s has less than minimalInstanceWeight of %d, stealing from largest service\n", entrypointService, minimalInstanceWeight)
+
+		// find the largest service
+		largestService := ""
+		largestServiceValue := int64(0)
+		for service, value := range costByService {
+			if service == entrypointService {
+				continue // Skip the frontend service
+			}
+			if value > largestServiceValue {
+				largestService = service
+				largestServiceValue = value
+			}
+		}
+
+		// subtract minimalInstanceWeight from largest service
+		if largestService != "" && largestServiceValue > minimalInstanceWeight {
+			valueByService[largestService] -= int64(minimalInstanceWeight)
+			valueByService[entrypointService] += int64(minimalInstanceWeight)
+			fmt.Printf("Stealing %d from %s to %s\n", minimalInstanceWeight, largestService, entrypointService)
+		} else {
+			fmt.Printf("No suitable service found to steal from, keeping current allocation.\n")
+		}
+	}
+
+	// Loop until all services have at least minimalInstanceWeight
+	for {
+		//Find Smallest Service below minimalInstanceWeight
+		smallestService, smallestServiceValue := findSmallestValueInMap(valueByService)
+
+		if smallestService != "" && smallestServiceValue < minimalInstanceWeight {
+			fmt.Printf("Service %s has allocation %d below minimal allocation threshold of %d\n", smallestService, valueByService[smallestService], minimalInstanceWeight)
+			// Remove the smallest service from the allocation map
+			delete(valueByService, smallestService)
+			// Add its value to the next smallest service, concatenating the name
+			nextSmallestService, nextSmallestValue := findSmallestValueInMap(valueByService)
+			newName := fmt.Sprintf("%s|%s", smallestService, nextSmallestService)
+			fmt.Printf("Combining %s and %s into %s\n", smallestService, nextSmallestService, newName)
+			// Update the allocation map
+			delete(valueByService, nextSmallestService)
+			valueByService[newName] = nextSmallestValue + smallestServiceValue
+		}
+
+		if smallestService == "" || valueByService[smallestService] >= int64(minimalInstanceWeight) { // All services have at least minimalInstanceWeight, break the loop
+			break
+		}
+	}
+
+	allocationByService := make(map[string]float64)
+	// Calculate final allocation values
+	for service, value := range valueByService {
+		proportion := float64(value) / float64(totalServiceCost)
+		allocationByService[service] = proportion * float64(num_instances)
+	}
+
+	fmt.Printf("\nFinal Allocation by Service:\n")
+	for service, allocation := range allocationByService {
+		fmt.Printf("%s: %.2f (%.2f%%)\n", service, allocation, (allocation/float64(num_instances))*100)
+		// Round up to nearest multiple of 8
+		rounded_allocation := round(allocation)
+		fmt.Printf("Rounded Allocation: %d\n", rounded_allocation)
+	}
+
+	return allocationByService
 }
 
 func (profile *ProfileUnit) ProportionOfRootFromName(funcName string) float64 {

@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/profiling"
 )
@@ -93,73 +92,10 @@ func main() {
 	profileInspector.InspectPprofFiles(pathList)
 
 	for _, path := range pathList {
+		fmt.Printf("\nProfile: %s", path)
+
 		profileUnit := profileInspector.Profiles[path]
-
-		newFunctionList := profileUnit.GetFunctionListMatchingPrefixList(serviceList)
-
-		functionRootNode := profileUnit.GetProfileFunctionSubset(newFunctionList)
-		// Get Subste Funcs
-		subsetFuncs := profileUnit.GetProfileSubsetCountSortedList(functionRootNode, true)
-
-		// // Get total value of all functions in the profile
-		// totalValue := functionRootNode.TotalValue
-
-		// fmt.Printf("\nTotal Value of all functions in profile %s: %d\n", path, totalValue)
-		// fmt.Printf("Self Cost:\n")
-		// for i, f := range subsetFuncs {
-		// 	if f.Name == functionRootNode.Name {
-		// 		// Skip the root function, we will add its self value later
-		// 		continue
-		// 	}
-
-		// 	fmt.Printf("%d. %s: %d\n", i+1, f.Name, f.SelfValue)
-		// 	// get proportion of self value to total value
-		// 	proportion := (float64(f.SelfValue) / float64(totalValue))
-		// 	fmt.Printf("   Proportion: %.2f%%\n", proportion*100)
-
-		// 	// Calculate possible speedup according to Amdahl's Law
-		// 	// speedup := 1 / (1 - (float64(proportion)) + (float64(proportion) / 8))
-		// 	// fmt.Printf("   Possible Speedup: %.2f\n", speedup)
-
-		// }
-
-		costByService := make(map[string]int64)
-		for _, f := range subsetFuncs {
-			if f.Name == functionRootNode.Name {
-				// Skip the root function, we will add its self value later
-				continue
-			}
-			// Check if the function name is in the service list
-			for _, service := range serviceList {
-				if strings.HasPrefix(f.Name, service) {
-					costByService[service] += f.SelfValue
-					break // No need to check other services if we found a match
-				}
-			}
-		}
-		totalServiceCost := int64(0)
-		for _, cost := range costByService {
-			totalServiceCost += cost
-		}
-
-		num_instances := 8
-		allocationByService := make(map[string]float64)
-		fmt.Printf("\nProfile: %s\n", path)
-		// print cost by service
-		fmt.Printf("\nCost by Service:\n")
-		fmt.Printf("Total Service Cost: %d\n", totalServiceCost)
-		for service, cost := range costByService {
-			proportion := (float64(cost) / float64(totalServiceCost))
-			fmt.Printf("%s: %d (%.2f%%)\n", service, cost, proportion*100)
-
-			allocationValue := float64(proportion) * float64(num_instances)
-			fmt.Printf("Allocation Value: %.2f /%d\n", allocationValue, num_instances)
-			allocationByService[service] = allocationValue
-
-			// Calculate possible speedup according to Amdahl's Law
-			// speedup := 1 / (1 - (float64(proportion)) + (float64(proportion) / float64(allocationValue)))
-			// fmt.Printf("   Possible Speedup: %.2f\n", speedup)
-		}
+		profileUnit.SimpleAllocationDistributionByFunction(serviceList, 8, serviceList[0]) // Assuming the first service is the frontend service
 
 	}
 
