@@ -19,11 +19,14 @@ get_public_ip() {
     # Get the public IP address of the Kubernetes cluster
     if [[ $MANIFEST_RUN == "monolith" ]]; then
         kubectl get svc monolith-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+    elif [[ $MANIFEST_RUN == "monolith_large" ]]; then
+        kubectl get svc monolith-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+    elif [[ $MANIFEST_RUN == "monolith_small" ]]; then
+        kubectl get svc monolith-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
     else 
         kubectl get svc entrypoint-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
     fi
 }
-
 
 deploy_shared_manifests() {
     echo "Deploying shared manifests..."
@@ -49,7 +52,7 @@ run_step() {
     echo "Running load test for $1..."
     # Run the load test
     # python throughput_test.py --ip $(get_public_ip) --port 80 --output results/$1-throughput-01.csv
-    run_throughput results/$1/$WORKLOAD_TYPE-throughput-$2.csv 
+    run_throughput results-$WORKLOAD_TYPE/$1/throughput-$2.csv 
 
     echo "Load test for $1 completed."
     echo "Cleaning up resources for $1..."
@@ -64,15 +67,16 @@ run_all() {
 
     WORKLOAD_TYPE='save'
     echo "Running mixed workload..."
-    for i in {1..5}; do
+    for i in {1..2}; do
         echo "Iteration $i..."
         run_step "full" "$i"
         run_step "monolith" "$i"
+        run_step "monolith_large" "$i"
+        run_step "monolith_small" "$i"
         run_step "user" "$i"
         run_step "socialgraph" "$i"
         run_step "timeline" "$i"
         run_step "post" "$i"
-        run_step "simple_profile" "$i"
         run_step "mixed_profile_half_peak" "$i"
         run_step "save_profile_half_peak" "$i"
         run_step "save_profile_peak" "$i"
@@ -82,10 +86,12 @@ run_all() {
     WORKLOAD_TYPE='mixed'
     echo "Running mixed workload..."
 
-    for i in {1..5}; do
+    for i in {1..2}; do
         echo "Iteration $i..."
         run_step "full" "$i"
         run_step "monolith" "$i"
+        run_step "monolith_large" "$i"
+        run_step "monolith_small" "$i"
         run_step "user" "$i"
         run_step "socialgraph" "$i"
         run_step "timeline" "$i"
