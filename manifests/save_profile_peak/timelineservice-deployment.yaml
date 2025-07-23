@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: timelineservice
     discrete.events/experiment: monolift
 spec:
-  replicas: 7
+  replicas: 6
   selector:
     matchLabels:
       app.kubernetes.io/name: timelineservice
@@ -56,3 +56,7 @@ spec:
                 resourceFieldRef:
                   containerName: timelineservice
                   resource: limits.memory
+            - name: TIMELINE_NUM_WORKERS
+              value: "3000"
+            - name: TIMELINE_BUFFER_SIZE
+              value: "30000"
