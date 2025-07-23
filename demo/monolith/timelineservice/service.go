@@ -26,8 +26,6 @@ const (
 	homeTimelineStoreName = "timeline-store"
 	maxTimelineSize       = 1000 // Max number of posts in a timeline (like original Dapr version)
 	maxRetries            = 5    // Max retries for optimistic concurrency
-	numWorkers            = 500  // Number of worker goroutines for processing timeline updates
-	bufferSize            = 1000 // Buffer size for job channel
 )
 
 // TimelinePostEntry stores a post ID and its creation timestamp for sorting.
@@ -37,7 +35,6 @@ type TimelinePostEntry struct {
 }
 
 // Service defines the interface for timeline-related operations.
-// @monolift trigger=CPU threshold=0.5
 type Service interface {
 	// ReadTimeline retrieves post IDs for a user's timeline.
 	// Full post content fetching might be orchestrated by the caller (e.g., frontend)
@@ -61,21 +58,27 @@ type service struct {
 	socialGraphService socialgraph.Service
 	postService        postservice.Service
 
+	numWorkers int // Number of worker goroutines
+	bufferSize int // Buffer size for job channel
+
 	jobChan chan timelineUpdateJob // For worker pool
 }
 
 // NewService creates a new timeline service instance.
-func NewService(store database.Store, sgService socialgraph.Service, pService postservice.Service) Service {
+func NewService(store database.Store, sgService socialgraph.Service, pService postservice.Service, numWorkers int, bufferSize int) Service {
 	s := service{
 		db:                 store,
 		socialGraphService: sgService,
 		postService:        pService,
 
+		numWorkers: numWorkers,
+		bufferSize: bufferSize,
+
 		jobChan: make(chan timelineUpdateJob, bufferSize), // Buffer size can be adjusted
 	}
 
 	// start workers
-	for i := 0; i < numWorkers; i++ {
+	for i := 0; i < s.numWorkers; i++ {
 		go s.worker(i)
 	}
 

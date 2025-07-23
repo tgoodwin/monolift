@@ -61,6 +61,10 @@ spec:
             resourceFieldRef:
               containerName: monolith-app
               resource: limits.memory # Expresses value in bytes
+        - name: TIMELINE_NUM_WORKERS
+          value: "3000"
+        - name: TIMELINE_BUFFER_SIZE
+          value: "30000"
         # If using a Kubernetes Secret for the password, it would look like this:
         # - name: REDIS_PASSWORD
         #   valueFrom:

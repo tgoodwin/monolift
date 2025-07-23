@@ -5,6 +5,7 @@ import (
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/tgoodwin/monolift/demo/monolith/database"
@@ -23,6 +24,21 @@ func main() {
 	serviceAddress := util.GetEnvVar("ADDRESS", ":8080")   // Main service address
 	promAddress := util.GetEnvVar("PROM_ADDRESS", ":8084") // Prometheus metrics address
 
+	timelineNumWorkersEnvVar := util.GetEnvVar("TIMELINE_NUM_WORKERS", "500") // Number of workers for timeline processing
+	logger.Printf("Using TIMELINE_NUM_WORKERS: %s", timelineNumWorkersEnvVar)
+	timelineNumWorkers, _ := strconv.Atoi(timelineNumWorkersEnvVar)
+
+	if timelineNumWorkers <= 0 {
+		timelineNumWorkers = 500 // Default to 500 if not set or invalid
+	}
+	timelineBufferSizeEnvVar := util.GetEnvVar("TIMELINE_BUFFER_SIZE", "1000") // Buffer size for timeline job channel
+	logger.Printf("Using TIMELINE_BUFFER_SIZE: %s", timelineBufferSizeEnvVar)
+	timelineBufferSize, _ := strconv.Atoi(timelineBufferSizeEnvVar)
+
+	if timelineBufferSize <= 0 {
+		timelineBufferSize = 10000 // Default to 10000 if not set or invalid
+	}
+
 	// Register all metrics for Prometheus to expose.
 	database.RegisterMetrics()
 	frontend.RegisterMetrics()
@@ -40,7 +56,7 @@ func main() {
 	socialGraphSvc := socialgraph.NewService(dbStore)
 	userSvc := userservice.NewService(socialGraphSvc, dbStore)
 	postSvc := postservice.NewService(dbStore)
-	timelineSvc := timelineservice.NewService(dbStore, socialGraphSvc, postSvc)
+	timelineSvc := timelineservice.NewService(dbStore, socialGraphSvc, postSvc, timelineNumWorkers, timelineBufferSize)
 
 	// Main application mux
 	appMux := http.NewServeMux()
