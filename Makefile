@@ -1,6 +1,6 @@
 CONTAINER_REGISTRY ?= docker.io/eirn
 IMAGE_NAME ?= $(CONTAINER_REGISTRY)/demo-monolith
-IMAGE_TAG  ?= workpool
+IMAGE_TAG  ?= dapr
 
 # Kubernetes manifest files location
 K8S_DIR ?= demo/monolith/k8s
