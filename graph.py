@@ -5,14 +5,14 @@ import argparse
 import matplotlib.pyplot as plt
 
 def plot_experiment_results(results_folder, x_column, y_column):
-    # Initialize the plot
+  # Initialize the plot
     plt.figure(figsize=(10, 6))
     
     # Traverse through the results folder and its subdirectories
     for root, _, files in os.walk(results_folder):
         for file in files:
             if file.endswith(".csv"):
-                file_path = os.path.join(root, file)
+                file_path = os.path.join(root, file) 
                 
                 # Read the CSV file
                 try:
@@ -21,7 +21,16 @@ def plot_experiment_results(results_folder, x_column, y_column):
                     # Ensure the required columns are present
                     if x_column in data.columns and y_column in data.columns:
                         # Plot the data
-                        plt.plot(data[x_column], data[y_column], label=os.path.relpath(file_path, results_folder), linestyle='-', marker='o')
+                        markers = ['1', '2', '3', '4', '+', 'x', '|', '_', '.', '*', 'x', '>']
+                        marker = markers[hash(file_path) % len(markers)]
+                        plt.plot(
+                            data[x_column], 
+                            data[y_column], 
+                            label=os.path.relpath(file_path, results_folder), 
+                            linestyle='-', 
+                            marker=marker, 
+                            linewidth=1
+                        )
                     else:
                         print(f"Skipping {file_path}: Missing required columns.")
                 except Exception as e:
@@ -30,7 +39,7 @@ def plot_experiment_results(results_folder, x_column, y_column):
 
     # Customize the plot
     plt.title("Experiment Results")
-    plt.ylim(0, 200)  # Adjust the y-axis limit as needed
+    plt.ylim(1, 50)  # Adjust the y-axis limit as needed
     # plt.yscale("log")
     plt.xscale("log")
     plt.xlabel(x_column)
