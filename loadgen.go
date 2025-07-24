@@ -60,8 +60,8 @@ func main() {
 
 	// A handcrafted sequence of RPS levels designed to produce a detailed curve.
 	defaultRPSLevels := []int{
-		10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400,
-		2600, 2800, 3000, 3200, 3400, 3600, 3800, 4000, 4200, 4400, 4600, 4800, 5000,
+		20, 40, 60, 80, 100, 200, 300, 400, 500, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400,
+		2600, 2800, 3000, 3400, 3800, 4000, 4400, 4800, 5000,
 	}
 
 	var rpsLevels []int
@@ -103,7 +103,7 @@ func main() {
 	//Perform Warmup as the first step in rpsLevels for 60 seconds
 	warmup(url) // Perform a warmup request to prime the server
 	fmt.Println("Performing long step warmup...")
-	runTestStep(url, rpsLevels[0], *stepDuration, *numUsers, *workload)
+	runTestStep(url, rpsLevels[0], *stepDuration*4, *numUsers, *workload)
 
 	fmt.Println(
 		"--------------------------------------------------------------------------------",
