@@ -49,10 +49,7 @@ spec:
               containerName: monolith-app
               divisor: "0"
               resource: limits.memory
-        - name: TIMELINE_NUM_WORKERS
-          value: "3000"
-        - name: TIMELINE_BUFFER_SIZE
-          value: "30000"
+
         image: docker.io/eirn/entrypoint:user
         imagePullPolicy: Always
         name: monolith-app
@@ -64,7 +61,7 @@ spec:
         resources:
           limits:
             cpu: "4"
-            memory: 4Gi
+
           requests:
             cpu: 500m
             memory: 256Mi

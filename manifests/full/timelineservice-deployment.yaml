@@ -32,7 +32,7 @@ spec:
               memory: "256Mi"
             limits:
               cpu: 4
-              memory: 4Gi
+  
           env:
             - name: K8S_CPU_REQUEST
               valueFrom:
