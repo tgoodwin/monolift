@@ -78,10 +78,91 @@ class DiurnalShape(LoadTestShape):
         return (round(user_count), spawn_rate)
 
 
+@task
+def read_home_timeline(self):
+    """
+    Simulates a user reading their timeline.
+    This is based on the `read_timeline` function in `init_social_graph.py`.
+    """
+    # 1. Pick a random user ID from the total number of registered users
+    user_id = str(random.randint(0, settings["num_users"] - 1))
+    user_ti = str(False)
+    num_posts = str(random.randint(1, 10))
+
+    # 2. Send the GET request to the /timeline endpoint
+    self.client.get(
+        f"/timeline?user_id={user_id}&user_tl={user_ti}&posts={num_posts}",
+        name="/timeline [read_home_timeline]" # Group stats under a more descriptive name
+    )
+
+@task
+def read_user_timeline(self):
+    """
+    Simulates a user reading another user's timeline.
+    This is based on the `read_timeline` function in `init_social_graph.py`.
+    """
+    # 1. Pick a random user ID from the total number of registered users
+    user_id = str(random.randint(0, settings["num_users"] - 1))
+    user_ti = str(True)
+    num_posts = str(random.randint(1, 10))
+
+    # 2. Send the GET request to the /timeline endpoint for that user
+    self.client.get(
+        f"/timeline?user_id={user_id}&user_tl={user_ti}&posts={num_posts}",
+        name="/timeline [read_user_timeline]" # Group stats under a more descriptive name
+    )
+
+@task
+def compose_post(self):
+    """
+    Simulates a user composing and saving a new post with text and optional images.
+    This is based on the `upload_save` function in `init_social_graph.py`.
+    """
+    # 1. Pick a random user ID from the total number of registered users
+    user_id = str(random.randint(0, settings["num_users"] - 1))
+
+    # 2. Generate text content
+    text = ''.join(random.choices(string.ascii_letters + string.digits, k=256))
+    # Add random user mentions
+    for _ in range(random.randint(0, 5)):
+        text += ' @username_' + str(random.randint(0, settings["num_users"] - 1))
+    # Add random urls
+    for _ in range(random.randint(0, 5)):
+        text += ' http://' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=64))
+
+    # 3. Prepare form data and files
+    form_data = {
+        'user_id': user_id,
+        'text': text
+    }
+
+    files_to_upload = []
+    num_images = random.randint(0, 4)
+    for i in range(num_images):
+        dummy_image_data = os.urandom(1024)  # 1KB of random data
+        files_to_upload.append(
+            ('images', (f'image_{i}.jpg', dummy_image_data, 'image/jpeg'))
+        )
+
+
+    if num_images == 0:
+        # If no images, we still need to send an empty 'images' field
+        files_to_upload.append(('images', ('', None, '')))
+    # 4. Send the POST request to the /save endpoint
+    self.client.post(
+        "/save",
+        data=form_data,
+        files=files_to_upload,
+        name="/save [compose_post]" # Group stats under a more descriptive name
+    )
+
+
+
 class SocialUser(HttpUser):
     """
     User that composes posts on the social network.
     """
+    tasks = {read_home_timeline: 6, read_user_timeline:3, compose_post: 1}
     # To achieve a target of ~1000 req/s with the default 100 max_users,
     # each user must generate 10 requests per second. This means each
     # task execution cycle (task + wait) should take 0.1 seconds.
@@ -89,48 +170,5 @@ class SocialUser(HttpUser):
     # a task runs every N seconds, automatically subtracting the task's execution time.
     wait_time = constant_pacing(0.5)
 
-    @task
-    def compose_post(self):
-        """
-        Simulates a user composing and saving a new post with text and optional images.
-        This is based on the `upload_save` function in `init_social_graph.py`.
-        """
-        # 1. Pick a random user ID from the total number of registered users
-        user_id = str(random.randint(0, settings["num_users"] - 1))
 
-        # 2. Generate text content
-        text = ''.join(random.choices(string.ascii_letters + string.digits, k=256))
-        # Add random user mentions
-        for _ in range(random.randint(0, 5)):
-            text += ' @username_' + str(random.randint(0, settings["num_users"] - 1))
-        # Add random urls
-        for _ in range(random.randint(0, 5)):
-            text += ' http://' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=64))
-
-        # 3. Prepare form data and files
-        form_data = {
-            'user_id': user_id,
-            'text': text
-        }
-
-        files_to_upload = []
-        num_images = random.randint(1, 4)
-        for i in range(num_images):
-            dummy_image_data = os.urandom(1024)  # 1KB of random data
-            files_to_upload.append(
-                ('images', (f'image_{i}.jpg', dummy_image_data, 'image/jpeg'))
-            )
-
-        # 4. Send the POST request to the /save endpoint
-        with self.client.post(
-            "/save",
-            data=form_data,
-            files=files_to_upload,
-            name="/save [compose_post]", # Group stats under a more descriptive name
-            catch_response=True # Important: allows us to check the response
-        ) as response:
-            if not response.ok:
-                print(f"Request to /save failed with status {response.status_code}: {response.text}")
-                response.failure(f"Status code {response.status_code}")
-            else:
-                response.success()
+        

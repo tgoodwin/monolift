@@ -1,6 +1,6 @@
-CONTAINER_REGISTRY ?= ghcr.io/tgoodwin
+CONTAINER_REGISTRY ?= docker.io/eirn
 IMAGE_NAME ?= $(CONTAINER_REGISTRY)/demo-monolith
-IMAGE_TAG  ?= workpool
+IMAGE_TAG  ?= dapr
 
 # Kubernetes manifest files location
 K8S_DIR ?= demo/monolith/k8s
@@ -26,7 +26,7 @@ push-demo: build-demo
 
 deploy-demo:
 	@echo "--- Deploying to Kubernetes using manifests in $(K8S_DIR) ---"
-	kind load docker-image $(IMAGE_NAME):$(IMAGE_TAG) --name operator-perf-test
+	kind load docker-image $(IMAGE_NAME):$(IMAGE_TAG) --name kind
 	kubectl apply -f $(K8S_DIR)
 
 undeploy:
@@ -52,8 +52,19 @@ delete-demo:
 delete-generated:
 	kubectl delete -f $(GENERATED_MANIFEST_DIR)
 
+delete-redis:
+	@echo "--- deleting redis manifests ---"
+	kubectl delete -f $(K8S_DIR)/redis.yaml 
+	kubectl wait --for=delete -f $(K8S_DIR)/redis.yaml --timeout=60s || true
+	kubectl delete -f $(K8S_DIR)/redis-multi.yaml 
+	kubectl wait --for=delete -f $(K8S_DIR)/redis-multi.yaml --timeout=60s || true
+
+
 reset-redis:
 	@echo "---deleting and then recreating redis---"
-	kubectl delete -f $(K8S_DIR)/redis.yaml
+	kubectl delete -f $(K8S_DIR)/redis.yaml --ignore-not-found=true
 	kubectl wait --for=delete -f $(K8S_DIR)/redis.yaml --timeout=60s || true
+	kubectl delete -f $(K8S_DIR)/redis-multi.yaml --ignore-not-found=true
+	kubectl wait --for=delete -f $(K8S_DIR)/redis-multi.yaml --timeout=60s || true
 	kubectl apply -f $(K8S_DIR)/redis.yaml
+	kubectl apply -f $(K8S_DIR)/redis-multi.yaml

@@ -1,4 +1,4 @@
-IMAGE_NAME ?= docker.io/tlg2132/demo-monolith
+IMAGE_NAME ?= docker.io/eirn/demo-monolith
 IMAGE_TAG  ?= latest
 
 # Kubernetes manifest files location

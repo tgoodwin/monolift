@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	simpleRand "math/rand/v2"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -47,18 +48,20 @@ func main() {
 	outputFile := flag.String("output-file", "", "Optional path to the output CSV file.")
 	numUsers := flag.Int("num-users", 962, "Total number of users in the social graph (for generating random data).")
 	rpsLevelStr := flag.String("rps-levels", "", "Custom RPS levels to test, comma-separated (e.g., '100,200,300'). If empty, uses a default sequence.")
+	earlyExit := flag.Bool("early-exit", false, "Exit early if no successful requests are made at a given RPS level.")
 	// Use all available CPU cores for workers by default.
 	concurrency := flag.Int("concurrency", runtime.NumCPU(), "Number of concurrent workers to generate load.")
+	workload := flag.String("workload", "save", "Type of workload to run (save, mixed).")
 	flag.Parse()
 
 	// --- Test Setup ---
-	url := fmt.Sprintf("http://%s:%d/save", *ip, *port)
+	url := fmt.Sprintf("http://%s:%d", *ip, *port)
 	runtime.GOMAXPROCS(*concurrency)
 
 	// A handcrafted sequence of RPS levels designed to produce a detailed curve.
 	defaultRPSLevels := []int{
-		20, 40, 60, 80, 100, 150, 200, 250, 300, 350, 400, 450, 500,
-		600, 800, 1000, 1200, 1500, 2000, 2500, 3000,
+		20, 40, 60, 80, 100, 200, 300, 400, 500, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400,
+		2600, 2800, 3000, 3400, 3800, 4000, 4400, 4800, 5000,
 	}
 
 	var rpsLevels []int
@@ -97,7 +100,10 @@ func main() {
 		fmt.Printf("Output CSV file: %s\n", *outputFile)
 	}
 
+	//Perform Warmup as the first step in rpsLevels for 60 seconds
 	warmup(url) // Perform a warmup request to prime the server
+	fmt.Println("Performing long step warmup...")
+	runTestStep(url, rpsLevels[0], *stepDuration*4, *numUsers, *workload)
 
 	fmt.Println(
 		"--------------------------------------------------------------------------------",
@@ -111,7 +117,7 @@ func main() {
 
 	// --- Main Test Loop ---
 	for i, rps := range rpsLevels {
-		stats := runTestStep(url, rps, *stepDuration, *numUsers)
+		stats := runTestStep(url, rps, *stepDuration, *numUsers, *workload)
 
 		// Print to console
 		fmt.Printf(
@@ -137,7 +143,12 @@ func main() {
 			csvWriter.Write(row)
 			csvWriter.Flush()
 		}
-
+		if *earlyExit {
+			if stats.SuccessCount == 0 && stats.FailureCount > 0 {
+				fmt.Printf("Warning: No successful requests at RPS %d.", stats.TargetRPS)
+				break // Stop if no successful requests
+			}
+		}
 		// Cool-off period
 		if *coolOff > 0 && i < len(rpsLevels)-1 {
 			fmt.Printf("Cooling off for %v...\n", *coolOff)
@@ -158,12 +169,15 @@ func warmup(url string) {
 			log.Fatalf("Warmup: failed to generate post data: %v", err)
 		}
 
-		req, err := http.NewRequest("POST", url, body)
+		req, err := http.NewRequest("POST", url+"/save", body)
 		if err != nil {
 			log.Fatalf("Warmup: failed to create request: %v", err)
 		}
 		req.Header.Set("Content-Type", contentType)
 		resp, err := client.Do(req)
+		if err != nil {
+			log.Fatalf("Warmup: request error: %v", err)
+		}
 		if resp.StatusCode != http.StatusOK {
 			log.Fatalf("Warmup request returned bad status: %d", resp.StatusCode)
 		}
@@ -172,7 +186,7 @@ func warmup(url string) {
 }
 
 // runTestStep executes the load test for a single RPS level and returns aggregated stats.
-func runTestStep(url string, rps int, duration time.Duration, numUsers int) Stats {
+func runTestStep(url string, rps int, duration time.Duration, numUsers int, workloadType string) Stats {
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
 
@@ -197,13 +211,12 @@ func runTestStep(url string, rps int, duration time.Duration, numUsers int) Stat
 			return processResults(results, rps, duration)
 		case <-ticker.C:
 			wg.Add(1)
-			go sendRequest(client, url, numUsers, results, &wg)
+			go sendRequest(client, url, numUsers, results, &wg, workloadType)
 		}
 	}
 }
 
-// sendRequest generates data, sends a single HTTP POST request, and records the result.
-func sendRequest(client *http.Client, url string, numUsers int, results chan<- Result, wg *sync.WaitGroup) {
+func sendSaveRequest(client *http.Client, url string, numUsers int, results chan<- Result, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	body, contentType, err := generatePostData(numUsers)
@@ -212,7 +225,9 @@ func sendRequest(client *http.Client, url string, numUsers int, results chan<- R
 		return
 	}
 
-	req, err := http.NewRequest("POST", url, body)
+	//modify endpoint to match the save endpoint
+	finalURL := url + "/save" // Remove trailing /save if present
+	req, err := http.NewRequest("POST", finalURL, body)
 	if err != nil {
 		results <- Result{Err: fmt.Errorf("failed to create request: %w", err)}
 		return
@@ -234,8 +249,69 @@ func sendRequest(client *http.Client, url string, numUsers int, results chan<- R
 		results <- Result{Err: fmt.Errorf("bad status code: %d", resp.StatusCode)}
 		return
 	}
-
 	results <- Result{Latency: latency, Err: nil}
+}
+
+func sendReadRequest(client *http.Client, url string, numUsers int, results chan<- Result, wg *sync.WaitGroup, readUser bool) {
+	defer wg.Done()
+
+	// Generate a random user ID for the GET request
+	userID := strconv.Itoa(time.Now().Nanosecond() % numUsers)
+	userTI := strconv.FormatBool(readUser)
+	numPosts := strconv.Itoa((time.Now().Nanosecond() % 10) + 1) // Random number of posts between 1 and 10
+
+	// , fmt.Sprintf("%s?user_id=%s", url, userID) ?
+	finalUrl := url + "/timeline" + "?user_id=" + userID + "&user_ti=" + userTI + "&posts=" + numPosts //
+
+	req, err := http.NewRequest("GET", finalUrl, nil)
+	if err != nil {
+		results <- Result{Err: fmt.Errorf("failed to create request: %w", err)}
+		return
+	}
+
+	startTime := time.Now()
+	resp, err := client.Do(req)
+	latency := time.Since(startTime)
+
+	if err != nil {
+		results <- Result{Err: err}
+		return
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body) // Consume the body to allow connection reuse
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		results <- Result{Err: fmt.Errorf("bad status code: %d", resp.StatusCode)}
+		return
+	}
+	results <- Result{Latency: latency, Err: nil}
+}
+
+func randRange(min, max int) int {
+	return simpleRand.IntN(max-min) + min
+}
+
+// sendRequest generates data, sends a single HTTP POST request, and records the result.
+func sendRequest(client *http.Client, url string, numUsers int, results chan<- Result, wg *sync.WaitGroup, workloadType string) {
+
+	if workloadType == "save" {
+		sendSaveRequest(client, url, numUsers, results, wg)
+	} else if workloadType == "mixed" {
+		coin_toss := randRange(0, 100)
+		if coin_toss < 60 {
+			// Read user home data: send a GET request
+			sendReadRequest(client, url, numUsers, results, wg, false)
+		} else if 60 <= coin_toss && coin_toss < 90 {
+			// Save user  data: send a GET request
+			sendReadRequest(client, url, numUsers, results, wg, true)
+		} else if 90 <= coin_toss && coin_toss < 100 {
+			// Mixed workload: send a save request
+			sendSaveRequest(client, url, numUsers, results, wg)
+		} else {
+			sendSaveRequest(client, url, numUsers, results, wg)
+		}
+
+	}
 }
 
 // processResults collects all results from the channel and calculates final statistics.

@@ -26,8 +26,6 @@ const (
 	homeTimelineStoreName = "timeline-store"
 	maxTimelineSize       = 1000 // Max number of posts in a timeline (like original Dapr version)
 	maxRetries            = 5    // Max retries for optimistic concurrency
-	numWorkers            = 500  // Number of worker goroutines for processing timeline updates
-	bufferSize            = 1000 // Buffer size for job channel
 )
 
 // TimelinePostEntry stores a post ID and its creation timestamp for sorting.
@@ -50,36 +48,19 @@ type Service interface {
 	UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error)
 }
 
-type timelineUpdateJob struct {
-	Req    timelineTypes.UpdateReq
-	PostId string // For logging
-	UserId string // For logging
-}
-
 type service struct {
 	db                 database.Store
 	socialGraphService socialgraph.Service
 	postService        postservice.Service
-
-	jobChan chan timelineUpdateJob // For worker pool
 }
 
 // NewService creates a new timeline service instance.
 func NewService(store database.Store, sgService socialgraph.Service, pService postservice.Service) Service {
-	s := service{
+	return &service{
 		db:                 store,
 		socialGraphService: sgService,
 		postService:        pService,
-
-		jobChan: make(chan timelineUpdateJob, bufferSize), // Buffer size can be adjusted
 	}
-
-	// start workers
-	for i := 0; i < numWorkers; i++ {
-		go s.worker(i)
-	}
-
-	return &s
 }
 
 // --- Key generation functions ---
@@ -89,20 +70,6 @@ func userTimelineKey(userId string) string {
 
 func homeTimelineKey(userId string) string {
 	return userId + "-home"
-}
-
-func (s *service) worker(id int) {
-	logger.Printf("Timeline worker %d started.", id)
-	for job := range s.jobChan {
-		// serviceCallStart := time.Now()
-		_, err := s.handleUpdateTimeline(context.Background(), job.Req)
-
-		// util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
-
-		if err != nil {
-			logger.Printf("Timeline worker %d: failed to update timeline for user %s, post %s: %v", id, job.UserId, job.PostId, err)
-		}
-	}
 }
 
 // --- Helper to update a single timeline (user or home) ---
@@ -240,17 +207,6 @@ func (s *service) ReadTimeline(ctx context.Context, req timelineTypes.ReadReq) (
 }
 
 func (s *service) UpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error) {
-	// create a timeline job and enqueue it
-	job := timelineUpdateJob{
-		Req:    req,
-		PostId: req.PostId,
-		UserId: req.UserId,
-	}
-	s.jobChan <- job
-	return timelineTypes.UpdateResp{}, nil
-}
-
-func (s *service) handleUpdateTimeline(ctx context.Context, req timelineTypes.UpdateReq) (timelineTypes.UpdateResp, error) {
 	opStartTime := time.Now()
 	updateTimelineReqCtr.Inc()
 	logger.Printf("UpdateTimeline called for PosterId: %s, PostId: %s, Add: %t, PostTimestamp: %d", req.UserId, req.PostId, req.Add, req.ClientUnixMilli)

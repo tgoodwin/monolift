@@ -1,0 +1,11 @@
+stores:
+  - name: post
+  - name: user
+  - name: image
+  - name: socialgraph
+  - name: timeline
+redis:
+  image: redis:7.2-alpine
+  password: redispass
+  port: 6379
+  namespace: default

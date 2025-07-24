@@ -23,6 +23,7 @@ const (
 )
 
 // Service defines the interface for post-related operations.
+// @monolift trigger=CPU threshold=0.5
 type Service interface {
 	SavePost(ctx context.Context, req post.SavePostReq) (post.UpdatePostResp, error)
 	DeletePost(ctx context.Context, req post.DelPostReq) (post.UpdatePostResp, error)
@@ -393,7 +394,7 @@ func (s *service) ReadPosts(ctx context.Context, req post.ReadPostReq) (post.Rea
 		if err != nil {
 			logger.Printf("ReadPosts: failed to get comments for PostId %s: %v. Using empty comments.", postId, err)
 		} else if commentsItem != nil && commentsItem.Value != nil {
-			if err := database.Unmarshal(commentsItem.Value, &p.Comments); err != nil {
+			if err := database.Unmarshal(commentsItem.Value, &p.PostComments.Comments); err != nil {
 				logger.Printf("ReadPosts: failed to unmarshal comments for PostId %s: %v. Using empty comments.", postId, err)
 			}
 		}

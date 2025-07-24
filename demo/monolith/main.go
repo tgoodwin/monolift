@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	httppprof "net/http/pprof"
 	"os"
 	"time"
 
@@ -59,6 +60,12 @@ func main() {
 	// Set up a separate mux and server for Prometheus metrics.
 	promMux := http.NewServeMux()
 	promMux.Handle("/metrics", frontend.GetPrometheusHandler())
+
+	logger.Printf("Registering pprof handlers")
+	promMux.HandleFunc("/debug/pprof/", httppprof.Index)
+	promMux.HandleFunc("/debug/pprof/cmdline", httppprof.Cmdline)
+	promMux.HandleFunc("/debug/pprof/profile", httppprof.Profile)
+	promMux.HandleFunc("/debug/pprof/symbol", httppprof.Symbol)
 
 	go func() {
 		logger.Printf("Prometheus metrics server starting on %s", promAddress)

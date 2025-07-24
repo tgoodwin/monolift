@@ -181,15 +181,16 @@ func (h *APIHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update timeline asynchronously to match DeathStarBench use of a queue
-	serviceCallStart = time.Now()
-	_, err = h.TimelineService.UpdateTimeline(ctx, timelineUpdateReq)
-	// TODO measure latency on the worker task instead of here
-	util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
-	if err != nil {
-		// Log error, but don't fail the entire Save operation for a timeline update failure
-		logger.Printf("SaveHandler: failed to update timeline for user %s, post %s: %v", userId, postId, err)
-	}
-	logger.Printf("SaveHandler: PostId %s, User %s, Text: %s, Image IDs: %v", postId, userId, text, imageIds)
+	go func(req timelineTypes.UpdateReq) {
+		serviceCallStart := time.Now()
+		_, err = h.TimelineService.UpdateTimeline(ctx, req)
+		util.ObserveHist(serviceCallLatHist.WithLabelValues("timelineservice", "UpdateTimeline"), float64(time.Since(serviceCallStart).Milliseconds()))
+		if err != nil {
+			// Log error, but don't fail the entire Save operation for a timeline update failure
+			logger.Printf("SaveHandler: failed to update timeline for user %s, post %s: %v", userId, postId, err)
+		}
+		logger.Printf("SaveHandler: PostId %s, User %s, Text: %s, Image IDs: %v", postId, userId, text, imageIds)
+	}(timelineUpdateReq)
 
 	resp := UpdateResp{PostId: postId} // Use type from frontend/types.go
 	writeJSONResponse(w, http.StatusOK, resp)
