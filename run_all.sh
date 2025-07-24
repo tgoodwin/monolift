@@ -67,7 +67,7 @@ run_all() {
 
     WORKLOAD_TYPE='save'
     echo "Running mixed workload..."
-    for i in {1..2}; do
+    for i in {1..3}; do
         echo "Iteration $i..."
         run_step "full" "$i"
         run_step "monolith" "$i"
@@ -86,7 +86,7 @@ run_all() {
     WORKLOAD_TYPE='mixed'
     echo "Running mixed workload..."
 
-    for i in {1..2}; do
+    for i in {1..3}; do
         echo "Iteration $i..."
         run_step "full" "$i"
         run_step "monolith" "$i"
