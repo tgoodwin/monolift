@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: monolith
     discrete.events/experiment: monolift
 spec:
-  replicas: 4
+  replicas: 8
   selector:
     matchLabels:
       app.kubernetes.io/name: monolith
@@ -23,7 +23,7 @@ spec:
       containers:
       - name: monolith-app
         imagePullPolicy: Always
-        
+
         image: docker.io/eirn/demo-monolith:dapr
         ports:
         - name: http-app
