@@ -60,7 +60,7 @@ spec:
           name: http-metrics
         resources:
           limits:
-            cpu: "4"
+            cpu: "2"
 
           requests:
             cpu: 500m

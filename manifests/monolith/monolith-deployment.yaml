@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: monolith
     discrete.events/experiment: monolift
 spec:
-  replicas: 8
+  replicas: 4
   selector:
     matchLabels:
       app.kubernetes.io/name: monolith
@@ -65,4 +65,4 @@ spec:
             memory: "128Mi"
             cpu: "500m"
           limits:
-            cpu: "4000m"
+            cpu: "4"
