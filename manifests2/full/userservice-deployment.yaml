@@ -1,29 +1,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: timelineservice
+  name: userservice
   namespace: default
   labels:
-    app.kubernetes.io/name: timelineservice
+    app.kubernetes.io/name: userservice
     discrete.events/experiment: monolift
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: timelineservice
+      app.kubernetes.io/name: userservice
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: timelineservice
+        app.kubernetes.io/name: userservice
         discrete.events/experiment: monolift
       annotations:
         dapr.io/enabled: "true"
-        dapr.io/app-id: timelineservice
+        dapr.io/app-id: userservice
         dapr.io/app-port: "8080"
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "backend"
+        effect: "PreferNoSchedule"
       containers:
-        - name: timelineservice
-          image: docker.io/tlg2132/timelineservice:ips-test
+        - name: userservice
+          image: ghcr.io/tgoodwin/userservice:full-decomposition
           ports:
             - containerPort: 8080
           resources:
@@ -37,22 +42,22 @@ spec:
             - name: K8S_CPU_REQUEST
               valueFrom:
                 resourceFieldRef:
-                  containerName: timelineservice
+                  containerName: userservice
                   resource: requests.cpu
                   divisor: "1m"
             - name: K8S_CPU_LIMIT
               valueFrom:
                 resourceFieldRef:
-                  containerName: timelineservice
+                  containerName: userservice
                   resource: limits.cpu
                   divisor: "1m"
             - name: K8S_MEMORY_REQUEST
               valueFrom:
                 resourceFieldRef:
-                  containerName: timelineservice
+                  containerName: userservice
                   resource: requests.memory
             - name: K8S_MEMORY_LIMIT
               valueFrom:
                 resourceFieldRef:
-                  containerName: timelineservice
+                  containerName: userservice
                   resource: limits.memory

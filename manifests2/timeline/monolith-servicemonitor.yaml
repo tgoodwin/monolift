@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: monolift-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - default
+  selector:
+    matchLabels:
+      monolift.com/metrics: "true"
+  endpoints:
+  - port: http-metrics
+    scheme: http
+    interval: 15s
+    path: "/metrics"

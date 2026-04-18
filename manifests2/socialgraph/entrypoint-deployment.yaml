@@ -23,6 +23,11 @@ spec:
         app.kubernetes.io/name: entrypoint
         discrete.events/experiment: monolift
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "entrypoint"
+        effect: "PreferNoSchedule"
       containers:
       - env:
         - name: K8S_CPU_REQUEST
@@ -49,7 +54,7 @@ spec:
               containerName: monolith-app
               divisor: "0"
               resource: limits.memory
-        image: docker.io/tlg2132/entrypoint:ips-test
+        image: ghcr.io/tgoodwin/entrypoint:socialgraph-decomposition
         imagePullPolicy: Always
         name: monolith-app
         ports:
@@ -59,8 +64,8 @@ spec:
           name: http-metrics
         resources:
           limits:
-            cpu: "4"
-            memory: 4Gi
+            cpu: "2"
+            memory: 2Gi
           requests:
             cpu: 500m
             memory: 128Mi

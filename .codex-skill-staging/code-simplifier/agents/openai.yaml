@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Simplifier"
+  short_description: "Simplify existing code without changing behavior"
+  default_prompt: "Simplify this code while preserving behavior and keeping the change scoped."

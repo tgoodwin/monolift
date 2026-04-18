@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: timelineservice
     discrete.events/experiment: monolift
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app.kubernetes.io/name: timelineservice
@@ -21,9 +21,14 @@ spec:
         dapr.io/app-id: timelineservice
         dapr.io/app-port: "8080"
     spec:
+      tolerations:
+      - key: "tier"
+        operator: "Equal"
+        value: "backend"
+        effect: "PreferNoSchedule"
       containers:
         - name: timelineservice
-          image: docker.io/tlg2132/timelineservice:ips-test
+          image: ghcr.io/tgoodwin/timelineservice:timeline-decomposition
           ports:
             - containerPort: 8080
           resources:
