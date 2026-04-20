@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://monolift.dev/schemas/closure-report-v1.0.json",
+  "title": "Monolift v2 Closure Report",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "buildConfig",
+    "analysis",
+    "pragma",
+    "root",
+    "closure",
+    "state",
+    "adapters",
+    "externalDependencies",
+    "pruning",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "buildConfig": { "$ref": "#/$defs/buildConfig" },
+    "analysis": {
+      "type": "object",
+      "required": ["algorithm", "precisionTriggers", "deterministic"],
+      "properties": {
+        "algorithm": { "type": "string" },
+        "precisionTriggers": { "type": "array", "items": { "type": "string" } },
+        "deterministic": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "pragma": {
+      "type": "object",
+      "required": ["name", "surface", "span", "options"],
+      "properties": {
+        "name": { "type": "string" },
+        "surface": { "enum": ["interface", "function", "method", "struct"] },
+        "span": { "$ref": "#/$defs/sourceSpan" },
+        "options": { "type": "object", "additionalProperties": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "root": {
+      "type": "object",
+      "required": ["identity", "registryKey", "exposedOperations"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/symbolIdentity" },
+        "registryKey": { "type": ["string", "null"] },
+        "exposedOperations": { "type": "array", "items": { "$ref": "#/$defs/symbolIdentity" } }
+      },
+      "additionalProperties": false
+    },
+    "closure": {
+      "type": "object",
+      "required": ["includedSymbols", "excludedSymbols", "wiringPaths"],
+      "properties": {
+        "includedSymbols": { "type": "array", "items": { "$ref": "#/$defs/symbolEntry" } },
+        "excludedSymbols": { "type": "array", "items": { "$ref": "#/$defs/symbolEntry" } },
+        "wiringPaths": { "type": "array", "items": { "$ref": "#/$defs/wiringPath" } }
+      },
+      "additionalProperties": false
+    },
+    "state": { "type": "array", "items": { "$ref": "#/$defs/stateFacet" } },
+    "adapters": { "type": "array", "items": { "$ref": "#/$defs/adapter" } },
+    "externalDependencies": { "type": "array", "items": { "$ref": "#/$defs/externalDependency" } },
+    "pruning": {
+      "type": "object",
+      "required": ["bounded", "frontier"],
+      "properties": {
+        "bounded": { "type": "boolean" },
+        "frontier": { "type": "array", "items": { "$ref": "#/$defs/symbolEntry" } }
+      },
+      "additionalProperties": false
+    },
+    "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "buildConfig": {
+      "type": "object",
+      "required": ["GOOS", "GOARCH", "CGO_ENABLED", "buildTags", "moduleRoot", "workspaceMode", "tests", "dependencyManifest"],
+      "properties": {
+        "GOOS": { "type": "string" },
+        "GOARCH": { "type": "string" },
+        "CGO_ENABLED": { "type": "boolean" },
+        "buildTags": { "type": "array", "items": { "type": "string" } },
+        "moduleRoot": { "type": "string" },
+        "workspaceMode": { "type": "string" },
+        "tests": { "type": "boolean" },
+        "dependencyManifest": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["module_path", "version", "sum"],
+            "properties": {
+              "module_path": { "type": "string" },
+              "version": { "type": "string" },
+              "sum": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "symbolIdentity": {
+      "type": "object",
+      "required": ["module_path", "package_path", "object_name", "kind"],
+      "properties": {
+        "module_path": { "type": "string" },
+        "package_path": { "type": "string" },
+        "object_name": { "type": "string" },
+        "kind": { "enum": ["function", "method", "type", "interface", "field", "variable", "constant", "registry-entry", "package", "adapter"] },
+        "instantiation": { "type": ["array", "null"], "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "sourceSpan": {
+      "type": "object",
+      "required": ["file_relative_path", "byte_offset_start", "byte_offset_end", "line_start", "line_end"],
+      "properties": {
+        "file_relative_path": { "type": "string" },
+        "byte_offset_start": { "type": "integer", "minimum": 0 },
+        "byte_offset_end": { "type": "integer", "minimum": 0 },
+        "line_start": { "type": "integer", "minimum": 1 },
+        "line_end": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "symbolEntry": {
+      "type": "object",
+      "required": ["identity", "span", "ruleIds"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/symbolIdentity" },
+        "span": { "$ref": "#/$defs/sourceSpan" },
+        "ruleIds": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "wiringPath": {
+      "type": "object",
+      "required": ["target", "steps"],
+      "properties": {
+        "target": { "$ref": "#/$defs/symbolIdentity" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/symbolEntry" } }
+      },
+      "additionalProperties": false
+    },
+    "stateFacet": {
+      "type": "object",
+      "required": ["symbol", "classes", "disposition", "evidence", "developerDeclared"],
+      "properties": {
+        "symbol": { "$ref": "#/$defs/symbolIdentity" },
+        "classes": {
+          "type": "array",
+          "items": { "enum": ["stateless", "immutable-captured-config", "externalized-durable", "process-local-cache", "singleton-mutable", "shared-mutable-across-callers", "connection-session"] },
+          "minItems": 1
+        },
+        "disposition": { "enum": ["replicated", "singleton", "affinity-routed", "externalize-required", "refused"] },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "developerDeclared": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "adapter": {
+      "type": "object",
+      "required": ["kind", "id", "matchedSymbols", "canonicalShapes", "stateEffects", "transportEffects", "serializationEffects"],
+      "properties": {
+        "kind": { "enum": ["handler", "registry", "serialization", "context-value", "cgo", "reflection", "generic-substitution"] },
+        "id": { "type": "string" },
+        "matchedSymbols": { "type": "array", "items": { "$ref": "#/$defs/symbolIdentity" } },
+        "canonicalShapes": { "type": "array", "items": { "type": "string" } },
+        "stateEffects": { "type": "array", "items": { "type": "string" } },
+        "transportEffects": { "type": "array", "items": { "type": "string" } },
+        "serializationEffects": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "externalDependency": {
+      "type": "object",
+      "required": ["identity", "accessPath", "configurationSource", "stateEffectSummary"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/symbolIdentity" },
+        "accessPath": { "type": "string" },
+        "configurationSource": { "type": "string" },
+        "stateEffectSummary": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "severity", "span", "ruleIds", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "severity": { "enum": ["error", "warning"] },
+        "span": { "$ref": "#/$defs/sourceSpan" },
+        "ruleIds": { "type": "array", "items": { "type": "string" } },
+        "message": { "type": "string" },
+        "remediation": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

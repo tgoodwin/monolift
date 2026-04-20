@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniflux
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniflux
+  template:
+    metadata:
+      labels:
+        app: miniflux
+    spec:
+      containers:
+      - name: miniflux
+        image: miniflux/miniflux:latest
+        env:
+        - name: DATABASE_URL
+          value: postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable
+        - name: RUN_MIGRATIONS
+          value: "1"
+        ports:
+        - containerPort: 8080

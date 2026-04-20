@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-upstream
+  labels:
+    app: echo-upstream
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo-upstream
+  template:
+    metadata:
+      labels:
+        app: echo-upstream
+    spec:
+      containers:
+      - name: echo
+        image: hashicorp/http-echo:1.0
+        args:
+        - "-listen=:8080"
+        - "-text=proxy ok"
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-upstream
+spec:
+  selector:
+    app: echo-upstream
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080

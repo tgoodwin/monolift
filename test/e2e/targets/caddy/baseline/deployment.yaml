@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy
+  labels:
+    app: caddy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: caddy
+  template:
+    metadata:
+      labels:
+        app: caddy
+    spec:
+      containers:
+      - name: caddy
+        image: monolift-e2e/caddy:e2e
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: caddyfile
+          mountPath: /etc/caddy
+      volumes:
+      - name: caddyfile
+        configMap:
+          name: caddyfile

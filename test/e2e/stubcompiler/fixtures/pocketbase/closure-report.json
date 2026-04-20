@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "1.0",
+  "buildConfig": {
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": false,
+    "buildTags": [],
+    "moduleRoot": "evaluation/pocketbase",
+    "workspaceMode": "single-module",
+    "tests": false,
+    "dependencyManifest": []
+  },
+  "analysis": {
+    "algorithm": "ssa-rta-stub",
+    "precisionTriggers": ["embedded-db", "closure-size"],
+    "deterministic": true
+  },
+  "pragma": {
+    "name": "pocketbase-app",
+    "surface": "struct",
+    "span": {
+      "file_relative_path": "core/app.go",
+      "byte_offset_start": 0,
+      "byte_offset_end": 1,
+      "line_start": 1,
+      "line_end": 1
+    },
+    "options": {
+      "state": "external",
+      "verdict": "refuse-blocking"
+    }
+  },
+  "root": {
+    "identity": {
+      "module_path": "github.com/pocketbase/pocketbase",
+      "package_path": "github.com/pocketbase/pocketbase/core",
+      "object_name": "App",
+      "kind": "interface"
+    },
+    "registryKey": null,
+    "exposedOperations": []
+  },
+  "closure": {
+    "includedSymbols": [],
+    "excludedSymbols": [],
+    "wiringPaths": []
+  },
+  "state": [
+    {
+      "symbol": {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "BaseApp.db",
+        "kind": "field"
+      },
+      "classes": ["shared-mutable-across-callers"],
+      "disposition": "refused",
+      "evidence": ["embedded SQLite database is owned by the app runtime"],
+      "developerDeclared": false
+    }
+  ],
+  "adapters": [],
+  "externalDependencies": [],
+  "pruning": {
+    "bounded": false,
+    "frontier": []
+  },
+  "diagnostics": [
+    {
+      "code": "MLV2_CLOSURE_TOO_LARGE",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "core/app.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 1,
+        "line_start": 1,
+        "line_end": 1
+      },
+      "ruleIds": ["EC-PRUNE-3"],
+      "message": "core.App cannot be pruned to a bounded deployable",
+      "remediation": "Choose a narrower service root."
+    },
+    {
+      "code": "MLV2_EMBEDDED_DB_APP_ROOT",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "core/app.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 1,
+        "line_start": 1,
+        "line_end": 1
+      },
+      "ruleIds": ["SS-LIFT-6"],
+      "message": "embedded SQLite app runtime selected as lift root",
+      "remediation": "Externalize durable state before lifting."
+    }
+  ]
+}

@@ -57,3 +57,5 @@ reset-redis:
 	kubectl delete -f $(K8S_DIR)/redis.yaml
 	kubectl wait --for=delete -f $(K8S_DIR)/redis.yaml --timeout=60s || true
 	kubectl apply -f $(K8S_DIR)/redis.yaml
+
+include test/e2e/Makefile.include

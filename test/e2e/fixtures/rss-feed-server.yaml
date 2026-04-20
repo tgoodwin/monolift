@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rss-feed
+data:
+  index.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+      <channel>
+        <title>Monolift E2E Feed</title>
+        <item>
+          <title>Deterministic Entry</title>
+          <guid>monolift-e2e-entry-1</guid>
+          <description>stable fixture body</description>
+        </item>
+      </channel>
+    </rss>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rss-feed-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rss-feed-server
+  template:
+    metadata:
+      labels:
+        app: rss-feed-server
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.27-alpine
+        volumeMounts:
+        - name: feed
+          mountPath: /usr/share/nginx/html
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: feed
+        configMap:
+          name: rss-feed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rss-feed-server
+spec:
+  selector:
+    app: rss-feed-server
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80

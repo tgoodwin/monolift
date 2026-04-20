@@ -1,3 +1,9 @@
 monolift
+bin/
 output/**/*
 .envrc
+inspiration/
+evaluation/
+docs/sprints/drafts/
+/tmp/monolift-e2e/
+test/e2e/targets/*/bin/

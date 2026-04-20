@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0",
+  "buildConfig": {
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": false,
+    "buildTags": [],
+    "moduleRoot": "evaluation/caddy",
+    "workspaceMode": "single-module",
+    "tests": false,
+    "dependencyManifest": []
+  },
+  "analysis": {
+    "algorithm": "ssa-rta-stub",
+    "precisionTriggers": ["registry-key:http.handlers.reverse_proxy"],
+    "deterministic": true
+  },
+  "pragma": {
+    "name": "caddy-reverse-proxy",
+    "surface": "struct",
+    "span": {
+      "file_relative_path": "modules/caddyhttp/reverseproxy/reverseproxy.go",
+      "byte_offset_start": 0,
+      "byte_offset_end": 1,
+      "line_start": 1,
+      "line_end": 1
+    },
+    "options": {
+      "registry": "http.handlers.reverse_proxy",
+      "methods": "ServeHTTP",
+      "verdict": "accept"
+    }
+  },
+  "root": {
+    "identity": {
+      "module_path": "github.com/caddyserver/caddy/v2",
+      "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
+      "object_name": "Handler",
+      "kind": "type"
+    },
+    "registryKey": "http.handlers.reverse_proxy",
+    "exposedOperations": [
+      {
+        "module_path": "github.com/caddyserver/caddy/v2",
+        "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
+        "object_name": "(*Handler).ServeHTTP",
+        "kind": "method"
+      }
+    ]
+  },
+  "closure": {
+    "includedSymbols": [],
+    "excludedSymbols": [],
+    "wiringPaths": []
+  },
+  "state": [
+    {
+      "symbol": {
+        "module_path": "github.com/caddyserver/caddy/v2",
+        "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
+        "object_name": "Handler",
+        "kind": "type"
+      },
+      "classes": ["immutable-captured-config"],
+      "disposition": "replicated",
+      "evidence": ["Caddy module config is provisioned before serving"],
+      "developerDeclared": false
+    }
+  ],
+  "adapters": [
+    {
+      "kind": "handler",
+      "id": "net-http-handler",
+      "matchedSymbols": [
+        {
+          "module_path": "github.com/caddyserver/caddy/v2",
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
+          "object_name": "(*Handler).ServeHTTP",
+          "kind": "method"
+        }
+      ],
+      "canonicalShapes": ["http-handler"],
+      "stateEffects": [],
+      "transportEffects": ["http"],
+      "serializationEffects": []
+    },
+    {
+      "kind": "registry",
+      "id": "caddy-module-registry",
+      "matchedSymbols": [
+        {
+          "module_path": "github.com/caddyserver/caddy/v2",
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
+          "object_name": "Handler",
+          "kind": "type"
+        }
+      ],
+      "canonicalShapes": ["registry-keyed-module"],
+      "stateEffects": ["immutable-config"],
+      "transportEffects": [],
+      "serializationEffects": []
+    }
+  ],
+  "externalDependencies": [],
+  "pruning": {
+    "bounded": true,
+    "frontier": []
+  },
+  "diagnostics": []
+}

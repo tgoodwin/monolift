@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniflux-feed-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniflux-feed-processor
+  template:
+    metadata:
+      labels:
+        app: miniflux-feed-processor
+    spec:
+      containers:
+      - name: processor
+        image: monolift-e2e/miniflux:e2e
+        imagePullPolicy: Never
+        env:
+        - name: DATABASE_URL
+          value: postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable
