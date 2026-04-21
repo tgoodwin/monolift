@@ -1,31 +1,35 @@
 {
   "schemaVersion": "1.0",
   "buildConfig": {
-    "GOOS": "linux",
-    "GOARCH": "amd64",
-    "CGO_ENABLED": false,
-    "buildTags": [],
+    "GOOS": "darwin",
+    "GOARCH": "arm64",
+    "CGO_ENABLED": true,
+    "buildTags": null,
     "moduleRoot": "evaluation/pocketbase",
     "workspaceMode": "single-module",
     "tests": false,
     "dependencyManifest": []
   },
   "analysis": {
-    "algorithm": "ssa-rta-stub",
-    "precisionTriggers": ["embedded-db", "closure-size"],
+    "algorithm": "ssa-cha+rta",
+    "precisionTriggers": [
+      "closure-size",
+      "embedded-db"
+    ],
     "deterministic": true
   },
   "pragma": {
     "name": "pocketbase-app",
-    "surface": "struct",
+    "surface": "interface",
     "span": {
-      "file_relative_path": "core/app.go",
+      "file_relative_path": "evaluation/pocketbase/core/app.go",
       "byte_offset_start": 0,
       "byte_offset_end": 1,
-      "line_start": 1,
-      "line_end": 1
+      "line_start": 29,
+      "line_end": 29
     },
     "options": {
+      "name": "pocketbase-app",
       "state": "external",
       "verdict": "refuse-blocking"
     }
@@ -38,28 +42,1273 @@
       "kind": "interface"
     },
     "registryKey": null,
-    "exposedOperations": []
+    "shape": "unsupported",
+    "defaultTransport": "",
+    "exposedOperations": [
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxConcurrentDB",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxDB",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxDelete",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxDeleteWithContext",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxHasTable",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxModelQuery",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxNonconcurrentDB",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxRunInTransaction",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxSave",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxSaveNoValidate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxSaveNoValidateWithContext",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxSaveWithContext",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.AuxVacuum",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Bootstrap",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.CanAccessRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.CollectionQuery",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ConcurrentDB",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.CountRecords",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.CreateBackup",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.CreateViewFields",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Cron",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DB",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DataDir",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Delete",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteAllAuthOriginsByRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteAllMFAsByRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteAllOTPsByRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteExpiredMFAs",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteExpiredOTPs",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteOldLogs",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteTable",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteView",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DeleteWithContext",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.DryRunView",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.EncryptionEnv",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ExpandRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ExpandRecords",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllAuthOriginsByCollection",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllAuthOriginsByRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllCollections",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllExternalAuthsByCollection",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllExternalAuthsByRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllMFAsByCollection",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllMFAsByRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllOTPsByCollection",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllOTPsByRecord",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAllRecords",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAuthOriginById",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAuthOriginByRecordAndFingerprint",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAuthRecordByEmail",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindAuthRecordByToken",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindCachedCollectionByNameOrId",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindCachedCollectionReferences",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindCollectionByNameOrId",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindCollectionReferences",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindFirstExternalAuthByExpr",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindFirstRecordByData",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindFirstRecordByFilter",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindLogById",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindMFAById",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindOTPById",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindRecordById",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindRecordByViewFile",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindRecordsByFilter",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.FindRecordsByIds",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.HasTable",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ImportCollections",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ImportCollectionsByMarshaledJSON",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.IsBootstrapped",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.IsCollectionNameUnique",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.IsDev",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.IsTransactional",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.LogQuery",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Logger",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.LogsStats",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ModelQuery",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.NewBackupsFilesystem",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.NewFilesystem",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.NewMailClient",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.NonconcurrentDB",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnBackupCreate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnBackupRestore",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnBatchRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnBootstrap",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionAfterCreateError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionAfterCreateSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionAfterDeleteError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionAfterDeleteSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionAfterUpdateError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionAfterUpdateSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionCreate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionCreateExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionCreateRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionDelete",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionDeleteExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionDeleteRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionUpdate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionUpdateExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionUpdateRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionValidate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionViewRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionsImportRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnCollectionsListRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnFileDownloadRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnFileTokenRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnMailerRecordAuthAlertSend",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnMailerRecordEmailChangeSend",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnMailerRecordOTPSend",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnMailerRecordPasswordResetSend",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnMailerRecordVerificationSend",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnMailerSend",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelAfterCreateError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelAfterCreateSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelAfterDeleteError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelAfterDeleteSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelAfterUpdateError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelAfterUpdateSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelCreate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelCreateExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelDelete",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelDeleteExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelUpdate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelUpdateExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnModelValidate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRealtimeConnectRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRealtimeMessageSend",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRealtimeSubscribeRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAfterCreateError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAfterCreateSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAfterDeleteError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAfterDeleteSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAfterUpdateError",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAfterUpdateSuccess",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAuthRefreshRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAuthRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAuthWithOAuth2Request",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAuthWithOTPRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordAuthWithPasswordRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordConfirmEmailChangeRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordConfirmPasswordResetRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordConfirmVerificationRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordCreate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordCreateExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordCreateRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordDelete",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordDeleteExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordDeleteRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordEnrich",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordRequestEmailChangeRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordRequestOTPRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordRequestPasswordResetRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordRequestVerificationRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordUpdate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordUpdateExecute",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordUpdateRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordValidate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordViewRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnRecordsListRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnServe",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnSettingsListRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnSettingsReload",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnSettingsUpdateRequest",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.OnTerminate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.RecordQuery",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ReloadCachedCollections",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ReloadSettings",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ResetBootstrapState",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Restart",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.RestoreBackup",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.RunAllMigrations",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.RunAppMigrations",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.RunInTransaction",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.RunSystemMigrations",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Save",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.SaveNoValidate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.SaveNoValidateWithContext",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.SaveView",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.SaveWithContext",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Settings",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Store",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.SubscriptionsBroker",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.SyncRecordTableSchema",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.TableColumns",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.TableIndexes",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.TableInfo",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.TruncateCollection",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.TxInfo",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.UnsafeWithoutHooks",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Vacuum",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.Validate",
+        "kind": "method"
+      },
+      {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "App.ValidateWithContext",
+        "kind": "method"
+      }
+    ]
   },
   "closure": {
-    "includedSymbols": [],
+    "includedSymbols": [
+      {
+        "identity": {
+          "module_path": "github.com/pocketbase/pocketbase",
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "object_name": "App",
+          "kind": "interface"
+        },
+        "span": {
+          "file_relative_path": "evaluation/pocketbase/core/app.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 29,
+          "line_end": 29
+        },
+        "ruleIds": []
+      }
+    ],
     "excludedSymbols": [],
-    "wiringPaths": []
+    "wiringPaths": [
+      {
+        "target": {
+          "module_path": "github.com/pocketbase/pocketbase",
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "object_name": "App",
+          "kind": "interface"
+        },
+        "steps": [
+          {
+            "identity": {
+              "module_path": "github.com/pocketbase/pocketbase",
+              "package_path": "github.com/pocketbase/pocketbase/core",
+              "object_name": "App",
+              "kind": "interface"
+            },
+            "span": {
+              "file_relative_path": "evaluation/pocketbase/core/app.go",
+              "byte_offset_start": 0,
+              "byte_offset_end": 1,
+              "line_start": 29,
+              "line_end": 29
+            },
+            "ruleIds": []
+          }
+        ]
+      }
+    ]
   },
   "state": [
     {
       "symbol": {
         "module_path": "github.com/pocketbase/pocketbase",
         "package_path": "github.com/pocketbase/pocketbase/core",
-        "object_name": "BaseApp.db",
+        "object_name": "BaseApp.auxConcurrentDB",
         "kind": "field"
       },
-      "classes": ["shared-mutable-across-callers"],
+      "classes": [
+        "externalized-durable"
+      ],
       "disposition": "refused",
-      "evidence": ["embedded SQLite database is owned by the app runtime"],
+      "evidence": [
+        "Builder field on embedded-DB app root"
+      ],
+      "developerDeclared": false
+    },
+    {
+      "symbol": {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "BaseApp.auxNonconcurrentDB",
+        "kind": "field"
+      },
+      "classes": [
+        "externalized-durable"
+      ],
+      "disposition": "refused",
+      "evidence": [
+        "Builder field on embedded-DB app root"
+      ],
+      "developerDeclared": false
+    },
+    {
+      "symbol": {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "BaseApp.concurrentDB",
+        "kind": "field"
+      },
+      "classes": [
+        "externalized-durable"
+      ],
+      "disposition": "refused",
+      "evidence": [
+        "Builder field on embedded-DB app root"
+      ],
+      "developerDeclared": false
+    },
+    {
+      "symbol": {
+        "module_path": "github.com/pocketbase/pocketbase",
+        "package_path": "github.com/pocketbase/pocketbase/core",
+        "object_name": "BaseApp.nonconcurrentDB",
+        "kind": "field"
+      },
+      "classes": [
+        "externalized-durable"
+      ],
+      "disposition": "refused",
+      "evidence": [
+        "Builder field on embedded-DB app root"
+      ],
       "developerDeclared": false
     }
   ],
-  "adapters": [],
+  "adapters": null,
   "externalDependencies": [],
   "pruning": {
     "bounded": false,
@@ -70,29 +1319,34 @@
       "code": "MLV2_CLOSURE_TOO_LARGE",
       "severity": "error",
       "span": {
-        "file_relative_path": "core/app.go",
+        "file_relative_path": "evaluation/pocketbase/core/app.go",
         "byte_offset_start": 0,
-        "byte_offset_end": 1,
-        "line_start": 1,
-        "line_end": 1
+        "byte_offset_end": 0,
+        "line_start": 29,
+        "line_end": 29
       },
-      "ruleIds": ["EC-PRUNE-3"],
-      "message": "core.App cannot be pruned to a bounded deployable",
-      "remediation": "Choose a narrower service root."
+      "ruleIds": [
+        "EC-PRUNE-3"
+      ],
+      "message": "root closure exceeds the bounded precision threshold",
+      "remediation": "lift a narrower function, method, method filter, impl, or registry site"
     },
     {
       "code": "MLV2_EMBEDDED_DB_APP_ROOT",
       "severity": "error",
       "span": {
-        "file_relative_path": "core/app.go",
+        "file_relative_path": "evaluation/pocketbase/core/app.go",
         "byte_offset_start": 0,
-        "byte_offset_end": 1,
-        "line_start": 1,
-        "line_end": 1
+        "byte_offset_end": 0,
+        "line_start": 29,
+        "line_end": 29
       },
-      "ruleIds": ["SS-LIFT-6"],
-      "message": "embedded SQLite app runtime selected as lift root",
-      "remediation": "Externalize durable state before lifting."
+      "ruleIds": [
+        "SS-LIFT-6",
+        "SS-DISP-2"
+      ],
+      "message": "embedded database app root selected as lift root",
+      "remediation": "lift a narrower function or externalize database ownership before lifting"
     }
   ]
 }
