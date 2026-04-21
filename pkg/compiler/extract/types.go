@@ -1,0 +1,55 @@
+package extract
+
+import "github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+
+type Surface string
+
+const (
+	SurfaceInterface Surface = "interface"
+	SurfaceFunction  Surface = "function"
+	SurfaceMethod    Surface = "method"
+	SurfaceStruct    Surface = "struct"
+)
+
+type Severity string
+
+const (
+	SeverityWarning Severity = "warning"
+	SeverityError   Severity = "error"
+)
+
+type Span struct {
+	Filename  string
+	Line      int
+	Column    int
+	EndLine   int
+	EndColumn int
+}
+
+type Pragma struct {
+	Name     string
+	Surface  Surface
+	Options  map[string]string
+	Span     Span
+	DeclName string
+	DeclKind string
+}
+
+type Diagnostic struct {
+	Code       string
+	Severity   Severity
+	Message    string
+	Span       Span
+	RuleIDs    []string
+	Suggestion string
+}
+
+type Request struct {
+	Sources []string
+	Pragmas []Pragma
+}
+
+type Result struct {
+	Report      reportv2.Report
+	Diagnostics []Diagnostic
+}

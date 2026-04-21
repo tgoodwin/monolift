@@ -2,7 +2,7 @@ module github.com/tgoodwin/monolift
 
 go 1.23.6
 
-toolchain go1.23.10
+toolchain go1.25.4
 
 require (
 	github.com/dapr/go-sdk v1.12.0

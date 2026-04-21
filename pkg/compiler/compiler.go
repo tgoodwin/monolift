@@ -137,7 +137,7 @@ func (c *Compiler) Compile(outputDir, originalAppPath, dockerRegistry, originalK
 		return err
 	}
 	if len(extractedResults) == 0 {
-		fmt.Printf("no @monolift pragmas found.")
+		fmt.Printf("no Monolift pragmas found.")
 		return nil
 	}
 	fmt.Println("extracted code from the application:")
@@ -296,7 +296,10 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 			ast.Inspect(fileAst, func(n ast.Node) bool {
 				switch node := n.(type) {
 				case *ast.FuncDecl:
-					pragmas := getFuncDeclPragmas(node)
+					pragmas, diagnostics := FromDecl(node, c.Fset)
+					for _, diagnostic := range diagnostics {
+						fmt.Printf("    Pragma diagnostic on function %s: %s %s\n", node.Name.Name, diagnostic.Code, diagnostic.Message)
+					}
 					if len(pragmas) > 0 {
 						fmt.Printf("    Function %s has pragmas:\n", node.Name.Name)
 						for _, pragma := range pragmas {
@@ -306,21 +309,16 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 				// ast.GenDecl is used for general declarations like imports, constants, types, etc
 				// and includes the comments immediately preceding the declaration.
 				case *ast.GenDecl:
+					declPragmas, declDiagnostics := FromDecl(node, c.Fset)
+					for _, diagnostic := range declDiagnostics {
+						fmt.Printf("    Pragma diagnostic on declaration: %s %s\n", diagnostic.Code, diagnostic.Message)
+					}
 					// Check for TYPE declarations (interfaces, structs)
 					if node.Tok == token.TYPE {
 						for _, spec := range node.Specs {
 							if typeSpec, ok := spec.(*ast.TypeSpec); ok {
-								if IsInterface(typeSpec) {
-									var docCommentGroup *ast.CommentGroup
-									if typeSpec.Doc != nil {
-										docCommentGroup = typeSpec.Doc
-									} else if node.Doc != nil {
-										docCommentGroup = node.Doc
-									}
-
-									// we currently only support one prama
-									pragmas := getPragmasFromCommentGroup(docCommentGroup)
-
+								if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+									pragmas := declPragmas
 									if len(pragmas) > 0 {
 										if len(pragmas) > 1 {
 											fmt.Printf("    Warning: Interface %s has multiple pragmas, only the first will be processed.\n", typeSpec.Name.Name)
@@ -328,7 +326,10 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 										pragmaLine := pragmas[0]
 										fmt.Printf("    Interface %s has pragma: %s\n", typeSpec.Name.Name, pragmaLine.Raw)
 
-										p, err := pragma.ParsePragma(pragmaLine.Attributes)
+										// SPRINT-0005 replaces pragma parsing in place. The v1 demo
+										// extraction path remains best-effort and intentionally no
+										// longer consumes v2 options.
+										p, err := pragma.ParsePragma(map[string]string{})
 										if err != nil {
 											fmt.Printf("      Error parsing pragma: %v\n", err)
 											continue
@@ -362,7 +363,7 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 												// TODO build support for user-provided hints if automatic resolution fails
 												if err != nil {
 													fmt.Printf("      [ERROR] Could not automatically find constructor call for %s.%s in main.go: %v\n", constructorPkgPath, constructorName, err)
-													fmt.Printf("      HINT: Please add a pragma '// @monolift:instanceFor serviceId=...' to the variable declaration in main.go.\n")
+													fmt.Printf("      HINT: v1 instanceFor hints are no longer supported; add a v2 monolift:lift declaration pragma instead.\n")
 													continue // Skip to the next interface
 												}
 
@@ -469,7 +470,7 @@ func (c *Compiler) extractCode(outputDir string) ([]*extractionResult, error) {
 											fmt.Printf("      Could not find loaded package or type info for %s to check implementers for %s\n", importPath, typeSpec.Name.Name)
 										}
 									} else {
-										fmt.Printf("    Interface %s has no @monolift pragmas, skipping implementer search.\n", typeSpec.Name.Name)
+										fmt.Printf("    Interface %s has no Monolift pragmas, skipping implementer search.\n", typeSpec.Name.Name)
 									}
 								}
 							}
