@@ -99,7 +99,7 @@ All work is checkboxed. Phases ordered; most tasks within a phase can overlap.
 ### Phase 3 — Stub compiler (`test/e2e/stubcompiler/`)
 
 - [x] `main.go` implementing CLI contract: `stubcompiler --target=<name> --output=<dir>` → writes `closure-report.json` + generated manifests under `<dir>`.
-- [x] Per-target fixtures: `test/e2e/stubcompiler/fixtures/caddy/` (accept verdict report + extracted service manifests), `fixtures/pocketbase/` (refuse verdict, no manifests), `fixtures/miniflux/` (accept report, Postgres-aware manifests).
+- [x] Per-target fixtures: `fixtures/caddy/` (accept verdict report + extracted service manifests), `fixtures/pocketbase/` (refuse verdict, no manifests), `fixtures/miniflux/` (accept report, Postgres-aware manifests).
 - [x] Fixture format: mirror the exact normative-subset JSON shape that the real v2 compiler would emit for each target.
 - [x] Integration test in `stubcompiler_test.go`: invoke stub for each target, verify report parses via `reportv2.Validate`.
 - [x] Add `make build-stubcompiler` target that compiles to `./bin/stubcompiler`. Harness defaults `MONOLIFT_COMPILER` to this path.
@@ -147,7 +147,7 @@ All work is checkboxed. Phases ordered; most tasks within a phase can overlap.
 - [x] `test/e2e/targets/caddy/baseline/echo-upstream.yaml` — tiny echo server that Caddy proxies to.
 - [x] `test/e2e/targets/caddy/workload.go` — implements `WorkloadExecutor`. Sequence: `GET /static/hello.txt` (static), `GET /proxy?x=1` (reverse proxy), `GET /headers` (asserts injected X-Caddy header). Transcript asserts status + selected headers + body.
 - [x] `test/e2e/targets/caddy/golden/report.json` — expected closure report: verdict=accept, root identity=`caddy.Module`-style, adapters include registry+handler kinds, bounded-pruning true.
-- [x] Stub compiler fixture at `test/e2e/stubcompiler/fixtures/caddy/` emits this exact golden report + extracted service manifests under `lifted/`.
+- [x] Stub compiler fixture at `fixtures/caddy/` emits this exact golden report + extracted service manifests under `lifted/`.
 - [x] Integration test: all 10 stages pass against stub compiler.
 
 ### Phase 10 — Pocketbase target (refusal)

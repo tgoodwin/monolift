@@ -1,0 +1,31 @@
+sprints:
+  - id: SPRINT-0003
+    title: Monolift v2 contract spec
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-19T19:09:33+00:00"
+    updated: "2026-04-19T23:43:51+00:00"
+  - id: SPRINT-0004
+    title: Monolift e2e test harness
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-20T00:31:38+00:00"
+    updated: "2026-04-20T02:47:54+00:00"
+  - id: SPRINT-0005
+    title: v2 pragma parser + harness integration
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-20T17:38:39+00:00"
+    updated: "2026-04-21T00:51:59+00:00"
+  - id: SPRINT-0006
+    title: SSA extraction + refusal-diagnostic framework
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-21T01:12:57+00:00"
+    updated: "2026-04-21T04:27:46+00:00"
+  - id: SPRINT-0007
+    title: canonical-shape classifier + state-class inference
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-21T04:35:04+00:00"
+    updated: "2026-04-21T21:53:42+00:00"
