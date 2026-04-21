@@ -1,0 +1,372 @@
+{
+  "target": "caddy",
+  "moduleRoot": "/Users/tgoodwin/projects/monolift/evaluation/caddy",
+  "root": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy:Handler",
+  "reachableFunctionCount": 171,
+  "globals": [
+    {
+      "symbol": "context.Canceled",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "encoding/base64.StdEncoding",
+      "type": "**encoding/base64.Encoding",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2.defaultLogger",
+      "type": "**github.com/caddyserver/caddy/v2.defaultCustomLog",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2.defaultLoggerMu",
+      "type": "*sync.RWMutex",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2.nowFunc",
+      "type": "*func() time.Time",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2.unixSockets",
+      "type": "*map[string]interface{File() (*os.File, error)}",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2.unixSocketsMu",
+      "type": "*sync.Mutex",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/internal/metrics.methodMap",
+      "type": "*map[string]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp.emptyHandler",
+      "type": "*github.com/caddyserver/caddy/v2/modules/caddyhttp.Handler",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp.errorEmptyHandler",
+      "type": "*github.com/caddyserver/caddy/v2/modules/caddyhttp.Handler",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp.routeGroupCtxKey",
+      "type": "*github.com/caddyserver/caddy/v2.CtxKey",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.bufPool",
+      "type": "*sync.Pool",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.dynamicHostCleanupInterval",
+      "type": "*time.Duration",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.dynamicHostIdleExpiry",
+      "type": "*time.Duration",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.dynamicHosts",
+      "type": "*map[string]github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.dynamicHostEntry",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.dynamicHostsCleanerOnce",
+      "type": "*sync.Once",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.dynamicHostsMu",
+      "type": "*sync.RWMutex",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.errNoUpstream",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.hopHeaders",
+      "type": "*[]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.hosts",
+      "type": "**github.com/caddyserver/caddy/v2.UsagePool",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.inFlightRequests",
+      "type": "*sync.Map",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.streamingBufPool",
+      "type": "*sync.Pool",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.websocketHeaderMapping",
+      "type": "*map[string]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/prometheus/client_golang/prometheus.DefBuckets",
+      "type": "*[]float64",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "io.EOF",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "io.ErrShortWrite",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "net/http.ErrAbortHandler",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "net/http.ErrNotSupported",
+      "type": "**net/http.ProtocolError",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "net/http.NoBody",
+      "type": "*net/http.noBody",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    }
+  ],
+  "receiverFields": [
+    {
+      "symbol": "Handler.CB",
+      "type": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.CircuitBreaker",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.DynamicUpstreams",
+      "type": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.UpstreamSource",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.FlushInterval",
+      "type": "github.com/caddyserver/caddy/v2.Duration",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.HandleResponse",
+      "type": "[]github.com/caddyserver/caddy/v2/modules/caddyhttp.ResponseHandler",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.Headers",
+      "type": "*github.com/caddyserver/caddy/v2/modules/caddyhttp/headers.Handler",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.HealthChecks",
+      "type": "*github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.HealthChecks",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.LoadBalancing",
+      "type": "*github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.LoadBalancing",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.RequestBuffers",
+      "type": "int64",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.ResponseBuffers",
+      "type": "int64",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.Rewrite",
+      "type": "*github.com/caddyserver/caddy/v2/modules/caddyhttp/rewrite.Rewrite",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.StreamBufferSize",
+      "type": "int",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.StreamTimeout",
+      "type": "github.com/caddyserver/caddy/v2.Duration",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.Transport",
+      "type": "net/http.RoundTripper",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.Upstreams",
+      "type": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.UpstreamPool",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.VerboseLogs",
+      "type": "bool",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.connections",
+      "type": "map[io.ReadWriteCloser]github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy.openConnection",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.connectionsCloseTimer",
+      "type": "*time.Timer",
+      "referenced": true,
+      "storeSites": [
+        "modules/caddyhttp/reverseproxy/streaming.go:396"
+      ],
+      "syncWitnesses": [
+        "(*sync.Mutex).Lock @ modules/caddyhttp/reverseproxy/streaming.go:388",
+        "(*sync.Mutex).Unlock @ modules/caddyhttp/reverseproxy/streaming.go:398"
+      ]
+    },
+    {
+      "symbol": "Handler.connectionsMu",
+      "type": "*sync.Mutex",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.ctx",
+      "type": "github.com/caddyserver/caddy/v2.Context",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.logger",
+      "type": "*go.uber.org/zap.Logger",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.transportHeaderOps",
+      "type": "*github.com/caddyserver/caddy/v2/modules/caddyhttp/headers.HeaderOps",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "Handler.trustedProxies",
+      "type": "[]net/netip.Prefix",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    }
+  ]
+}

@@ -1,0 +1,1315 @@
+{
+  "target": "pocketbase",
+  "moduleRoot": "/Users/tgoodwin/projects/monolift/evaluation/pocketbase",
+  "root": "github.com/pocketbase/pocketbase/core:App",
+  "reachableFunctionCount": 867,
+  "interfaceMethodCount": 191,
+  "baseAppMethodCount": 191,
+  "baseAppDbFieldType": "auxConcurrentDB=github.com/pocketbase/dbx.Builder; auxNonconcurrentDB=github.com/pocketbase/dbx.Builder; concurrentDB=github.com/pocketbase/dbx.Builder; nonconcurrentDB=github.com/pocketbase/dbx.Builder",
+  "globals": [
+    {
+      "symbol": "crypto/rand.Reader",
+      "type": "*io.Reader",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "database/sql.ErrNoRows",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "encoding/base64.StdEncoding",
+      "type": "**encoding/base64.Encoding",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/ganigeorgiev/fexpr.ErrEmpty",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/go-ozzo/ozzo-validation/v4.Empty",
+      "type": "*github.com/go-ozzo/ozzo-validation/v4.absentRule",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/go-ozzo/ozzo-validation/v4.Nil",
+      "type": "*github.com/go-ozzo/ozzo-validation/v4.absentRule",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/go-ozzo/ozzo-validation/v4.NilOrNotEmpty",
+      "type": "*github.com/go-ozzo/ozzo-validation/v4.RequiredRule",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/go-ozzo/ozzo-validation/v4.Required",
+      "type": "*github.com/go-ozzo/ozzo-validation/v4.RequiredRule",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/go-ozzo/ozzo-validation/v4/is.Domain",
+      "type": "*github.com/go-ozzo/ozzo-validation/v4.StringRule",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/go-ozzo/ozzo-validation/v4/is.JSON",
+      "type": "*github.com/go-ozzo/ozzo-validation/v4.StringRule",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/apis.ErrRequestEntityTooLarge",
+      "type": "**github.com/pocketbase/pocketbase/tools/router.ApiError",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.AppMigrations",
+      "type": "*github.com/pocketbase/pocketbase/core.MigrationsList",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.DefaultIdRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.SystemMigrations",
+      "type": "*github.com/pocketbase/pocketbase/core.MigrationsList",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.asciiSpace",
+      "type": "*[256]uint8",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.castRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.collectionNameRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.commentsReplaceRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.defaultAuthAlertTemplate",
+      "type": "*github.com/pocketbase/pocketbase/core.EmailTemplate",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.defaultConfirmEmailChangeTemplate",
+      "type": "*github.com/pocketbase/pocketbase/core.EmailTemplate",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.defaultOTPTemplate",
+      "type": "*github.com/pocketbase/pocketbase/core.EmailTemplate",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.defaultResetPasswordTemplate",
+      "type": "*github.com/pocketbase/pocketbase/core.EmailTemplate",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.defaultRetryIntervals",
+      "type": "*[]int",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.defaultVerificationTemplate",
+      "type": "*github.com/pocketbase/pocketbase/core.EmailTemplate",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.discardReplaceRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.excludeNames",
+      "type": "*[]any",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.fieldNameRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.indirectExpandRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.indirectExpandRegexOld",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.joinReplaceRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.plainRequestAuthFields",
+      "type": "*map[string]struct{}",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.printLog",
+      "type": "*func(log *github.com/pocketbase/pocketbase/tools/logger.Log)",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.recordProxyType",
+      "type": "*reflect.Type",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.sqlLogReplacements",
+      "type": "*[]struct{pattern *regexp.Regexp; replacement string}",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core.viaRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/core/validators.ErrUnsupportedValueType",
+      "type": "*github.com/go-ozzo/ozzo-validation/v4.Error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/cron.macros",
+      "type": "*map[string]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/dbutils.indexColumnRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/dbutils.indexRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/filesystem.ThumbSizeRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/filesystem.extInvalidCharsRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/filesystem/blob.ErrClosed",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/filesystem/blob.ErrNotFound",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/filesystem/internal/fileblob.errAttrsExt",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/filesystem/internal/s3blob/s3.ErrUsedUploader",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/inflector.columnifyRemoveRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/inflector.snakecaseSplitRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/list.cachedPatterns",
+      "type": "**github.com/pocketbase/pocketbase/tools/store.Store[string, *regexp.Regexp]",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/mailer.inlineTags",
+      "type": "*[]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/mailer.tagsToSkip",
+      "type": "*[]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/mailer.whitespaceRegex",
+      "type": "**regexp.Regexp",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/search.ErrFilterExprLimit",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/search.TokenFunctions",
+      "type": "*map[string]func(argTokenResolverFunc func(github.com/ganigeorgiev/fexpr.Token) (*github.com/pocketbase/pocketbase/tools/search.ResolverResult, error), args ...github.com/ganigeorgiev/fexpr.Token) (*github.com/pocketbase/pocketbase/tools/search.ResolverResult, error)",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/search.identifierMacros",
+      "type": "*map[string]func() (any, error)",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/search.normalizedIdentifiers",
+      "type": "*map[string]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/search.parsedFilterData",
+      "type": "**github.com/pocketbase/pocketbase/tools/store.Store[string, []github.com/ganigeorgiev/fexpr.ExprGroup]",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/security.anyCharNotNLPairs",
+      "type": "*[]rune",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/tokenizer.DefaultSeparators",
+      "type": "*[]rune",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "github.com/pocketbase/pocketbase/tools/tokenizer.whitespaceChars",
+      "type": "*[]rune",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "io.EOF",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "io.ErrUnexpectedEOF",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "net/http.DefaultClient",
+      "type": "**net/http.Client",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "net/http.NoBody",
+      "type": "*net/http.noBody",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "os.Args",
+      "type": "*[]string",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "os.ErrExist",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "os.ErrNotExist",
+      "type": "*error",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    }
+  ],
+  "receiverFields": [
+    {
+      "symbol": "BaseApp.auxConcurrentDB",
+      "type": "github.com/pocketbase/dbx.Builder",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:1255",
+        "core/db_tx.go:56"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.auxNonconcurrentDB",
+      "type": "github.com/pocketbase/dbx.Builder",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:1256",
+        "core/db_tx.go:57"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.concurrentDB",
+      "type": "github.com/pocketbase/dbx.Builder",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:1204",
+        "core/db_tx.go:59"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.config",
+      "type": "*github.com/pocketbase/pocketbase/core.BaseAppConfig",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.cron",
+      "type": "*github.com/pocketbase/pocketbase/tools/cron.Cron",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.logger",
+      "type": "*log/slog.Logger",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:1472"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.nonconcurrentDB",
+      "type": "github.com/pocketbase/dbx.Builder",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:1205",
+        "core/db_tx.go:60"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onBackupCreate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.BackupEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:239"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onBackupRestore",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.BackupEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:240"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onBatchRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.BatchRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:339"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onBootstrap",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.BootstrapEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:236"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionAfterCreateError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:278"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionAfterCreateSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:277"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionAfterDeleteError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:286"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionAfterDeleteSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:284"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionAfterUpdateError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:282"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionAfterUpdateSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:281"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionCreate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:275"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionCreateExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:276"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionCreateRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:334"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionDelete",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:283"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionDeleteExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:285"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionDeleteRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:336"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionUpdate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:279"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionUpdateExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:280"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionUpdateRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:335"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionValidate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:274"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionViewRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:333"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionsImportRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionsImportRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:337"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onCollectionsListRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.CollectionsListRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:332"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onFileDownloadRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.FileDownloadRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:307"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onFileTokenRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.FileTokenRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:308"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onMailerRecordAuthAlertSend",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.MailerRecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:294"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onMailerRecordEmailChangeSend",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.MailerRecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:292"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onMailerRecordOTPSend",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.MailerRecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:293"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onMailerRecordPasswordResetSend",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.MailerRecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:290"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onMailerRecordVerificationSend",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.MailerRecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:291"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onMailerSend",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.MailerEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:289"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelAfterCreateError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:247"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelAfterCreateSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:246"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelAfterDeleteError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:255"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelAfterDeleteSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:254"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelAfterUpdateError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:251"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelAfterUpdateSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:250"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelCreate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:244"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelCreateExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:245"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelDelete",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:252"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelDeleteExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:253"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelUpdate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:248"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelUpdateWrite",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:249"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onModelValidate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ModelEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:243"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRealtimeConnectRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RealtimeConnectRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:297"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRealtimeMessageSend",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RealtimeMessageEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:298"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRealtimeSubscribeRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RealtimeSubscribeRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:299"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAfterCreateError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:263"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAfterCreateSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:262"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAfterDeleteError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:271"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAfterDeleteSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:270"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAfterUpdateError",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordErrorEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:267"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAfterUpdateSuccess",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:266"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAuthRefreshRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordAuthRefreshRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:314"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAuthRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordAuthRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:311"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAuthWithOAuth2Request",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordAuthWithOAuth2RequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:313"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAuthWithOTPRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordAuthWithOTPRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:322"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordAuthWithPasswordRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordAuthWithPasswordRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:312"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordConfirmEmailChangeRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordConfirmEmailChangeRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:320"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordConfirmPasswordResetRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordConfirmPasswordResetRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:316"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordConfirmVerificationRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordConfirmVerificationRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:318"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordCreate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:260"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordCreateExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:261"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordCreateRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:327"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordDelete",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:268"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordDeleteExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:269"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordDeleteRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:329"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordEnrich",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEnrichEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:258"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordRequestEmailChangeRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordRequestEmailChangeRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:319"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordRequestOTPRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordCreateOTPRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:321"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordRequestPasswordResetRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordRequestPasswordResetRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:315"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordRequestVerificationRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordRequestVerificationRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:317"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordUpdate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:264"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordUpdateExecute",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:265"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordUpdateRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:328"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordValidate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:259"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordViewRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:326"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onRecordsListRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.RecordsListRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:325"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onServe",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.ServeEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:237"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onSettingsListRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.SettingsListRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:302"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onSettingsReload",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.SettingsReloadEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:304"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onSettingsUpdateRequest",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.SettingsUpdateRequestEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:303"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.onTerminate",
+      "type": "*github.com/pocketbase/pocketbase/tools/hook.Hook[*github.com/pocketbase/pocketbase/core.TerminateEvent]",
+      "referenced": true,
+      "storeSites": [
+        "core/base.go:238"
+      ],
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.settings",
+      "type": "*github.com/pocketbase/pocketbase/core.Settings",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.store",
+      "type": "*github.com/pocketbase/pocketbase/tools/store.Store[string, any]",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.subscriptionsBroker",
+      "type": "*github.com/pocketbase/pocketbase/tools/subscriptions.Broker",
+      "referenced": true,
+      "storeSites": null,
+      "syncWitnesses": null
+    },
+    {
+      "symbol": "BaseApp.txInfo",
+      "type": "*github.com/pocketbase/pocketbase/core.TxAppInfo",
+      "referenced": true,
+      "storeSites": [
+        "core/db_tx.go:63"
+      ],
+      "syncWitnesses": null
+    }
+  ]
+}

@@ -9,6 +9,31 @@ reader's entry point and tells the story that no single ADR can.
 
 ---
 
+## 2026-04-21 — SPRINT-0007 closed: canonical shape + state inference
+
+SPRINT-0007 split semantic interpretation out of SSA extraction into two
+dedicated passes: `pkg/compiler/shape/` classifies lifted roots into canonical
+shapes and default transports, while `pkg/compiler/stateclass/` infers captured
+state classes from SSA evidence and developer declarations. The compiler now
+records `root.shape` and `root.defaultTransport`, validates shape-aware pragma
+options after parsing, and derives adapters from classifier output instead of
+the retired `ServeHTTP` suffix heuristic.
+
+The sprint also removed the off-spec `registry-keyed-module` adapter label,
+deleted `pkg/compiler/extract/pocketbase.go`, fixed the no-filter
+`resolveExposedOperations` bug, and replaced the synthetic Pocketbase
+`BaseApp.db` refusal with per-field rows discovered from the corpus. Two new
+pragma fixtures now exercise the new refusal paths, and ADR-0015 plus ADR-0016
+record the classifier and state-inference decisions that make SPRINT-0008
+adapter code generation possible.
+
+**Primary artifacts:** `pkg/compiler/shape/` · `pkg/compiler/stateclass/` ·
+`pkg/compiler/extract/extract.go` ·
+`test/e2e/targets/caddy/golden/report.json` ·
+`test/e2e/targets/pocketbase/golden/report.json` · ADR-0015 · ADR-0016
+
+---
+
 ## 2026-04-19 — Returning to the project after 9 months
 
 After ~9 months away from the project, we took stock: the v1 compiler was
@@ -245,15 +270,85 @@ compiler-epic sequence.
 
 ---
 
-## Pending
+## 2026-04-19 — SPRINT-0004 closed: e2e harness live
 
-- **SPRINT-0004 harness closed.** `make e2e` now builds the stub compiler,
-  runs the Kind-backed e2e table, passes Caddy through stages 0–10, passes
-  Pocketbase through refusal stages 0–4, and cleanly skips Miniflux,
-  Listmonk, Gitea, and Mattermost with SPRINT-0005 pointers. The harness
-  owns `test/e2e/`, shared closure-report types live in
-  `pkg/compiler/reportv2/`, and failure messages carry
-  `[stage=N target=X kind=...]` prefixes for agent triage.
+Codex executed SPRINT-0004 end-to-end against the plan: 89 / 89 checkboxes
+green, no blockers. `test/e2e/` now holds a working Go harness that runs
+`make e2e` in ~50s against a local Kind cluster. Caddy exercises the full
+10-stage pipeline (baseline deploy → compile → report-assert → image build
+→ kind load → lifted deploy → workload → compare), Pocketbase asserts both
+expected refusal diagnostics (stages 0, 3, 4 only), and Miniflux / Listmonk
+/ Gitea / Mattermost cleanly skip with SPRINT-0005 pointers. The stub
+compiler at `test/e2e/stubcompiler/` emits hard-coded golden closure
+reports so the harness is green before any real v2 compiler code exists.
+Smoke run confirmed: `TestE2E` passes, `TestStubCompilerFixturesValidate`
+passes, cluster-lifecycle test is opt-in.
+
+The harness carries failure messages with `[stage=N target=X kind=...]`
+prefixes so SPRINT-0005+ agents can triage compiler-vs-harness-vs-artifact
+failures without reading logs.
+
+**Primary artifacts:** `test/e2e/` · `pkg/compiler/reportv2/` · `make e2e`
+
+---
+
+## 2026-04-20 — SPRINT-0006 closed: SSA extraction + refusal framework flip
+
+SPRINT-0006 replaced the remaining fixture-backed compiler reports for Caddy
+and Pocketbase with a real SSA-backed extraction path in `pkg/compiler`.
+`compiler.Extract` now consumes SPRINT-0005 parser output, loads the annotated
+module with `packages.LoadAllSyntax`, builds SSA, walks a deterministic closure,
+records external dependencies, and emits CHA-based analysis with RTA refinement
+for registry-keyed roots.
+
+The Caddy target now passes stages 0–10 against real compiler output with the
+report fixture retired. The Pocketbase target now passes stage 4 against real
+compiler refusals, reproducing `MLV2_EMBEDDED_DB_APP_ROOT`,
+`MLV2_CLOSURE_TOO_LARGE`, and the compatibility `BaseApp.db=refused` state row
+without relying on a fixture report.
+
+The `compiler.Diagnostic -> reportv2.Diagnostic` seam moved out of
+`test/e2e/stubcompiler/main.go` into the new `pkg/compiler/diagnostics`
+package, which now owns rule IDs, remediation text, UTF-8-aware byte-offset
+formatting, unknown-code failure, and the import-boundary guard.
+
+ADR-0013 records the shipped SSA precision policy: CHA as the default dispatch
+approximation, RTA refinement for registry-keyed roots, and explicit deferral
+of VTA/pointer analysis pending a measured follow-up. ADR-0014 records the
+unbounded-edge refusal taxonomy, including `MLV2_CLOSURE_UNBOUNDED` as the
+non-dispatch umbrella alongside the dispatch-specific reflection and plugin
+codes.
+
+**Primary artifacts:** `pkg/compiler/extract/` · `pkg/compiler/diagnostics/` ·
+`test/e2e/targets/caddy/golden/report.json` ·
+`test/e2e/targets/pocketbase/golden/report.json` · ADR-0013 · ADR-0014
+
+---
+
+## 2026-04-20 — SPRINT-0005 closed: v2 pragma parser + harness seam
+
+SPRINT-0005 replaced the v1 parser in `pkg/compiler/pragma.go` in place with
+the v2 pragma grammar from the contract. The parser now recognizes the four
+annotation surfaces, validates surface-specific keys, emits parser-internal
+`MLV2_PRAGMA_*` diagnostics, honors `x-*` extension keys, and treats v1 forms
+as warning-only migration diagnostics with rewrite suggestions.
+
+The e2e harness now includes seven source-only pragma micro-fixtures, one for
+each `MLV2_PRAGMA_*` code. `test/e2e/stubcompiler/` preserves existing
+fixture-copy behavior for Caddy/Pocketbase/Miniflux, but falls through to the
+real parser for pragma source directories and translates parser diagnostics
+to `reportv2.Diagnostic` at that test seam only. ADR-0012 records the
+parser-internal diagnostic boundary, required-key mapping, duplicate-key
+decision, and import-boundary guard.
+
+The old v1 demo parser path is intentionally broken by the in-place
+replacement; restoration or retirement is deferred to SPRINT-0006+.
+
+**Primary artifacts:** `pkg/compiler/pragma.go` · `pkg/compiler/pragma_keys.go` · `test/e2e/targets/pragma/` · ADR-0012
+
+---
+
+## Pending
 
 - **Category B backlog** (from `docs/specs/reviews/systems-review.md` §§B1/B3/B8/S13/S14/T1/T2):
   thesis statement, Waldo-delta appendix, prior-art References section (≥10
