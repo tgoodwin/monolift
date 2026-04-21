@@ -18,6 +18,7 @@ import (
 	"github.com/tgoodwin/monolift/test/e2e/targets/mattermost"
 	"github.com/tgoodwin/monolift/test/e2e/targets/miniflux"
 	"github.com/tgoodwin/monolift/test/e2e/targets/pocketbase"
+	"github.com/tgoodwin/monolift/test/e2e/targets/pragma"
 )
 
 var updateGolden = flag.Bool("update-golden", false, "rewrite e2e golden reports from current compiler output")
@@ -37,6 +38,7 @@ func TestE2E(t *testing.T) {
 		gitea.Target(),
 		mattermost.Target(),
 	}
+	targets = append(targets, pragma.Targets()...)
 	for _, target := range targets {
 		target := target
 		t.Run(target.Name, func(t *testing.T) {
@@ -172,12 +174,15 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 }
 
 func assertVerdict(target harness.TargetCase, result harness.CompileResult) error {
+	required := make([]harness.DiagnosticCode, 0, len(target.RequiredDiagnostics))
+	for _, code := range target.RequiredDiagnostics {
+		required = append(required, harness.DiagnosticCode(code))
+	}
 	if target.ExpectedVerdict == "refuse-blocking" {
-		required := make([]harness.DiagnosticCode, 0, len(target.RequiredDiagnostics))
-		for _, code := range target.RequiredDiagnostics {
-			required = append(required, harness.DiagnosticCode(code))
-		}
 		return (harness.Verdict{}).AssertRefuse(result.Report, required)
+	}
+	if target.ExpectedVerdict == "accept-with-warnings" {
+		return (harness.Verdict{}).AssertAcceptWithWarnings(result.Report, required)
 	}
 	return (harness.Verdict{}).AssertAccept(result.Report)
 }

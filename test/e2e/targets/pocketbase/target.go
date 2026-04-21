@@ -7,6 +7,7 @@ func Target() harness.TargetCase {
 		Name:            "pocketbase",
 		ExpectedVerdict: "refuse-blocking",
 		StopAtStage:     4,
+		SourceDirs:      []string{"evaluation/pocketbase"},
 		RequiredDiagnostics: []string{
 			"MLV2_EMBEDDED_DB_APP_ROOT",
 			"MLV2_CLOSURE_TOO_LARGE",
