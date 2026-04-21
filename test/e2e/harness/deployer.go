@@ -3,6 +3,8 @@ package harness
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -132,8 +134,26 @@ func (d Deployer) DeleteNamespace(ctx context.Context, ns string, timeout time.D
 	return StageError(10, d.Target, KindHarness, "namespace %s still exists after %s", ns, timeout)
 }
 
+// maxNamespaceLen is the Kubernetes DNS-1123 label limit for namespace names.
+const maxNamespaceLen = 63
+
 func Namespace(prefix, target, runID string) string {
-	return fmt.Sprintf("mlv2-%s-%s-%s", prefix, target, runID)
+	ns := fmt.Sprintf("mlv2-%s-%s-%s", prefix, target, runID)
+	if len(ns) <= maxNamespaceLen {
+		return ns
+	}
+	sum := sha256.Sum256([]byte(target))
+	hash := hex.EncodeToString(sum[:])[:6]
+	fixed := len(fmt.Sprintf("mlv2-%s--%s-%s", prefix, hash, runID))
+	budget := maxNamespaceLen - fixed
+	if budget < 1 {
+		return fmt.Sprintf("mlv2-%s-%s-%s", prefix, hash, runID)
+	}
+	head := strings.TrimRight(target[:budget], "-")
+	if head == "" {
+		return fmt.Sprintf("mlv2-%s-%s-%s", prefix, hash, runID)
+	}
+	return fmt.Sprintf("mlv2-%s-%s-%s-%s", prefix, head, hash, runID)
 }
 
 func NewRunID() string {
