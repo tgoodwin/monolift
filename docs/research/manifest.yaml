@@ -1,0 +1,1315 @@
+version: "1.0"
+generated_from:
+  - docs/research/GEMINI-Monolift-Research.md
+  - docs/research/GEMINI-Monolift-Research-II.md
+  - docs/research/claude_research_notes.md
+  - docs/research/codex-research-report.md
+  - docs/research/claude_comprehensive_research.md
+  - research/RESEARCH_BRIEF.md
+destination_root: inspiration
+
+# Batches 1-10 allow parallel workers: ./fetch.sh --batch 3
+# Types: pdf | arxiv | repo | html
+
+items:
+
+  # ── BATCH 1: Core + Multitier / Choreography (PDFs) ─────────────────────────
+
+  - id: "001"
+    batch: 1
+    type: pdf
+    title: "Monolift: Automating Distribution With the Tools You Have at Home (PLOS '25)"
+    url: "https://users.soe.ucsc.edu/~lkuper/papers/monolift-plos25.pdf"
+    dest: "inspiration/papers/monolift-plos25.pdf"
+    tags: [core, monolift]
+
+  - id: "002"
+    batch: 1
+    type: pdf
+    title: "A Survey of Multitier Programming (ACM CSUR '20)"
+    url: "https://programming-group.com/assets/pdf/papers/2020_A-Survey-of-Multitier-Programming.pdf"
+    dest: "inspiration/papers/multitier-survey-csur20.pdf"
+    tags: [multitier, survey]
+
+  - id: "003"
+    batch: 1
+    type: pdf
+    title: "ScalaLoci: Distributed System Development (OOPSLA '18)"
+    url: "https://decomposition.al/CSE290S-2023-01/readings/scalaloci.pdf"
+    dest: "inspiration/papers/scalaloci-oopsla18.pdf"
+    tags: [multitier, scalaloci]
+
+  - id: "004"
+    batch: 1
+    type: pdf
+    title: "Choreographic Programming — Montesi PhD Thesis (ITU '13)"
+    url: "https://pure.itu.dk/ws/files/78733848/m13_phd.pdf"
+    dest: "inspiration/papers/montesi-choreo-phd13.pdf"
+    tags: [choreography, montesi]
+
+  - id: "005"
+    batch: 1
+    type: pdf
+    title: "Choreographic Programming — Montesi Monograph"
+    url: "https://www.fabriziomontesi.com/files/choreographic_programming.pdf"
+    dest: "inspiration/papers/montesi-choreo-book.pdf"
+    tags: [choreography, montesi]
+
+  - id: "006"
+    batch: 1
+    type: pdf
+    title: "CLM '23: A Model for Choreographic Programming (Montesi et al.)"
+    url: "https://www.fabriziomontesi.com/files/clm23-arxiv.pdf"
+    dest: "inspiration/papers/montesi-clm23.pdf"
+    tags: [choreography, montesi]
+
+  - id: "007"
+    batch: 1
+    type: pdf
+    title: "Choreographic Quick Changes: First-Class Location Polymorphism (Cecchetti)"
+    url: "https://cecchetti.sites.cs.wisc.edu/papers/lam-qc.pdf"
+    dest: "inspiration/papers/choreo-quick-changes.pdf"
+    tags: [choreography]
+
+  - id: "008"
+    batch: 1
+    type: pdf
+    title: "Pirouette: Higher-Order Typed Functional Choreographies (MPI-SWS TR-2021-004)"
+    url: "https://www.mpi-sws.org/tr/2021-004.pdf"
+    dest: "inspiration/papers/pirouette-mpi-sws-2021.pdf"
+    tags: [choreography, pirouette]
+
+  - id: "009"
+    batch: 1
+    type: pdf
+    title: "The Concurrent Calculi Formalisation Benchmark"
+    url: "https://momigliano.di.unimi.it/papers/cbench.pdf"
+    dest: "inspiration/papers/concurrent-calculi-benchmark.pdf"
+    tags: [choreography, verification]
+
+  - id: "010"
+    batch: 1
+    type: pdf
+    title: "A New Architecture for Choreographic Programming Languages (UVM)"
+    url: "https://scholarworks.uvm.edu/bitstreams/24e2c821-9ee4-4e98-b7f2-a7edacfc394a/download"
+    dest: "inspiration/papers/new-arch-choreo-uvm.pdf"
+    tags: [choreography]
+
+  # ── BATCH 2: Pony + Actor Systems + More Choreography (PDFs) ─────────────────
+
+  - id: "011"
+    batch: 2
+    type: pdf
+    title: "A String of Ponies (Pony language)"
+    url: "https://www.ponylang.io/media/papers/a_string_of_ponies.pdf"
+    dest: "inspiration/papers/pony-string-of-ponies.pdf"
+    tags: [actors, pony]
+
+  - id: "012"
+    batch: 2
+    type: pdf
+    title: "Deny Capabilities for Safe, Fast Actors (Pony co-design)"
+    url: "https://www.ponylang.io/media/papers/codesigning.pdf"
+    dest: "inspiration/papers/pony-deny-capabilities.pdf"
+    tags: [actors, pony]
+
+  - id: "013"
+    batch: 2
+    type: pdf
+    title: "A Principled Design of Capabilities in Pony (Steed, Imperial)"
+    url: "https://www.imperial.ac.uk/media/imperial-college/faculty-of-engineering/computing/public/GeorgeSteed.pdf"
+    dest: "inspiration/papers/pony-capabilities-steed.pdf"
+    tags: [actors, pony]
+
+  - id: "014"
+    batch: 2
+    type: pdf
+    title: "A Comparison of Capability Systems: Encore, Pony, Rust"
+    url: "https://www.diva-portal.org/smash/get/diva2:1363822/FULLTEXT01.pdf"
+    dest: "inspiration/papers/capability-systems-encore-pony-rust.pdf"
+    tags: [actors, pony, capabilities]
+
+  - id: "015"
+    batch: 2
+    type: pdf
+    title: "Diva Portal Paper (diva2:2013047)"
+    url: "https://www.diva-portal.org/smash/get/diva2:2013047/FULLTEXT01.pdf"
+    dest: "inspiration/papers/diva2-2013047.pdf"
+    tags: [actors]
+
+  - id: "016"
+    batch: 2
+    type: pdf
+    title: "Ownership and Reference Counting GC in the Actor World (ICOOOLPS '15)"
+    url: "https://www.doc.ic.ac.uk/~scd/icooolps15_GC.pdf"
+    dest: "inspiration/papers/actor-gc-icooolps15.pdf"
+    tags: [actors, gc]
+
+  - id: "017"
+    batch: 2
+    type: pdf
+    title: "Fast and Cheap Message Passing in ML (AGERE)"
+    url: "https://www.doc.ic.ac.uk/~scd/fast-cheap-AGERE.pdf"
+    dest: "inspiration/papers/fast-cheap-msg-agere.pdf"
+    tags: [actors, runtime]
+
+  - id: "018"
+    batch: 2
+    type: pdf
+    title: "Functional Choreographic Programming (Cambridge)"
+    url: "https://escholarship.org/content/qt2620x3h4/qt2620x3h4.pdf"
+    dest: "inspiration/papers/functional-choreo-programming.pdf"
+    tags: [choreography]
+
+  - id: "019"
+    batch: 2
+    type: pdf
+    title: "Service Weaver: A Promising Direction for Cloud-Native Systems? (SCITEPRESS '24)"
+    url: "https://www.scitepress.org/Papers/2024/126245/126245.pdf"
+    dest: "inspiration/papers/service-weaver-analysis-scitepress24.pdf"
+    tags: [service-weaver, cloud]
+
+  - id: "020"
+    batch: 2
+    type: pdf
+    title: "Distributed Systems Lecture Notes (Cambridge ConcDisSys)"
+    url: "https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/dist-sys-notes.pdf"
+    dest: "inspiration/papers/cambridge-dist-sys-notes.pdf"
+    tags: [distributed-systems, textbook]
+
+  # ── BATCH 3: Partitioning + Offload (PDFs) ───────────────────────────────────
+
+  - id: "021"
+    batch: 3
+    type: pdf
+    title: "The Coign Automatic Distributed Partitioning System (OSDI '99)"
+    url: "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/huntosdi99.pdf"
+    dest: "inspiration/papers/coign-osdi99.pdf"
+    tags: [partitioning, distributed-systems]
+
+  - id: "022"
+    batch: 3
+    type: pdf
+    title: "MAUI: Making Smartphones Last Longer with Code Offload (MobiSys '10)"
+    url: "http://web.cs.ucla.edu/~ravi/CS219_F19/papers/maui.pdf"
+    dest: "inspiration/papers/maui-mobisys10.pdf"
+    tags: [offload, mobile]
+
+  - id: "023"
+    batch: 3
+    type: pdf
+    title: "Elicit: Efficiently Identify Computation-Intensive Tasks for Offloading"
+    url: "https://mason.gmu.edu/~mhassanb/Elicit.pdf"
+    dest: "inspiration/papers/elicit-offload.pdf"
+    tags: [offload, mobile]
+
+  - id: "024"
+    batch: 3
+    type: pdf
+    title: "An Efficient Code Partition Algorithm for Mobile Cloud Computing (CloudNet '12)"
+    url: "https://ljiao.github.io/papers/cloudnet12.pdf"
+    dest: "inspiration/papers/code-partition-mobile-cloud-cloudnet12.pdf"
+    tags: [offload, mobile]
+
+  - id: "025"
+    batch: 3
+    type: pdf
+    title: "Pyxis: Dependency-Guided Application Partitioning (VLDB '12)"
+    url: "http://vldb.org/pvldb/vol5/p1471_alvincheung_vldb2012.pdf"
+    dest: "inspiration/papers/pyxis-vldb12.pdf"
+    tags: [partitioning, database]
+
+  - id: "026"
+    batch: 3
+    type: pdf
+    title: "Alvin Cheung PhD Dissertation (UW)"
+    url: "https://homes.cs.washington.edu/~akcheung/papers/dissertation.pdf"
+    dest: "inspiration/papers/akcheung-dissertation.pdf"
+    tags: [partitioning, database]
+
+  - id: "027"
+    batch: 3
+    type: pdf
+    title: "Enhancing Mobile Devices through Code Offload (MSR Dissertation)"
+    url: "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/dissertation.pdf"
+    dest: "inspiration/papers/msr-mobile-offload-dissertation.pdf"
+    tags: [offload, mobile]
+
+  - id: "028"
+    batch: 3
+    type: pdf
+    title: "Toward Generating Microservice Architectures from Requirements with LLMs (SBCARS)"
+    url: "https://sol.sbc.org.br/index.php/sbcars/article/download/36976/36761/"
+    dest: "inspiration/papers/llm-microservice-generation-sbcars.pdf"
+    tags: [microservices, llm, decomposition]
+
+  - id: "029"
+    batch: 3
+    type: pdf
+    title: "Verified Lifting of Stencil Computations — PLDI '16 (Shachari)"
+    url: "https://csaws.cs.technion.ac.il/~shachari/dl/pldi2016.pdf"
+    dest: "inspiration/papers/verified-lifting-stencil-pldi16.pdf"
+    tags: [program-analysis, lifting]
+
+  - id: "030"
+    batch: 3
+    type: pdf
+    title: "Automatic Partitioning of Database Applications (CIDR '13)"
+    url: "https://www.cidrdb.org/cidr2013/Papers/CIDR13_Paper117.pdf"
+    dest: "inspiration/papers/auto-partition-db-apps-cidr13.pdf"
+    tags: [partitioning, database]
+
+  # ── BATCH 4: Systems / Memory / Observability (PDFs) ─────────────────────────
+
+  - id: "031"
+    batch: 4
+    type: pdf
+    title: "TELEPORT: Optimizing Data-Intensive Systems in Disaggregated Data Centers (SIGMOD '22)"
+    url: "https://www.cis.upenn.edu/~sga001/papers/teleport-sigmod22.pdf"
+    dest: "inspiration/papers/teleport-sigmod22.pdf"
+    tags: [disaggregated-memory, database]
+
+  - id: "032"
+    batch: 4
+    type: pdf
+    title: "Disaggregated Database Systems — SIGMOD '23 Tutorial"
+    url: "https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD23_Tutorial_DisaggregatedDB.pdf"
+    dest: "inspiration/papers/disaggregated-db-sigmod23-tutorial.pdf"
+    tags: [disaggregated-memory, database]
+
+  - id: "033"
+    batch: 4
+    type: pdf
+    title: "Memory-Disaggregated DBMSs — SIGMOD '23 Tutorial Slides (Far Data Lab)"
+    url: "https://fardatalab.org/sigmod23-tutorial-slides.pdf"
+    dest: "inspiration/papers/memory-disagg-dbms-sigmod23-slides.pdf"
+    tags: [disaggregated-memory, database]
+
+  - id: "034"
+    batch: 4
+    type: pdf
+    title: "The Case for Physical Memory Pools: A Vision Paper"
+    url: "https://www.cs.purdue.edu/homes/csjgwang/CloudNativeDB/MemoryPoolCloud19.pdf"
+    dest: "inspiration/papers/physical-memory-pools-vision.pdf"
+    tags: [disaggregated-memory]
+
+  - id: "035"
+    batch: 4
+    type: pdf
+    title: "NrOS: Effective Replication and Sharing in an OS (OSDI '21)"
+    url: "https://www.usenix.org/system/files/osdi21-bhardwaj.pdf"
+    dest: "inspiration/papers/nros-osdi21.pdf"
+    tags: [distributed-systems, os]
+
+  - id: "036"
+    batch: 4
+    type: pdf
+    title: "LegoOS: Disseminated Distributed OS for Hardware Disaggregation (OSDI '18)"
+    url: "https://www.usenix.org/system/files/osdi18-shan.pdf"
+    dest: "inspiration/papers/legoos-osdi18.pdf"
+    tags: [disaggregated-memory, os]
+
+  - id: "037"
+    batch: 4
+    type: pdf
+    title: "Offload Annotations: Heterogeneous Computing to Existing Libraries (ATC '20)"
+    url: "https://www.usenix.org/system/files/atc20-yuan.pdf"
+    dest: "inspiration/papers/offload-annotations-atc20.pdf"
+    tags: [offload, heterogeneous]
+
+  - id: "038"
+    batch: 4
+    type: pdf
+    title: "Offload Annotations — ATC '20 Slides"
+    url: "https://www.usenix.org/system/files/atc20-paper547-slides-yuan.pdf"
+    dest: "inspiration/papers/offload-annotations-atc20-slides.pdf"
+    tags: [offload, heterogeneous]
+
+  - id: "039"
+    batch: 4
+    type: pdf
+    title: "Ray: A Distributed Framework for Emerging AI Applications (OSDI '18)"
+    url: "https://www.usenix.org/system/files/osdi18-moritz.pdf"
+    dest: "inspiration/papers/ray-osdi18.pdf"
+    tags: [runtime, distributed-systems]
+
+  - id: "040"
+    batch: 4
+    type: pdf
+    title: "Hyperscale Data Processing with Network-Centric Designs — Zhang Thesis"
+    url: "https://netdb.cis.upenn.edu/wp-content/uploads/2022/08/Qizhen_Zhang_Thesis.pdf"
+    dest: "inspiration/papers/qizhen-zhang-thesis.pdf"
+    tags: [disaggregated-memory, networking]
+
+  # ── BATCH 5: arXiv Papers ────────────────────────────────────────────────────
+
+  - id: "041"
+    batch: 5
+    type: arxiv
+    title: "Implementing a Language for Distributed Systems: Choices and Experiences (ScalaLoci)"
+    arxiv_id: "2002.06184"
+    url: "https://arxiv.org/pdf/2002.06184"
+    dest: "inspiration/papers/arxiv-2002.06184-scalaloci-impl.pdf"
+    tags: [multitier, scalaloci]
+
+  - id: "042"
+    batch: 5
+    type: arxiv
+    title: "Functional Choreographic Programming"
+    arxiv_id: "2111.03701"
+    url: "https://arxiv.org/pdf/2111.03701"
+    dest: "inspiration/papers/arxiv-2111.03701-functional-choreo.pdf"
+    tags: [choreography]
+
+  - id: "043"
+    batch: 5
+    type: arxiv
+    title: "Real-World Choreographic Programming: An Experience Report"
+    arxiv_id: "2303.03983"
+    url: "https://arxiv.org/pdf/2303.03983"
+    dest: "inspiration/papers/arxiv-2303.03983-real-world-choreo.pdf"
+    tags: [choreography]
+
+  - id: "044"
+    batch: 5
+    type: arxiv
+    title: "Choral: Object-Oriented Choreographic Programming"
+    arxiv_id: "2303.00924"
+    url: "https://arxiv.org/pdf/2303.00924"
+    dest: "inspiration/papers/arxiv-2303.00924-choral.pdf"
+    tags: [choreography, choral]
+
+  - id: "045"
+    batch: 5
+    type: arxiv
+    title: "Portable, Efficient, and Practical Library-Level Choreographic Programming"
+    arxiv_id: "2311.11472"
+    url: "https://arxiv.org/pdf/2311.11472"
+    dest: "inspiration/papers/arxiv-2311.11472-library-choreo.pdf"
+    tags: [choreography]
+
+  - id: "046"
+    batch: 5
+    type: arxiv
+    title: "Mono2Micro: Decomposing Monolithic Java Applications to Microservices"
+    arxiv_id: "2107.09698"
+    url: "https://arxiv.org/pdf/2107.09698"
+    dest: "inspiration/papers/arxiv-2107.09698-mono2micro.pdf"
+    tags: [decomposition, microservices]
+
+  - id: "047"
+    batch: 5
+    type: arxiv
+    title: "arXiv 2412.20992 (verify title on landing)"
+    arxiv_id: "2412.20992"
+    url: "https://arxiv.org/pdf/2412.20992"
+    dest: "inspiration/papers/arxiv-2412.20992.pdf"
+    tags: [unverified]
+
+  - id: "048"
+    batch: 5
+    type: arxiv
+    title: "arXiv 2407.10740 (HTML; verify title)"
+    arxiv_id: "2407.10740"
+    url: "https://arxiv.org/pdf/2407.10740"
+    dest: "inspiration/papers/arxiv-2407.10740.pdf"
+    tags: [unverified]
+
+  - id: "049"
+    batch: 5
+    type: arxiv
+    title: "arXiv 2503.20275 (HTML; verify title)"
+    arxiv_id: "2503.20275"
+    url: "https://arxiv.org/pdf/2503.20275"
+    dest: "inspiration/papers/arxiv-2503.20275.pdf"
+    tags: [unverified]
+
+  - id: "050"
+    batch: 5
+    type: pdf
+    title: "Berkeley EECS Tech Report EECS-2018-95"
+    url: "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2018/EECS-2018-95.pdf"
+    dest: "inspiration/papers/berkeley-eecs-2018-95.pdf"
+    tags: [distributed-systems]
+
+  # ── BATCH 6: GitHub Repositories ─────────────────────────────────────────────
+
+  - id: "051"
+    batch: 6
+    type: repo
+    title: "ServiceWeaver/weaver — Go distributed application framework"
+    url: "https://github.com/ServiceWeaver/weaver"
+    dest: "inspiration/repos/weaver"
+    tags: [service-weaver, cloud, runtime]
+
+  - id: "052"
+    batch: 6
+    type: repo
+    title: "scala-loci/scala-loci — ScalaLoci multitier programming language"
+    url: "https://github.com/scala-loci/scala-loci"
+    dest: "inspiration/repos/scala-loci"
+    tags: [multitier, scalaloci]
+
+  - id: "053"
+    batch: 6
+    type: repo
+    title: "links-lang/links — Links tierless web language"
+    url: "https://github.com/links-lang/links"
+    dest: "inspiration/repos/links"
+    tags: [multitier, tierless]
+
+  - id: "054"
+    batch: 6
+    type: repo
+    title: "urweb/urweb — Ur/Web tierless programming language"
+    url: "https://github.com/urweb/urweb"
+    dest: "inspiration/repos/urweb"
+    tags: [multitier, tierless]
+
+  - id: "055"
+    batch: 6
+    type: repo
+    title: "gshen42/HasChor — Choreographic programming in Haskell"
+    url: "https://github.com/gshen42/HasChor"
+    dest: "inspiration/repos/HasChor"
+    tags: [choreography, haskell]
+
+  - id: "056"
+    batch: 6
+    type: repo
+    title: "WukLab/LegoOS — Disseminated Distributed OS (OSDI '18 Best Paper)"
+    url: "https://github.com/Wuklab/LegoOS"
+    dest: "inspiration/repos/LegoOS"
+    tags: [os, disaggregated-memory]
+
+  - id: "057"
+    batch: 6
+    type: repo
+    title: "dmemsys/awesome-disaggregated-memory — Reading list"
+    url: "https://github.com/dmemsys/awesome-disaggregated-memory"
+    dest: "inspiration/repos/awesome-disaggregated-memory"
+    tags: [disaggregated-memory, reading-list]
+
+  - id: "058"
+    batch: 6
+    type: repo
+    title: "docelic/awesome-urweb — Ur/Web ecosystem"
+    url: "https://github.com/docelic/awesome-urweb"
+    dest: "inspiration/repos/awesome-urweb"
+    tags: [multitier, tierless]
+
+  # ── BATCH 7: Official Docs + Project Pages (HTML) ────────────────────────────
+
+  - id: "059"
+    batch: 7
+    type: html
+    title: "Service Weaver Documentation"
+    url: "https://serviceweaver.dev/docs.html"
+    dest: "inspiration/html/serviceweaver-docs.html"
+    tags: [service-weaver]
+
+  - id: "060"
+    batch: 7
+    type: html
+    title: "A History of Service Weaver's Core API"
+    url: "https://serviceweaver.dev/blog/history.html"
+    dest: "inspiration/html/serviceweaver-history.html"
+    tags: [service-weaver]
+
+  - id: "061"
+    batch: 7
+    type: html
+    title: "Introducing Service Weaver (Google Open Source Blog)"
+    url: "https://opensource.googleblog.com/2023/03/introducing-service-weaver-framework-for-writing-distributed-applications.html"
+    dest: "inspiration/html/serviceweaver-announcement.html"
+    tags: [service-weaver]
+
+  - id: "062"
+    batch: 7
+    type: html
+    title: "Temporal Platform Documentation (root)"
+    url: "https://docs.temporal.io/"
+    dest: "inspiration/html/temporal-docs.html"
+    tags: [temporal, durable-execution]
+
+  - id: "063"
+    batch: 7
+    type: html
+    title: "Temporal: What is Durable Execution?"
+    url: "https://temporal.io/blog/what-is-durable-execution"
+    dest: "inspiration/html/temporal-durable-execution.html"
+    tags: [temporal, durable-execution]
+
+  - id: "064"
+    batch: 7
+    type: html
+    title: "Temporal: Reliable Data Processing — Queues and Workflows"
+    url: "https://temporal.io/blog/reliable-data-processing-queues-workflows"
+    dest: "inspiration/html/temporal-queues-workflows.html"
+    tags: [temporal]
+
+  - id: "065"
+    batch: 7
+    type: html
+    title: "Temporal: Durable Execution in Distributed Systems (Observability)"
+    url: "https://temporal.io/blog/durable-execution-in-distributed-systems-increasing-observability"
+    dest: "inspiration/html/temporal-observability.html"
+    tags: [temporal]
+
+  - id: "066"
+    batch: 7
+    type: html
+    title: "Ray: Serve Architecture"
+    url: "https://docs.ray.io/en/latest/serve/architecture.html"
+    dest: "inspiration/html/ray-serve-architecture.html"
+    tags: [ray, runtime]
+
+  - id: "067"
+    batch: 7
+    type: html
+    title: "Ray: Getting Started"
+    url: "https://docs.ray.io/en/latest/ray-overview/getting-started.html"
+    dest: "inspiration/html/ray-getting-started.html"
+    tags: [ray, runtime]
+
+  - id: "068"
+    batch: 7
+    type: html
+    title: "HasChor at POPL '23 SRC"
+    url: "https://popl23.sigplan.org/details/POPL-2023-student-research-competition/3/HasChor-Choreographic-Programming-in-Haskell"
+    dest: "inspiration/html/haschor-popl23.html"
+    tags: [choreography, haskell]
+
+  # ── BATCH 8: Blog Posts + Community Discussion (HTML) ────────────────────────
+
+  - id: "069"
+    batch: 8
+    type: html
+    title: "Remote Procedure Call — Christopher Meiklejohn (2016)"
+    url: "https://christophermeiklejohn.com/pl/2016/04/12/rpc.html"
+    dest: "inspiration/html/meiklejohn-rpc.html"
+    tags: [rpc, distributed-systems]
+
+  - id: "070"
+    batch: 8
+    type: html
+    title: "The Road We Didn't Go Down — Armstrong on Software"
+    url: "http://armstrongonsoftware.blogspot.com/2008/05/road-we-didnt-go-down.html"
+    dest: "inspiration/html/armstrong-road-not-taken.html"
+    tags: [erlang, actors, distributed-systems]
+
+  - id: "071"
+    batch: 8
+    type: html
+    title: "What Did Service Weaver Miss? (Medium)"
+    url: "https://medium.com/@xiafan/what-did-service-weaver-miss-f1e58decfca7"
+    dest: "inspiration/html/service-weaver-miss.html"
+    tags: [service-weaver, critique]
+
+  - id: "072"
+    batch: 8
+    type: html
+    title: "Temporal's Internal Architecture (Medium)"
+    url: "https://medium.com/data-science-collective/system-design-series-a-step-by-step-breakdown-of-temporals-internal-architecture-52340cc36f30"
+    dest: "inspiration/html/temporal-architecture-medium.html"
+    tags: [temporal]
+
+  - id: "073"
+    batch: 8
+    type: html
+    title: "A Note on Distributed Computing (1994) — HN Discussion"
+    url: "https://news.ycombinator.com/item?id=34245875"
+    dest: "inspiration/html/hn-note-on-distributed-computing.html"
+    tags: [distributed-systems, discussion]
+
+  - id: "074"
+    batch: 8
+    type: html
+    title: "HN Discussion #24396142"
+    url: "https://news.ycombinator.com/item?id=24396142"
+    dest: "inspiration/html/hn-24396142.html"
+    tags: [discussion]
+
+  - id: "075"
+    batch: 8
+    type: html
+    title: "HN Discussion #31085216"
+    url: "https://news.ycombinator.com/item?id=31085216"
+    dest: "inspiration/html/hn-31085216.html"
+    tags: [discussion]
+
+  - id: "076"
+    batch: 8
+    type: html
+    title: "Alice or Bob?: Process Polymorphism in Choreographies (Cambridge JFP)"
+    url: "https://www.cambridge.org/core/journals/journal-of-functional-programming/article/alice-or-bob-process-polymorphism-in-choreographies/382AD3B58F86FF95AB59DDF0EDE96F65"
+    dest: "inspiration/html/alice-or-bob-choreographies.html"
+    tags: [choreography]
+
+  - id: "077"
+    batch: 8
+    type: html
+    title: "A Model for Correlation-Based Choreographic Programming (PMC)"
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC11784539/"
+    dest: "inspiration/html/correlation-choreo-pmc.html"
+    tags: [choreography]
+
+  - id: "078"
+    batch: 8
+    type: html
+    title: "Deny Capabilities for Safe Fast Actors (morning paper / acolyer)"
+    url: "https://blog.acolyer.org/2016/02/17/deny-capabilities/"
+    dest: "inspiration/html/acolyer-deny-capabilities.html"
+    tags: [actors, pony, capabilities]
+
+  # ── BATCH 9: More PDFs (misc research found in docs) ─────────────────────────
+
+  - id: "079"
+    batch: 9
+    type: pdf
+    title: "Shadaj Laddad PhD Dissertation (Hydro / Hydroflow)"
+    url: "https://www.shadaj.me/papers/dissertation.pdf"
+    dest: "inspiration/papers/shadaj-dissertation-hydro.pdf"
+    tags: [hydro, dataflow]
+
+  - id: "080"
+    batch: 9
+    type: pdf
+    title: "VLDB 2020 — Chen, Ang (network-aware data processing)"
+    url: "https://web.eecs.umich.edu/~chenang/papers/vldb-2020.pdf"
+    dest: "inspiration/papers/chenang-vldb2020.pdf"
+    tags: [database, networking]
+
+  - id: "081"
+    batch: 9
+    type: pdf
+    title: "COORDINATION 2015 — INRIA SPADES"
+    url: "https://team.inria.fr/spades/files/2015/06/COORDINATION_2015.pdf"
+    dest: "inspiration/papers/coordination2015-inria.pdf"
+    tags: [choreography, coordination]
+
+  - id: "082"
+    batch: 9
+    type: pdf
+    title: "BOC: Break-Out Containers (Kogias)"
+    url: "https://marioskogias.github.io/docs/boc.pdf"
+    dest: "inspiration/papers/boc-kogias.pdf"
+    tags: [containers, runtime]
+
+  - id: "083"
+    batch: 9
+    type: pdf
+    title: "AI-Driven Refactoring (THESAI)"
+    url: "https://thesai.org/Downloads/Volume17No2/Paper_83-AI_Driven_Refactoring.pdf"
+    dest: "inspiration/papers/ai-driven-refactoring.pdf"
+    tags: [llm, refactoring, microservices]
+
+  - id: "084"
+    batch: 9
+    type: pdf
+    title: "WJARR 2025-1621"
+    url: "https://wjarr.com/sites/default/files/fulltext_pdf/WJARR-2025-1621.pdf"
+    dest: "inspiration/papers/wjarr-2025-1621.pdf"
+    tags: [unverified]
+
+  - id: "085"
+    batch: 9
+    type: pdf
+    title: "WJARR 2025-1832"
+    url: "https://wjarr.com/sites/default/files/fulltext_pdf/WJARR-2025-1832.pdf"
+    dest: "inspiration/papers/wjarr-2025-1832.pdf"
+    tags: [unverified]
+
+  - id: "086"
+    batch: 9
+    type: pdf
+    title: "IEEE 08318383 (IEEEXplore open access)"
+    url: "https://ieeexplore.ieee.org/iel7/6287639/8274985/08318383.pdf"
+    dest: "inspiration/papers/ieee-08318383.pdf"
+    tags: [distributed-systems]
+
+  - id: "087"
+    batch: 9
+    type: pdf
+    title: "VenkateshEmani MSR Thesis"
+    url: "https://www.microsoft.com/en-us/research/wp-content/uploads/2021/02/Unsigned_Long_Thesis_VenkateshEmani.pdf"
+    dest: "inspiration/papers/msr-venkatesh-emani-thesis.pdf"
+    tags: [program-analysis]
+
+  - id: "088"
+    batch: 9
+    type: pdf
+    title: "MPG Pure — item 3359945 content"
+    url: "https://pure.mpg.de/rest/items/item_3359945/component/file_3362431/content"
+    dest: "inspiration/papers/mpg-pure-3359945.pdf"
+    tags: [unverified]
+
+  # ── BATCH 10: Reference / Index Pages (HTML) ─────────────────────────────────
+
+  - id: "089"
+    batch: 10
+    type: html
+    title: "A Note on Distributed Computing — Semantic Scholar"
+    url: "https://www.semanticscholar.org/paper/A-Note-on-Distributed-Computing-Waldo-Wyant/778e4bbdea4e35f3889e48bfba7c951ed3b43b54"
+    dest: "inspiration/html/note-on-distributed-computing-s2.html"
+    tags: [distributed-systems, classic]
+
+  - id: "090"
+    batch: 10
+    type: html
+    title: "Distributed object — Wikipedia"
+    url: "https://en.wikipedia.org/wiki/Distributed_object"
+    dest: "inspiration/html/wikipedia-distributed-object.html"
+    tags: [distributed-systems]
+
+  - id: "091"
+    batch: 10
+    type: html
+    title: "Mono2Micro IBM Research (toolchain paper)"
+    url: "https://research.ibm.com/publications/mono2micro-an-ai-based-toolchain-for-evolving-monolithic-enterprise-applications-to-a-microservice-architecture"
+    dest: "inspiration/html/mono2micro-ibm-toolchain.html"
+    tags: [decomposition, microservices]
+
+  - id: "092"
+    batch: 10
+    type: html
+    title: "Mono2Micro IBM Research (practical tool paper)"
+    url: "https://research.ibm.com/publications/mono2micro-a-practical-and-effective-tool-for-decomposing-monolithic-java-applications-to-microservices"
+    dest: "inspiration/html/mono2micro-ibm-practical.html"
+    tags: [decomposition, microservices]
+
+  - id: "093"
+    batch: 10
+    type: html
+    title: "PLDI '16: Verified Lifting of Stencil Computations (SIGPLAN)"
+    url: "https://pldi16.sigplan.org/details/pldi-2016-papers/40/Verified-Lifting-of-Stencil-Computations"
+    dest: "inspiration/html/pldi16-verified-lifting.html"
+    tags: [lifting, program-analysis]
+
+  - id: "094"
+    batch: 10
+    type: html
+    title: "Pony Language Papers Index"
+    url: "https://www.ponylang.io/learn/papers/"
+    dest: "inspiration/html/ponylang-papers.html"
+    tags: [actors, pony]
+
+  - id: "095"
+    batch: 10
+    type: html
+    title: "AWS: Building Resilient Distributed Systems with Temporal"
+    url: "https://aws.amazon.com/blogs/apn/building-resilient-distributed-systems-with-temporal-and-aws/"
+    dest: "inspiration/html/aws-temporal-resilient.html"
+    tags: [temporal, cloud]
+
+  - id: "096"
+    batch: 10
+    type: html
+    title: "LeifAndersen GitHub Gist"
+    url: "https://gist.github.com/LeifAndersen/12edea0b8bf62a34aebc8984eb5f3a48"
+    dest: "inspiration/html/leif-andersen-gist.html"
+    tags: [unverified]
+
+  - id: "097"
+    batch: 10
+    type: html
+    title: "Martin Fowler: Research Review Rebuild"
+    url: "https://martinfowler.com/articles/research-review-rebuild.html"
+    dest: "inspiration/html/martinfowler-research-review.html"
+    tags: [software-engineering]
+
+  - id: "098"
+    batch: 10
+    type: html
+    title: "Service Weaver — pkg.go.dev"
+    url: "https://pkg.go.dev/github.com/ServiceWeaver/weaver"
+    dest: "inspiration/html/serviceweaver-pkg-go-dev.html"
+    tags: [service-weaver]
+
+  - id: "099"
+    batch: 10
+    type: html
+    title: "Kotlin Language Specification"
+    url: "https://kotlinlang.org/spec/kotlin-spec.html"
+    dest: "inspiration/html/kotlin-spec.html"
+    tags: [language-design]
+
+  - id: "100"
+    batch: 10
+    type: html
+    title: "CNCF Wasm Landscape (2023)"
+    url: "https://www.cncf.io/blog/2023/09/06/introducing-the-wasm-landscape/"
+    dest: "inspiration/html/cncf-wasm-landscape.html"
+    tags: [wasm, cloud]
+
+  # ── BATCH 11: Core Prior Art — Far Memory + Partitioning (PDFs) ───────────────
+
+  - id: "101"
+    batch: 11
+    type: pdf
+    title: "Service Weaver: Towards Modern Development of Cloud Applications (HotOS '23)"
+    url: "https://sigops.org/s/conferences/hotos/2023/papers/ghemawat.pdf"
+    dest: "inspiration/papers/service-weaver-hotos23.pdf"
+    tags: [service-weaver, cloud, distribution]
+
+  - id: "102"
+    batch: 11
+    type: pdf
+    title: "Ignis: Scaling Distribution-Oblivious Systems with Light-Touch Distribution (PLDI '19)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3314221.3314586"
+    dest: "inspiration/papers/ignis-pldi19.pdf"
+    tags: [distribution, annotation, partitioning]
+
+  - id: "103"
+    batch: 11
+    type: pdf
+    title: "AIFM: High-Performance, Application-Integrated Far Memory (OSDI '20)"
+    url: "https://www.usenix.org/system/files/osdi20-ruan.pdf"
+    dest: "inspiration/papers/aifm-osdi20.pdf"
+    tags: [far-memory, disaggregated-memory]
+
+  - id: "104"
+    batch: 11
+    type: pdf
+    title: "Infiniswap: Efficient Memory Disaggregation with RDMA (NSDI '17)"
+    url: "https://www.usenix.org/system/files/conference/nsdi17/nsdi17-gu.pdf"
+    dest: "inspiration/papers/infiniswap-nsdi17.pdf"
+    tags: [far-memory, rdma, disaggregated-memory]
+
+  - id: "105"
+    batch: 11
+    type: pdf
+    title: "Can Far Memory Improve Job Throughput? (EuroSys '20)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3342195.3387522"
+    dest: "inspiration/papers/far-memory-eurosys20.pdf"
+    tags: [far-memory, scheduling, disaggregated-memory]
+
+  - id: "106"
+    batch: 11
+    type: pdf
+    title: "Offload Annotations: Heterogeneous Computing for Existing Libraries (ATC '20)"
+    url: "https://www.usenix.org/system/files/atc20-yuan.pdf"
+    dest: "inspiration/papers/offload-annotations-atc20.pdf"
+    tags: [offloading, annotation, heterogeneous-computing]
+
+  - id: "107"
+    batch: 11
+    type: pdf
+    title: "TELEPORT: Pushdown to Disaggregated Data Centers (SIGMOD '22)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3514221.3517856"
+    dest: "inspiration/papers/teleport-sigmod22.pdf"
+    tags: [disaggregated-memory, offloading, database]
+
+  - id: "108"
+    batch: 11
+    type: pdf
+    title: "Coign: Automatic Distributed Partitioning of COM Applications (OSDI '99)"
+    url: "https://www.usenix.org/legacy/events/osdi99/full_papers/hunt/hunt.pdf"
+    dest: "inspiration/papers/coign-osdi99.pdf"
+    tags: [partitioning, distribution, classic]
+
+  - id: "109"
+    batch: 11
+    type: pdf
+    title: "CloneCloud: Elastic Execution between Mobile Device and Cloud (EuroSys '11)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/1966445.1966473"
+    dest: "inspiration/papers/clonecloud-eurosys11.pdf"
+    tags: [offloading, mobile, partitioning]
+
+  - id: "110"
+    batch: 11
+    type: pdf
+    title: "MAUI: Making Smartphones Last Longer with Code Offload (MobiSys '10)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/1814433.1814441"
+    dest: "inspiration/papers/maui-mobisys10.pdf"
+    tags: [offloading, mobile, annotation]
+
+  # ── BATCH 12: Serverless + Microservice Resource Management (PDFs) ─────────────
+
+  - id: "111"
+    batch: 12
+    type: pdf
+    title: "SAND: Towards High-Performance Serverless Computing (ATC '18)"
+    url: "https://www.usenix.org/system/files/conference/atc18/atc18-akkus.pdf"
+    dest: "inspiration/papers/sand-atc18.pdf"
+    tags: [serverless, faas, cold-start]
+
+  - id: "112"
+    batch: 12
+    type: pdf
+    title: "Nightcore: Efficient Serverless for Latency-Sensitive Microservices (ASPLOS '21)"
+    url: "https://www.cs.utexas.edu/~witchel/pubs/nightcore-asplos21.pdf"
+    dest: "inspiration/papers/nightcore-asplos21.pdf"
+    tags: [serverless, microservices, latency]
+
+  - id: "113"
+    batch: 12
+    type: pdf
+    title: "Faasm: Lightweight Isolation for Stateful Serverless Computing (ATC '20)"
+    url: "https://www.usenix.org/system/files/atc20-shillaker.pdf"
+    dest: "inspiration/papers/faasm-atc20.pdf"
+    tags: [serverless, wasm, faas]
+
+  - id: "114"
+    batch: 12
+    type: pdf
+    title: "Cilantro: Performance-Aware Resource Allocation via Online Feedback (OSDI '23)"
+    url: "https://www.usenix.org/system/files/osdi23-bhardwaj.pdf"
+    dest: "inspiration/papers/cilantro-osdi23.pdf"
+    tags: [scheduling, resource-management, bandit]
+
+  - id: "115"
+    batch: 12
+    type: pdf
+    title: "FIRM: Fine-Grained Resource Management for SLO-Oriented Microservices (OSDI '20)"
+    url: "https://www.usenix.org/system/files/osdi20-qiu.pdf"
+    dest: "inspiration/papers/firm-osdi20.pdf"
+    tags: [microservices, resource-management, slo, reinforcement-learning]
+
+  - id: "116"
+    batch: 12
+    type: pdf
+    title: "Sage: ML-Based QoS Diagnosis in Cloud Microservices (ASPLOS '21)"
+    url: "https://www.csl.cornell.edu/~delimitrou/papers/2021.asplos.sage.pdf"
+    dest: "inspiration/papers/sage-asplos21.pdf"
+    tags: [microservices, ml, qos, root-cause]
+
+  - id: "117"
+    batch: 12
+    type: pdf
+    title: "Sinan: ML-Based QoS-Aware Resource Management for Cloud Microservices (ASPLOS '21)"
+    url: "https://www.csl.cornell.edu/~delimitrou/papers/2021.asplos.sinan.pdf"
+    dest: "inspiration/papers/sinan-asplos21.pdf"
+    tags: [microservices, ml, resource-management, slo]
+
+  - id: "118"
+    batch: 12
+    type: pdf
+    title: "Autopilot: Workload Autoscaling at Google (EuroSys '20)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3342195.3387168"
+    dest: "inspiration/papers/autopilot-eurosys20.pdf"
+    tags: [autoscaling, kubernetes, resource-management]
+
+  - id: "119"
+    batch: 12
+    type: pdf
+    title: "DeathStarBench: Open-Source Benchmark Suite for Microservices (ASPLOS '19)"
+    url: "https://www.csl.cornell.edu/~delimitrou/papers/2019.asplos.microservices.pdf"
+    dest: "inspiration/papers/deathstarbench-asplos19.pdf"
+    tags: [microservices, benchmark, evaluation]
+
+  - id: "120"
+    batch: 12
+    type: pdf
+    title: "CherryPick: Adaptively Finding Best Cloud Configurations for Big Data (NSDI '17)"
+    url: "https://www.usenix.org/system/files/conference/nsdi17/nsdi17-alipourfard.pdf"
+    dest: "inspiration/papers/cherrypick-nsdi17.pdf"
+    tags: [cloud, bayesian-optimization, configuration]
+
+  # ── BATCH 13: RL for Systems + Distributed Verification (PDFs) ────────────────
+
+  - id: "121"
+    batch: 13
+    type: pdf
+    title: "Pensieve: Neural Adaptive Video Streaming with RL (SIGCOMM '17)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3098822.3098843"
+    dest: "inspiration/papers/pensieve-sigcomm17.pdf"
+    tags: [reinforcement-learning, adaptive-control, networking]
+
+  - id: "122"
+    batch: 13
+    type: pdf
+    title: "Decima: Learning Scheduling Algorithms for Data Processing Clusters (SIGCOMM '19)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3341302.3342080"
+    dest: "inspiration/papers/decima-sigcomm19.pdf"
+    tags: [reinforcement-learning, scheduling, gnn]
+
+  - id: "123"
+    batch: 13
+    type: pdf
+    title: "AuTO: Learning-Based Traffic Optimization in Data Centers (SIGCOMM '18)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3230543.3230551"
+    dest: "inspiration/papers/auto-sigcomm18.pdf"
+    tags: [reinforcement-learning, networking, scheduling]
+
+  - id: "124"
+    batch: 13
+    type: pdf
+    title: "Park: Open Platform for Learning-Augmented Computer Systems (NeurIPS '19)"
+    url: "https://proceedings.neurips.cc/paper_files/paper/2019/file/1d0832c4969f6a4cc7f1d5dc5a3bdc09-Paper.pdf"
+    dest: "inspiration/papers/park-neurips19.pdf"
+    tags: [reinforcement-learning, benchmark, systems]
+
+  - id: "125"
+    batch: 13
+    type: pdf
+    title: "SEDA: Architecture for Well-Conditioned, Scalable Internet Services (SOSP '01)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/502034.502057"
+    dest: "inspiration/papers/seda-sosp01.pdf"
+    tags: [distributed-systems, adaptive-control, classic]
+
+  - id: "126"
+    batch: 13
+    type: pdf
+    title: "Verdi: A Framework for Implementing and Formally Verifying Distributed Systems (PLDI '15)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2737924.2737958"
+    dest: "inspiration/papers/verdi-pldi15.pdf"
+    tags: [verification, distributed-systems, coq]
+
+  - id: "127"
+    batch: 13
+    type: pdf
+    title: "IronFleet: Proving Practical Distributed Systems Correct (SOSP '15)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2815400.2815428"
+    dest: "inspiration/papers/ironfleet-sosp15.pdf"
+    tags: [verification, distributed-systems, dafny]
+
+  - id: "128"
+    batch: 13
+    type: pdf
+    title: "Ivy: Safety Verification by Interactive Generalization (PLDI '16)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2908080.2908118"
+    dest: "inspiration/papers/ivy-pldi16.pdf"
+    tags: [verification, distributed-systems, safety]
+
+  - id: "129"
+    batch: 13
+    type: arxiv
+    title: "Pirouette: Higher-Order Typed Functional Choreographies (POPL '23)"
+    arxiv_id: "2111.03701"
+    url: "https://arxiv.org/pdf/2111.03701"
+    dest: "inspiration/papers/pirouette-popl23.pdf"
+    tags: [choreography, type-theory, functional]
+
+  - id: "130"
+    batch: 13
+    type: pdf
+    title: "Orleans: Cloud Computing for Everyone — Virtual Actors (SoCC '11)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2038916.2038932"
+    dest: "inspiration/papers/orleans-socc11.pdf"
+    tags: [actors, virtual-actors, cloud]
+
+  # ── BATCH 14: Actor Systems + Language-Level Distribution (PDFs) ──────────────
+
+  - id: "131"
+    batch: 14
+    type: pdf
+    title: "Towards Haskell in the Cloud — Cloud Haskell (Haskell Symp. '11)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2096148.2034701"
+    dest: "inspiration/papers/cloud-haskell-haskell11.pdf"
+    tags: [actors, haskell, distribution, serialization]
+
+  - id: "133"
+    batch: 14
+    type: pdf
+    title: "Ray: A Distributed Framework for Emerging AI Applications (OSDI '18)"
+    url: "https://www.usenix.org/system/files/osdi18-moritz.pdf"
+    dest: "inspiration/papers/ray-osdi18.pdf"
+    tags: [ray, actors, distributed-systems, annotation]
+
+  - id: "134"
+    batch: 14
+    type: pdf
+    title: "Swift: Secure Web Applications via Automatic Partitioning (SOSP '07)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/1294261.1294275"
+    dest: "inspiration/papers/swift-sosp07.pdf"
+    tags: [multitier, security, partitioning, information-flow]
+
+  - id: "135"
+    batch: 14
+    type: pdf
+    title: "Fabric: Platform for Secure Distributed Computation and Storage (SOSP '09)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/1629575.1629604"
+    dest: "inspiration/papers/fabric-sosp09.pdf"
+    tags: [security, information-flow, distributed-systems]
+
+  - id: "137"
+    batch: 14
+    type: pdf
+    title: "Links: Web Programming Without Tiers (FMCO '06)"
+    url: "https://homepages.inf.ed.ac.uk/wadler/papers/links/links.pdf"
+    dest: "inspiration/papers/links-fmco06.pdf"
+    tags: [multitier, tierless, web, functional]
+
+  - id: "138"
+    batch: 14
+    type: pdf
+    title: "Choral: Object-Oriented Choreographic Programming (TOPLAS '24)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3632398"
+    dest: "inspiration/papers/choral-toplas24.pdf"
+    tags: [choreography, object-oriented, java]
+
+  - id: "139"
+    batch: 14
+    type: pdf
+    title: "Ur/Web: A Simple Model for Programming the Web (ICFP '15)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2784731.2784741"
+    dest: "inspiration/papers/urweb-icfp15.pdf"
+    tags: [multitier, tierless, web, functional]
+
+  - id: "140"
+    batch: 14
+    type: pdf
+    title: "Sagas (Garcia-Molina & Salem, SIGMOD '87)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/38713.38742"
+    dest: "inspiration/papers/sagas-sigmod87.pdf"
+    tags: [distributed-transactions, correctness, classic]
+
+  # ── BATCH 15: Type Theory, Correctness, and Formal Models (PDFs) ──────────────
+
+  - id: "141"
+    batch: 15
+    type: pdf
+    title: "LVars: Lattice-Based Data Structures for Deterministic Parallelism (FHPC '13)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2502323.2502326"
+    dest: "inspiration/papers/lvars-fhpc13.pdf"
+    tags: [parallelism, determinism, lattice, type-theory]
+
+  - id: "142"
+    batch: 15
+    type: pdf
+    title: "Freeze After Writing: Quasi-Deterministic Parallel Programming with LVars (POPL '14)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2535838.2535842"
+    dest: "inspiration/papers/lvars-freeze-popl14.pdf"
+    tags: [parallelism, determinism, lattice, type-theory]
+
+  - id: "143"
+    batch: 15
+    type: pdf
+    title: "Conflict-Free Replicated Data Types — CRDTs (SSS '11)"
+    url: "https://inria.hal.science/inria-00555588/document"
+    dest: "inspiration/papers/crdts-sss11.pdf"
+    tags: [crdt, consistency, distributed-systems]
+
+  - id: "144"
+    batch: 15
+    type: pdf
+    title: "Language Primitives for Structured Communication-Based Programming — Session Types (ESOP '98)"
+    url: "https://www.di.fc.ul.pt/~vv/papers/honda.vasconcelos.kubo_language-primitives.pdf"
+    dest: "inspiration/papers/session-types-esop98.pdf"
+    tags: [session-types, type-theory, communication]
+
+  - id: "145"
+    batch: 15
+    type: pdf
+    title: "Multiparty Asynchronous Session Types (POPL '08)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/1328897.1328472"
+    dest: "inspiration/papers/mpst-popl08.pdf"
+    tags: [session-types, multiparty, choreography]
+
+  - id: "146"
+    batch: 15
+    type: pdf
+    title: "Static Race Detection and Mutex Safety for Go Programs — Gabet & Yoshida (ECOOP '20)"
+    url: "https://drops.dagstuhl.de/opus/volltexte/2020/13186/pdf/LIPIcs-ECOOP-2020-28.pdf"
+    dest: "inspiration/papers/gabet-yoshida-ecoop20.pdf"
+    tags: [go, race-detection, session-types, static-analysis]
+
+  - id: "147"
+    batch: 15
+    type: pdf
+    title: "Keeping CALM: When Distributed Consistency Is Easy (CACM '20)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3369736"
+    dest: "inspiration/papers/calm-cacm20.pdf"
+    tags: [consistency, distributed-systems, monotonicity]
+
+  - id: "148"
+    batch: 15
+    type: pdf
+    title: "RIFL: Implementing Linearizability at Large Scale and Low Latency (SOSP '15)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2815400.2815416"
+    dest: "inspiration/papers/rifl-sosp15.pdf"
+    tags: [linearizability, distributed-systems, correctness]
+
+  - id: "149"
+    batch: 15
+    type: pdf
+    title: "SEEC: A Framework for Self-Aware Computing (MIT-CSAIL-TR-2011-046)"
+    url: "https://dspace.mit.edu/bitstream/handle/1721.1/62759/MIT-CSAIL-TR-2011-046.pdf"
+    dest: "inspiration/papers/seec-tr2011.pdf"
+    tags: [adaptive-control, resource-management, self-aware]
+
+  - id: "150"
+    batch: 15
+    type: pdf
+    title: "The Tail at Scale (Dean & Barroso, CACM '13)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2408776.2408794"
+    dest: "inspiration/papers/tail-at-scale-cacm13.pdf"
+    tags: [latency, distributed-systems, tail-latency, classic]
+
+  # ── BATCH 16: Infrastructure, Platforms, and Decomposition Tools (PDFs) ────────
+
+  - id: "151"
+    batch: 16
+    type: pdf
+    title: "Unikraft: Fast, Specialized Unikernels the Easy Way (EuroSys '21)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3447786.3456248"
+    dest: "inspiration/papers/unikraft-eurosys21.pdf"
+    tags: [unikernel, cold-start, platform]
+
+  - id: "152"
+    batch: 16
+    type: pdf
+    title: "Unikernels: Library Operating Systems for the Cloud — MirageOS (ASPLOS '13)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/2451116.2451167"
+    dest: "inspiration/papers/mirageos-asplos13.pdf"
+    tags: [unikernel, library-os, ocaml, platform]
+
+  - id: "153"
+    batch: 16
+    type: arxiv
+    title: "MLIR: Scaling Compiler Infrastructure for Domain-Specific Computation (CGO '21)"
+    arxiv_id: "2002.11054"
+    url: "https://arxiv.org/pdf/2002.11054"
+    dest: "inspiration/papers/mlir-cgo21.pdf"
+    tags: [compiler, mlir, ir, infrastructure]
+
+  - id: "154"
+    batch: 16
+    type: pdf
+    title: "Hermit: Low-Latency Remote Memory via Feedback-Directed Asynchrony (NSDI '23)"
+    url: "https://www.usenix.org/system/files/nsdi23-qiao.pdf"
+    dest: "inspiration/papers/hermit-nsdi23.pdf"
+    tags: [far-memory, rdma, async, disaggregated-memory]
+
+  - id: "156"
+    batch: 16
+    type: arxiv
+    title: "MonoEmbed: Contrastive LLM-Based Monolith-to-Microservice Decomposition (arXiv:2502.04604)"
+    arxiv_id: "2502.04604"
+    url: "https://arxiv.org/pdf/2502.04604"
+    dest: "inspiration/papers/monoembed-arxiv2502.pdf"
+    tags: [decomposition, microservices, llm, contrastive-learning]
+
+  - id: "157"
+    batch: 16
+    type: pdf
+    title: "CARGO: AI-Guided Dependency Analysis for Microservice Decomposition (ASE '22)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/3551349.3556960"
+    dest: "inspiration/papers/cargo-ase22.pdf"
+    tags: [decomposition, microservices, ml, static-analysis]
+
+  - id: "158"
+    batch: 16
+    type: arxiv
+    title: "Decomposition of Monolith Applications into Microservices: A Systematic Review (IEEE TSE '23)"
+    arxiv_id: "2305.06996"
+    url: "https://arxiv.org/pdf/2305.06996"
+    dest: "inspiration/papers/abgaz-tse23-decomp.pdf"
+    tags: [decomposition, microservices, survey, systematic-review]
+
+  - id: "159"
+    batch: 16
+    type: pdf
+    title: "The Rise and Fall of CORBA (Henning, ACM Queue '06)"
+    url: "https://dl.acm.org/doi/pdf/10.1145/1142055.1142083"
+    dest: "inspiration/papers/corba-rise-fall-queue06.pdf"
+    tags: [distributed-systems, rpc, corba, classic, transparency]
+
+  - id: "160"
+    batch: 16
+    type: pdf
+    title: "Automatic Partitioning of Database Applications — Pyxis (VLDB '12)"
+    url: "https://dl.acm.org/doi/pdf/10.14778/2310570.2310580"
+    dest: "inspiration/papers/pyxis-vldb12.pdf"
+    tags: [partitioning, database, information-flow]
