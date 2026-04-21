@@ -46,6 +46,8 @@
       "properties": {
         "identity": { "$ref": "#/$defs/symbolIdentity" },
         "registryKey": { "type": ["string", "null"] },
+        "shape": { "type": "string" },
+        "defaultTransport": { "type": "string" },
         "exposedOperations": { "type": "array", "items": { "$ref": "#/$defs/symbolIdentity" } }
       },
       "additionalProperties": false

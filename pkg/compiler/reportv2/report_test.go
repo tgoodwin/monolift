@@ -15,6 +15,12 @@ func TestParseValidAcceptReport(t *testing.T) {
 	if got.Pragma.Options["verdict"] != "accept" {
 		t.Fatalf("verdict=%q want accept", got.Pragma.Options["verdict"])
 	}
+	if got.Root.Shape != "http-handler" {
+		t.Fatalf("root.shape=%q want http-handler", got.Root.Shape)
+	}
+	if got.Root.DefaultTransport != "handler" {
+		t.Fatalf("root.defaultTransport=%q want handler", got.Root.DefaultTransport)
+	}
 }
 
 func TestParseValidRefuseReport(t *testing.T) {
@@ -51,6 +57,34 @@ func TestParseInvalidMissingRequiredField(t *testing.T) {
 
 	if _, err := Parse(data); err == nil {
 		t.Fatal("Parse succeeded for report missing schemaVersion")
+	}
+}
+
+func TestParseAllowsMissingOptionalRootShapeFields(t *testing.T) {
+	var raw map[string]any
+	if err := json.Unmarshal(mustReportJSON(t, sampleReport("accept", nil)), &raw); err != nil {
+		t.Fatal(err)
+	}
+	root, ok := raw["root"].(map[string]any)
+	if !ok {
+		t.Fatalf("root=%T want object", raw["root"])
+	}
+	delete(root, "shape")
+	delete(root, "defaultTransport")
+	data, err := json.Marshal(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+	if got.Root.Shape != "" {
+		t.Fatalf("root.shape=%q want empty", got.Root.Shape)
+	}
+	if got.Root.DefaultTransport != "" {
+		t.Fatalf("root.defaultTransport=%q want empty", got.Root.DefaultTransport)
 	}
 }
 
@@ -92,6 +126,8 @@ func sampleReport(verdict string, diagnostics []Diagnostic) Report {
 		Root: Root{
 			Identity:          root,
 			RegistryKey:       nil,
+			Shape:             "http-handler",
+			DefaultTransport:  "handler",
 			ExposedOperations: []SymbolIdentity{root},
 		},
 		Closure: Closure{

@@ -62,6 +62,8 @@ type Pragma struct {
 type Root struct {
 	Identity          SymbolIdentity   `json:"identity"`
 	RegistryKey       *string          `json:"registryKey"`
+	Shape             string           `json:"shape"`
+	DefaultTransport  string           `json:"defaultTransport"`
 	ExposedOperations []SymbolIdentity `json:"exposedOperations"`
 }
 
