@@ -1,0 +1,32 @@
+// source: https://github.com/mattermost/mattermost@bf84301784777a6e08f9709ee882b0eac029437a
+// path:   server/channels/app/platform/web_conn.go
+// lines:  L88-L112
+// SPDX-License-Identifier: AGPL-3.0
+// fetched: 2026-04-19
+// rationale: WebConn state for MM2: per-connection identity, send queue, and replay buffer in the connection-hub-buffer composite example.
+
+type WebConn struct {
+	sessionExpiresAt  int64 // This should stay at the top for 64-bit alignment of 64-bit words accessed atomically
+	Platform          *PlatformService
+	Suite             SuiteIFace
+	HookRunner        HookRunner
+	WebSocket         *websocket.Conn
+	T                 i18n.TranslateFunc
+	Locale            string
+	Sequence          int64
+	UserId            string
+	PostedAck         bool
+	DisconnectErrCode string
+
+	allChannelMembers         map[string]string
+	lastAllChannelMembersTime int64
+	lastUserActivityAt        int64
+	send                      chan model.WebSocketMessage
+	// deadQueue behaves like a queue of a finite size
+	// which is used to store all messages that are sent via the websocket.
+	// It basically acts as the user-space socket buffer, and is used
+	// to resuscitate any messages that might have got lost when the connection is broken.
+	// It is implemented by using a circular buffer to keep it fast.
+	deadQueue []*model.WebSocketEvent
+	// Pointer which indicates the next slot to insert.
+	// It is only to be incremented during writing or clearing the queue.

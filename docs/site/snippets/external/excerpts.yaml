@@ -1,0 +1,53 @@
+# External snippet manifest. Shape is defined by excerpts.schema.yaml in
+# this directory. Each entry produces one vendored `.go.txt` under
+# `docs/site/snippets/external/<project>/<local_name>.go.txt` with a
+# provenance header prepended by `scripts/refresh-external-snippets.py`.
+
+- project: caddy
+  upstream_path: modules/caddyhttp/caddyhttp.go
+  upstream_range: "77-92"
+  local_name: middleware-handler-interface
+  rationale: The 3-arg MiddlewareHandler interface Monolift's shape classifier matches against.
+  spdx: Apache-2.0
+
+- project: caddy
+  upstream_path: modules/caddyhttp/tracing/module.go
+  upstream_range: "66-69"
+  local_name: tracing-middleware-impl
+  rationale: A concrete middleware using the 3-arg signature that classifies as http-handler.
+  spdx: Apache-2.0
+
+- project: caddy
+  upstream_path: modules/caddyhttp/reverseproxy/streaming.go
+  upstream_range: "379-400"
+  local_name: reverseproxy-connections-register
+  rationale: The mutex-protected connections map that forms Caddy C5's serialized-actor / keyed-partitioned-state alternative set.
+  spdx: Apache-2.0
+
+- project: pocketbase
+  upstream_path: core/base.go
+  upstream_range: "72-85"
+  local_name: baseapp-db-fields
+  rationale: BaseApp's four dbx.Builder fields — the discovered-per-field state seeds the composite rule flags.
+  spdx: MIT
+
+- project: miniflux
+  upstream_path: internal/api/user_handlers.go
+  upstream_range: "17-25"
+  local_name: current-user-handler
+  rationale: Method handler with ctx-extracted user + external storage — the ctx-request-response domain pattern.
+  spdx: Apache-2.0
+
+- project: mattermost
+  upstream_path: server/channels/app/platform/web_hub.go
+  upstream_range: "77-118"
+  local_name: web-hub-fields
+  rationale: "Hub state for MM1: registration, direct-message, and broadcast queues in the connection-hub-buffer composite example."
+  spdx: AGPL-3.0
+
+- project: mattermost
+  upstream_path: server/channels/app/platform/web_conn.go
+  upstream_range: "88-112"
+  local_name: web-conn-fields
+  rationale: "WebConn state for MM2: per-connection identity, send queue, and replay buffer in the connection-hub-buffer composite example."
+  spdx: AGPL-3.0

@@ -1,0 +1,22 @@
+var archetypes = map[ArchetypeID]Archetype{
+	ArchetypeSerializedActor: {
+		ID:   ArchetypeSerializedActor,
+		Name: "Serialized actor",
+		Required: map[liftability.PropertyID]liftability.Verdict{
+			liftability.PropertyEffectsNoParamHeapMutation:       liftability.VerdictHold,
+			liftability.PropertyEffectsNoParamEscape:             liftability.VerdictHold,
+			liftability.PropertyEffectsNoGlobalWrites:            liftability.VerdictHold,
+			liftability.PropertyStateMutexEnclosesStoreInvariant: liftability.VerdictHold,
+			liftability.PropertyStateReceiverOwnedState:          liftability.VerdictHold,
+		},
+	},
+	ArchetypeKeyedPartitionedState: {
+		ID:   ArchetypeKeyedPartitionedState,
+		Name: "Keyed partitioned state",
+		Required: map[liftability.PropertyID]liftability.Verdict{
+			liftability.PropertyEffectsNoGlobalWrites:     liftability.VerdictHold,
+			liftability.PropertyStateReceiverOwnedState:   liftability.VerdictHold,
+			liftability.PropertyStateKeyedAccessInvariant: liftability.VerdictHold,
+		},
+	},
+}

@@ -1,0 +1,49 @@
+// source: https://github.com/mattermost/mattermost@bf84301784777a6e08f9709ee882b0eac029437a
+// path:   server/channels/app/platform/web_hub.go
+// lines:  L77-L118
+// SPDX-License-Identifier: AGPL-3.0
+// fetched: 2026-04-19
+// rationale: Hub state for MM1: registration, direct-message, and broadcast queues in the connection-hub-buffer composite example.
+
+type Hub struct {
+	// connectionCount should be kept first.
+	// See https://github.com/mattermost/mattermost-server/pull/7281
+	connectionCount int64
+	platform        *PlatformService
+	connectionIndex int
+	register        chan *webConnRegisterMessage
+	unregister      chan *WebConn
+	broadcast       chan *model.WebSocketEvent
+	stop            chan struct{}
+	didStop         chan struct{}
+	invalidateUser  chan string
+	activity        chan *webConnActivityMessage
+	directMsg       chan *webConnDirectMessage
+	explicitStop    bool
+	checkRegistered chan *webConnSessionMessage
+	checkConn       chan *webConnCheckMessage
+	connCount       chan *webConnCountMessage
+	broadcastHooks  map[string]BroadcastHook
+
+	// Hub-specific semaphore for limiting concurrent goroutines
+	hubSemaphore chan struct{}
+}
+
+// newWebHub creates a new Hub.
+func newWebHub(ps *PlatformService) *Hub {
+	return &Hub{
+		platform:        ps,
+		register:        make(chan *webConnRegisterMessage),
+		unregister:      make(chan *WebConn),
+		broadcast:       make(chan *model.WebSocketEvent, broadcastQueueSize),
+		stop:            make(chan struct{}),
+		didStop:         make(chan struct{}),
+		invalidateUser:  make(chan string),
+		activity:        make(chan *webConnActivityMessage),
+		directMsg:       make(chan *webConnDirectMessage),
+		checkRegistered: make(chan *webConnSessionMessage),
+		checkConn:       make(chan *webConnCheckMessage),
+		connCount:       make(chan *webConnCountMessage),
+		hubSemaphore:    make(chan struct{}, hubSemaphoreCount),
+	}
+}

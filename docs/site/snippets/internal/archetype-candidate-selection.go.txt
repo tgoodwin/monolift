@@ -1,0 +1,18 @@
+func ClassifyRegion(props []liftability.Evidence) Classification {
+	constructed := ConstructCandidates(props)
+	extended := ExtendWithComposites(constructed, props)
+	reduced, outcome := Subsume(extended)
+	primary, alternatives, tier, prose := SelectPrimary(reduced)
+
+	classification := Classification{
+		ArchetypeKind:  archetypeKindForOutcome(outcome),
+		Alternatives:   alternatives,
+		RationaleTier:  tier,
+		RationaleProse: prose,
+	}
+	if outcome != OutcomeEmpty {
+		classification.Primary = &primary
+	}
+	// SPRINT-0018: composite kind set here.
+	return classification
+}

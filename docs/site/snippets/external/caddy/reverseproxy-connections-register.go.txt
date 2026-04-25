@@ -1,0 +1,29 @@
+// source: https://github.com/caddyserver/caddy@4430756d5c3047564c4d5d72793de6685ba3efda
+// path:   modules/caddyhttp/reverseproxy/streaming.go
+// lines:  L379-L400
+// SPDX-License-Identifier: Apache-2.0
+// fetched: 2026-04-19
+// rationale: The mutex-protected connections map that forms Caddy C5's serialized-actor / keyed-partitioned-state alternative set.
+
+// of a server shutdown. This is useful because hijacked connections or
+// connections dialed to backends don't close when server is shut down.
+// The caller should call the returned delete() function when the
+// connection is done to remove it from memory.
+func (h *Handler) registerConnection(conn io.ReadWriteCloser, gracefulClose func() error) (del func()) {
+	h.connectionsMu.Lock()
+	h.connections[conn] = openConnection{conn, gracefulClose}
+	h.connectionsMu.Unlock()
+	return func() {
+		h.connectionsMu.Lock()
+		delete(h.connections, conn)
+		// if there is no connection left before the connections close timer fires
+		if len(h.connections) == 0 && h.connectionsCloseTimer != nil {
+			// we release the timer that holds the reference to Handler
+			if (*h.connectionsCloseTimer).Stop() {
+				h.logger.Debug("stopped streaming connections close timer - all connections are already closed")
+			}
+			h.connectionsCloseTimer = nil
+		}
+		h.connectionsMu.Unlock()
+	}
+}
