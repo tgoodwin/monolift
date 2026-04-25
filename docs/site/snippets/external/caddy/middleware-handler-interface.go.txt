@@ -1,0 +1,23 @@
+// source: https://github.com/caddyserver/caddy@4430756d5c3047564c4d5d72793de6685ba3efda
+// path:   modules/caddyhttp/caddyhttp.go
+// lines:  L77-L92
+// SPDX-License-Identifier: Apache-2.0
+// fetched: 2026-04-19
+// rationale: The 3-arg MiddlewareHandler interface Monolift's shape classifier matches against.
+
+// Middleware chains one Handler to the next by being passed
+// the next Handler in the chain.
+type Middleware func(Handler) Handler
+
+// MiddlewareHandler is like Handler except it takes as a third
+// argument the next handler in the chain. The next handler will
+// never be nil, but may be a no-op handler if this is the last
+// handler in the chain. Handlers which act as middleware should
+// call the next handler's ServeHTTP method so as to propagate
+// the request down the chain properly. Handlers which act as
+// responders (content origins) need not invoke the next handler,
+// since the last handler in the chain should be the first to
+// write the response.
+type MiddlewareHandler interface {
+	ServeHTTP(http.ResponseWriter, *http.Request, Handler) error
+}

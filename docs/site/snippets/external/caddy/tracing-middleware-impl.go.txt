@@ -1,0 +1,11 @@
+// source: https://github.com/caddyserver/caddy@4430756d5c3047564c4d5d72793de6685ba3efda
+// path:   modules/caddyhttp/tracing/module.go
+// lines:  L66-L69
+// SPDX-License-Identifier: Apache-2.0
+// fetched: 2026-04-19
+// rationale: A concrete middleware using the 3-arg signature that classifies as http-handler.
+
+// ServeHTTP implements caddyhttp.MiddlewareHandler.
+func (ot *Tracing) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+	return ot.otel.ServeHTTP(w, r, next)
+}

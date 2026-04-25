@@ -1,0 +1,16 @@
+// source: https://github.com/miniflux/v2@2916831cb1038e7150969fd41d1eb968ee62696e
+// path:   internal/api/user_handlers.go
+// lines:  L17-L25
+// SPDX-License-Identifier: Apache-2.0
+// fetched: 2026-04-19
+// rationale: Method handler with ctx-extracted user + external storage — the ctx-request-response domain pattern.
+
+func (h *handler) currentUserHandler(w http.ResponseWriter, r *http.Request) {
+	user, err := h.store.UserByID(request.UserID(r))
+	if err != nil {
+		response.JSONServerError(w, r, err)
+		return
+	}
+
+	response.JSON(w, r, user)
+}

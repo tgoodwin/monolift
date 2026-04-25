@@ -1,0 +1,47 @@
+# Schema (not data) for vendored external snippet entries.
+# The data file is `excerpts.yaml` in this directory; each entry is one
+# vendored `.go.txt` file under `docs/site/snippets/external/<project>/`.
+#
+# Fields:
+#   project:        string; must match a `name` in evaluation/MANIFEST.yaml
+#   upstream_path:  string; repo-relative path in the upstream target
+#   upstream_range: string; "Lstart-Lend" inclusive, 1-indexed
+#   local_name:     string; filename (no extension) under the project dir
+#   rationale:      string; <=120 chars; reviewer-facing justification
+#   spdx:           string; SPDX-License-Identifier, must match upstream
+#
+# Example entry:
+# - project: caddy
+#   upstream_path: modules/caddyhttp/caddyhttp.go
+#   upstream_range: "120-140"
+#   local_name: middleware-handler-interface
+#   rationale: Shows the 3-arg Caddy middleware signature the classifier matches.
+#   spdx: Apache-2.0
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://monolift.local/docs/excerpts.schema.yaml"
+title: Monolift external excerpt manifest
+type: array
+items:
+  type: object
+  required: [project, upstream_path, upstream_range, local_name, rationale, spdx]
+  additionalProperties: false
+  properties:
+    project:
+      type: string
+      minLength: 1
+    upstream_path:
+      type: string
+      minLength: 1
+    upstream_range:
+      type: string
+      pattern: "^[0-9]+-[0-9]+$"
+    local_name:
+      type: string
+      pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    rationale:
+      type: string
+      maxLength: 120
+    spdx:
+      type: string
+      minLength: 1
