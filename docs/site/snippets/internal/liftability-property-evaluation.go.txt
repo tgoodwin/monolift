@@ -1,0 +1,13 @@
+func evaluateOperation(ctx *Context, registry []Detector, op Operation) (Classification, []extract.Diagnostic, error) {
+	properties := make([]Evidence, 0, len(registry))
+	for _, detector := range registry {
+		_, evidence, err := detector.Evaluate(ctx, op)
+		if err != nil {
+			return Classification{}, nil, err
+		}
+		properties = append(properties, evidence...)
+	}
+	sortEvidence(properties)
+	classification, diagnostics := decideAdmission(ctx.Loaded, op, properties)
+	return classification, diagnostics, nil
+}
