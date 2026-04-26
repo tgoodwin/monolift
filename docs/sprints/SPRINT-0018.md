@@ -353,7 +353,7 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
 - [x] **F.2** Append `docs/evolution.md` with the slice landing.
 - [x] **F.3** `docs/sprints/ledger.yaml` left unchanged per resume instruction after Block E passed.
 - [x] **F.4** Final closeout commit deletes `lifted-baseline-snapshot/`. Single dedicated commit so bisect lands cleanly.
-- [ ] **F.5** `cmd/main.go` unchanged — verified.
+- [x] **F.5** `cmd/main.go` unchanged — verified.
 
 ## Acceptance criteria
 
