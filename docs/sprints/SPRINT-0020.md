@@ -157,28 +157,28 @@ Goal: now that miniflux is on the real compiler, `usesRealCompiler` is dead code
 
 All must hold at sprint close:
 
-- [ ] `test/e2e/targets/miniflux/target.go` is no longer skipped.
-- [ ] `test/e2e/targets/miniflux/golden/report.json` `closure.includedSymbols` contains `EstimateReadingTime` at line 17.
-- [ ] `evaluation/miniflux/` byte-identical pre/post e2e-compile driver. `make verify-evaluation-untouched` (or equivalent) passes for caddy and miniflux.
-- [ ] E2E compile driver emits `<output>/lifted/host-patch/` for miniflux containing the patched `internal/reader/readingtime/readingtime.go` (CleanPath-style prepended `*ast.IfStmt`), the sibling `monolift_lift_estimatereadingtime.go` dialer, the `cmd/monolift-extracted-estimatereadingtime/main.go` extracted-service binary, AND the `cmd/monolift-oracle-estimatereadingtime/main.go` oracle binary. Zero string-substituted symbol bodies; AST tests assert the real selector call.
-- [ ] `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -run TestE2E/miniflux -count=1` green: per-request `/calls` delta `>= 1`, aggregate `<= 50`, oracle equality, transcript parity, env-off zero counter, fail-closed sentinel `-1` (HTTP 200), fail-open real value (HTTP 200).
-- [ ] SPRINT-0018 + SPRINT-0019 caddy e2e still passes unchanged.
-- [ ] `usesRealCompiler` deleted from `test/e2e/e2ecompile/main.go`. `if !usesRealCompiler` and `else if … copyLiftedArtifacts` branches deleted. `git grep usesRealCompiler` zero matches.
-- [ ] Generated-output fixtures deleted; no active references remain.
-- [ ] Pre-rename per-target matrix passes (caddy, pocketbase, miniflux, all pragma sub-targets).
-- [ ] Binary renamed to `bin/e2e-compile` (or kept with historical comment if scope-cut). `harness/env.go:11`, `Makefile`, source directory, lockfile path, test invocations all updated atomically. Active references to the historical binary name are gone outside historical sprint docs.
-- [ ] ADR-0023 contains "Internal-rule compliance for oracle binaries via cmd-inside-host" amendment.
-- [ ] ADR-0018 unchanged. `pkg/compiler/transport/admission.go` unchanged. `pkg/compiler/transport/emit/liftpatch/` API unchanged. No new Layer-1 properties.
-- [ ] `cmd/main.go` unchanged.
-- [ ] `syscall.Flock` startup guard from SPRINT-0019 commit `969f0d2` preserved (renamed lockfile path).
+- [x] `test/e2e/targets/miniflux/target.go` is no longer skipped.
+- [x] `test/e2e/targets/miniflux/golden/report.json` `closure.includedSymbols` contains `EstimateReadingTime` at line 17.
+- [x] `evaluation/miniflux/` byte-identical pre/post e2e-compile driver. `make verify-evaluation-untouched` (or equivalent) passes for caddy and miniflux.
+- [x] E2E compile driver emits `<output>/lifted/host-patch/` for miniflux containing the patched `internal/reader/readingtime/readingtime.go` (CleanPath-style prepended `*ast.IfStmt`), the sibling `monolift_lift_estimatereadingtime.go` dialer, the `cmd/monolift-extracted-estimatereadingtime/main.go` extracted-service binary, AND the `cmd/monolift-oracle-estimatereadingtime/main.go` oracle binary. Zero string-substituted symbol bodies; AST tests assert the real selector call.
+- [x] `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -run TestE2E/miniflux -count=1` green: per-request `/calls` delta `>= 1`, aggregate `<= 50`, oracle equality, transcript parity, env-off zero counter, fail-closed sentinel `-1` (HTTP 200), fail-open real value (HTTP 200).
+- [x] SPRINT-0018 + SPRINT-0019 caddy e2e still passes unchanged.
+- [x] `usesRealCompiler` deleted from `test/e2e/e2ecompile/main.go`. `if !usesRealCompiler` and `else if … copyLiftedArtifacts` branches deleted. `git grep usesRealCompiler` zero matches.
+- [x] Generated-output fixtures deleted; no active references remain.
+- [x] Pre-rename per-target matrix passes (caddy, pocketbase, miniflux, all pragma sub-targets).
+- [x] Binary renamed to `bin/e2e-compile` (or kept with historical comment if scope-cut). `harness/env.go:11`, `Makefile`, source directory, lockfile path, test invocations all updated atomically. Active references to the historical binary name are gone outside historical sprint docs.
+- [x] ADR-0023 contains "Internal-rule compliance for oracle binaries via cmd-inside-host" amendment.
+- [x] ADR-0018 unchanged. `pkg/compiler/transport/admission.go` unchanged. `pkg/compiler/transport/emit/liftpatch/` API unchanged. No new Layer-1 properties.
+- [x] `cmd/main.go` unchanged.
+- [x] `syscall.Flock` startup guard from SPRINT-0019 commit `969f0d2` preserved (renamed lockfile path).
 
 ## Forward-design sanity check
 
-- [ ] `httpjson` template renders `(string,int,int) → int` symbols without code changes — proven by Block A.5.
-- [ ] Patcher API remains symbol-agnostic; any future `(...basic...) → (...basic...)` symbol works without re-opening the API.
-- [ ] cmd-inside-host oracle generalises across modules (`github.com/...` and `miniflux.app/...`). Future targets reuse the pattern.
-- [ ] Fail-closed sentinel mechanism is type-aware: cascade-to-404 for `string`-result symbols (matcher-driven), sentinel-value for non-`error`-returning symbols. ADR-0023 records both.
-- [ ] No target fingerprinting by import-path prefix in the patcher or admission rule. Targets dispatch only at the e2e harness layer.
+- [x] `httpjson` template renders `(string,int,int) → int` symbols without code changes — proven by Block A.5.
+- [x] Patcher API remains symbol-agnostic; any future `(...basic...) → (...basic...)` symbol works without re-opening the API.
+- [x] cmd-inside-host oracle generalises across modules (`github.com/...` and `miniflux.app/...`). Future targets reuse the pattern.
+- [x] Fail-closed sentinel mechanism is type-aware: cascade-to-404 for `string`-result symbols (matcher-driven), sentinel-value for non-`error`-returning symbols. ADR-0023 records both.
+- [x] No target fingerprinting by import-path prefix in the patcher or admission rule. Targets dispatch only at the e2e harness layer.
 
 ## Risks and mitigations
 
