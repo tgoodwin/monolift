@@ -185,6 +185,21 @@ func TestCaddySourceTreeUntouched(t *testing.T) {
 	}
 }
 
+func TestMinifluxSourceTreeUntouched(t *testing.T) {
+	before := hashTree(t, filepath.Join(repoRoot(), "evaluation", "miniflux"))
+	out := t.TempDir()
+	cmd := exec.Command("go", "run", ".", "--target=miniflux", "--output="+out, "--source=../../../evaluation/miniflux")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("stubcompiler failed: %v\n%s", err, data)
+	}
+	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "miniflux"))
+	if before != after {
+		t.Fatalf("evaluation/miniflux hash changed: before=%s after=%s", before, after)
+	}
+}
+
 func hashTree(t *testing.T, root string) string {
 	t.Helper()
 	var files []string
@@ -209,6 +224,20 @@ func hashTree(t *testing.T, root string) string {
 		}
 		sum.Write([]byte(filepath.ToSlash(rel)))
 		sum.Write([]byte{0})
+		info, err := os.Lstat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sum.Write([]byte("symlink:"))
+			sum.Write([]byte(target))
+			sum.Write([]byte{0})
+			continue
+		}
 		file, err := os.Open(path)
 		if err != nil {
 			t.Fatal(err)
