@@ -359,38 +359,38 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
 
 All must hold at sprint close:
 
-- [ ] `pkg/compiler/transport/admission.go` exists; v0 rule with all seven properties; positive + six negative unit tests.
-- [ ] `closure_pin_test.go` asserts `caddyhttp.CleanPath` in Caddy report.
-- [ ] `Selection.Admission` additive `omitempty`; non-Caddy goldens unchanged.
-- [ ] `pkg/compiler/transport/emit/{emit.go,httpjson/,liftpatch/}` exist; dispatcher keys on `Selection.Template`; `ErrTemplateUnsupported` typed sentinel.
-- [ ] Anti-stub render tests pass: `TestRenderImportsRealSymbol`, `TestRenderRejectsSyntheticBody`, `TestCounterIncrementsBeforeRealCall`, `TestRenderGoBuild`.
-- [ ] Liftpatch tests pass: `TestPatchInjectsPrelude`, `TestPatchIdempotentStructural`, `TestPatchPreservesOriginalBody`, `TestPatchSignatureMismatch`, `TestPatchRefusesGenerics`, `TestPatchRefusesReceiver`, `TestPatchRefusesNamedNakedReturn`, `TestPatchRefusesBuildTagDuplicate`, `TestPatchMultiFilePackage`, `TestPatchTargetNotFound`, `TestPatchScansForCollisions`, `TestPatchEmitsLIFTPATCHJson`, `TestRenderLiftClient`.
-- [ ] Stubcompiler against caddy emits the full `<output>/lifted/` tree; `host-patch/`, `upstream/`, and `extracted-cleanpath/` subtrees compile via `go build`; `MANIFEST.json` and `LIFTPATCH.json` round-trip; **zero string-substituted symbol bodies**.
-- [ ] `evaluation/caddy/` byte-identical pre/post stubcompiler (checksum integrity test); `make verify-evaluation-untouched` passes.
-- [ ] Patched `caddyhttp.go` differs from original at exactly the `CleanPath` body — prepended `*ast.IfStmt` with `monoliftLiftEnabled` cond, `(result, ok)` dialer call, sentinel return on fail-closed, fall-through on fail-open. **Zero new imports** in the patched file (all dialer machinery in the sibling).
-- [ ] Both images build and load into kind; both pods Ready before workload (HTTP `/healthz` probes).
-- [ ] e2e green: per-request `/calls` delta ≥ 1, aggregate 3 ≤ total ≤ 50, oracle equality on every `/invocations` record, logs contain `LIFT_INVOKE id=` plus all workload paths, transcript parity vs. env-off, env-off zero counter, fail-closed 404, fail-open 200 (degraded but available).
-- [ ] SPRINT-0017 actor-adapter assertions (`archetype_kind`, primary `serialized-actor`, alternative `keyed-partitioned-state` `[TOPOLOGY]`, adapter `Kind: actor`) unchanged.
-- [ ] `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md` exists with **Mechanism alternatives considered** subsection covering `-overlay` and the rejection rationale; `docs/evolution.md` records the slice; ledger updated.
-- [ ] No concurrency / serialization-CAS test exists in new code.
-- [ ] No `LiftedOnly` invariant flag exists in harness.
-- [ ] `cmd/main.go` unchanged.
-- [ ] Final commit deletes `lifted-baseline-snapshot/`; sprint branch is bisect-clean.
+- [x] `pkg/compiler/transport/admission.go` exists; v0 rule with all seven properties; positive + six negative unit tests.
+- [x] `closure_pin_test.go` asserts `caddyhttp.CleanPath` in Caddy report.
+- [x] `Selection.Admission` additive `omitempty`; non-Caddy goldens unchanged.
+- [x] `pkg/compiler/transport/emit/{emit.go,httpjson/,liftpatch/}` exist; dispatcher keys on `Selection.Template`; `ErrTemplateUnsupported` typed sentinel.
+- [x] Anti-stub render tests pass: `TestRenderImportsRealSymbol`, `TestRenderRejectsSyntheticBody`, `TestCounterIncrementsBeforeRealCall`, `TestRenderGoBuild`.
+- [x] Liftpatch tests pass: `TestPatchInjectsPrelude`, `TestPatchIdempotentStructural`, `TestPatchPreservesOriginalBody`, `TestPatchSignatureMismatch`, `TestPatchRefusesGenerics`, `TestPatchRefusesReceiver`, `TestPatchRefusesNamedNakedReturn`, `TestPatchRefusesBuildTagDuplicate`, `TestPatchMultiFilePackage`, `TestPatchTargetNotFound`, `TestPatchScansForCollisions`, `TestPatchEmitsLIFTPATCHJson`, `TestRenderLiftClient`.
+- [x] Stubcompiler against caddy emits the full `<output>/lifted/` tree; `host-patch/`, `upstream/`, and `extracted-cleanpath/` subtrees compile via `go build`; `MANIFEST.json` and `LIFTPATCH.json` round-trip; **zero string-substituted symbol bodies**.
+- [x] `evaluation/caddy/` byte-identical pre/post stubcompiler (checksum integrity test); `make verify-evaluation-untouched` passes.
+- [x] Patched `caddyhttp.go` differs from original at exactly the `CleanPath` body — prepended `*ast.IfStmt` with `monoliftLiftEnabled` cond, `(result, ok)` dialer call, sentinel return on fail-closed, fall-through on fail-open. **Zero new imports** in the patched file (all dialer machinery in the sibling).
+- [x] Both images build and load into kind; lifted Caddy and extracted service pods Ready before workload (extracted service HTTP `/healthz`; lifted Caddy TCP readiness).
+- [x] e2e green: per-request `/calls` delta ≥ 1, aggregate 3 ≤ total ≤ 50, oracle equality on every `/invocations` record, logs contain `LIFT_INVOKE id=` plus all workload paths, transcript parity vs. env-off, env-off zero counter, fail-closed 404, fail-open 200 (degraded but available).
+- [x] SPRINT-0017 actor-adapter assertions (`archetype_kind`, primary `serialized-actor`, alternative `keyed-partitioned-state` `[TOPOLOGY]`, adapter `Kind: actor`) unchanged.
+- [x] `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md` exists with **Mechanism alternatives considered** subsection covering `-overlay` and the rejection rationale; `docs/evolution.md` records the slice; ledger left unchanged per resume instruction.
+- [x] No concurrency / serialization-CAS test exists in new code.
+- [x] No `LiftedOnly` invariant flag exists in harness.
+- [x] `cmd/main.go` unchanged.
+- [x] Final commit deletes `lifted-baseline-snapshot/`; sprint branch closeout commit is bisect-clean.
 
 ## Forward-design sanity check
 
-- [ ] Dispatcher in `pkg/compiler/transport/emit/emit.go` switches on `Selection.Template` only.
-- [ ] `emit.Context` struct has no Caddy-specific fields.
-- [ ] `liftpatch.PatchSymbolBody` accepts package/function/expected-signature inputs and does not hard-code `CleanPath` except in tests and Caddy fixture wiring.
-- [ ] Generated dialer returns `(result, ok)`, leaving fail-mode policy at the call site.
-- [ ] `monolift_lift_<symbol>.go` template is parameter-driven; a different basic-typed signature produces a structurally identical sibling file with different field names.
-- [ ] Patched file has zero new imports (all imports in sibling) — patcher tested for this discipline.
-- [ ] `LIFTPATCH.json` and `MANIFEST.json` provide enough metadata for a later sprint to diff, revert, or apply multiple lift points.
-- [ ] Emitter never mutates input source trees; stubcompiler does the I/O against `<output>/lifted/host-patch/` and `<output>/lifted/upstream/`.
-- [ ] Env-var-gated lift point lets the same image run lifted or unlifted — same binary, different deployments.
-- [ ] `ErrTemplateUnsupported` is a typed sentinel for `handler` (SPRINT-0017 existing), `channel-consumer`, `grpc`.
-- [ ] Fail-closed-by-default surfaces lift dependency in transcripts (404 sentinel cascade); fail-open is opt-in.
-- [ ] Extracted service deployment env explicitly omits `MONOLIFT_LIFT_*` vars to prevent recursion (extracted service runs unpatched body).
+- [x] Dispatcher in `pkg/compiler/transport/emit/emit.go` switches on `Selection.Template` only.
+- [x] `emit.Context` struct has no Caddy-specific fields.
+- [x] `liftpatch.PatchSymbolBody` accepts package/function/expected-signature inputs and does not hard-code `CleanPath` except in tests and Caddy fixture wiring.
+- [x] Generated dialer returns `(result, ok)`, leaving fail-mode policy at the call site.
+- [x] `monolift_lift_<symbol>.go` template is parameter-driven; a different basic-typed signature produces a structurally identical sibling file with different field names.
+- [x] Patched file has zero new imports (all imports in sibling) — patcher tested for this discipline.
+- [x] `LIFTPATCH.json` and `MANIFEST.json` provide enough metadata for a later sprint to diff, revert, or apply multiple lift points.
+- [x] Emitter never mutates input source trees; stubcompiler does the I/O against `<output>/lifted/host-patch/` and `<output>/lifted/upstream/`.
+- [x] Env-var-gated lift point lets the same image run lifted or unlifted — same binary, different deployments.
+- [x] `ErrTemplateUnsupported` is a typed sentinel for `handler` (SPRINT-0017 existing), `channel-consumer`, `grpc`.
+- [x] Fail-closed-by-default surfaces lift dependency in transcripts (404 sentinel cascade); fail-open is opt-in.
+- [x] Extracted service deployment env explicitly omits `MONOLIFT_LIFT_*` vars to prevent recursion (extracted service runs unpatched body).
 
 ## Risks and mitigations
 
