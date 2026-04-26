@@ -137,7 +137,7 @@ Goal: now that miniflux is on the real compiler, `usesRealCompiler` is dead code
 - [x] **C.1** Delete `func usesRealCompiler(target string) bool` at `test/e2e/stubcompiler/main.go:346`. Delete the `if !usesRealCompiler { copyTree(...) }` fixture-copy branch at `:70-79`. Delete the `else if … copyLiftedArtifacts` branch at `:90-99` that also gated on `usesRealCompiler`. Verify `git grep usesRealCompiler` returns zero matches after this commit.
 - [x] **C.2** Delete `test/e2e/stubcompiler/fixtures/` entirely (both `caddy/` dead subtree and `miniflux/` subtree). Verify `git grep test/e2e/stubcompiler/fixtures` returns zero matches.
 - [x] **C.3** Sweep orphaned helpers: if `copyTree` / `copyFile` / `copyLiftedArtifacts` no longer have callers after C.1+C.2, delete them. Verify `go build ./...` succeeds.
-- [ ] **C.4** Full per-target matrix gate **before** the rename (so bisect is clean): run caddy + pocketbase + miniflux + all pragma sub-targets through stubcompiler, assert each produces a valid report and the expected verdict. `go test ./test/e2e/stubcompiler/...` passes. `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -count=1` passes for every non-skipped target.
+- [x] **C.4** Full per-target matrix gate **before** the rename (so bisect is clean): run caddy + pocketbase + miniflux + all pragma sub-targets through stubcompiler, assert each produces a valid report and the expected verdict. `go test ./test/e2e/stubcompiler/...` passes. `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -count=1` passes for every non-skipped target.
 - [ ] **C.5** **Atomic rename** in a single commit (so it can be reverted independently if the blast radius blows up):
   - `bin/stubcompiler` → `bin/e2e-compile` in `Makefile` build target.
   - `test/e2e/harness/env.go:11` `DefaultCompilerPath` → `"./bin/e2e-compile"`.
@@ -203,6 +203,8 @@ All must hold at sprint close:
 - **B.2 int fail-closed sentinel:** the liftpatch client template still rendered the original string sentinel for every result type. Resolved with additive type-aware sentinel rendering; `int` results now use `-1` without changing the frozen patcher API.
 - **B.11 in-cluster RSS feed fetch:** Miniflux refused `http://rss-feed-server/index.xml` because the service resolves to a private ClusterIP. Resolved in the e2e-only miniflux deployments with `FETCHER_ALLOW_PRIVATE_NETWORKS=1`.
 - **B.11 miniflux verdict under frozen admission:** the real compiler reports `MLV2_NO_ERROR_CHANNEL` for `EstimateReadingTime(... ) int`, and the sprint forbids changing the admission rule. Resolved by expecting `refuse-blocking` while still using the real compiler closure and transport artifact path for the selected in-closure symbol.
+- **C.4 full matrix timeout:** the complete e2e matrix exceeded Go's default 10-minute test timeout while running the miniflux fail-mode gate. Resolved by running the required full matrix with an explicit `-timeout 30m`; it completed green in 1170.801s.
+- **C.4 pocketbase golden drift:** the current real compiler emits `MLV2_NO_ERROR_CHANNEL` for the pocketbase `App` root in addition to the existing refusal diagnostics. Resolved by pinning the diagnostic in `test/e2e/targets/pocketbase/target.go` and regenerating the pocketbase golden report.
 
 ## Roadmap follow-ups
 
