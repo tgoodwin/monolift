@@ -40,6 +40,33 @@ replace github.com/caddyserver/caddy/v2 => ../upstream
 
 The `v2.0.0` version is a placeholder required by Go module semantics for `/v2` modules; the local `replace` controls resolution. `../upstream` is a clean copy of `evaluation/caddy/`, not the patched host tree, so the extracted service cannot recurse into the lift client.
 
+### Internal-rule compliance via cmd-inside-host emission
+
+SPRINT-0019 replaces the separate extracted-service module with cmd-inside-host emission. The compiler now writes extracted binaries under the patched host module as:
+
+```text
+cmd/monolift-extracted-<symbol>/main.go
+```
+
+The lifted artifacts contain one shared `lifted/host-patch/` tree. The lifted Caddy binary and each extracted-service binary build from that tree, while each extracted Dockerfile targets a different `./cmd/monolift-extracted-<symbol>` package. There is no generated extracted-service `go.mod`, no `replace`, and no separate `lifted/upstream/` copy.
+
+This closes the `internal/` import trap recorded after SPRINT-0018. Because an extracted service now has an import path inside `github.com/caddyserver/caddy/v2/...`, it can legally import `github.com/caddyserver/caddy/v2/internal/metrics` and call:
+
+```go
+func metrics.SanitizeMethod(m string) string
+```
+
+The extracted binaries are built from the patched host tree, so recursion safety depends on env-var dormancy. Extracted-service Deployments intentionally omit all `MONOLIFT_LIFT_*` variables; without those vars, the patched bodies execute their original implementation and do not dial back into the extracted service. The e2e gate verifies this twice: a static deployment-YAML check rejects any extracted-service `MONOLIFT_LIFT_*` env, and a runtime direct `/invoke` check verifies each extracted pod increments its counter exactly once and returns the oracle result.
+
+SPRINT-0019 keeps the SPRINT-0018 `CleanPath` service and adds `SanitizeMethod` as a second extracted service. The lifted Caddy deployment enables both gates independently:
+
+- `MONOLIFT_LIFT_CLEANPATH=on`
+- `MONOLIFT_LIFT_SANITIZEMETHOD=on`
+- `MONOLIFT_LIFT_CLEANPATH_ENDPOINT=<url>`
+- `MONOLIFT_LIFT_SANITIZEMETHOD_ENDPOINT=<url>`
+
+The single `MONOLIFT_LIFT_FAILMODE=open` knob remains shared. `CleanPath` fail-closed still surfaces as the explicit 404 catch-all because the sentinel changes route matching. `SanitizeMethod` fail-closed returns the sentinel as a metrics label and the request remains otherwise available; the e2e harness records that different signal instead of treating it as a route failure.
+
 ### AST source patch
 
 The lifted host image builds from a copied Caddy source tree. `liftpatch.PatchSymbolBody` locates the target function by package, name, and exact signature, then prepends a small AST-generated prelude to the function body. For `CleanPath`, the prelude checks a cached package-level `monoliftLiftEnabled` bool and calls:
@@ -86,7 +113,7 @@ A wrapper package cannot intercept existing intra-module references to `caddyhtt
 
 ## Known traps and deferrals
 
-Go `internal/` package rules still apply under `replace`. A future symbol such as Miniflux's internal reading-time helper cannot be imported by an extracted service outside the parent tree just because its module is replaced locally. Future admission or selection should record import legality explicitly.
+Go `internal/` package rules still apply under `replace`. SPRINT-0019 closes this for emitted extracted services by building them inside the host module, but any future mechanism that reintroduces out-of-module emission must preserve that import-path legality.
 
 Receiver-bearing symbols are deferred. `CleanPath` has no receiver state, no shared mutable state, and no closure capture, so this sprint does not exercise Cliff 2.
 

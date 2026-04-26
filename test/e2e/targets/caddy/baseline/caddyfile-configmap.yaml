@@ -5,7 +5,9 @@ metadata:
 data:
   Caddyfile: |
     {
-      servers { metrics }
+      servers {
+        metrics
+      }
     }
 
     :8080 {

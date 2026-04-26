@@ -29,3 +29,73 @@ sprints:
     executor: gpt-5.4
     created: "2026-04-21T04:35:04+00:00"
     updated: "2026-04-21T21:53:42+00:00"
+  - id: SPRINT-0008
+    title: Educational static site via GitHub Pages
+    status: in-progress
+    executor: opus
+    created: "2026-04-21T23:45:02+00:00"
+    updated: "2026-04-22T00:32:04+00:00"
+  - id: SPRINT-0009
+    title: Reframe classifier to reason about liftability properties
+    status: in-progress
+    executor: gpt-5.4
+    created: "2026-04-22T05:30:37+00:00"
+    updated: "2026-04-22T05:59:00+00:00"
+  - id: SPRINT-0010
+    title: Classifier-test performance + callgraph reuse
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-22T17:42:00+00:00"
+    updated: "2026-04-23T00:08:21+00:00"
+  - id: SPRINT-0011
+    title: Golden-file migration for liftability-first classifier
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-23T00:22:03+00:00"
+    updated: "2026-04-23T03:05:26+00:00"
+  - id: SPRINT-0012
+    title: Full-suite RSS gate stabilization
+    status: planned
+    created: "2026-04-23T03:05:26+00:00"
+    updated: "2026-04-23T03:05:26+00:00"
+  - id: SPRINT-0013
+    title: "Research: distribution-archetype transforms"
+    status: done
+    executor: opus+gpt-5.4+gemini
+    created: "2026-04-23T03:24:16+00:00"
+    updated: "2026-04-23T05:18:45+00:00"
+  - id: SPRINT-0014
+    title: Periodic-invocation vertical slice + ADR-0020/0021
+    status: planned
+    created: "2026-04-23T05:27:25+00:00"
+    updated: "2026-04-23T05:39:15+00:00"
+  - id: SPRINT-0015
+    title: "Research: archetype utility analysis"
+    status: done
+    executor: opus+gpt-5.4+gemini
+    created: "2026-04-23T15:24:33+00:00"
+    updated: "2026-04-23T15:51:27+00:00"
+  - id: SPRINT-0016
+    title: "Research: ADR-0022 composite-archetype regions (trade-off space)"
+    status: done
+    executor: opus+gpt-5.4+gemini
+    created: "2026-04-23T19:18:00+00:00"
+    updated: "2026-04-23T19:32:17+00:00"
+  - id: SPRINT-0017
+    title: ADR-0022 vertical slice (Caddy Handler.connections)
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-25T22:06:09+00:00"
+    updated: "2026-04-25T23:02:21+00:00"
+  - id: SPRINT-0018
+    title: Vertical extract→deploy→remote-execute slice (real corpus symbol)
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-26T03:36:38+00:00"
+    updated: "2026-04-26T07:40:22+00:00"
+  - id: SPRINT-0019
+    title: Internal/ symbol lift mechanism (extracted-service v0.2)
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-26T16:40:36+00:00"
+    updated: "2026-04-26T18:02:00+00:00"

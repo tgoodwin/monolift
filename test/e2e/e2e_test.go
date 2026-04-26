@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -148,6 +150,9 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		return
 	}
 
+	if err := assertExtractedDeploymentsDormant(target, compileResult.ArtifactsDir); err != nil {
+		t.Fatalf("%v", harness.StageError(7, target.Name, harness.KindHarness, "recursion-safety static assertion failed: %v", err))
+	}
 	if err := buildAndLoadLiftedImages(ctx, builder, target, compileResult.ArtifactsDir); err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -168,6 +173,11 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		t.Fatalf("%v", err)
 	}
 	defer liftedPF.Stop()
+	if len(target.LiftedExtractedServices) > 0 {
+		if err := assertExtractedServicesDormantRuntime(ctx, target, liftedNS); err != nil {
+			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "recursion-safety runtime assertion failed: %v", err))
+		}
+	}
 	var liftedTranscript harness.Transcript
 	if len(target.LiftedExtractedServices) > 0 {
 		liftedTranscript, err = runLiftedWithCallDeltas(ctx, target, liftedNS, liftedPF.URL)
@@ -178,7 +188,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted action failed: %v", err))
 	}
 	if len(target.LiftedExtractedServices) > 0 {
-		if err := assertExtractedServiceLogs(ctx, target, liftedNS, []string{"LIFT_INVOKE id=", "/static/hello.txt", "/proxy", "/headers"}); err != nil {
+		if err := assertExtractedServiceLogs(ctx, target, liftedNS, []string{"/static/hello.txt", "/proxy", "/headers"}); err != nil {
 			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted logs assertion failed: %v", err))
 		}
 	}
@@ -197,47 +207,130 @@ type requestWorkload interface {
 	Request(ctx context.Context, host, path string) (harness.Step, error)
 }
 
+type extractedRuntime struct {
+	spec   harness.ExtractedServiceSpec
+	symbol string
+	pf     harness.PortForward
+}
+
+func assertExtractedDeploymentsDormant(target harness.TargetCase, artifactsDir string) error {
+	liftEnv := regexp.MustCompile(`MONOLIFT_LIFT_[A-Z_]+:`)
+	for _, service := range target.LiftedExtractedServices {
+		data, err := os.ReadFile(filepath.Join(artifactsDir, service.DeploymentYAML))
+		if err != nil {
+			return err
+		}
+		if liftEnv.Match(data) || strings.Contains(string(data), "MONOLIFT_LIFT_") {
+			return fmt.Errorf("%s contains MONOLIFT_LIFT_* env", service.DeploymentYAML)
+		}
+	}
+	return nil
+}
+
+func assertExtractedServicesDormantRuntime(ctx context.Context, target harness.TargetCase, liftedNS string) error {
+	services, err := startExtractedPortForwards(ctx, target, liftedNS)
+	if err != nil {
+		return err
+	}
+	defer stopExtractedPortForwards(services)
+
+	for _, service := range services {
+		before, err := readCalls(ctx, service.pf.URL)
+		if err != nil {
+			return err
+		}
+		got, err := postInvoke(ctx, service.pf.URL, invokePayload(service.symbol))
+		if err != nil {
+			return err
+		}
+		after, err := readCalls(ctx, service.pf.URL)
+		if err != nil {
+			return err
+		}
+		if after-before != 1 {
+			return fmt.Errorf("%s direct /invoke /calls delta=%d want 1", service.spec.Name, after-before)
+		}
+		want, err := target.Oracle.Invoke(oracleArgs(service.symbol, invokePayload(service.symbol)))
+		if err != nil {
+			return err
+		}
+		if got != want {
+			return fmt.Errorf("%s direct /invoke result=%v want %v", service.spec.Name, got, want)
+		}
+	}
+	return nil
+}
+
 func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, liftedNS, liftedURL string) (harness.Transcript, error) {
 	workload, ok := target.Workload.(requestWorkload)
 	if !ok {
 		return harness.Transcript{}, fmt.Errorf("target workload does not support per-request execution")
 	}
-	service := target.LiftedExtractedServices[0]
-	pf, err := harness.StartPortForward(ctx, target.Name, liftedNS, service.Name, 8081)
+	services, err := startExtractedPortForwards(ctx, target, liftedNS)
 	if err != nil {
 		return harness.Transcript{}, err
 	}
-	defer pf.Stop()
+	defer stopExtractedPortForwards(services)
 
 	transcript := harness.Transcript{Steps: make([]harness.Step, 0, len(workload.Paths()))}
-	total := int64(0)
+	totals := make(map[string]int64, len(services))
 	for _, path := range workload.Paths() {
-		before, err := readCalls(ctx, pf.URL)
-		if err != nil {
-			return harness.Transcript{}, err
+		before := make(map[string]int64, len(services))
+		for _, service := range services {
+			count, err := readCalls(ctx, service.pf.URL)
+			if err != nil {
+				return harness.Transcript{}, err
+			}
+			before[service.spec.Name] = count
 		}
 		step, err := workload.Request(ctx, liftedURL, path)
 		if err != nil {
 			return harness.Transcript{}, err
 		}
-		after, err := readCalls(ctx, pf.URL)
-		if err != nil {
-			return harness.Transcript{}, err
+		for _, service := range services {
+			after, err := readCalls(ctx, service.pf.URL)
+			if err != nil {
+				return harness.Transcript{}, err
+			}
+			delta := after - before[service.spec.Name]
+			if delta < 1 {
+				return harness.Transcript{}, fmt.Errorf("%s %s /calls delta=%d want >=1", service.spec.Name, path, delta)
+			}
+			totals[service.spec.Name] += delta
 		}
-		delta := after - before
-		if delta < 1 {
-			return harness.Transcript{}, fmt.Errorf("%s /calls delta=%d want >=1", path, delta)
-		}
-		total += delta
 		transcript.Steps = append(transcript.Steps, step)
 	}
-	if total < 3 || total > 50 {
-		return harness.Transcript{}, fmt.Errorf("aggregate /calls delta=%d want 3 <= total <= 50", total)
+	for _, service := range services {
+		total := totals[service.spec.Name]
+		if total < int64(len(workload.Paths())) || total > 50 {
+			return harness.Transcript{}, fmt.Errorf("%s aggregate /calls delta=%d want %d <= total <= 50", service.spec.Name, total, len(workload.Paths()))
+		}
 	}
-	if err := assertExtractedInvocations(ctx, pf.URL, invocationPaths(workload.Paths()), target.Oracle); err != nil {
-		return harness.Transcript{}, err
+	for _, service := range services {
+		if err := assertExtractedInvocations(ctx, service.pf.URL, service.symbol, invocationPaths(workload.Paths()), target.Oracle); err != nil {
+			return harness.Transcript{}, err
+		}
 	}
 	return transcript, nil
+}
+
+func startExtractedPortForwards(ctx context.Context, target harness.TargetCase, liftedNS string) ([]extractedRuntime, error) {
+	services := make([]extractedRuntime, 0, len(target.LiftedExtractedServices))
+	for _, spec := range target.LiftedExtractedServices {
+		pf, err := harness.StartPortForward(ctx, target.Name, liftedNS, spec.Name, 8081)
+		if err != nil {
+			stopExtractedPortForwards(services)
+			return nil, err
+		}
+		services = append(services, extractedRuntime{spec: spec, symbol: symbolForService(spec.Name), pf: pf})
+	}
+	return services, nil
+}
+
+func stopExtractedPortForwards(services []extractedRuntime) {
+	for _, service := range services {
+		service.pf.Stop()
+	}
 }
 
 func invocationPaths(paths []string) []string {
@@ -275,10 +368,11 @@ type invocationRecord struct {
 	InvocationID    string `json:"invocation_id"`
 	P               string `json:"p"`
 	CollapseSlashes bool   `json:"collapse_slashes"`
+	M               string `json:"m"`
 	Result          string `json:"result"`
 }
 
-func assertExtractedInvocations(ctx context.Context, serviceURL string, expectedPaths []string, oracle harness.SymbolInvoker) error {
+func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, expectedPaths []string, oracle harness.SymbolInvoker) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serviceURL+"/invocations", nil)
 	if err != nil {
 		return err
@@ -294,57 +388,84 @@ func assertExtractedInvocations(ctx context.Context, serviceURL string, expected
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return err
 	}
-	for _, path := range expectedPaths {
-		found := false
+	if len(out.Records) == 0 {
+		return fmt.Errorf("%s has no invocation records", symbol)
+	}
+	if symbol == "cleanpath" {
+		for _, path := range expectedPaths {
+			found := false
+			for _, record := range out.Records {
+				if record.P == path {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("no invocation record for path %s in %d records", path, len(out.Records))
+			}
+		}
+	}
+	if symbol == "sanitizemethod" {
+		foundGET := false
 		for _, record := range out.Records {
-			if record.P == path {
-				found = true
+			if record.M == http.MethodGet {
+				foundGET = true
 				break
 			}
 		}
-		if !found {
-			return fmt.Errorf("no invocation record for path %s in %d records", path, len(out.Records))
+		if !foundGET {
+			return fmt.Errorf("no sanitizemethod invocation record for GET in %d records", len(out.Records))
 		}
 	}
 	if oracle == nil {
 		return fmt.Errorf("target has no oracle")
 	}
 	for _, record := range out.Records {
-		got, err := oracle.Invoke(map[string]any{"p": record.P, "collapse_slashes": record.CollapseSlashes})
+		got, err := oracle.Invoke(oracleArgs(symbol, map[string]any{
+			"p":                record.P,
+			"collapse_slashes": record.CollapseSlashes,
+			"m":                record.M,
+		}))
 		if err != nil {
 			return err
 		}
 		if got != record.Result {
-			return fmt.Errorf("oracle mismatch for %q collapse=%v: record=%q oracle=%v", record.P, record.CollapseSlashes, record.Result, got)
+			return fmt.Errorf("%s oracle mismatch for record=%+v: record=%q oracle=%v", symbol, record, record.Result, got)
 		}
 	}
 	return nil
 }
 
 func assertExtractedServiceLogs(ctx context.Context, target harness.TargetCase, ns string, expected []string) error {
-	service := target.LiftedExtractedServices[0]
-	result, err := kubectlResult(ctx, ns, "logs", "deployment/"+service.Name)
-	if err != nil {
-		return fmt.Errorf("kubectl logs: %w: %s", err, result.Stderr)
-	}
-	logs := result.Stdout + result.Stderr
-	for _, needle := range expected {
-		if !strings.Contains(logs, needle) {
-			return fmt.Errorf("logs missing %q", needle)
+	for _, service := range target.LiftedExtractedServices {
+		result, err := kubectlResult(ctx, ns, "logs", "deployment/"+service.Name)
+		if err != nil {
+			return fmt.Errorf("kubectl logs %s: %w: %s", service.Name, err, result.Stderr)
+		}
+		logs := result.Stdout + result.Stderr
+		if !strings.Contains(logs, "LIFT_INVOKE service="+service.Name) {
+			return fmt.Errorf("%s logs missing LIFT_INVOKE service line", service.Name)
+		}
+		for _, needle := range expected {
+			if service.Name == "monolift-extracted-sanitizemethod" && strings.HasPrefix(needle, "/") {
+				continue
+			}
+			if !strings.Contains(logs, needle) {
+				return fmt.Errorf("%s logs missing %q", service.Name, needle)
+			}
 		}
 	}
 	return nil
 }
 
 func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns, liftedURL string, envOnTranscript harness.Transcript) error {
-	service := target.LiftedExtractedServices[0]
-	servicePF, err := harness.StartPortForward(ctx, target.Name, ns, service.Name, 8081)
+	services, err := startExtractedPortForwards(ctx, target, ns)
 	if err != nil {
 		return err
 	}
-	defer servicePF.Stop()
+	defer stopExtractedPortForwards(services)
 
-	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted", "MONOLIFT_LIFT_CLEANPATH-"); err != nil {
+	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted", "MONOLIFT_LIFT_CLEANPATH-", "MONOLIFT_LIFT_SANITIZEMETHOD-"); err != nil {
 		return err
 	}
 	if err := kubectl(ctx, ns, "rollout", "status", "deployment/caddy-lifted", "--timeout=120s"); err != nil {
@@ -354,40 +475,46 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 	if err != nil {
 		return err
 	}
-	before, err := readCalls(ctx, servicePF.URL)
-	if err != nil {
-		envOffPF.Stop()
-		return err
+	before := make(map[string]int64, len(services))
+	for _, service := range services {
+		count, err := readCalls(ctx, service.pf.URL)
+		if err != nil {
+			envOffPF.Stop()
+			return err
+		}
+		before[service.spec.Name] = count
 	}
 	envOffTranscript, err := target.Workload.Action(ctx, envOffPF.URL)
 	envOffPF.Stop()
 	if err != nil {
 		return err
 	}
-	after, err := readCalls(ctx, servicePF.URL)
-	if err != nil {
-		return err
-	}
-	if after-before != 0 {
-		return fmt.Errorf("env-off /calls delta=%d want 0", after-before)
+	for _, service := range services {
+		after, err := readCalls(ctx, service.pf.URL)
+		if err != nil {
+			return err
+		}
+		if after-before[service.spec.Name] != 0 {
+			return fmt.Errorf("%s env-off /calls delta=%d want 0", service.spec.Name, after-before[service.spec.Name])
+		}
 	}
 	if err := (harness.Transcript{}).Compare(envOnTranscript, envOffTranscript, target.Invariants); err != nil {
 		return fmt.Errorf("env-off transcript mismatch: %w", err)
 	}
 
-	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted", "MONOLIFT_LIFT_CLEANPATH=on", "MONOLIFT_LIFT_FAILMODE=closed", "MONOLIFT_LIFT_CLEANPATH_ENDPOINT=http://127.0.0.1:1/invoke"); err != nil {
+	for _, service := range target.LiftedExtractedServices {
+		if err := assertFailModesForService(ctx, deployer, target, ns, service); err != nil {
+			return err
+		}
+	}
+	return setLiftedCaddyEnv(ctx, ns, "closed")
+}
+
+func assertFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
+	if err := setLiftedCaddyEnv(ctx, ns, "closed"); err != nil {
 		return err
 	}
-	if err := kubectl(ctx, ns, "rollout", "status", "deployment/caddy-lifted", "--timeout=120s"); err != nil {
-		return err
-	}
-	if err := kubectl(ctx, ns, "scale", "deployment/"+service.Name, "--replicas=0"); err != nil {
-		return err
-	}
-	if err := kubectl(ctx, ns, "wait", "--for=delete", "pod", "-l", "app="+service.Name, "--timeout=120s"); err != nil {
-		return err
-	}
-	if err := deployer.WaitReady(ctx, ns, 120*time.Second); err != nil {
+	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
 		return err
 	}
 	closedPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
@@ -399,38 +526,29 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 	if err != nil {
 		return err
 	}
-	if closedStep.Status != http.StatusNotFound {
-		return fmt.Errorf("fail-closed status=%d want 404", closedStep.Status)
+	wantClosed := http.StatusNotFound
+	if symbolForService(service.Name) == "sanitizemethod" {
+		wantClosed = http.StatusOK
 	}
-	if err := kubectl(ctx, ns, "scale", "deployment/"+service.Name, "--replicas=1"); err != nil {
+	if closedStep.Status != wantClosed {
+		return fmt.Errorf("%s fail-closed status=%d want %d", service.Name, closedStep.Status, wantClosed)
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 1); err != nil {
 		return err
 	}
-	if err := deployer.WaitReady(ctx, ns, 120*time.Second); err != nil {
+	if err := assertRestoredServiceCalls(ctx, target, ns, service); err != nil {
 		return err
 	}
 
-	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted", "MONOLIFT_LIFT_FAILMODE=open", "MONOLIFT_LIFT_CLEANPATH_ENDPOINT=http://127.0.0.1:1/invoke"); err != nil {
+	if err := setLiftedCaddyEnv(ctx, ns, "open"); err != nil {
 		return err
 	}
-	if err := kubectl(ctx, ns, "rollout", "status", "deployment/caddy-lifted", "--timeout=120s"); err != nil {
-		return err
-	}
-	if err := kubectl(ctx, ns, "scale", "deployment/"+service.Name, "--replicas=0"); err != nil {
-		return err
-	}
-	if err := kubectl(ctx, ns, "wait", "--for=delete", "pod", "-l", "app="+service.Name, "--timeout=120s"); err != nil {
-		return err
-	}
-	if err := deployer.WaitReady(ctx, ns, 120*time.Second); err != nil {
+	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
 		return err
 	}
 	openPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
 	if err != nil {
 		return err
-	}
-	openBefore, err := readCalls(ctx, servicePF.URL)
-	if err != nil {
-		openBefore = 0
 	}
 	openStep, err := workloadStep(ctx, target, openPF.URL, "/headers")
 	openPF.Stop()
@@ -438,49 +556,113 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 		return err
 	}
 	if openStep.Status != http.StatusOK {
-		return fmt.Errorf("fail-open status=%d want 200", openStep.Status)
+		return fmt.Errorf("%s fail-open status=%d want 200", service.Name, openStep.Status)
 	}
-	openAfter, err := readCalls(ctx, servicePF.URL)
-	if err == nil && openAfter-openBefore != 0 {
-		return fmt.Errorf("fail-open /calls delta=%d want 0", openAfter-openBefore)
-	}
-	if err := kubectl(ctx, ns, "scale", "deployment/"+service.Name, "--replicas=1"); err != nil {
-		return err
-	}
-	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted", "MONOLIFT_LIFT_FAILMODE=closed", "MONOLIFT_LIFT_CLEANPATH_ENDPOINT=http://monolift-extracted-cleanpath:8081/invoke"); err != nil {
-		return err
-	}
-	if err := kubectl(ctx, ns, "rollout", "status", "deployment/caddy-lifted", "--timeout=120s"); err != nil {
-		return err
-	}
-	if err := deployer.WaitReady(ctx, ns, 120*time.Second); err != nil {
-		return err
-	}
-	restoredCaddyPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
+	return scaleExtractedService(ctx, deployer, ns, service, 1)
+}
+
+func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
+	caddyPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
 	if err != nil {
 		return err
 	}
-	defer restoredCaddyPF.Stop()
-	restoredPF, err := harness.StartPortForward(ctx, target.Name, ns, service.Name, 8081)
+	defer caddyPF.Stop()
+	servicePF, err := harness.StartPortForward(ctx, target.Name, ns, service.Name, 8081)
 	if err != nil {
 		return err
 	}
-	defer restoredPF.Stop()
-	restoredBefore, err := readCalls(ctx, restoredPF.URL)
+	defer servicePF.Stop()
+	before, err := readCalls(ctx, servicePF.URL)
 	if err != nil {
 		return err
 	}
-	if _, err := workloadStep(ctx, target, restoredCaddyPF.URL, "/headers"); err != nil {
+	if _, err := workloadStep(ctx, target, caddyPF.URL, "/headers"); err != nil {
 		return err
 	}
-	restoredAfter, err := readCalls(ctx, restoredPF.URL)
+	after, err := readCalls(ctx, servicePF.URL)
 	if err != nil {
 		return err
 	}
-	if restoredAfter-restoredBefore < 1 {
-		return fmt.Errorf("restored /calls delta=%d want >=1", restoredAfter-restoredBefore)
+	if after-before < 1 {
+		return fmt.Errorf("%s restored /calls delta=%d want >=1", service.Name, after-before)
 	}
 	return nil
+}
+
+func setLiftedCaddyEnv(ctx context.Context, ns, failMode string) error {
+	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted",
+		"MONOLIFT_LIFT_CLEANPATH=on",
+		"MONOLIFT_LIFT_SANITIZEMETHOD=on",
+		"MONOLIFT_LIFT_FAILMODE="+failMode,
+		"MONOLIFT_LIFT_CLEANPATH_ENDPOINT=http://monolift-extracted-cleanpath:8081/invoke",
+		"MONOLIFT_LIFT_SANITIZEMETHOD_ENDPOINT=http://monolift-extracted-sanitizemethod:8081/invoke",
+	); err != nil {
+		return err
+	}
+	return kubectl(ctx, ns, "rollout", "status", "deployment/caddy-lifted", "--timeout=120s")
+}
+
+func scaleExtractedService(ctx context.Context, deployer harness.Deployer, ns string, service harness.ExtractedServiceSpec, replicas int) error {
+	if err := kubectl(ctx, ns, "scale", "deployment/"+service.Name, fmt.Sprintf("--replicas=%d", replicas)); err != nil {
+		return err
+	}
+	if replicas == 0 {
+		if err := kubectl(ctx, ns, "wait", "--for=delete", "pod", "-l", "app="+service.Name, "--timeout=120s"); err != nil {
+			return err
+		}
+		return deployer.WaitReady(ctx, ns, 120*time.Second)
+	}
+	return deployer.WaitReady(ctx, ns, 120*time.Second)
+}
+
+func postInvoke(ctx context.Context, serviceURL string, payload map[string]any) (any, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, serviceURL+"/invoke", bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("POST /invoke status=%d", resp.StatusCode)
+	}
+	var out map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out["result"], nil
+}
+
+func invokePayload(symbol string) map[string]any {
+	switch symbol {
+	case "sanitizemethod":
+		return map[string]any{"m": http.MethodGet}
+	default:
+		return map[string]any{"p": "/static/hello.txt", "collapse_slashes": true}
+	}
+}
+
+func oracleArgs(symbol string, payload map[string]any) map[string]any {
+	args := make(map[string]any, len(payload)+1)
+	args["symbol"] = symbol
+	for key, value := range payload {
+		args[key] = value
+	}
+	return args
+}
+
+func symbolForService(name string) string {
+	if strings.Contains(name, "sanitizemethod") {
+		return "sanitizemethod"
+	}
+	return "cleanpath"
 }
 
 func firstWorkloadStep(ctx context.Context, target harness.TargetCase, liftedURL string) (harness.Step, error) {

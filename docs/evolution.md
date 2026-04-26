@@ -487,6 +487,23 @@ import legality, and non-Caddy host layouts.
 
 ---
 
+## 2026-04-26 — Internal-symbol lift via cmd-inside-host emission · [ADR-0023](decisions/0023-sidecar-emission-and-real-symbol-execution.md)
+
+SPRINT-0019 removes the separate-module extracted-service layout from
+SPRINT-0018 and emits extracted binaries as `cmd/monolift-extracted-*`
+packages inside the patched host module. The Caddy proof now runs two
+extracted-service pods in parallel from one shared `host-patch/` tree:
+`caddyhttp.CleanPath` remains the exported-symbol regression target, while
+`internal/metrics.SanitizeMethod` proves Go `internal/` imports are legal under
+cmd-inside-host emission. The e2e harness verifies both pods with per-request
+counter deltas, aggregate bounds, oracle equality over `/invocations`,
+transcript parity, env-off zero calls, static dormant-env checks, runtime
+single-increment recursion checks, and per-symbol fail-mode behavior.
+
+**Primary artifacts:** `pkg/compiler/transport/emit/httpjson/` · `test/e2e/stubcompiler/main.go` · `test/e2e/e2e_test.go` · `test/e2e/targets/caddy/` · `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`
+
+---
+
 ## Pending
 
 - **Full archetype catalog migration.** SPRINT-0017 migrates only

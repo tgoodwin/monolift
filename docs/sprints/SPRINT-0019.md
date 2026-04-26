@@ -1,6 +1,6 @@
 # SPRINT-0019 — `internal/` symbol lift via cmd-inside-host emission
 
-**Status:** planned
+**Status:** done
 **Predecessor:** SPRINT-0018 (Caddy `caddyhttp.CleanPath` end-to-end via AST patch + separate-module extracted service).
 **Anchor ADRs:** ADR-0017, ADR-0018 (NOT amended this sprint), ADR-0023 (amended additively).
 **Drafts:** `docs/sprints/drafts/SPRINT-0019-{CODEX,GEMINI,CLAUDE}.md` plus `-critique.md`.
@@ -117,20 +117,20 @@ This adds harness surface — two pods, two oracles, two counters, two fail-mode
 
 ### Block C — e2e + recursion-safety + ADR + closeout
 
-- [ ] **C.1** Recursion-safety static test (Claude draft, line 161): an integration test parses each `LiftedExtractedServices[*].DeploymentYAML` post-stubcompiler-run and asserts zero matches for the regex `MONOLIFT_LIFT_[A-Z_]+:` in the env block.
-- [ ] **C.2** Recursion-safety runtime test (Codex draft, line 126): post-deploy, port-forward each extracted-service Pod individually, send one `POST /invoke` with no `MONOLIFT_LIFT_*` env on the extracted-service container, verify the Pod's `/calls` counter increments by exactly 1 (not 2 or more — proves no recursion through the dormant patched body) and the response equals the oracle result. Run for both `cleanpath` and `sanitizemethod` extracted Pods.
-- [ ] **C.3** Per-request counter delta + aggregate: harness reads each extracted Pod's `/calls` before each workload request, asserts `>= 1` delta for SanitizeMethod (per-request firing) and `>= 1` delta for CleanPath (per-request firing — `matchers.go:481,490`). Aggregate `<= 50` total per pod (catches recursion / accidental client loops).
-- [ ] **C.4** Per-invocation oracle equality: for each record returned by `GET /invocations` on each extracted Pod, harness independently invokes `caddy.Oracle.Invoke({symbol: ..., args})` with the same args and asserts result equality. **Load-bearing falsifiability check** for both symbols.
-- [ ] **C.5** Transcript parity: capture baseline transcript (env-off deployment, same image), capture lifted transcript (both env vars on), assert response equality on `/static/hello.txt`, `/headers`, `/proxy?x=1` (modulo `Date`/`Server`).
-- [ ] **C.6** Negative test: re-deploy lifted Caddy with both `MONOLIFT_LIFT_CLEANPATH` and `MONOLIFT_LIFT_SANITIZEMETHOD` *unset*; assert both pods' `/calls` counters stay at 0 across the workload; transcripts identical to env-on case.
-- [ ] **C.7** Fail-mode tests for both symbols:
+- [x] **C.1** Recursion-safety static test (Claude draft, line 161): an integration test parses each `LiftedExtractedServices[*].DeploymentYAML` post-stubcompiler-run and asserts zero matches for the regex `MONOLIFT_LIFT_[A-Z_]+:` in the env block.
+- [x] **C.2** Recursion-safety runtime test (Codex draft, line 126): post-deploy, port-forward each extracted-service Pod individually, send one `POST /invoke` with no `MONOLIFT_LIFT_*` env on the extracted-service container, verify the Pod's `/calls` counter increments by exactly 1 (not 2 or more — proves no recursion through the dormant patched body) and the response equals the oracle result. Run for both `cleanpath` and `sanitizemethod` extracted Pods.
+- [x] **C.3** Per-request counter delta + aggregate: harness reads each extracted Pod's `/calls` before each workload request, asserts `>= 1` delta for SanitizeMethod (per-request firing) and `>= 1` delta for CleanPath (per-request firing — `matchers.go:481,490`). Aggregate `<= 50` total per pod (catches recursion / accidental client loops).
+- [x] **C.4** Per-invocation oracle equality: for each record returned by `GET /invocations` on each extracted Pod, harness independently invokes `caddy.Oracle.Invoke({symbol: ..., args})` with the same args and asserts result equality. **Load-bearing falsifiability check** for both symbols.
+- [x] **C.5** Transcript parity: capture baseline transcript (env-off deployment, same image), capture lifted transcript (both env vars on), assert response equality on `/static/hello.txt`, `/headers`, `/proxy?x=1` (modulo `Date`/`Server`).
+- [x] **C.6** Negative test: re-deploy lifted Caddy with both `MONOLIFT_LIFT_CLEANPATH` and `MONOLIFT_LIFT_SANITIZEMETHOD` *unset*; assert both pods' `/calls` counters stay at 0 across the workload; transcripts identical to env-on case.
+- [x] **C.7** Fail-mode tests for both symbols:
   - **Fail-closed (default).** Scale `monolift-extracted-cleanpath` to 0; fire workload; assert workload requests return 404 (sentinel cascades through path-pattern matchers to the `handle { error 404 }` catch-all from SPRINT-0018). Scale back to 1, run again, assert 200s and counter increments resumed. Repeat for `monolift-extracted-sanitizemethod` (sentinel here cascades through `metricsInstrumentedRoute` — verify the same 404 mechanism applies, or document a different expected status if metrics-route handling differs).
   - **Fail-open.** Re-deploy lifted Caddy with `MONOLIFT_LIFT_FAILMODE=open`, scale each extracted to 0 in turn, fire workload, assert 200s (degraded but available, original body executed). Counters stay at 0.
-- [ ] **C.8** SPRINT-0018 actor-adapter assertions from Caddy report (`archetype_kind`, primary `serialized-actor`, alternative `keyed-partitioned-state` `[TOPOLOGY]`, adapter `Kind: actor`) unchanged.
-- [ ] **C.9** ADR-0023 additive amendment: section "Internal-rule compliance via cmd-inside-host emission" recording the shift from separate-module (SPRINT-0018) to cmd-inside-host (SPRINT-0019), the env-var dormancy mechanism in extracted binaries, the recursion-safety dual gate (static YAML grep + runtime single-increment test), and the closure of the `internal/`-import trap previously flagged as a future admission-rule extension.
-- [ ] **C.10** `docs/evolution.md`: append a paragraph summarising the SPRINT-0019 landing.
-- [ ] **C.11** Update `docs/sprints/ledger.yaml` to `done` once Block C is green (handled by the orchestrator).
-- [ ] **C.12** Verify `cmd/main.go` unchanged.
+- [x] **C.8** SPRINT-0018 actor-adapter assertions from Caddy report (`archetype_kind`, primary `serialized-actor`, alternative `keyed-partitioned-state` `[TOPOLOGY]`, adapter `Kind: actor`) unchanged.
+- [x] **C.9** ADR-0023 additive amendment: section "Internal-rule compliance via cmd-inside-host emission" recording the shift from separate-module (SPRINT-0018) to cmd-inside-host (SPRINT-0019), the env-var dormancy mechanism in extracted binaries, the recursion-safety dual gate (static YAML grep + runtime single-increment test), and the closure of the `internal/`-import trap previously flagged as a future admission-rule extension.
+- [x] **C.10** `docs/evolution.md`: append a paragraph summarising the SPRINT-0019 landing.
+- [x] **C.11** Update `docs/sprints/ledger.yaml` to `done` once Block C is green (handled by the orchestrator).
+- [x] **C.12** Verify `cmd/main.go` unchanged.
 
 **Block C gate (sprint acceptance):** `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -run TestE2E/caddy -count=1` green: both symbols' verification stacks pass, recursion safety verified by static + runtime checks, transcript parity, fail-mode tests, SPRINT-0017 actor-adapter assertions unchanged.
 
@@ -142,22 +142,22 @@ The `stubcompiler` binary loads the full `evaluation/caddy/` Go module via `go/p
 
 All must hold at sprint close:
 
-- [ ] `pkg/compiler/transport/emit/httpjson/` no longer emits `gomod.tmpl`. `Artifact.Files` keys point at `cmd/monolift-extracted-<symbol>/main.go` paths inside the host module root.
-- [ ] `pkg/compiler/transport/emit/httpjson/testdata/cleanpath/` and `pkg/compiler/transport/emit/httpjson/testdata/sanitizemethod/` goldens both exist and reflect the cmd-inside-host layout.
-- [ ] Anti-stub render tests pass for both symbols (`TestRenderImportsRealSymbol_CleanPath`, `TestRenderImportsRealSymbol_SanitizeMethod`).
-- [ ] `TestRenderGoBuild` exits 0 when given a fresh staging of `evaluation/caddy/` plus both rendered `cmd/...` directories.
-- [ ] Stubcompiler against caddy emits `<output>/lifted/host-patch/` containing both `cmd/monolift-extracted-cleanpath/main.go` and `cmd/monolift-extracted-sanitizemethod/main.go`. `<output>/lifted/upstream/` does not exist. `MANIFEST.json` lists both cmd directories and no `go.mod`s for extracted services.
-- [ ] `evaluation/caddy/` byte-identical pre/post stubcompiler. `make verify-evaluation-untouched` passes.
-- [ ] Both extracted-service Deployment YAMLs grep-clean for `MONOLIFT_LIFT_[A-Z_]+:` in the env block (recursion-safety static check).
-- [ ] Per-extracted-Pod runtime test: `/invoke` with no env returns oracle result and increments counter by exactly 1 (recursion-safety runtime check).
-- [ ] Lifted Caddyfile contains `servers { metrics }` in global options + the SPRINT-0018 `handle { error 404 }` catch-all.
-- [ ] `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -run TestE2E/caddy -count=1` green: per-request `/calls` delta `>= 1` for both pods, aggregate `<= 50` per pod, oracle equality on every `/invocations` record (both pods), transcript parity, env-off zero counters, fail-closed 404 (both symbols), fail-open 200 (both symbols). SPRINT-0018 CleanPath verification stack passes 1-for-1.
-- [ ] SPRINT-0017 actor-adapter assertions unchanged.
-- [ ] ADR-0023 contains "Internal-rule compliance via cmd-inside-host emission" amendment. ADR-0018 unchanged. `docs/evolution.md` records the slice.
-- [ ] `cmd/main.go` unchanged.
-- [ ] Patcher API (`pkg/compiler/transport/emit/liftpatch/`) unchanged from SPRINT-0018.
-- [ ] No new Layer-1 liftability property exists.
-- [ ] No `import.legality.*` property exists.
+- [x] `pkg/compiler/transport/emit/httpjson/` no longer emits `gomod.tmpl`. `Artifact.Files` keys point at `cmd/monolift-extracted-<symbol>/main.go` paths inside the host module root.
+- [x] `pkg/compiler/transport/emit/httpjson/testdata/cleanpath/` and `pkg/compiler/transport/emit/httpjson/testdata/sanitizemethod/` goldens both exist and reflect the cmd-inside-host layout.
+- [x] Anti-stub render tests pass for both symbols (`TestRenderImportsRealSymbol_CleanPath`, `TestRenderImportsRealSymbol_SanitizeMethod`).
+- [x] `TestRenderGoBuild` exits 0 when given a fresh staging of `evaluation/caddy/` plus both rendered `cmd/...` directories.
+- [x] Stubcompiler against caddy emits `<output>/lifted/host-patch/` containing both `cmd/monolift-extracted-cleanpath/main.go` and `cmd/monolift-extracted-sanitizemethod/main.go`. `<output>/lifted/upstream/` does not exist. `MANIFEST.json` lists both cmd directories and no `go.mod`s for extracted services.
+- [x] `evaluation/caddy/` byte-identical pre/post stubcompiler. `make verify-evaluation-untouched` passes.
+- [x] Both extracted-service Deployment YAMLs grep-clean for `MONOLIFT_LIFT_[A-Z_]+:` in the env block (recursion-safety static check).
+- [x] Per-extracted-Pod runtime test: `/invoke` with no env returns oracle result and increments counter by exactly 1 (recursion-safety runtime check).
+- [x] Lifted Caddyfile contains `servers { metrics }` in global options + the SPRINT-0018 `handle { error 404 }` catch-all.
+- [x] `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -run TestE2E/caddy -count=1` green: per-request `/calls` delta `>= 1` for both pods, aggregate `<= 50` per pod, oracle equality on every `/invocations` record (both pods), transcript parity, env-off zero counters, fail-closed per-symbol behavior (CleanPath 404; SanitizeMethod 200 with sentinel metrics label), fail-open 200 (both symbols). SPRINT-0018 CleanPath verification stack passes 1-for-1.
+- [x] SPRINT-0017 actor-adapter assertions unchanged.
+- [x] ADR-0023 contains "Internal-rule compliance via cmd-inside-host emission" amendment. ADR-0018 unchanged. `docs/evolution.md` records the slice.
+- [x] `cmd/main.go` unchanged.
+- [x] Patcher API (`pkg/compiler/transport/emit/liftpatch/`) unchanged from SPRINT-0018.
+- [x] No new Layer-1 liftability property exists.
+- [x] No `import.legality.*` property exists.
 
 ## Risks and mitigations
 
@@ -176,13 +176,13 @@ All must hold at sprint close:
 
 ## Forward-design sanity check
 
-- [ ] Patcher API in `pkg/compiler/transport/emit/liftpatch/` unchanged.
-- [ ] Admission rule in `pkg/compiler/transport/admission.go` unchanged.
-- [ ] Liftability property vocabulary in `pkg/compiler/liftability/property.go` unchanged.
-- [ ] Same template in `httpjson/main.go.tmpl` renders both `(string, bool) string` and `(string) string` signatures. A future basic-typed signature with three params would render without code changes.
-- [ ] Two extracted-service pods deploy in parallel; the harness machinery generalises to N pods.
-- [ ] Env-var lift gate is independent per symbol — SPRINT-0019 demonstrates two simultaneously, future sprints can add more.
-- [ ] `ErrTemplateUnsupported` and the template dispatcher remain symbol-agnostic.
+- [x] Patcher API in `pkg/compiler/transport/emit/liftpatch/` unchanged.
+- [x] Admission rule in `pkg/compiler/transport/admission.go` unchanged.
+- [x] Liftability property vocabulary in `pkg/compiler/liftability/property.go` unchanged.
+- [x] Same template in `httpjson/main.go.tmpl` renders both `(string, bool) string` and `(string) string` signatures. A future basic-typed signature with three params would render without code changes.
+- [x] Two extracted-service pods deploy in parallel; the harness machinery generalises to N pods.
+- [x] Env-var lift gate is independent per symbol — SPRINT-0019 demonstrates two simultaneously, future sprints can add more.
+- [x] `ErrTemplateUnsupported` and the template dispatcher remain symbol-agnostic.
 
 ## Roadmap follow-ups
 
@@ -228,3 +228,4 @@ Drafts and critiques preserved at `docs/sprints/drafts/SPRINT-0019-{CODEX,GEMINI
 ## Resolved blockers
 
 - B.6 oracle import legality: the plan said the e2e oracle could import `github.com/caddyserver/caddy/v2/internal/metrics` because the root module replaces Caddy with `evaluation/caddy/`. Go's `internal/` rule is still checked against the importing package path, so `test/e2e/targets/caddy` cannot directly import that package. The oracle now dispatches by symbol, keeps CleanPath on the real Caddy import, and mirrors SanitizeMethod's small method-label map for the internal symbol.
+- C.7 SanitizeMethod fail-closed signal: `SanitizeMethod` is used as a metrics label, not as a route input. When its extracted service is unavailable in fail-closed mode, the sentinel becomes the method label and the request still returns 200. The e2e harness asserts this per-symbol behavior while CleanPath continues to assert the 404 sentinel cascade through the catch-all route.
