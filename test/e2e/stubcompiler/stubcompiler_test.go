@@ -68,42 +68,103 @@ func TestEmitsLiftedTreeForCaddy(t *testing.T) {
 	}
 
 	lifted := filepath.Join(out, "lifted")
-	original := filepath.Join(repoRoot(), "evaluation", "caddy", "modules", "caddyhttp", "caddyhttp.go")
-	patched := filepath.Join(lifted, "host-patch", "modules", "caddyhttp", "caddyhttp.go")
-	assertCleanPathOnlyPatch(t, original, patched)
-
-	clientPath := filepath.Join(lifted, "host-patch", "modules", "caddyhttp", "monolift_lift_cleanpath.go")
-	clientFile := parseFile(t, clientPath)
-	if !hasValue(clientFile, "monoliftLiftClient") || !hasConst(clientFile, "monoliftLiftFailureSentinel") {
-		t.Fatal("lift client missing http client var or failure sentinel")
+	hostPatch := filepath.Join(lifted, "host-patch")
+	if _, err := os.Stat(filepath.Join(lifted, "upstream")); !os.IsNotExist(err) {
+		t.Fatalf("lifted/upstream exists or could not be checked: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(lifted, "extracted-cleanpath")); !os.IsNotExist(err) {
+		t.Fatalf("legacy extracted-cleanpath tree exists or could not be checked: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(lifted, "extracted-sanitizemethod")); !os.IsNotExist(err) {
+		t.Fatalf("legacy extracted-sanitizemethod tree exists or could not be checked: %v", err)
 	}
 
-	extractedMain := parseFile(t, filepath.Join(lifted, "extracted-cleanpath", "main.go"))
-	if !hasSelectorCall(extractedMain, "caddyhttp", "CleanPath") {
-		t.Fatal("extracted main.go does not call caddyhttp.CleanPath")
+	assertFunctionOnlyPatch(t,
+		filepath.Join(repoRoot(), "evaluation", "caddy", "modules", "caddyhttp", "caddyhttp.go"),
+		filepath.Join(hostPatch, "modules", "caddyhttp", "caddyhttp.go"),
+		"CleanPath",
+	)
+	assertFunctionOnlyPatch(t,
+		filepath.Join(repoRoot(), "evaluation", "caddy", "internal", "metrics", "metrics.go"),
+		filepath.Join(hostPatch, "internal", "metrics", "metrics.go"),
+		"SanitizeMethod",
+	)
+
+	for _, tc := range []struct {
+		path string
+		pkg  string
+		name string
+	}{
+		{
+			path: filepath.Join(hostPatch, "modules", "caddyhttp", "monolift_lift_cleanpath.go"),
+			pkg:  "caddyhttp",
+			name: "CleanPath",
+		},
+		{
+			path: filepath.Join(hostPatch, "internal", "metrics", "monolift_lift_sanitizemethod.go"),
+			pkg:  "metrics",
+			name: "SanitizeMethod",
+		},
+	} {
+		clientFile := parseFile(t, tc.path)
+		if clientFile.Name.Name != tc.pkg {
+			t.Fatalf("%s package = %s, want %s", tc.path, clientFile.Name.Name, tc.pkg)
+		}
+		if !hasValue(clientFile, "monoliftLiftClient") || !hasConst(clientFile, "monoliftLiftFailureSentinel") {
+			t.Fatalf("%s lift client missing http client var or failure sentinel", tc.name)
+		}
 	}
 
-	manifestData, err := os.ReadFile(filepath.Join(lifted, "host-patch", "modules", "caddyhttp", "LIFTPATCH.json"))
-	if err != nil {
-		t.Fatal(err)
+	for _, tc := range []struct {
+		path string
+		pkg  string
+		name string
+	}{
+		{
+			path: filepath.Join(hostPatch, "cmd", "monolift-extracted-cleanpath", "main.go"),
+			pkg:  "caddyhttp",
+			name: "CleanPath",
+		},
+		{
+			path: filepath.Join(hostPatch, "cmd", "monolift-extracted-sanitizemethod", "main.go"),
+			pkg:  "metrics",
+			name: "SanitizeMethod",
+		},
+	} {
+		extractedMain := parseFile(t, tc.path)
+		if !hasSelectorCall(extractedMain, tc.pkg, tc.name) {
+			t.Fatalf("extracted main.go does not call %s.%s", tc.pkg, tc.name)
+		}
 	}
-	var manifest struct {
-		OriginalSHA256 string `json:"original_sha256"`
-		PatchedSHA256  string `json:"patched_sha256"`
-		FunctionName   string `json:"function_name"`
-	}
-	if err := json.Unmarshal(manifestData, &manifest); err != nil {
-		t.Fatal(err)
-	}
-	if manifest.FunctionName != "CleanPath" || manifest.OriginalSHA256 == "" || manifest.PatchedSHA256 == "" {
-		t.Fatalf("bad LIFTPATCH manifest: %+v", manifest)
+
+	for _, tc := range []struct {
+		path string
+		name string
+	}{
+		{path: filepath.Join(hostPatch, "modules", "caddyhttp", "LIFTPATCH.json"), name: "CleanPath"},
+		{path: filepath.Join(hostPatch, "internal", "metrics", "LIFTPATCH.json"), name: "SanitizeMethod"},
+	} {
+		manifestData, err := os.ReadFile(tc.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var manifest struct {
+			OriginalSHA256 string `json:"original_sha256"`
+			PatchedSHA256  string `json:"patched_sha256"`
+			FunctionName   string `json:"function_name"`
+		}
+		if err := json.Unmarshal(manifestData, &manifest); err != nil {
+			t.Fatal(err)
+		}
+		if manifest.FunctionName != tc.name || manifest.OriginalSHA256 == "" || manifest.PatchedSHA256 == "" {
+			t.Fatalf("bad LIFTPATCH manifest: %+v", manifest)
+		}
 	}
 	if _, err := os.ReadFile(filepath.Join(lifted, "MANIFEST.json")); err != nil {
 		t.Fatal(err)
 	}
 
-	goBuild(t, filepath.Join(lifted, "host-patch"), "./...")
-	goBuild(t, filepath.Join(lifted, "extracted-cleanpath"), "-mod=mod", "./...")
+	goBuild(t, hostPatch, "-mod=mod", "./cmd/...")
 }
 
 func TestCaddySourceTreeUntouched(t *testing.T) {
@@ -160,39 +221,39 @@ func hashTree(t *testing.T, root string) string {
 	return hex.EncodeToString(sum.Sum(nil))
 }
 
-func assertCleanPathOnlyPatch(t *testing.T, originalPath, patchedPath string) {
+func assertFunctionOnlyPatch(t *testing.T, originalPath, patchedPath, funcName string) {
 	t.Helper()
 	original := parseFile(t, originalPath)
 	patched := parseFile(t, patchedPath)
 	if !sameImports(original, patched) {
-		t.Fatal("patched caddyhttp.go changed imports")
+		t.Fatalf("patched %s changed imports", patchedPath)
 	}
-	patchedCleanPath := findFunc(t, patched, "CleanPath")
-	if len(patchedCleanPath.Body.List) == 0 {
-		t.Fatal("patched CleanPath body is empty")
+	patchedFunc := findFunc(t, patched, funcName)
+	if len(patchedFunc.Body.List) == 0 {
+		t.Fatalf("patched %s body is empty", funcName)
 	}
-	ifStmt, ok := patchedCleanPath.Body.List[0].(*ast.IfStmt)
+	ifStmt, ok := patchedFunc.Body.List[0].(*ast.IfStmt)
 	if !ok {
-		t.Fatalf("first CleanPath statement = %T, want *ast.IfStmt", patchedCleanPath.Body.List[0])
+		t.Fatalf("first %s statement = %T, want *ast.IfStmt", funcName, patchedFunc.Body.List[0])
 	}
 	ident, ok := ifStmt.Cond.(*ast.Ident)
 	if !ok || ident.Name != "monoliftLiftEnabled" {
-		t.Fatalf("CleanPath prelude condition = %#v", ifStmt.Cond)
+		t.Fatalf("%s prelude condition = %#v", funcName, ifStmt.Cond)
 	}
 
-	originalClone := cloneWithoutCleanPathBody(t, originalPath)
-	patchedClone := cloneWithoutCleanPathBody(t, patchedPath)
+	originalClone := cloneWithoutFunctionBody(t, originalPath, funcName)
+	patchedClone := cloneWithoutFunctionBody(t, patchedPath, funcName)
 	originalBytes := formatNode(t, originalClone)
 	patchedBytes := formatNode(t, patchedClone)
 	if !bytes.Equal(originalBytes, patchedBytes) {
-		t.Fatal("patched caddyhttp.go differs outside CleanPath body")
+		t.Fatalf("patched %s differs outside %s body", patchedPath, funcName)
 	}
 }
 
-func cloneWithoutCleanPathBody(t *testing.T, path string) *ast.File {
+func cloneWithoutFunctionBody(t *testing.T, path, funcName string) *ast.File {
 	t.Helper()
 	file := parseFile(t, path)
-	findFunc(t, file, "CleanPath").Body = nil
+	findFunc(t, file, funcName).Body = nil
 	return file
 }
 

@@ -31,40 +31,66 @@ func ExtractWithTransport(sources []string, pragmas []*Pragma) (*reportv2.Report
 		return nil, nil, transport.Result{}, err
 	}
 
-	ctx, ok := cleanPathEmitContext(result.Report)
-	if !ok {
+	contexts := caddyEmitContexts(result.Report)
+	if len(contexts) == 0 {
 		return &result.Report, nil, transportResult, nil
 	}
-	extracted, err := emit.Emit(transport.Selection{Template: transport.TemplateHTTPJSON}, ctx)
-	if err != nil {
-		return nil, nil, transport.Result{}, err
+	artifacts := make([]emit.Artifact, 0, len(contexts)*2)
+	for _, ctx := range contexts {
+		extracted, err := emit.Emit(transport.Selection{Template: transport.TemplateHTTPJSON}, ctx)
+		if err != nil {
+			return nil, nil, transport.Result{}, err
+		}
+		patch, err := liftpatch.Render(ctx)
+		if err != nil {
+			return nil, nil, transport.Result{}, err
+		}
+		artifacts = append(artifacts, extracted, patch)
 	}
-	patch, err := liftpatch.Render(ctx)
-	if err != nil {
-		return nil, nil, transport.Result{}, err
-	}
-	return &result.Report, []emit.Artifact{extracted, patch}, transportResult, nil
+	return &result.Report, artifacts, transportResult, nil
 }
 
 func cleanPathEmitContext(report reportv2.Report) (emit.Context, bool) {
-	for _, symbol := range report.Closure.IncludedSymbols {
-		identity := symbol.Identity
-		if identity.PackagePath == "github.com/caddyserver/caddy/v2/modules/caddyhttp" &&
-			identity.ObjectName == "CleanPath" &&
-			identity.Kind == "function" {
-			return emit.Context{
-				SymbolImportPath:   identity.PackagePath,
-				ObjectName:         identity.ObjectName,
-				ParamFields:        []emit.FieldSpec{{Name: "P", JSONName: "p", GoType: "string"}, {Name: "CollapseSlashes", JSONName: "collapse_slashes", GoType: "bool"}},
-				ResultFields:       []emit.FieldSpec{{Name: "Result", JSONName: "result", GoType: "string"}},
-				UpstreamModulePath: "github.com/caddyserver/caddy/v2",
-				UpstreamLocalPath:  "../upstream",
-				ServiceName:        "monolift-extracted-cleanpath",
-				EnvVarPrefix:       "MONOLIFT_LIFT_CLEANPATH",
-			}, true
+	for _, ctx := range caddyEmitContexts(report) {
+		if ctx.ObjectName == "CleanPath" {
+			return ctx, true
 		}
 	}
 	return emit.Context{}, false
+}
+
+func caddyEmitContexts(report reportv2.Report) []emit.Context {
+	found := map[string]bool{}
+	for _, symbol := range report.Closure.IncludedSymbols {
+		identity := symbol.Identity
+		if identity.Kind == "function" {
+			found[identity.PackagePath+"."+identity.ObjectName] = true
+		}
+	}
+	var contexts []emit.Context
+	if found["github.com/caddyserver/caddy/v2/modules/caddyhttp.CleanPath"] {
+		contexts = append(contexts, emit.Context{
+			SymbolImportPath:   "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+			ObjectName:         "CleanPath",
+			ParamFields:        []emit.FieldSpec{{Name: "P", JSONName: "p", GoType: "string"}, {Name: "CollapseSlashes", JSONName: "collapse_slashes", GoType: "bool"}},
+			ResultFields:       []emit.FieldSpec{{Name: "Result", JSONName: "result", GoType: "string"}},
+			UpstreamModulePath: "github.com/caddyserver/caddy/v2",
+			ServiceName:        "monolift-extracted-cleanpath",
+			EnvVarPrefix:       "MONOLIFT_LIFT_CLEANPATH",
+		})
+	}
+	if found["github.com/caddyserver/caddy/v2/internal/metrics.SanitizeMethod"] {
+		contexts = append(contexts, emit.Context{
+			SymbolImportPath:   "github.com/caddyserver/caddy/v2/internal/metrics",
+			ObjectName:         "SanitizeMethod",
+			ParamFields:        []emit.FieldSpec{{Name: "M", JSONName: "m", GoType: "string"}},
+			ResultFields:       []emit.FieldSpec{{Name: "Result", JSONName: "result", GoType: "string"}},
+			UpstreamModulePath: "github.com/caddyserver/caddy/v2",
+			ServiceName:        "monolift-extracted-sanitizemethod",
+			EnvVarPrefix:       "MONOLIFT_LIFT_SANITIZEMETHOD",
+		})
+	}
+	return contexts
 }
 
 func requireCleanPathEmitContext(report reportv2.Report) (emit.Context, error) {

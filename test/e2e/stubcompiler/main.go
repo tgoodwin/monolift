@@ -94,15 +94,11 @@ func emitCaddyLiftedTree(output string, sources []string) error {
 
 	lifted := filepath.Join(output, "lifted")
 	hostPatch := filepath.Join(lifted, "host-patch")
-	upstream := filepath.Join(lifted, "upstream")
 	if err := os.RemoveAll(lifted); err != nil {
 		return err
 	}
 	if err := os.CopyFS(hostPatch, os.DirFS(caddySource)); err != nil {
 		return fmt.Errorf("copy host-patch: %w", err)
-	}
-	if err := os.CopyFS(upstream, os.DirFS(caddySource)); err != nil {
-		return fmt.Errorf("copy upstream: %w", err)
 	}
 	if err := os.CopyFS(filepath.Join(lifted, "static"), os.DirFS(filepath.Join(repoRoot(), "test", "e2e", "targets", "caddy", "static"))); err != nil {
 		return fmt.Errorf("copy static assets: %w", err)
@@ -115,19 +111,38 @@ func emitCaddyLiftedTree(output string, sources []string) error {
 				return err
 			}
 			for path := range artifact.Files {
-				manifest = append(manifest, filepath.ToSlash(filepath.Join("host-patch", "modules", "caddyhttp", path)))
+				for _, op := range artifact.HostPatchOps {
+					packageDir, err := packageDirFor(hostPatch, op.PackageImportPath)
+					if err != nil {
+						return err
+					}
+					manifest = append(manifest, filepath.ToSlash(filepath.Join("host-patch", mustRel(hostPatch, packageDir), path)))
+				}
 			}
 			continue
 		}
 		for path, data := range artifact.Files {
-			out := filepath.Join(lifted, filepath.FromSlash(path))
+			outRoot := lifted
+			manifestPath := path
+			if strings.HasPrefix(path, "cmd/") {
+				outRoot = hostPatch
+				manifestPath = filepath.ToSlash(filepath.Join("host-patch", path))
+			}
+			out := filepath.Join(outRoot, filepath.FromSlash(path))
+			if strings.HasPrefix(path, "cmd/monolift-extracted-") {
+				if _, err := os.Stat(filepath.Dir(out)); err == nil {
+					return fmt.Errorf("cmd target collision: %s already exists", filepath.Dir(out))
+				} else if !os.IsNotExist(err) {
+					return err
+				}
+			}
 			if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 				return err
 			}
 			if err := os.WriteFile(out, data, 0o644); err != nil {
 				return err
 			}
-			manifest = append(manifest, filepath.ToSlash(path))
+			manifest = append(manifest, manifestPath)
 		}
 	}
 	extraFiles := map[string]string{
@@ -145,7 +160,10 @@ func emitCaddyLiftedTree(output string, sources []string) error {
 		}
 		manifest = append(manifest, path)
 	}
-	manifest = append(manifest, "host-patch/modules/caddyhttp/LIFTPATCH.json")
+	manifest = append(manifest,
+		"host-patch/modules/caddyhttp/LIFTPATCH.json",
+		"host-patch/internal/metrics/LIFTPATCH.json",
+	)
 	sort.Strings(manifest)
 	data, err := json.MarshalIndent(struct {
 		Files []string `json:"files"`
@@ -157,20 +175,24 @@ func emitCaddyLiftedTree(output string, sources []string) error {
 }
 
 func applyHostPatchArtifact(lifted, hostPatch string, artifact emit.Artifact) error {
-	packageDir := filepath.Join(hostPatch, "modules", "caddyhttp")
 	for _, op := range artifact.HostPatchOps {
+		packageDir, err := packageDirFor(hostPatch, op.PackageImportPath)
+		if err != nil {
+			return err
+		}
 		generated := make([]liftpatch.GeneratedFile, 0, len(op.GeneratedFiles))
 		for _, rel := range op.GeneratedFiles {
 			data, ok := artifact.Files[rel]
 			if !ok {
 				return fmt.Errorf("host patch generated file %s missing from artifact", rel)
 			}
+			data = withPackageDecl(data, filepath.Base(packageDir))
 			generated = append(generated, liftpatch.GeneratedFile{
 				Path:    filepath.Join(packageDir, rel),
 				Content: data,
 			})
 		}
-		_, err := liftpatch.PatchSymbolBody(liftpatch.PatchRequest{
+		_, err = liftpatch.PatchSymbolBody(liftpatch.PatchRequest{
 			ModuleRoot:        hostPatch,
 			PackageImportPath: op.PackageImportPath,
 			PackageDir:        packageDir,
@@ -186,6 +208,28 @@ func applyHostPatchArtifact(lifted, hostPatch string, artifact emit.Artifact) er
 	}
 	_ = lifted
 	return nil
+}
+
+func packageDirFor(hostPatch, importPath string) (string, error) {
+	const modulePath = "github.com/caddyserver/caddy/v2"
+	rel, ok := strings.CutPrefix(importPath, modulePath)
+	if !ok {
+		return "", fmt.Errorf("unsupported package import path %s", importPath)
+	}
+	rel = strings.TrimPrefix(rel, "/")
+	return filepath.Join(hostPatch, filepath.FromSlash(rel)), nil
+}
+
+func withPackageDecl(src []byte, packageName string) []byte {
+	return []byte(strings.Replace(string(src), "package caddyhttp\n", "package "+packageName+"\n", 1))
+}
+
+func mustRel(base, target string) string {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return target
+	}
+	return rel
 }
 
 func findCaddySource(sources []string) (string, error) {
@@ -237,10 +281,14 @@ spec:
           env:
             - name: MONOLIFT_LIFT_CLEANPATH
               value: "on"
+            - name: MONOLIFT_LIFT_SANITIZEMETHOD
+              value: "on"
             - name: MONOLIFT_LIFT_FAILMODE
               value: "closed"
             - name: MONOLIFT_LIFT_CLEANPATH_ENDPOINT
               value: "http://monolift-extracted-cleanpath:8081/invoke"
+            - name: MONOLIFT_LIFT_SANITIZEMETHOD_ENDPOINT
+              value: "http://monolift-extracted-sanitizemethod:8081/invoke"
           ports:
             - containerPort: 8080
           volumeMounts:
