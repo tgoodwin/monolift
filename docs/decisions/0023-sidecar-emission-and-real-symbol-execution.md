@@ -67,6 +67,36 @@ SPRINT-0019 keeps the SPRINT-0018 `CleanPath` service and adds `SanitizeMethod` 
 
 The single `MONOLIFT_LIFT_FAILMODE=open` knob remains shared. `CleanPath` fail-closed still surfaces as the explicit 404 catch-all because the sentinel changes route matching. `SanitizeMethod` fail-closed returns the sentinel as a metrics label and the request remains otherwise available; the e2e harness records that different signal instead of treating it as a route failure.
 
+### Internal-rule compliance for oracle binaries via cmd-inside-host
+
+SPRINT-0020 extends the cmd-inside-host pattern to oracle binaries. For
+internal-package symbols, the harness no longer mirrors symbol logic from an
+out-of-module test package. Instead, the compiler driver emits an oracle command
+inside the patched host tree:
+
+```text
+cmd/monolift-oracle-<symbol>/main.go
+```
+
+That oracle imports the same internal package as the extracted service and calls
+the real symbol directly. The miniflux proof point uses
+`miniflux.app/v2/internal/reader/readingtime.EstimateReadingTime`, so both the
+extracted binary and oracle binary are legal module-internal imports and compare
+real execution results over HTTP.
+
+SPRINT-0020 also records fail-closed semantics for non-`error`-returning
+symbols. Failure is represented at the result-type level, not necessarily the
+HTTP status level. For `EstimateReadingTime(... ) int`, fail-closed returns the
+distinguished `int` sentinel `-1`; the miniflux API request still returns HTTP
+200/201 because the host remains available and only the computed field is
+degraded. String-result symbols may still surface failure through downstream
+application behavior, such as the Caddy `CleanPath` route mismatch.
+
+With miniflux moved onto the real compiler, the e2e harness no longer has a
+generated-output fixture-copy path for OSS targets. The e2e compile driver
+always consumes source directories and emits current compiler reports, with
+lifted artifacts produced for targets that have transport contexts.
+
 ### AST source patch
 
 The lifted host image builds from a copied Caddy source tree. `liftpatch.PatchSymbolBody` locates the target function by package, name, and exact signature, then prepends a small AST-generated prelude to the function body. For `CleanPath`, the prelude checks a cached package-level `monoliftLiftEnabled` bool and calls:
