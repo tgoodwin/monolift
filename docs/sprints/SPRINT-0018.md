@@ -304,8 +304,8 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
 
 ### Block D — Stubcompiler integration + lifted build context
 
-- [ ] **D.1** Sibling API `compiler.ExtractWithTransport(...) (*reportv2.Report, []emit.Artifact, transport.Result, error)`. Existing `compiler.Extract` unchanged.
-- [ ] **D.2** Extend `test/e2e/stubcompiler/main.go`: when `target == "caddy"` and `usesRealCompiler(target)`, call `compiler.ExtractWithTransport`. Stubcompiler then materializes:
+- [x] **D.1** Sibling API `compiler.ExtractWithTransport(...) (*reportv2.Report, []emit.Artifact, transport.Result, error)`. Existing `compiler.Extract` unchanged.
+- [x] **D.2** Extend `test/e2e/stubcompiler/main.go`: when `target == "caddy"` and `usesRealCompiler(target)`, call `compiler.ExtractWithTransport`. Stubcompiler then materializes:
   - `<output>/lifted/host-patch/` ← `os.CopyFS` of `evaluation/caddy/`.
   - `<output>/lifted/upstream/` ← second `os.CopyFS` of `evaluation/caddy/` (clean copy for the extracted service's `replace`).
   - Apply each `HostPatchOp` via `liftpatch.PatchSymbolBody` against `<output>/lifted/host-patch/modules/caddyhttp/`.
@@ -315,9 +315,9 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
   - `<output>/lifted/manifests/{caddy-lifted-deployment.yaml, caddy-lifted-service.yaml, extracted-deployment.yaml, extracted-service.yaml}`. Lifted Caddy deployment env: `MONOLIFT_LIFT_CLEANPATH=on`, `MONOLIFT_LIFT_FAILMODE=closed`, `MONOLIFT_LIFT_CLEANPATH_ENDPOINT=http://monolift-extracted-cleanpath:8081/invoke`.
   - `<output>/lifted/MANIFEST.json` listing all emitted paths.
   - `<output>/lifted/host-patch/modules/caddyhttp/LIFTPATCH.json` from the patcher.
-- [ ] **D.3** Source-tree integrity test: hash `evaluation/caddy/` (full directory tree, not just the patched file) before and after stubcompiler run; assert byte-identical. Make target `make verify-evaluation-untouched` invokes the same check.
-- [ ] **D.4** Extend `test/e2e/harness/target.go` with `LiftedHostBuild *HostBuildSpec{ Dockerfile, ContextRoot, ImageTag }` and `LiftedExtractedServices []ExtractedServiceSpec{ Name, Dockerfile, ContextRoot, ImageTag, DeploymentYAML, ServiceYAML, ReadinessPath }`. Both share `<output>/lifted/` as `ContextRoot`.
-- [ ] **D.5** Update `test/e2e/targets/caddy/target.go`: populate `LiftedHostBuild` and one `LiftedExtractedServices` entry. Baseline `Dockerfile`, `BaselineManifests` (echo-upstream, baseline caddy deployment, configmap, baseline service) unchanged. **Lifted Caddy reuses the same Caddyfile ConfigMap as baseline** — no fragments, no new routes. Same workload runs on both env-on and env-off deployments.
+- [x] **D.3** Source-tree integrity test: hash `evaluation/caddy/` (full directory tree, not just the patched file) before and after stubcompiler run; assert byte-identical. Make target `make verify-evaluation-untouched` invokes the same check.
+- [x] **D.4** Extend `test/e2e/harness/target.go` with `LiftedHostBuild *HostBuildSpec{ Dockerfile, ContextRoot, ImageTag }` and `LiftedExtractedServices []ExtractedServiceSpec{ Name, Dockerfile, ContextRoot, ImageTag, DeploymentYAML, ServiceYAML, ReadinessPath }`. Both share `<output>/lifted/` as `ContextRoot`.
+- [x] **D.5** Update `test/e2e/targets/caddy/target.go`: populate `LiftedHostBuild` and one `LiftedExtractedServices` entry. Baseline `Dockerfile`, `BaselineManifests` (echo-upstream, baseline caddy deployment, configmap, baseline service) unchanged. **Lifted Caddy reuses the same Caddyfile ConfigMap as baseline** — no fragments, no new routes. Same workload runs on both env-on and env-off deployments.
 - [ ] **D.6** Snapshot `test/e2e/stubcompiler/fixtures/caddy/lifted/` → `lifted-baseline-snapshot/` in a separate commit (precedes Block E). Final closeout commit (Block F) deletes it.
 - [ ] **D.7** Stubcompiler integration test `test/e2e/stubcompiler/stubcompiler_test.go::TestEmitsLiftedTreeForCaddy`:
   - patched `caddyhttp.go` differs from original at exactly the `CleanPath` body (prepended `*ast.IfStmt` with `monoliftLiftEnabled` cond) — and **only** there;

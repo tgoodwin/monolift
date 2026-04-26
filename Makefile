@@ -9,7 +9,7 @@ K8S_SERVICE_FILE    = $(K8S_DIR)/monolith-service.yaml
 
 GENERATED_MANIFEST_DIR ?= output/k8s
 
-.PHONY: demo build push deploy undeploy build-and-deploy-local help
+.PHONY: demo build push deploy undeploy build-and-deploy-local help verify-evaluation-untouched
 
 build:
 	go build -o monolift ./cmd/main.go
@@ -59,6 +59,9 @@ reset-redis:
 	kubectl apply -f $(K8S_DIR)/redis.yaml
 
 include test/e2e/Makefile.include
+
+verify-evaluation-untouched:
+	go test ./test/e2e/stubcompiler -run TestCaddySourceTreeUntouched -count=1
 
 # ----------------------------------------------------------------------------
 # RSS perf harness (SPRINT-0010).

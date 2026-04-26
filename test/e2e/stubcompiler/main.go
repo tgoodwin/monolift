@@ -7,10 +7,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/compiler"
 	compilerdiagnostics "github.com/tgoodwin/monolift/pkg/compiler/diagnostics"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit"
+	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit/liftpatch"
 )
 
 type sourceFlags []string
@@ -55,17 +59,216 @@ func main() {
 		fmt.Fprintf(os.Stderr, "stubcompiler target %s: no fixture and no --source paths\n", *target)
 		os.Exit(1)
 	}
-	if err := emitPragmaReport(*target, *output, resolveSources(sources)); err != nil {
+	resolvedSources := resolveSources(sources)
+	if err := emitPragmaReport(*target, *output, resolvedSources); err != nil {
 		fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
 		os.Exit(1)
 	}
 	if usesRealCompiler(*target) {
-		if err := copyLiftedArtifacts(fixtureDir, *output); err != nil {
+		if *target == "caddy" {
+			if err := emitCaddyLiftedTree(*output, resolvedSources); err != nil {
+				fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
+				os.Exit(1)
+			}
+		} else if err := copyLiftedArtifacts(fixtureDir, *output); err != nil {
 			fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
 			os.Exit(1)
 		}
 	}
 	fmt.Fprintf(os.Stdout, "stubcompiler parsed %s to %s\n", *target, *output)
+}
+
+func emitCaddyLiftedTree(output string, sources []string) error {
+	pragmas, _, err := compiler.Parse(sources)
+	if err != nil {
+		return err
+	}
+	_, artifacts, _, err := compiler.ExtractWithTransport(sources, pragmas)
+	if err != nil {
+		return err
+	}
+	caddySource, err := findCaddySource(sources)
+	if err != nil {
+		return err
+	}
+
+	lifted := filepath.Join(output, "lifted")
+	hostPatch := filepath.Join(lifted, "host-patch")
+	upstream := filepath.Join(lifted, "upstream")
+	if err := os.RemoveAll(lifted); err != nil {
+		return err
+	}
+	if err := os.CopyFS(hostPatch, os.DirFS(caddySource)); err != nil {
+		return fmt.Errorf("copy host-patch: %w", err)
+	}
+	if err := os.CopyFS(upstream, os.DirFS(caddySource)); err != nil {
+		return fmt.Errorf("copy upstream: %w", err)
+	}
+	if err := os.CopyFS(filepath.Join(lifted, "static"), os.DirFS(filepath.Join(repoRoot(), "test", "e2e", "targets", "caddy", "static"))); err != nil {
+		return fmt.Errorf("copy static assets: %w", err)
+	}
+
+	manifest := []string{"static/hello.txt"}
+	for _, artifact := range artifacts {
+		if len(artifact.HostPatchOps) > 0 {
+			if err := applyHostPatchArtifact(lifted, hostPatch, artifact); err != nil {
+				return err
+			}
+			for path := range artifact.Files {
+				manifest = append(manifest, filepath.ToSlash(filepath.Join("host-patch", "modules", "caddyhttp", path)))
+			}
+			continue
+		}
+		for path, data := range artifact.Files {
+			out := filepath.Join(lifted, filepath.FromSlash(path))
+			if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(out, data, 0o644); err != nil {
+				return err
+			}
+			manifest = append(manifest, filepath.ToSlash(path))
+		}
+	}
+	extraFiles := map[string]string{
+		"Dockerfile.host":                        hostDockerfile(),
+		"manifests/caddy-lifted-deployment.yaml": caddyLiftedDeployment(),
+		"manifests/caddy-lifted-service.yaml":    caddyLiftedService(),
+	}
+	for path, data := range extraFiles {
+		out := filepath.Join(lifted, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(out, []byte(data), 0o644); err != nil {
+			return err
+		}
+		manifest = append(manifest, path)
+	}
+	manifest = append(manifest, "host-patch/modules/caddyhttp/LIFTPATCH.json")
+	sort.Strings(manifest)
+	data, err := json.MarshalIndent(struct {
+		Files []string `json:"files"`
+	}{Files: manifest}, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(lifted, "MANIFEST.json"), append(data, '\n'), 0o644)
+}
+
+func applyHostPatchArtifact(lifted, hostPatch string, artifact emit.Artifact) error {
+	packageDir := filepath.Join(hostPatch, "modules", "caddyhttp")
+	for _, op := range artifact.HostPatchOps {
+		generated := make([]liftpatch.GeneratedFile, 0, len(op.GeneratedFiles))
+		for _, rel := range op.GeneratedFiles {
+			data, ok := artifact.Files[rel]
+			if !ok {
+				return fmt.Errorf("host patch generated file %s missing from artifact", rel)
+			}
+			generated = append(generated, liftpatch.GeneratedFile{
+				Path:    filepath.Join(packageDir, rel),
+				Content: data,
+			})
+		}
+		_, err := liftpatch.PatchSymbolBody(liftpatch.PatchRequest{
+			ModuleRoot:        hostPatch,
+			PackageImportPath: op.PackageImportPath,
+			PackageDir:        packageDir,
+			FuncName:          op.FuncName,
+			ExpectedSignature: op.ExpectedSignature,
+			PreludeSpec:       liftpatch.PreludeSpec{GoSource: op.PreludeSource},
+			GeneratedFiles:    generated,
+			SentinelIdent:     op.SentinelIdent,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	_ = lifted
+	return nil
+}
+
+func findCaddySource(sources []string) (string, error) {
+	for _, source := range sources {
+		clean := filepath.Clean(source)
+		if filepath.Base(clean) == "caddy" && strings.Contains(filepath.ToSlash(clean), "evaluation/caddy") {
+			return clean, nil
+		}
+	}
+	return "", fmt.Errorf("evaluation/caddy source not found")
+}
+
+func hostDockerfile() string {
+	return `FROM golang:1.25 AS builder
+
+WORKDIR /src/caddy
+COPY ./host-patch /src/caddy
+RUN go build -mod=mod -o /out/caddy ./cmd/caddy
+
+FROM gcr.io/distroless/static
+COPY --from=builder /out/caddy /usr/bin/caddy
+COPY ./static /srv/static
+EXPOSE 8080
+ENTRYPOINT ["/usr/bin/caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+`
+}
+
+func caddyLiftedDeployment() string {
+	return `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-lifted
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: caddy-lifted
+  template:
+    metadata:
+      labels:
+        app: caddy-lifted
+    spec:
+      containers:
+        - name: caddy
+          image: monolift-e2e/caddy-lifted:e2e
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MONOLIFT_LIFT_CLEANPATH
+              value: "on"
+            - name: MONOLIFT_LIFT_FAILMODE
+              value: "closed"
+            - name: MONOLIFT_LIFT_CLEANPATH_ENDPOINT
+              value: "http://monolift-extracted-cleanpath:8081/invoke"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: caddyfile
+              mountPath: /etc/caddy
+          readinessProbe:
+            httpGet:
+              path: /headers
+              port: 8080
+            periodSeconds: 2
+      volumes:
+        - name: caddyfile
+          configMap:
+            name: caddyfile
+`
+}
+
+func caddyLiftedService() string {
+	return `apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-lifted
+spec:
+  selector:
+    app: caddy-lifted
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+`
 }
 
 func usesRealCompiler(target string) bool {

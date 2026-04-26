@@ -7,23 +7,7 @@ import (
 )
 
 func Extract(sources []string, pragmas []*Pragma) (reportv2.Report, []Diagnostic, error) {
-	req := extractv2.Request{
-		Sources: append([]string(nil), sources...),
-		Pragmas: make([]extractv2.Pragma, 0, len(pragmas)),
-	}
-	for _, pragma := range pragmas {
-		if pragma == nil {
-			continue
-		}
-		req.Pragmas = append(req.Pragmas, extractv2.Pragma{
-			Name:     pragma.Name,
-			Surface:  extractv2.Surface(pragma.Surface),
-			Options:  cloneOptions(pragma.Options),
-			Span:     extractv2.Span(pragma.Span),
-			DeclName: pragma.DeclName,
-			DeclKind: pragma.DeclKind,
-		})
-	}
+	req := extractRequest(sources, pragmas)
 
 	result, err := extractv2.Analyze(req)
 	if err != nil {
@@ -42,6 +26,27 @@ func Extract(sources []string, pragmas []*Pragma) (reportv2.Report, []Diagnostic
 		})
 	}
 	return result.Report, diagnostics, nil
+}
+
+func extractRequest(sources []string, pragmas []*Pragma) extractv2.Request {
+	req := extractv2.Request{
+		Sources: append([]string(nil), sources...),
+		Pragmas: make([]extractv2.Pragma, 0, len(pragmas)),
+	}
+	for _, pragma := range pragmas {
+		if pragma == nil {
+			continue
+		}
+		req.Pragmas = append(req.Pragmas, extractv2.Pragma{
+			Name:     pragma.Name,
+			Surface:  extractv2.Surface(pragma.Surface),
+			Options:  cloneOptions(pragma.Options),
+			Span:     extractv2.Span(pragma.Span),
+			DeclName: pragma.DeclName,
+			DeclKind: pragma.DeclKind,
+		})
+	}
+	return req
 }
 
 func cloneOptions(options map[string]string) map[string]string {

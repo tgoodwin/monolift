@@ -18,6 +18,20 @@ func Target() harness.TargetCase {
 		ContextDir:   ".",
 		SourceDirs:   []string{"evaluation/caddy", "test/e2e/targets/caddy"},
 		ImageTag:     "monolift-e2e/caddy:e2e",
+		LiftedHostBuild: &harness.HostBuildSpec{
+			Dockerfile:  "lifted/Dockerfile.host",
+			ContextRoot: "lifted",
+			ImageTag:    "monolift-e2e/caddy-lifted:e2e",
+		},
+		LiftedExtractedServices: []harness.ExtractedServiceSpec{{
+			Name:           "monolift-extracted-cleanpath",
+			Dockerfile:     "lifted/extracted-cleanpath/Dockerfile",
+			ContextRoot:    "lifted",
+			ImageTag:       "monolift-e2e/extracted-cleanpath:e2e",
+			DeploymentYAML: "lifted/manifests/extracted-deployment.yaml",
+			ServiceYAML:    "lifted/manifests/extracted-service.yaml",
+			ReadinessPath:  "/healthz",
+		}},
 		GoldenReport: "test/e2e/targets/caddy/golden/report.json",
 		Workload:     Workload{},
 		Invariants: []harness.Invariant{
