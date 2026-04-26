@@ -160,7 +160,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	}
 	liftedService := target.ServiceName
 	if target.LiftedHostBuild != nil {
-		liftedService = "caddy-lifted"
+		liftedService = target.LiftedHostBuild.ServiceName
 	}
 	liftedPF, err := harness.StartPortForward(ctx, target.Name, liftedNS, liftedService, target.ServicePort)
 	if err != nil {
@@ -786,10 +786,8 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 		}
 		paths = append(paths, manifest)
 	}
-	paths = append(paths,
-		filepath.Join(artifactsDir, "lifted", "manifests", "caddy-lifted-deployment.yaml"),
-		filepath.Join(artifactsDir, "lifted", "manifests", "caddy-lifted-service.yaml"),
-	)
+	spec := *target.LiftedHostBuild
+	paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
 	for _, service := range target.LiftedExtractedServices {
 		paths = append(paths,
 			filepath.Join(artifactsDir, service.DeploymentYAML),

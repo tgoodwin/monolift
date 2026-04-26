@@ -88,12 +88,7 @@ func main() {
 		os.Exit(1)
 	}
 	if usesRealCompiler(*target) {
-		if *target == "caddy" {
-			if err := emitCaddyLiftedTree(*output, resolvedSources); err != nil {
-				fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
-				os.Exit(1)
-			}
-		} else if err := copyLiftedArtifacts(fixtureDir, *output); err != nil {
+		if err := emitLiftedTree(*target, *output, resolvedSources); err != nil {
 			fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
 			os.Exit(1)
 		}
@@ -101,16 +96,26 @@ func main() {
 	fmt.Fprintf(os.Stdout, "stubcompiler parsed %s to %s\n", *target, *output)
 }
 
-func emitCaddyLiftedTree(output string, sources []string) error {
+func emitLiftedTree(target, output string, sources []string) error {
 	pragmas, _, err := compiler.Parse(sources)
 	if err != nil {
 		return err
+	}
+	if target == "miniflux" && len(pragmas) == 0 {
+		pragma, err := minifluxReadingTimePragma(sources)
+		if err != nil {
+			return err
+		}
+		pragmas = []*compiler.Pragma{pragma}
 	}
 	_, artifacts, _, err := compiler.ExtractWithTransport(sources, pragmas)
 	if err != nil {
 		return err
 	}
-	caddySource, err := findCaddySource(sources)
+	if len(artifacts) == 0 {
+		return nil
+	}
+	hostSource, err := findHostSource(target, sources)
 	if err != nil {
 		return err
 	}
@@ -120,27 +125,34 @@ func emitCaddyLiftedTree(output string, sources []string) error {
 	if err := os.RemoveAll(lifted); err != nil {
 		return err
 	}
-	if err := os.CopyFS(hostPatch, os.DirFS(caddySource)); err != nil {
+	if err := os.CopyFS(hostPatch, os.DirFS(hostSource)); err != nil {
 		return fmt.Errorf("copy host-patch: %w", err)
 	}
-	if err := os.CopyFS(filepath.Join(lifted, "static"), os.DirFS(filepath.Join(repoRoot(), "test", "e2e", "targets", "caddy", "static"))); err != nil {
-		return fmt.Errorf("copy static assets: %w", err)
+	if target == "caddy" {
+		if err := os.CopyFS(filepath.Join(lifted, "static"), os.DirFS(filepath.Join(repoRoot(), "test", "e2e", "targets", "caddy", "static"))); err != nil {
+			return fmt.Errorf("copy static assets: %w", err)
+		}
 	}
 
-	manifest := []string{"static/hello.txt"}
+	manifest := []string{}
+	if target == "caddy" {
+		manifest = append(manifest, "static/hello.txt")
+	}
 	for _, artifact := range artifacts {
 		if len(artifact.HostPatchOps) > 0 {
 			if err := applyHostPatchArtifact(lifted, hostPatch, artifact); err != nil {
 				return err
 			}
-			for path := range artifact.Files {
-				for _, op := range artifact.HostPatchOps {
-					packageDir, err := packageDirFor(hostPatch, op.PackageImportPath)
-					if err != nil {
-						return err
-					}
-					manifest = append(manifest, filepath.ToSlash(filepath.Join("host-patch", mustRel(hostPatch, packageDir), path)))
+			for _, op := range artifact.HostPatchOps {
+				packageDir, err := packageDirFor(hostPatch, op.PackageImportPath)
+				if err != nil {
+					return err
 				}
+				relPkg := mustRel(hostPatch, packageDir)
+				for _, path := range op.GeneratedFiles {
+					manifest = append(manifest, filepath.ToSlash(filepath.Join("host-patch", relPkg, path)))
+				}
+				manifest = append(manifest, filepath.ToSlash(filepath.Join("host-patch", relPkg, "LIFTPATCH.json")))
 			}
 			continue
 		}
@@ -169,9 +181,15 @@ func emitCaddyLiftedTree(output string, sources []string) error {
 		}
 	}
 	extraFiles := map[string]string{
-		"Dockerfile.host":                        hostDockerfile(),
-		"manifests/caddy-lifted-deployment.yaml": caddyLiftedDeployment(),
-		"manifests/caddy-lifted-service.yaml":    caddyLiftedService(),
+		"Dockerfile.host": hostDockerfile(target),
+	}
+	deploymentName, deployment := hostDeployment(target)
+	serviceName, service := hostService(target)
+	if deploymentName != "" {
+		extraFiles[deploymentName] = deployment
+	}
+	if serviceName != "" {
+		extraFiles[serviceName] = service
 	}
 	for path, data := range extraFiles {
 		out := filepath.Join(lifted, filepath.FromSlash(path))
@@ -183,10 +201,6 @@ func emitCaddyLiftedTree(output string, sources []string) error {
 		}
 		manifest = append(manifest, path)
 	}
-	manifest = append(manifest,
-		"host-patch/modules/caddyhttp/LIFTPATCH.json",
-		"host-patch/internal/metrics/LIFTPATCH.json",
-	)
 	sort.Strings(manifest)
 	data, err := json.MarshalIndent(struct {
 		Files []string `json:"files"`
@@ -234,13 +248,20 @@ func applyHostPatchArtifact(lifted, hostPatch string, artifact emit.Artifact) er
 }
 
 func packageDirFor(hostPatch, importPath string) (string, error) {
-	const modulePath = "github.com/caddyserver/caddy/v2"
-	rel, ok := strings.CutPrefix(importPath, modulePath)
-	if !ok {
-		return "", fmt.Errorf("unsupported package import path %s", importPath)
+	moduleDirs := map[string]string{
+		"github.com/caddyserver/caddy/v2":  "caddy",
+		"github.com/pocketbase/pocketbase": "pocketbase",
+		"miniflux.app/v2":                  "miniflux",
 	}
-	rel = strings.TrimPrefix(rel, "/")
-	return filepath.Join(hostPatch, filepath.FromSlash(rel)), nil
+	for modulePath := range moduleDirs {
+		rel, ok := strings.CutPrefix(importPath, modulePath)
+		if !ok {
+			continue
+		}
+		rel = strings.TrimPrefix(rel, "/")
+		return filepath.Join(hostPatch, filepath.FromSlash(rel)), nil
+	}
+	return "", fmt.Errorf("unsupported package import path %s", importPath)
 }
 
 func withPackageDecl(src []byte, packageName string) []byte {
@@ -255,17 +276,36 @@ func mustRel(base, target string) string {
 	return rel
 }
 
-func findCaddySource(sources []string) (string, error) {
+func findHostSource(target string, sources []string) (string, error) {
+	wantBase := target
+	if target == "miniflux" {
+		wantBase = "miniflux"
+	}
 	for _, source := range sources {
 		clean := filepath.Clean(source)
-		if filepath.Base(clean) == "caddy" && strings.Contains(filepath.ToSlash(clean), "evaluation/caddy") {
+		if filepath.Base(clean) == wantBase && strings.Contains(filepath.ToSlash(clean), "evaluation/"+wantBase) {
 			return clean, nil
 		}
 	}
-	return "", fmt.Errorf("evaluation/caddy source not found")
+	return "", fmt.Errorf("evaluation/%s source not found", wantBase)
 }
 
-func hostDockerfile() string {
+func hostDockerfile(target string) string {
+	if target == "miniflux" {
+		return `FROM golang:1.26.0 AS builder
+
+WORKDIR /src/miniflux
+COPY ./host-patch /src/miniflux
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/miniflux .
+
+FROM alpine:3.20
+RUN adduser -D -H miniflux
+COPY --from=builder /out/miniflux /usr/bin/miniflux
+USER miniflux
+EXPOSE 8080
+ENTRYPOINT ["/usr/bin/miniflux"]
+`
+	}
 	return `FROM golang:1.25 AS builder
 
 WORKDIR /src/caddy
@@ -282,8 +322,50 @@ ENTRYPOINT ["/usr/bin/caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adap
 `
 }
 
-func caddyLiftedDeployment() string {
-	return `apiVersion: apps/v1
+func hostDeployment(target string) (string, string) {
+	if target == "miniflux" {
+		return "manifests/miniflux-lifted-deployment.yaml", `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniflux-lifted
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniflux-lifted
+  template:
+    metadata:
+      labels:
+        app: miniflux-lifted
+    spec:
+      containers:
+        - name: miniflux
+          image: monolift-e2e/miniflux-lifted:e2e
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              value: postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable
+            - name: RUN_MIGRATIONS
+              value: "1"
+            - name: MONOLIFT_LIFT_ESTIMATEREADINGTIME
+              value: "on"
+            - name: MONOLIFT_LIFT_FAILMODE
+              value: "closed"
+            - name: MONOLIFT_LIFT_ESTIMATEREADINGTIME_ENDPOINT
+              value: "http://monolift-extracted-estimatereadingtime:8081/invoke"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            periodSeconds: 2
+`
+	}
+	if target != "caddy" {
+		return "", ""
+	}
+	return "manifests/caddy-lifted-deployment.yaml", `apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: caddy-lifted
@@ -328,8 +410,25 @@ spec:
 `
 }
 
-func caddyLiftedService() string {
-	return `apiVersion: v1
+func hostService(target string) (string, string) {
+	if target == "miniflux" {
+		return "manifests/miniflux-lifted-service.yaml", `apiVersion: v1
+kind: Service
+metadata:
+  name: miniflux-lifted
+spec:
+  selector:
+    app: miniflux-lifted
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+`
+	}
+	if target != "caddy" {
+		return "", ""
+	}
+	return "manifests/caddy-lifted-service.yaml", `apiVersion: v1
 kind: Service
 metadata:
   name: caddy-lifted

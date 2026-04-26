@@ -41,9 +41,12 @@ type SymbolInvoker interface {
 }
 
 type HostBuildSpec struct {
-	Dockerfile  string
-	ContextRoot string
-	ImageTag    string
+	Dockerfile     string
+	ContextRoot    string
+	ImageTag       string
+	ServiceName    string
+	DeploymentYAML string
+	ServiceYAML    string
 }
 
 type ExtractedServiceSpec struct {

@@ -171,6 +171,75 @@ func TestEmitsLiftedTreeForCaddy(t *testing.T) {
 	makeVerifyEvaluationUntouched(t)
 }
 
+func TestEmitsLiftedTreeForMiniflux(t *testing.T) {
+	before := hashTree(t, filepath.Join(repoRoot(), "evaluation", "miniflux"))
+	out := t.TempDir()
+	cmd := exec.Command("go", "run", ".", "--target=miniflux", "--output="+out, "--source=../../../evaluation/miniflux")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("stubcompiler failed: %v\n%s", err, data)
+	}
+	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "miniflux"))
+	if before != after {
+		t.Fatalf("evaluation/miniflux hash changed: before=%s after=%s", before, after)
+	}
+
+	lifted := filepath.Join(out, "lifted")
+	hostPatch := filepath.Join(lifted, "host-patch")
+	assertFunctionOnlyPatch(t,
+		filepath.Join(repoRoot(), "evaluation", "miniflux", "internal", "reader", "readingtime", "readingtime.go"),
+		filepath.Join(hostPatch, "internal", "reader", "readingtime", "readingtime.go"),
+		"EstimateReadingTime",
+	)
+
+	clientFile := parseFile(t, filepath.Join(hostPatch, "internal", "reader", "readingtime", "monolift_lift_estimatereadingtime.go"))
+	if clientFile.Name.Name != "readingtime" {
+		t.Fatalf("lift client package = %s, want readingtime", clientFile.Name.Name)
+	}
+	if !hasValue(clientFile, "monoliftLiftClient") || !hasConst(clientFile, "monoliftLiftFailureSentinel") {
+		t.Fatal("miniflux lift client missing http client var or failure sentinel")
+	}
+
+	extractedMain := parseFile(t, filepath.Join(hostPatch, "cmd", "monolift-extracted-estimatereadingtime", "main.go"))
+	if !hasSelectorCall(extractedMain, "readingtime", "EstimateReadingTime") {
+		t.Fatal("extracted main.go does not call readingtime.EstimateReadingTime")
+	}
+
+	manifestData, err := os.ReadFile(filepath.Join(hostPatch, "internal", "reader", "readingtime", "LIFTPATCH.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest struct {
+		OriginalSHA256 string `json:"original_sha256"`
+		PatchedSHA256  string `json:"patched_sha256"`
+		FunctionName   string `json:"function_name"`
+	}
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.FunctionName != "EstimateReadingTime" || manifest.OriginalSHA256 == "" || manifest.PatchedSHA256 == "" {
+		t.Fatalf("bad LIFTPATCH manifest: %+v", manifest)
+	}
+
+	for _, path := range []string{
+		"Dockerfile.host",
+		"Dockerfile.extracted-estimatereadingtime",
+		"manifests/miniflux-lifted-deployment.yaml",
+		"manifests/miniflux-lifted-service.yaml",
+		"manifests/extracted-estimatereadingtime-deployment.yaml",
+		"manifests/extracted-estimatereadingtime-service.yaml",
+		"MANIFEST.json",
+	} {
+		if _, err := os.ReadFile(filepath.Join(lifted, filepath.FromSlash(path))); err != nil {
+			t.Fatalf("%s missing: %v", path, err)
+		}
+	}
+
+	goBuild(t, hostPatch, "-mod=mod", ".")
+	goBuild(t, hostPatch, "-mod=mod", "./cmd/monolift-extracted-estimatereadingtime")
+}
+
 func TestCaddySourceTreeUntouched(t *testing.T) {
 	before := hashTree(t, filepath.Join(repoRoot(), "evaluation", "caddy"))
 	out := t.TempDir()
@@ -407,6 +476,7 @@ func goBuild(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	cmd := exec.Command("go", append([]string{"build"}, args...)...)
 	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
 	data, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go build %s: %v\n%s", dir, err, data)
