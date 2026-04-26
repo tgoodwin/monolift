@@ -25,9 +25,9 @@ spec:
           value: miniflux
         resources:
           limits:
-            memory: 16Mi
+            memory: 256Mi
           requests:
-            memory: 16Mi
+            memory: 128Mi
         ports:
         - containerPort: 5432
 ---
