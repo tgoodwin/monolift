@@ -236,6 +236,12 @@ type extractedRuntime struct {
 	pf     harness.PortForward
 }
 
+type oracleRuntime struct {
+	spec   harness.ExtractedServiceSpec
+	symbol string
+	pf     harness.PortForward
+}
+
 func assertExtractedDeploymentsDormant(target harness.TargetCase, artifactsDir string) error {
 	liftEnv := regexp.MustCompile(`MONOLIFT_LIFT_[A-Z_]+:`)
 	for _, service := range target.LiftedExtractedServices {
@@ -298,6 +304,11 @@ func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, lif
 		return harness.Transcript{}, err
 	}
 	defer stopExtractedPortForwards(services)
+	oracles, err := startOraclePortForwards(ctx, target, liftedNS)
+	if err != nil {
+		return harness.Transcript{}, err
+	}
+	defer stopOraclePortForwards(oracles)
 
 	transcript := harness.Transcript{Steps: make([]harness.Step, 0, len(workload.Paths()))}
 	totals := make(map[string]int64, len(services))
@@ -334,7 +345,7 @@ func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, lif
 		}
 	}
 	for _, service := range services {
-		if err := assertExtractedInvocations(ctx, service.pf.URL, service.symbol, invocationPaths(workload.Paths()), target.Oracle); err != nil {
+		if err := assertExtractedInvocations(ctx, service.pf.URL, service.symbol, invocationPaths(workload.Paths()), target.Oracle, oracles); err != nil {
 			return harness.Transcript{}, err
 		}
 	}
@@ -357,6 +368,25 @@ func startExtractedPortForwards(ctx context.Context, target harness.TargetCase, 
 func stopExtractedPortForwards(services []extractedRuntime) {
 	for _, service := range services {
 		service.pf.Stop()
+	}
+}
+
+func startOraclePortForwards(ctx context.Context, target harness.TargetCase, liftedNS string) (map[string]oracleRuntime, error) {
+	oracles := make(map[string]oracleRuntime, len(target.LiftedOracleServices))
+	for _, spec := range target.LiftedOracleServices {
+		pf, err := harness.StartPortForward(ctx, target.Name, liftedNS, spec.Name, 8081)
+		if err != nil {
+			stopOraclePortForwards(oracles)
+			return nil, err
+		}
+		oracles[symbolForService(spec.Name)] = oracleRuntime{spec: spec, symbol: symbolForService(spec.Name), pf: pf}
+	}
+	return oracles, nil
+}
+
+func stopOraclePortForwards(oracles map[string]oracleRuntime) {
+	for _, oracle := range oracles {
+		oracle.pf.Stop()
 	}
 }
 
@@ -403,7 +433,7 @@ type invocationRecord struct {
 	ReadingTime         int    `json:"reading_time"`
 }
 
-func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, expectedPaths []string, oracle harness.SymbolInvoker) error {
+func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, expectedPaths []string, oracle harness.SymbolInvoker, oraclePods map[string]oracleRuntime) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serviceURL+"/invocations", nil)
 	if err != nil {
 		return err
@@ -449,22 +479,46 @@ func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, 
 		}
 	}
 	if oracle == nil {
-		return fmt.Errorf("target has no oracle")
+		if _, ok := oraclePods[symbol]; !ok {
+			return fmt.Errorf("target has no oracle for %s", symbol)
+		}
 	}
 	for _, record := range out.Records {
-		got, err := oracle.Invoke(oracleArgs(symbol, map[string]any{
-			"p":                record.P,
-			"collapse_slashes": record.CollapseSlashes,
-			"m":                record.M,
-		}))
+		payload := invocationPayload(symbol, record)
+		want := invocationResult(symbol, record)
+		var got any
+		var err error
+		if oraclePod, ok := oraclePods[symbol]; ok {
+			got, err = postInvoke(ctx, oraclePod.pf.URL, payload)
+		} else {
+			got, err = oracle.Invoke(oracleArgs(symbol, payload))
+		}
 		if err != nil {
 			return err
 		}
-		if got != record.Result {
-			return fmt.Errorf("%s oracle mismatch for record=%+v: record=%q oracle=%v", symbol, record, record.Result, got)
+		if fmt.Sprint(got) != fmt.Sprint(want) {
+			return fmt.Errorf("%s oracle mismatch for record=%+v: record=%v oracle=%v", symbol, record, want, got)
 		}
 	}
 	return nil
+}
+
+func invocationPayload(symbol string, record invocationRecord) map[string]any {
+	switch symbol {
+	case "sanitizemethod":
+		return map[string]any{"m": record.M}
+	case "estimatereadingtime":
+		return map[string]any{"content": record.Content, "default_reading_speed": record.DefaultReadingSpeed, "cjk_reading_speed": record.CjkReadingSpeed}
+	default:
+		return map[string]any{"p": record.P, "collapse_slashes": record.CollapseSlashes}
+	}
+}
+
+func invocationResult(symbol string, record invocationRecord) any {
+	if symbol == "estimatereadingtime" {
+		return record.ReadingTime
+	}
+	return record.Result
 }
 
 func assertExtractedServiceLogs(ctx context.Context, target harness.TargetCase, ns string, expected []string) error {
