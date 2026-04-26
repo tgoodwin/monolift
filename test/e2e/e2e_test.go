@@ -273,12 +273,16 @@ func assertExtractedServicesDormantRuntime(ctx context.Context, target harness.T
 		if after-before != 1 {
 			return fmt.Errorf("%s direct /invoke /calls delta=%d want 1", service.spec.Name, after-before)
 		}
-		want, err := target.Oracle.Invoke(oracleArgs(service.symbol, invokePayload(service.symbol)))
-		if err != nil {
-			return err
-		}
-		if got != want {
-			return fmt.Errorf("%s direct /invoke result=%v want %v", service.spec.Name, got, want)
+		if target.Oracle != nil {
+			want, err := target.Oracle.Invoke(oracleArgs(service.symbol, invokePayload(service.symbol)))
+			if err != nil {
+				return err
+			}
+			if got != want {
+				return fmt.Errorf("%s direct /invoke result=%v want %v", service.spec.Name, got, want)
+			}
+		} else if got == nil {
+			return fmt.Errorf("%s direct /invoke returned nil result", service.spec.Name)
 		}
 	}
 	return nil
@@ -387,12 +391,16 @@ func readCalls(ctx context.Context, serviceURL string) (int64, error) {
 }
 
 type invocationRecord struct {
-	ID              int64  `json:"id"`
-	InvocationID    string `json:"invocation_id"`
-	P               string `json:"p"`
-	CollapseSlashes bool   `json:"collapse_slashes"`
-	M               string `json:"m"`
-	Result          string `json:"result"`
+	ID                  int64  `json:"id"`
+	InvocationID        string `json:"invocation_id"`
+	P                   string `json:"p"`
+	CollapseSlashes     bool   `json:"collapse_slashes"`
+	M                   string `json:"m"`
+	Result              string `json:"result"`
+	Content             string `json:"content"`
+	DefaultReadingSpeed int    `json:"default_reading_speed"`
+	CjkReadingSpeed     int    `json:"cjk_reading_speed"`
+	ReadingTime         int    `json:"reading_time"`
 }
 
 func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, expectedPaths []string, oracle harness.SymbolInvoker) error {
@@ -660,6 +668,9 @@ func postInvoke(ctx context.Context, serviceURL string, payload map[string]any) 
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
+	if value, ok := out["reading_time"]; ok {
+		return value, nil
+	}
 	return out["result"], nil
 }
 
@@ -667,6 +678,8 @@ func invokePayload(symbol string) map[string]any {
 	switch symbol {
 	case "sanitizemethod":
 		return map[string]any{"m": http.MethodGet}
+	case "estimatereadingtime":
+		return map[string]any{"content": "<p>direct invocation reading time content</p>", "default_reading_speed": 200, "cjk_reading_speed": 500}
 	default:
 		return map[string]any{"p": "/static/hello.txt", "collapse_slashes": true}
 	}
@@ -684,6 +697,9 @@ func oracleArgs(symbol string, payload map[string]any) map[string]any {
 func symbolForService(name string) string {
 	if strings.Contains(name, "sanitizemethod") {
 		return "sanitizemethod"
+	}
+	if strings.Contains(name, "estimatereadingtime") {
+		return "estimatereadingtime"
 	}
 	return "cleanpath"
 }

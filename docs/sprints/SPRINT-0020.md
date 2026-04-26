@@ -117,7 +117,7 @@ Goal: lift the symbol via the cmd-inside-host emitter, deploy lifted miniflux + 
   - `Action`: drive the API import-entry path — `POST /v1/feeds/{id}/entries` (or whichever route maps to `entry_handlers.go:405`) with one entry payload containing fixed HTML content. Each call invokes `EstimateReadingTime` once.
   - `Verify`: returned entry has non-zero `reading_time` (when lifted) AND the `/invocations` record matches the in-cluster oracle binary's response for the same args.
 - [x] **B.5** Lifted miniflux deployment env: `MONOLIFT_LIFT_ESTIMATEREADINGTIME=on`, `MONOLIFT_LIFT_FAILMODE=closed` (default), `MONOLIFT_LIFT_ESTIMATEREADINGTIME_ENDPOINT=http://monolift-extracted-estimatereadingtime:8081/invoke`. Extracted-service Deployment env: omit all `MONOLIFT_LIFT_*` (recursion safety).
-- [ ] **B.6** Recursion-safety dual gate (carry from SPRINT-0019.C.1/C.2):
+- [x] **B.6** Recursion-safety dual gate (carry from SPRINT-0019.C.1/C.2):
   - **Static:** harness asserts the rendered extracted-service Deployment YAML grep-clean for `MONOLIFT_LIFT_[A-Z_]+:` in the env block.
   - **Runtime:** post-deploy, port-forward the extracted Pod, send one `POST /invoke` with no `MONOLIFT_LIFT_*` env on the extracted container, verify `/calls` increments by exactly 1 (proves no recursion through the dormant patched body).
 - [ ] **B.7** Per-request counter delta + aggregate: harness reads the extracted Pod's `/calls` before each workload request, asserts `>= 1` delta, accumulates total. Aggregate `<= 50` total per workload run (catches recursion / accidental client loops). If the workload necessarily uses feed-refresh (fallback path), document the counter as per-cycle and assert `>= 1` per cycle instead.
