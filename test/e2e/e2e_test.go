@@ -557,13 +557,15 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 	}
 	defer stopExtractedPortForwards(services)
 
-	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted", "MONOLIFT_LIFT_CLEANPATH-", "MONOLIFT_LIFT_SANITIZEMETHOD-"); err != nil {
+	hostDeployment := liftedHostDeployment(target)
+	hostService := liftedHostService(target)
+	if err := kubectl(ctx, ns, append([]string{"set", "env", "deployment/" + hostDeployment}, liftedEnvOffArgs(target)...)...); err != nil {
 		return err
 	}
-	if err := kubectl(ctx, ns, "rollout", "status", "deployment/caddy-lifted", "--timeout=120s"); err != nil {
+	if err := kubectl(ctx, ns, "rollout", "status", "deployment/"+hostDeployment, "--timeout=120s"); err != nil {
 		return err
 	}
-	envOffPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
+	envOffPF, err := harness.StartPortForward(ctx, target.Name, ns, hostService, target.ServicePort)
 	if err != nil {
 		return err
 	}
@@ -599,17 +601,17 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 			return err
 		}
 	}
-	return setLiftedCaddyEnv(ctx, ns, "closed")
+	return setLiftedEnv(ctx, target, ns, "closed")
 }
 
 func assertFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
-	if err := setLiftedCaddyEnv(ctx, ns, "closed"); err != nil {
+	if err := setLiftedEnv(ctx, target, ns, "closed"); err != nil {
 		return err
 	}
 	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
 		return err
 	}
-	closedPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
+	closedPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
 	if err != nil {
 		return err
 	}
@@ -632,13 +634,13 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 		return err
 	}
 
-	if err := setLiftedCaddyEnv(ctx, ns, "open"); err != nil {
+	if err := setLiftedEnv(ctx, target, ns, "open"); err != nil {
 		return err
 	}
 	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
 		return err
 	}
-	openPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
+	openPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
 	if err != nil {
 		return err
 	}
@@ -654,7 +656,7 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 }
 
 func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
-	caddyPF, err := harness.StartPortForward(ctx, target.Name, ns, "caddy-lifted", target.ServicePort)
+	caddyPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
 	if err != nil {
 		return err
 	}
@@ -681,17 +683,50 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 	return nil
 }
 
-func setLiftedCaddyEnv(ctx context.Context, ns, failMode string) error {
-	if err := kubectl(ctx, ns, "set", "env", "deployment/caddy-lifted",
-		"MONOLIFT_LIFT_CLEANPATH=on",
-		"MONOLIFT_LIFT_SANITIZEMETHOD=on",
-		"MONOLIFT_LIFT_FAILMODE="+failMode,
-		"MONOLIFT_LIFT_CLEANPATH_ENDPOINT=http://monolift-extracted-cleanpath:8081/invoke",
-		"MONOLIFT_LIFT_SANITIZEMETHOD_ENDPOINT=http://monolift-extracted-sanitizemethod:8081/invoke",
-	); err != nil {
+func setLiftedEnv(ctx context.Context, target harness.TargetCase, ns, failMode string) error {
+	if err := kubectl(ctx, ns, append([]string{"set", "env", "deployment/" + liftedHostDeployment(target)}, liftedEnvOnArgs(target, failMode)...)...); err != nil {
 		return err
 	}
-	return kubectl(ctx, ns, "rollout", "status", "deployment/caddy-lifted", "--timeout=120s")
+	return kubectl(ctx, ns, "rollout", "status", "deployment/"+liftedHostDeployment(target), "--timeout=120s")
+}
+
+func liftedHostDeployment(target harness.TargetCase) string {
+	if target.LiftedHostBuild != nil && target.LiftedHostBuild.ServiceName != "" {
+		return target.LiftedHostBuild.ServiceName
+	}
+	return target.ServiceName
+}
+
+func liftedHostService(target harness.TargetCase) string {
+	return liftedHostDeployment(target)
+}
+
+func liftedEnvOffArgs(target harness.TargetCase) []string {
+	switch target.Name {
+	case "miniflux":
+		return []string{"MONOLIFT_LIFT_ESTIMATEREADINGTIME-"}
+	default:
+		return []string{"MONOLIFT_LIFT_CLEANPATH-", "MONOLIFT_LIFT_SANITIZEMETHOD-"}
+	}
+}
+
+func liftedEnvOnArgs(target harness.TargetCase, failMode string) []string {
+	switch target.Name {
+	case "miniflux":
+		return []string{
+			"MONOLIFT_LIFT_ESTIMATEREADINGTIME=on",
+			"MONOLIFT_LIFT_FAILMODE=" + failMode,
+			"MONOLIFT_LIFT_ESTIMATEREADINGTIME_ENDPOINT=http://monolift-extracted-estimatereadingtime:8081/invoke",
+		}
+	default:
+		return []string{
+			"MONOLIFT_LIFT_CLEANPATH=on",
+			"MONOLIFT_LIFT_SANITIZEMETHOD=on",
+			"MONOLIFT_LIFT_FAILMODE=" + failMode,
+			"MONOLIFT_LIFT_CLEANPATH_ENDPOINT=http://monolift-extracted-cleanpath:8081/invoke",
+			"MONOLIFT_LIFT_SANITIZEMETHOD_ENDPOINT=http://monolift-extracted-sanitizemethod:8081/invoke",
+		}
+	}
 }
 
 func scaleExtractedService(ctx context.Context, deployer harness.Deployer, ns string, service harness.ExtractedServiceSpec, replicas int) error {
