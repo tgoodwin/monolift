@@ -183,6 +183,12 @@ func emitLiftedTree(target, output string, sources []string) error {
 	extraFiles := map[string]string{
 		"Dockerfile.host": hostDockerfile(target),
 	}
+	if target == "miniflux" {
+		extraFiles["host-patch/cmd/monolift-oracle-estimatereadingtime/main.go"] = minifluxOracleMain()
+		extraFiles["Dockerfile.oracle-estimatereadingtime"] = oracleDockerfile("monolift-oracle-estimatereadingtime", "oracle")
+		extraFiles["manifests/oracle-estimatereadingtime-deployment.yaml"] = oracleDeployment()
+		extraFiles["manifests/oracle-estimatereadingtime-service.yaml"] = oracleService()
+	}
 	deploymentName, deployment := hostDeployment(target)
 	serviceName, service := hostService(target)
 	if deploymentName != "" {
@@ -322,6 +328,76 @@ ENTRYPOINT ["/usr/bin/caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adap
 `
 }
 
+func minifluxOracleMain() string {
+	return `package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+
+	"miniflux.app/v2/internal/reader/readingtime"
+)
+
+type invokeRequest struct {
+	Content             string ` + "`json:\"content\"`" + `
+	DefaultReadingSpeed int    ` + "`json:\"default_reading_speed\"`" + `
+	CjkReadingSpeed     int    ` + "`json:\"cjk_reading_speed\"`" + `
+}
+
+type invokeResponse struct {
+	ReadingTime int ` + "`json:\"reading_time\"`" + `
+}
+
+func main() {
+	http.HandleFunc("/invoke", handleInvoke)
+	http.HandleFunc("/healthz", handleHealthz)
+	log.Fatal(http.ListenAndServe(":8081", nil))
+}
+
+func handleInvoke(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	var in invokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, invokeResponse{
+		ReadingTime: readingtime.EstimateReadingTime(in.Content, in.DefaultReadingSpeed, in.CjkReadingSpeed),
+	})
+}
+
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		log.Printf("write json: %v", err)
+	}
+}
+`
+}
+
+func oracleDockerfile(commandTarget, binaryName string) string {
+	return fmt.Sprintf(`FROM golang:1.26.0 AS builder
+
+WORKDIR /src
+COPY . /src
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/%[2]s ./cmd/%[1]s
+
+FROM gcr.io/distroless/static
+COPY --from=builder /out/%[2]s /%[2]s
+EXPOSE 8081
+ENTRYPOINT ["/%[2]s"]
+`, commandTarget, binaryName)
+}
+
 func hostDeployment(target string) (string, string) {
 	if target == "miniflux" {
 		return "manifests/miniflux-lifted-deployment.yaml", `apiVersion: apps/v1
@@ -407,6 +483,50 @@ spec:
         - name: caddyfile
           configMap:
             name: caddyfile
+`
+}
+
+func oracleDeployment() string {
+	return `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monolift-oracle-estimatereadingtime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monolift-oracle-estimatereadingtime
+  template:
+    metadata:
+      labels:
+        app: monolift-oracle-estimatereadingtime
+    spec:
+      containers:
+        - name: oracle
+          image: monolift-e2e/oracle-estimatereadingtime:e2e
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            periodSeconds: 2
+`
+}
+
+func oracleService() string {
+	return `apiVersion: v1
+kind: Service
+metadata:
+  name: monolift-oracle-estimatereadingtime
+spec:
+  selector:
+    app: monolift-oracle-estimatereadingtime
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
 `
 }
 

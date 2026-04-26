@@ -754,11 +754,21 @@ func buildAndLoadLiftedImages(ctx context.Context, builder harness.ImageBuilder,
 			return err
 		}
 	}
+	for _, service := range target.LiftedOracleServices {
+		if err := buildGeneratedImage(ctx, builder, artifactsDir, service.Dockerfile, service.ContextRoot, service.ImageTag); err != nil {
+			return err
+		}
+	}
 	generatedBuilder := builder
 	if err := generatedBuilder.LoadToKind(ctx, spec.ImageTag); err != nil {
 		return err
 	}
 	for _, service := range target.LiftedExtractedServices {
+		if err := generatedBuilder.LoadToKind(ctx, service.ImageTag); err != nil {
+			return err
+		}
+	}
+	for _, service := range target.LiftedOracleServices {
 		if err := generatedBuilder.LoadToKind(ctx, service.ImageTag); err != nil {
 			return err
 		}
@@ -789,6 +799,12 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 	spec := *target.LiftedHostBuild
 	paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
 	for _, service := range target.LiftedExtractedServices {
+		paths = append(paths,
+			filepath.Join(artifactsDir, service.DeploymentYAML),
+			filepath.Join(artifactsDir, service.ServiceYAML),
+		)
+	}
+	for _, service := range target.LiftedOracleServices {
 		paths = append(paths,
 			filepath.Join(artifactsDir, service.DeploymentYAML),
 			filepath.Join(artifactsDir, service.ServiceYAML),

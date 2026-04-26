@@ -205,6 +205,10 @@ func TestEmitsLiftedTreeForMiniflux(t *testing.T) {
 	if !hasSelectorCall(extractedMain, "readingtime", "EstimateReadingTime") {
 		t.Fatal("extracted main.go does not call readingtime.EstimateReadingTime")
 	}
+	oracleMain := parseFile(t, filepath.Join(hostPatch, "cmd", "monolift-oracle-estimatereadingtime", "main.go"))
+	if !hasSelectorCall(oracleMain, "readingtime", "EstimateReadingTime") {
+		t.Fatal("oracle main.go does not call readingtime.EstimateReadingTime")
+	}
 
 	manifestData, err := os.ReadFile(filepath.Join(hostPatch, "internal", "reader", "readingtime", "LIFTPATCH.json"))
 	if err != nil {
@@ -225,10 +229,13 @@ func TestEmitsLiftedTreeForMiniflux(t *testing.T) {
 	for _, path := range []string{
 		"Dockerfile.host",
 		"Dockerfile.extracted-estimatereadingtime",
+		"Dockerfile.oracle-estimatereadingtime",
 		"manifests/miniflux-lifted-deployment.yaml",
 		"manifests/miniflux-lifted-service.yaml",
 		"manifests/extracted-estimatereadingtime-deployment.yaml",
 		"manifests/extracted-estimatereadingtime-service.yaml",
+		"manifests/oracle-estimatereadingtime-deployment.yaml",
+		"manifests/oracle-estimatereadingtime-service.yaml",
 		"MANIFEST.json",
 	} {
 		if _, err := os.ReadFile(filepath.Join(lifted, filepath.FromSlash(path))); err != nil {
@@ -238,6 +245,7 @@ func TestEmitsLiftedTreeForMiniflux(t *testing.T) {
 
 	goBuild(t, hostPatch, "-mod=mod", ".")
 	goBuild(t, hostPatch, "-mod=mod", "./cmd/monolift-extracted-estimatereadingtime")
+	goBuild(t, hostPatch, "-mod=mod", "./cmd/monolift-oracle-estimatereadingtime")
 }
 
 func TestCaddySourceTreeUntouched(t *testing.T) {

@@ -28,6 +28,7 @@ type TargetCase struct {
 	ImageTag                string
 	LiftedHostBuild         *HostBuildSpec
 	LiftedExtractedServices []ExtractedServiceSpec
+	LiftedOracleServices    []ExtractedServiceSpec
 	GoldenReport            string
 	Workload                WorkloadExecutor
 	Oracle                  SymbolInvoker
