@@ -1,105 +1,1042 @@
 {
   "schemaVersion": "1.0",
   "buildConfig": {
-    "GOOS": "linux",
-    "GOARCH": "amd64",
-    "CGO_ENABLED": false,
-    "buildTags": [],
+    "GOOS": "darwin",
+    "GOARCH": "arm64",
+    "CGO_ENABLED": true,
+    "buildTags": null,
     "moduleRoot": "evaluation/miniflux",
     "workspaceMode": "single-module",
     "tests": false,
     "dependencyManifest": []
   },
   "analysis": {
-    "algorithm": "ssa-rta-stub",
-    "precisionTriggers": ["postgres-external-state"],
+    "algorithm": "ssa-cha+rta",
+    "precisionTriggers": [],
     "deterministic": true
   },
   "pragma": {
-    "name": "feed-processor",
+    "name": "estimate-reading-time",
     "surface": "function",
     "span": {
-      "file_relative_path": "internal/reader/processor/processor.go",
+      "file_relative_path": "evaluation/miniflux/internal/reader/readingtime/readingtime.go",
       "byte_offset_start": 0,
       "byte_offset_end": 1,
-      "line_start": 1,
-      "line_end": 1
+      "line_start": 16,
+      "line_end": 17
     },
     "options": {
-      "state": "external",
-      "verdict": "accept"
+      "state": "stateless",
+      "transport": "http-json",
+      "verdict": "refuse-blocking"
     }
   },
   "root": {
     "identity": {
       "module_path": "miniflux.app/v2",
-      "package_path": "miniflux.app/v2/internal/reader/processor",
-      "object_name": "ProcessFeedEntries",
+      "package_path": "miniflux.app/v2/internal/reader/readingtime",
+      "object_name": "EstimateReadingTime",
       "kind": "function"
     },
     "registryKey": null,
-    "exposedOperations": [
+    "admission": "refused",
+    "properties": [
       {
-        "module_path": "miniflux.app/v2",
-        "package_path": "miniflux.app/v2/internal/reader/processor",
-        "object_name": "ProcessFeedEntries",
-        "kind": "function"
+        "propertyId": "boundary.context-first",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "EstimateReadingTime: first parameter is not context.Context"
+      },
+      {
+        "propertyId": "boundary.fully-instantiated",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: boundary is fully instantiated"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: no func-typed boundary values"
+      },
+      {
+        "propertyId": "boundary.no-streaming-values",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: no channel-typed boundary values"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: no sync primitives at boundary"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[0]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[2]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "result[0]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.variadic-free",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: signature is not variadic"
+      },
+      {
+        "propertyId": "contract.error-last",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "EstimateReadingTime: terminal result is not error"
+      },
+      {
+        "propertyId": "contract.no-panic-only-failure",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: no panic instructions observed"
+      },
+      {
+        "propertyId": "contract.receiver-read-only",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: operation has no receiver"
+      },
+      {
+        "propertyId": "effects.no-global-reads",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: no mutable global reads observed"
+      },
+      {
+        "propertyId": "effects.no-global-writes",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: no mutable global writes observed"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/http"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/http/httptrace"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/http/internal"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/http/internal/ascii"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/http/internal/httpcommon"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/mail"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/netip"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/textproto"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package net/url"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package os"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable package syscall"
+      },
+      {
+        "propertyId": "effects.no-param-escape",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: no obvious boundary escapes observed"
+      },
+      {
+        "propertyId": "effects.no-param-heap-mutation",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: no param-derived heap mutation observed"
+      },
+      {
+        "propertyId": "effects.no-param-interface-callbacks",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: no boundary-derived interface callbacks observed"
+      },
+      {
+        "propertyId": "effects.no-reflect-unsafe",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "EstimateReadingTime: reachable symbol reflect.Addr"
+      },
+      {
+        "propertyId": "lifecycle.execution-profile",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: detail=sync-short"
+      },
+      {
+        "propertyId": "lifecycle.long-running-loop",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: no long-running receive loop observed"
+      },
+      {
+        "propertyId": "lifecycle.no-async-fork",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "EstimateReadingTime: body does not spawn goroutines"
+      },
+      {
+        "propertyId": "transport.handler-boundary",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "EstimateReadingTime: signature does not match known handler boundary"
+      },
+      {
+        "propertyId": "transport.receiver-returns-self",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "EstimateReadingTime: operation is not a builder-chain candidate"
       }
-    ]
+    ],
+    "shape": "unsupported",
+    "defaultTransport": "http-json",
+    "exposedOperations": []
   },
   "closure": {
-    "includedSymbols": [],
-    "excludedSymbols": [],
-    "wiringPaths": []
+    "includedSymbols": [
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "Attribute",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 29,
+          "line_end": 29
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "Token",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 29,
+          "line_end": 29
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "TokenType",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 29,
+          "line_end": 29
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "Tokenizer",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 16,
+          "line_end": 16
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "span",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 16,
+          "line_end": 16
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html/atom",
+          "object_name": "Atom",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 29,
+          "line_end": 29
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "io",
+          "object_name": "EOF",
+          "kind": "variable"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/io/io.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 44,
+          "line_end": 44
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "io",
+          "object_name": "Reader",
+          "kind": "interface"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 16,
+          "line_end": 16
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/readingtime",
+          "object_name": "EstimateReadingTime",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/readingtime/readingtime.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 17,
+          "line_end": 17
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/readingtime",
+          "object_name": "isCJK",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/readingtime/readingtime.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 27,
+          "line_end": 27
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+          "object_name": "StripTags",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 15,
+          "line_end": 15
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+          "object_name": "descriptorStateAfterToken",
+          "kind": "constant"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/srcset.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 166,
+          "line_end": 166
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+          "object_name": "descriptorStateInParenthesis",
+          "kind": "constant"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/srcset.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 165,
+          "line_end": 165
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+          "object_name": "descriptorStateInitial",
+          "kind": "constant"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/srcset.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 164,
+          "line_end": 164
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+          "object_name": "maxDepth",
+          "kind": "constant"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/sanitizer.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 22,
+          "line_end": 22
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "strings",
+          "object_name": "Builder",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 17,
+          "line_end": 17
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "strings",
+          "object_name": "Reader",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/sanitizer/strip_tags.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 16,
+          "line_end": 16
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Bopomofo",
+          "kind": "variable"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/tables.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 7235,
+          "line_end": 7235
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Han",
+          "kind": "variable"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/tables.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 7270,
+          "line_end": 7270
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Hangul",
+          "kind": "variable"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/tables.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 7271,
+          "line_end": 7271
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Hiragana",
+          "kind": "variable"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/tables.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 7276,
+          "line_end": 7276
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Katakana",
+          "kind": "variable"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/tables.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 7284,
+          "line_end": 7284
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Range16",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/readingtime/readingtime.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 32,
+          "line_end": 32
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Range32",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/readingtime/readingtime.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 32,
+          "line_end": 32
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "RangeTable",
+          "kind": "type"
+        },
+        "span": {
+          "file_relative_path": "internal/reader/readingtime/readingtime.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 32,
+          "line_end": 32
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Yi",
+          "kind": "variable"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/tables.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 7384,
+          "line_end": 7384
+        },
+        "ruleIds": []
+      }
+    ],
+    "excludedSymbols": [
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "(*Tokenizer).Err",
+          "kind": "method"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/x/net@v0.53.0/html/token.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 222,
+          "line_end": 222
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "(*Tokenizer).Next",
+          "kind": "method"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/x/net@v0.53.0/html/token.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 1012,
+          "line_end": 1012
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "(*Tokenizer).Token",
+          "kind": "method"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/x/net@v0.53.0/html/token.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 1233,
+          "line_end": 1233
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "golang.org/x/net/html",
+          "object_name": "NewTokenizer",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/x/net@v0.53.0/html/token.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 1262,
+          "line_end": 1262
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "math",
+          "object_name": "Ceil",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/math/floor.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 43,
+          "line_end": 43
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "strings",
+          "object_name": "(*Builder).String",
+          "kind": "method"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/strings/builder.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 46,
+          "line_end": 46
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "strings",
+          "object_name": "(*Builder).WriteString",
+          "kind": "method"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/strings/builder.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 112,
+          "line_end": 112
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "strings",
+          "object_name": "Fields",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/strings/strings.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 384,
+          "line_end": 384
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "strings",
+          "object_name": "NewReader",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/strings/reader.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 156,
+          "line_end": 156
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode",
+          "object_name": "Is",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/letter.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 157,
+          "line_end": 157
+        },
+        "ruleIds": []
+      },
+      {
+        "identity": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "unicode/utf8",
+          "object_name": "RuneCountInString",
+          "kind": "function"
+        },
+        "span": {
+          "file_relative_path": "../../../../go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64/src/unicode/utf8/utf8.go",
+          "byte_offset_start": 0,
+          "byte_offset_end": 1,
+          "line_start": 447,
+          "line_end": 447
+        },
+        "ruleIds": []
+      }
+    ],
+    "wiringPaths": [
+      {
+        "target": {
+          "module_path": "miniflux.app/v2",
+          "package_path": "miniflux.app/v2/internal/reader/readingtime",
+          "object_name": "EstimateReadingTime",
+          "kind": "function"
+        },
+        "steps": [
+          {
+            "identity": {
+              "module_path": "miniflux.app/v2",
+              "package_path": "miniflux.app/v2/internal/reader/readingtime",
+              "object_name": "EstimateReadingTime",
+              "kind": "function"
+            },
+            "span": {
+              "file_relative_path": "evaluation/miniflux/internal/reader/readingtime/readingtime.go",
+              "byte_offset_start": 0,
+              "byte_offset_end": 1,
+              "line_start": 16,
+              "line_end": 17
+            },
+            "ruleIds": []
+          }
+        ]
+      }
+    ]
   },
   "state": [
     {
       "symbol": {
         "module_path": "miniflux.app/v2",
-        "package_path": "miniflux.app/v2/internal/storage",
-        "object_name": "Store",
-        "kind": "type"
+        "package_path": "miniflux.app/v2/internal/reader/readingtime",
+        "object_name": "EstimateReadingTime",
+        "kind": "function"
       },
-      "classes": ["externalized-durable"],
+      "classes": [
+        "stateless"
+      ],
       "disposition": "replicated",
-      "evidence": ["Postgres connection is already external"],
+      "evidence": [
+        "no captured mutable state was observed"
+      ],
       "developerDeclared": true
     }
   ],
-  "adapters": [
-    {
-      "kind": "serialization",
-      "id": "http-json-function",
-      "matchedSymbols": [
-        {
-          "module_path": "miniflux.app/v2",
-          "package_path": "miniflux.app/v2/internal/reader/processor",
-          "object_name": "ProcessFeedEntries",
-          "kind": "function"
-        }
-      ],
-      "canonicalShapes": ["context-plus-json"],
-      "stateEffects": ["externalized-durable"],
-      "transportEffects": ["http-json"],
-      "serializationEffects": ["json"]
-    }
-  ],
+  "adapters": null,
   "externalDependencies": [
     {
       "identity": {
-        "module_path": "github.com/lib/pq",
-        "package_path": "github.com/lib/pq",
-        "object_name": "postgres",
-        "kind": "package"
+        "module_path": "miniflux.app/v2",
+        "package_path": "golang.org/x/net/html",
+        "object_name": "(*Tokenizer).Token",
+        "kind": "method"
       },
-      "accessPath": "postgres://miniflux@postgres:5432/miniflux",
-      "configurationSource": "env:DATABASE_URL",
-      "stateEffectSummary": ["externalized-durable"]
+      "accessPath": "golang.org/x/net/html",
+      "configurationSource": "",
+      "stateEffectSummary": []
+    },
+    {
+      "identity": {
+        "module_path": "miniflux.app/v2",
+        "package_path": "math",
+        "object_name": "Ceil",
+        "kind": "function"
+      },
+      "accessPath": "math",
+      "configurationSource": "",
+      "stateEffectSummary": []
+    },
+    {
+      "identity": {
+        "module_path": "miniflux.app/v2",
+        "package_path": "strings",
+        "object_name": "(*Builder).WriteString",
+        "kind": "method"
+      },
+      "accessPath": "strings",
+      "configurationSource": "",
+      "stateEffectSummary": []
+    },
+    {
+      "identity": {
+        "module_path": "miniflux.app/v2",
+        "package_path": "unicode",
+        "object_name": "Is",
+        "kind": "function"
+      },
+      "accessPath": "unicode",
+      "configurationSource": "",
+      "stateEffectSummary": []
+    },
+    {
+      "identity": {
+        "module_path": "miniflux.app/v2",
+        "package_path": "unicode/utf8",
+        "object_name": "RuneCountInString",
+        "kind": "function"
+      },
+      "accessPath": "unicode/utf8",
+      "configurationSource": "",
+      "stateEffectSummary": []
     }
   ],
   "pruning": {
-    "bounded": true,
+    "bounded": false,
     "frontier": []
   },
-  "diagnostics": []
+  "diagnostics": [
+    {
+      "code": "MLV2_NO_ERROR_CHANNEL",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/miniflux/internal/reader/readingtime/readingtime.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 16,
+        "line_end": 17
+      },
+      "ruleIds": [
+        "SS-WALDO-2",
+        "TA-SHAPE-1"
+      ],
+      "message": "terminal result is not error",
+      "remediation": "add an error return or keep the root on a framework-managed handler transport"
+    },
+    {
+      "code": "MLV2_REFLECTION_DISPATCH",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/miniflux/internal/reader/readingtime/readingtime.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 16,
+        "line_end": 17
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "reachable symbol reflect.Addr",
+      "remediation": "replace reflection-driven dispatch with direct calls or an explicit registry-keyed site"
+    }
+  ]
 }

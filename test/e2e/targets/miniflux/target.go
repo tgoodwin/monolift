@@ -28,6 +28,7 @@ func Target() harness.TargetCase {
 		},
 		BaselineReadyTimeout: 5 * time.Minute,
 		LiftedReadyTimeout:   5 * time.Minute,
+		SourceDirs:           []string{"evaluation/miniflux"},
 		GoldenReport:         "test/e2e/targets/miniflux/golden/report.json",
 		Workload:             Workload{},
 		ServiceName:          "miniflux",

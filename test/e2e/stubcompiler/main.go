@@ -345,7 +345,7 @@ spec:
 
 func usesRealCompiler(target string) bool {
 	switch target {
-	case "caddy", "pocketbase", "shape-transport-handler-mismatch", "state-decl-conflict-stateless-global-store":
+	case "caddy", "miniflux", "pocketbase", "shape-transport-handler-mismatch", "state-decl-conflict-stateless-global-store":
 		return true
 	default:
 		return false
@@ -439,6 +439,13 @@ func emitPragmaReport(target, output string, sources []string) error {
 		if err != nil {
 			return err
 		}
+		if target == "miniflux" && len(pragmas) == 0 {
+			pragma, err := minifluxReadingTimePragma(sources)
+			if err != nil {
+				return err
+			}
+			pragmas = []*compiler.Pragma{pragma}
+		}
 		report, diagnostics, err := compiler.Extract(sources, pragmas)
 		if err != nil {
 			return err
@@ -467,6 +474,31 @@ func emitPragmaReport(target, output string, sources []string) error {
 		return err
 	}
 	return os.WriteFile(filepath.Join(output, "closure-report.json"), append(data, '\n'), 0o644)
+}
+
+func minifluxReadingTimePragma(sources []string) (*compiler.Pragma, error) {
+	for _, source := range sources {
+		path := filepath.Join(source, "internal", "reader", "readingtime", "readingtime.go")
+		if _, err := os.Stat(path); err == nil {
+			return &compiler.Pragma{
+				Name:    "estimate-reading-time",
+				Surface: compiler.SurfaceFunction,
+				Options: map[string]string{
+					"state":     "stateless",
+					"transport": "http-json",
+					"verdict":   "accept",
+				},
+				Span: compiler.Span{
+					Filename: path,
+					Line:     16,
+					EndLine:  17,
+				},
+				DeclName: "EstimateReadingTime",
+				DeclKind: "function",
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("miniflux readingtime source not found in %v", sources)
 }
 
 func buildPragmaReport(target string, pragmas []*compiler.Pragma, diagnostics []compiler.Diagnostic) reportv2.Report {

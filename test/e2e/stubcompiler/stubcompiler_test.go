@@ -30,10 +30,13 @@ func TestStubCompilerFixturesValidate(t *testing.T) {
 			switch target {
 			case "caddy":
 				args = append(args, "--source=../../../evaluation/caddy")
+			case "miniflux":
+				args = append(args, "--source=../../../evaluation/miniflux")
 			case "pocketbase":
 				args = append(args, "--source=../../../evaluation/pocketbase")
 			}
 			cmd := exec.Command("go", args...)
+			cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
 				t.Fatalf("stubcompiler failed: %v\n%s", err, data)
