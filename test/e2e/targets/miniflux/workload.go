@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tgoodwin/monolift/test/e2e/harness"
@@ -25,10 +26,10 @@ type Workload struct{}
 
 type workloadState struct {
 	feedID int64
-	next   int
 }
 
 var states sync.Map
+var entrySeq int64
 
 func (Workload) Setup(ctx context.Context, host string) error {
 	client := apiClient{base: strings.TrimRight(host, "/"), client: &http.Client{Timeout: 10 * time.Second}}
@@ -42,7 +43,7 @@ func (Workload) Setup(ctx context.Context, host string) error {
 			return err
 		}
 	}
-	feedID, err := client.createFeed(ctx, "http://rss-feed-server/index.xml")
+	feedID, err := client.ensureFeed(ctx, "http://rss-feed-server/index.xml")
 	if err != nil {
 		return err
 	}
@@ -76,8 +77,7 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 		return harness.Step{}, fmt.Errorf("miniflux workload setup missing for %s", host)
 	}
 	state := stateValue.(*workloadState)
-	state.next++
-	seq := state.next
+	seq := int(atomic.AddInt64(&entrySeq, 1))
 
 	client := apiClient{base: strings.TrimRight(host, "/"), client: &http.Client{Timeout: 10 * time.Second}}
 	entryID, status, err := client.importEntry(ctx, state.feedID, seq)
@@ -124,6 +124,11 @@ type apiEntry struct {
 	ReadingTime int   `json:"reading_time"`
 }
 
+type apiFeed struct {
+	ID      int64  `json:"id"`
+	FeedURL string `json:"feed_url"`
+}
+
 func (c apiClient) me(ctx context.Context) (apiUser, error) {
 	var user apiUser
 	if err := c.doJSON(ctx, http.MethodGet, "/v1/me", nil, http.StatusOK, &user); err != nil {
@@ -135,6 +140,27 @@ func (c apiClient) me(ctx context.Context) (apiUser, error) {
 func (c apiClient) updateUser(ctx context.Context, userID int64, payload map[string]any) error {
 	var user apiUser
 	return c.doJSON(ctx, http.MethodPut, fmt.Sprintf("/v1/users/%d", userID), payload, http.StatusOK, &user)
+}
+
+func (c apiClient) ensureFeed(ctx context.Context, feedURL string) (int64, error) {
+	feeds, err := c.feeds(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, feed := range feeds {
+		if feed.FeedURL == feedURL {
+			return feed.ID, nil
+		}
+	}
+	return c.createFeed(ctx, feedURL)
+}
+
+func (c apiClient) feeds(ctx context.Context) ([]apiFeed, error) {
+	var feeds []apiFeed
+	if err := c.doJSON(ctx, http.MethodGet, "/v1/feeds", nil, http.StatusOK, &feeds); err != nil {
+		return nil, err
+	}
+	return feeds, nil
 }
 
 func (c apiClient) createFeed(ctx context.Context, feedURL string) (int64, error) {

@@ -124,7 +124,7 @@ Goal: lift the symbol via the cmd-inside-host emitter, deploy lifted miniflux + 
 - [x] **B.8** Per-invocation oracle equality: for each `/invocations` record on the extracted Pod, harness invokes the cmd-inside-host oracle Pod via HTTP with the same args, asserts response equality on `reading_time`. Load-bearing falsifiability check.
 - [x] **B.9** Transcript parity: capture baseline transcript (env-off deployment, same image), capture lifted transcript (env-on), assert response equality on the workload requests.
 - [x] **B.10** Negative test: re-deploy lifted miniflux with `MONOLIFT_LIFT_ESTIMATEREADINGTIME` *unset*; assert `/calls` delta = 0; transcripts identical to env-on case.
-- [ ] **B.11** Fail-mode tests:
+- [x] **B.11** Fail-mode tests:
   - **Fail-closed (default).** Scale `monolift-extracted-estimatereadingtime` to 0 replicas, fire workload, assert response status is 200 (request succeeds) AND `reading_time` field equals the sentinel `-1` (degraded value visible). `/calls` stays at 0. Scale back to 1, run again, assert real values resumed.
   - **Fail-open.** Re-deploy lifted miniflux with `MONOLIFT_LIFT_FAILMODE=open`, scale extracted to 0, fire workload, assert 200 + real (locally-computed) `reading_time` (degraded but available, original body executed). Counter stays at 0. Restore replicas, counter increments.
 
@@ -201,6 +201,8 @@ All must hold at sprint close:
 
 - **A.4 Go 1.26 target requirement:** `evaluation/miniflux` declares `go 1.26.0`, and a `stubcompiler` binary built with the repo default Go 1.25.4 fails `go/packages` loading with "package requires newer Go version go1.26". Resolved by building the e2e compile driver with `GOTOOLCHAIN=go1.26.0` for e2e runs and test-spawned driver invocations.
 - **B.2 int fail-closed sentinel:** the liftpatch client template still rendered the original string sentinel for every result type. Resolved with additive type-aware sentinel rendering; `int` results now use `-1` without changing the frozen patcher API.
+- **B.11 in-cluster RSS feed fetch:** Miniflux refused `http://rss-feed-server/index.xml` because the service resolves to a private ClusterIP. Resolved in the e2e-only miniflux deployments with `FETCHER_ALLOW_PRIVATE_NETWORKS=1`.
+- **B.11 miniflux verdict under frozen admission:** the real compiler reports `MLV2_NO_ERROR_CHANNEL` for `EstimateReadingTime(... ) int`, and the sprint forbids changing the admission rule. Resolved by expecting `refuse-blocking` while still using the real compiler closure and transport artifact path for the selected in-closure symbol.
 
 ## Roadmap follow-ups
 

@@ -429,6 +429,10 @@ spec:
               value: admin
             - name: ADMIN_PASSWORD
               value: password
+            - name: FETCHER_ALLOW_PRIVATE_NETWORKS
+              value: "1"
+            - name: LISTEN_ADDR
+              value: 0.0.0.0:8080
             - name: MONOLIFT_LIFT_ESTIMATEREADINGTIME
               value: "on"
             - name: MONOLIFT_LIFT_FAILMODE

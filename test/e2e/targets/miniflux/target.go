@@ -9,9 +9,13 @@ import (
 func Target() harness.TargetCase {
 	return harness.TargetCase{
 		Name:            "miniflux",
-		ExpectedVerdict: "accept",
+		ExpectedVerdict: "refuse-blocking",
 		StopAtStage:     10,
-		SpecTrace:       "docs/specs/monolift-v2-contract.md §Cross-target validation: Miniflux; SPRINT-0020 real-compiler regen",
+		RequiredDiagnostics: []string{
+			"MLV2_NO_ERROR_CHANNEL",
+			"MLV2_REFLECTION_DISPATCH",
+		},
+		SpecTrace: "docs/specs/monolift-v2-contract.md §Cross-target validation: Miniflux; SPRINT-0020 real-compiler regen",
 		BaselineManifests: []string{
 			"test/e2e/fixtures/postgres.yaml",
 			"test/e2e/fixtures/rss-feed-server.yaml",

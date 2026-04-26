@@ -172,6 +172,9 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "recursion-safety runtime assertion failed: %v", err))
 		}
 	}
+	if err := target.Workload.Setup(ctx, liftedPF.URL); err != nil {
+		t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted setup failed: %v", err))
+	}
 	var liftedTranscript harness.Transcript
 	if len(target.LiftedExtractedServices) > 0 {
 		liftedTranscript, err = runLiftedWithCallDeltas(ctx, target, liftedNS, liftedPF.URL)
@@ -569,6 +572,10 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 	if err != nil {
 		return err
 	}
+	if err := target.Workload.Setup(ctx, envOffPF.URL); err != nil {
+		envOffPF.Stop()
+		return err
+	}
 	before := make(map[string]int64, len(services))
 	for _, service := range services {
 		count, err := readCalls(ctx, service.pf.URL)
@@ -605,6 +612,9 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 }
 
 func assertFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
+	if target.Name == "miniflux" {
+		return assertMinifluxFailModesForService(ctx, deployer, target, ns, service)
+	}
 	if err := setLiftedEnv(ctx, target, ns, "closed"); err != nil {
 		return err
 	}
@@ -613,6 +623,10 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 	}
 	closedPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
 	if err != nil {
+		return err
+	}
+	if err := target.Workload.Setup(ctx, closedPF.URL); err != nil {
+		closedPF.Stop()
 		return err
 	}
 	closedStep, err := workloadStep(ctx, target, closedPF.URL, "/headers")
@@ -644,6 +658,10 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 	if err != nil {
 		return err
 	}
+	if err := target.Workload.Setup(ctx, openPF.URL); err != nil {
+		openPF.Stop()
+		return err
+	}
 	openStep, err := workloadStep(ctx, target, openPF.URL, "/headers")
 	openPF.Stop()
 	if err != nil {
@@ -655,12 +673,94 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 	return scaleExtractedService(ctx, deployer, ns, service, 1)
 }
 
+func assertMinifluxFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
+	if err := setLiftedEnv(ctx, target, ns, "closed"); err != nil {
+		return err
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
+		return err
+	}
+	closedPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
+	if err != nil {
+		return err
+	}
+	if err := target.Workload.Setup(ctx, closedPF.URL); err != nil {
+		closedPF.Stop()
+		return err
+	}
+	closedStep, err := firstWorkloadStep(ctx, target, closedPF.URL)
+	closedPF.Stop()
+	if err != nil {
+		return err
+	}
+	if closedStep.Status != http.StatusCreated {
+		return fmt.Errorf("%s fail-closed status=%d want 201", service.Name, closedStep.Status)
+	}
+	if got, ok := readingTimeFromStep(closedStep); !ok || got != -1 {
+		return fmt.Errorf("%s fail-closed reading_time=%d ok=%v want -1", service.Name, got, ok)
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 1); err != nil {
+		return err
+	}
+	if err := assertRestoredServiceCalls(ctx, target, ns, service); err != nil {
+		return err
+	}
+
+	if err := setLiftedEnv(ctx, target, ns, "open"); err != nil {
+		return err
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
+		return err
+	}
+	openPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
+	if err != nil {
+		return err
+	}
+	if err := target.Workload.Setup(ctx, openPF.URL); err != nil {
+		openPF.Stop()
+		return err
+	}
+	openStep, err := firstWorkloadStep(ctx, target, openPF.URL)
+	openPF.Stop()
+	if err != nil {
+		return err
+	}
+	if openStep.Status != http.StatusCreated {
+		return fmt.Errorf("%s fail-open status=%d want 201", service.Name, openStep.Status)
+	}
+	if got, ok := readingTimeFromStep(openStep); !ok || got <= 0 {
+		return fmt.Errorf("%s fail-open reading_time=%d ok=%v want positive", service.Name, got, ok)
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 1); err != nil {
+		return err
+	}
+	return assertRestoredServiceCalls(ctx, target, ns, service)
+}
+
+func readingTimeFromStep(step harness.Step) (int, bool) {
+	body, ok := step.BodyJSON.(map[string]any)
+	if !ok {
+		return 0, false
+	}
+	switch value := body["reading_time"].(type) {
+	case int:
+		return value, true
+	case float64:
+		return int(value), true
+	default:
+		return 0, false
+	}
+}
+
 func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
 	caddyPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
 	if err != nil {
 		return err
 	}
 	defer caddyPF.Stop()
+	if err := target.Workload.Setup(ctx, caddyPF.URL); err != nil {
+		return err
+	}
 	servicePF, err := harness.StartPortForward(ctx, target.Name, ns, service.Name, 8081)
 	if err != nil {
 		return err
@@ -670,8 +770,14 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 	if err != nil {
 		return err
 	}
-	if _, err := workloadStep(ctx, target, caddyPF.URL, "/headers"); err != nil {
-		return err
+	if target.Name == "miniflux" {
+		if _, err := firstWorkloadStep(ctx, target, caddyPF.URL); err != nil {
+			return err
+		}
+	} else {
+		if _, err := workloadStep(ctx, target, caddyPF.URL, "/headers"); err != nil {
+			return err
+		}
 	}
 	after, err := readCalls(ctx, servicePF.URL)
 	if err != nil {
