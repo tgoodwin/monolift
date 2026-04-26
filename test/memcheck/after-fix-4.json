@@ -1,0 +1,108 @@
+{
+  "label": "after-fix-4",
+  "command": [
+    "go",
+    "test",
+    "./pkg/...",
+    "-p",
+    "1",
+    "-parallel",
+    "1",
+    "-count=1",
+    "-shuffle=101"
+  ],
+  "sample_ms": 250,
+  "rss_limit_mb": 4096,
+  "wall_limit_sec": 900,
+  "runs": [
+    {
+      "seed": 101,
+      "exit_code": 0,
+      "killed": false,
+      "kill_reason": "",
+      "elapsed_sec": 88.8,
+      "peak_tree_rss_kb": 2023424,
+      "peak_process_rss_kb": 2012176,
+      "peak_process_comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build3395847222/b333/compiler.test",
+      "peak_process_pid": 24712,
+      "peak_tree_processes": [
+        {
+          "pid": 24712,
+          "rss_kb": 2012176,
+          "comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build3395847222/b333/compiler.test"
+        },
+        {
+          "pid": 23969,
+          "rss_kb": 11248,
+          "comm": "go"
+        }
+      ],
+      "last_observed_tree_rss_kb": 37264
+    },
+    {
+      "seed": 202,
+      "exit_code": 0,
+      "killed": false,
+      "kill_reason": "",
+      "elapsed_sec": 82.8,
+      "peak_tree_rss_kb": 2446624,
+      "peak_process_rss_kb": 2435488,
+      "peak_process_comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build3949814140/b333/compiler.test",
+      "peak_process_pid": 26389,
+      "peak_tree_processes": [
+        {
+          "pid": 26389,
+          "rss_kb": 2435488,
+          "comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build3949814140/b333/compiler.test"
+        },
+        {
+          "pid": 25652,
+          "rss_kb": 11136,
+          "comm": "go"
+        }
+      ],
+      "last_observed_tree_rss_kb": 36512
+    },
+    {
+      "seed": 303,
+      "exit_code": 0,
+      "killed": false,
+      "kill_reason": "",
+      "elapsed_sec": 100.6,
+      "peak_tree_rss_kb": 2440080,
+      "peak_process_rss_kb": 2428896,
+      "peak_process_comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build2209447904/b333/compiler.test",
+      "peak_process_pid": 28583,
+      "peak_tree_processes": [
+        {
+          "pid": 28583,
+          "rss_kb": 2428896,
+          "comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build2209447904/b333/compiler.test"
+        },
+        {
+          "pid": 27339,
+          "rss_kb": 11184,
+          "comm": "go"
+        }
+      ],
+      "last_observed_tree_rss_kb": 37376
+    }
+  ],
+  "summary": {
+    "status": "accepted",
+    "baseline_artifact": "test/memcheck/baseline-full.json",
+    "candidate_artifact": "test/memcheck/after-fix-4.json",
+    "worst_peak_tree_rss_kb": 2446624,
+    "delta_pct": -43.8,
+    "spread_pct": 17.3,
+    "stability_limit_pct": 25,
+    "stability_ok": true
+  },
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "ncpu": 10,
+    "go_version": "go1.25.4",
+    "gomaxprocs": 10
+  }
+}
