@@ -9,6 +9,32 @@ reader's entry point and tells the story that no single ADR can.
 
 ---
 
+## 2026-04-22 — Classifier-test performance + callgraph reuse
+
+SPRINT-0010-CLASSIFIER-PERF landed the two test-memory fixes deferred from SPRINT-0009 (`shape.test` at 12 GB RSS; `extract.test` OOM on the PocketBase corpus lane) and built the verification substrate that unblocks every future perf-sensitive change.
+
+- **Fix 3 — shape-test SSA sharing.** `pkg/compiler/shape/shape_test.go`'s `classifyFixture` / `classifyFixtureForExtract` helpers now back onto a `sync.Once`-guarded shared `*extract.LoadedModule` + `*ssa.Program` + liftability `Context` mirroring the `pkg/compiler/liftability/test_helpers_test.go` pattern. Measured result: worst-run peak RSS on `go test ./pkg/compiler/shape` dropped from 1820 MB (killed baseline) to **635 MB (−65.1%)** with 7.3% spread across seeds 101/202/303.
+- **Fix 4 — callgraph reuse on the fast path.** `liftability.NewContext` now accepts a pre-built `*callgraph.Graph`; `extract.buildProgram` flows the CHA graph downstream; the registry-keyed RTA closure path is rationalized to avoid a third build. A new structural-invariant test in `pkg/compiler/extract/` fails if callgraph construction fires more than once per `*ssa.Program` per pass — direct assertion of Fix 4's claim, with RSS as downstream evidence.
+- **Verification harness.** `cmd/memcheck/main.go` + `test/memcheck/{schema.md,run.sh,README.md,_kill_smoketest/}` + Makefile `perf-rss-{shape,pocketbase,pkg}` targets. Whole-process-tree peak-RSS polling, whole-tree SIGKILL-on-budget-trip, per-tick JSON flush, five-state `summary.status` (`working | regressed | accepted | killed_rss | killed_time`), fixed shuffle seeds `101/202/303`, cold-cache per run, worst-run gating, `spread_pct ≤ 10` stability gate. All three baselines (shape/pocketbase/full) are committed under `test/memcheck/`.
+
+Full-suite acceptance is deferred to SPRINT-0010-GOLDENS. Two integration tests (`TestExtractCaddyReverseProxyProducesNonEmptyValidatedReport`, `TestAnalyzeDetectsPocketBaseRefusals`) now fail because of the same downstream diagnostic-duplication bug — every `MLV2_*` diagnostic is emitted twice. The Caddy test's stale expectations are genuine golden-drift from the SPRINT-0009 reframe (the new classifier correctly refuses reverseproxy's closure over `sync.Mutex`/`sync.Once`/`sync/atomic.*`/channels/function values/`unsafe.Pointer`). Both routed to SPRINT-0010-GOLDENS with grounded diagnostic captures.
+
+**Primary artifacts:** `cmd/memcheck/main.go` · `test/memcheck/` · `pkg/compiler/shape/shape_test.go` · `pkg/compiler/extract/{ssa,closure}.go` · `pkg/compiler/liftability/detector.go` · `docs/sprints/SPRINT-0010-CLASSIFIER-PERF.md`
+
+---
+
+## 2026-04-22 — Liftability-first classifier lands
+
+SPRINT-0009 moved admissibility off literal canonical-shape matching and onto
+named liftability properties with structured evidence. The compiler now writes
+root-level admission verdicts and property evidence into `reportv2`, keeps the
+existing `MLV2_*` refusal taxonomy, and uses canonical shapes only as
+downstream transport-selection outputs for reports, pragmas, and adapters.
+ADR-0017 records the admission/transport split; ADR-0018 freezes the named
+property set and IDs.
+
+---
+
 ## 2026-04-21 — SPRINT-0007 closed: canonical shape + state inference
 
 SPRINT-0007 split semantic interpretation out of SSA extraction into two
@@ -348,7 +374,125 @@ replacement; restoration or retirement is deferred to SPRINT-0006+.
 
 ---
 
+## SPRINT-0008: Educational static site (2026-04-21)
+
+SPRINT-0008 shipped the advisor-facing design-story site at
+`https://tgoodwin.github.io/monolift/`, an MkDocs + Material build rooted
+at `docs/site/` with `mkdocs.yml` at the repo root. Six pages: index,
+four load-bearing design-story pages (canonical shapes, state-class
+inference, refusal diagnostics, v1→v2 arc), and a single reading-guide
+appendix. Each load-bearing page follows a fixed "one paragraph + mermaid
++ side-by-side Monolift/corpus pairing + ≤3-sentence why" structure;
+ADRs are linked, never restated.
+
+Snippet discipline is marker-based: every `pkg/compiler/**` reference is
+bracketed by `// site:begin NAME` / `// site:end NAME` comments and
+drift-checked against the Markdown include's line range in CI. Vendored
+external excerpts live under `docs/site/snippets/external/` with
+provenance headers naming the upstream repo, pinned SHA from
+`evaluation/MANIFEST.yaml`, path, line range, SPDX license, and fetch
+date; `scripts/refresh-external-snippets.py` regenerates them from a
+cached bare mirror independent of the gitignored `evaluation/` clones.
+A single `.github/workflows/docs-site.yml` enforces policy, drift,
+strict build, and internal linkcheck on every PR, and deploys to Pages
+on pushes to `main` with `concurrency: { group: pages, cancel-in-progress: false }`.
+
+The site is tooling around the decision log, not a decision about the
+Monolift system itself, so no ADR was added for it; this chronological
+entry is the only record. ADR-0016 was tightened during this sprint to
+enumerate all six precedence rules explicitly and to frame the composite
+embedded-DB post-pass and the `MLV2_STATE_UNKNOWN` ambiguity fallback as
+distinct from the precedence stack.
+
+**Primary artifacts:** `mkdocs.yml` · `docs/site/` · `.github/workflows/docs-site.yml` · `scripts/{check-docs-policy,check-snippet-drift,fix-snippet-drift,refresh-external-snippets}.py`
+
+---
+
+## 2026-04-23 — Composite-archetype regions: candidate-set classification · [ADR-0022](decisions/0022-composite-archetype-regions.md)
+
+**Context.** SPRINT-0013's v1 archetype vocabulary (8 archetypes) is a set of
+*overlapping lenses* on the region space, not a partition. Multiple corpus
+regions match more than one archetype simultaneously — caddy `Handler.connections`
+matches `serialized-actor` + `keyed-partitioned-state`; mattermost's websocket
+hub (MM1+MM2) matches `keyed-partitioned-state` + `fanout-publisher` +
+`session-affinity-state`. SPRINT-0013 flagged ADR-0022 as "ripe to draft" but
+deferred the decision. SPRINT-0015's utility analysis elevated it to load-bearing
+for the PLOS §4.2 demo: the mattermost hub composite is the single strongest
+thesis-demonstration region in the corpus, and a compiler that can only emit
+single-archetype transforms cannot demonstrate it.
+
+**Decision.** Composite-archetype classification is candidate-set construction
+plus candidate selection, not forced single-label assignment. The classifier
+produces a match set per region; the compiler projects that set into a primary
+candidate plus alternative and composite candidates. Precedence is computed via
+**region-relative subsumption** (A subsumes B iff A's transform invariants are a
+strict superset of B's on the same region), rejecting a global archetype ladder.
+Composite candidates emit when all components independently match AUTO, the
+composite passes a **compatible-refinement coherence check**, and a concrete
+emission sketch exists. Composite identity is **compositional** (contributing-archetype
+list plus region), not nominal — named aliases like `connection-hub-buffer` are
+informal reporting conveniences, not catalog additions. Dynamic-delegate
+eligibility on composites inherits by **AND over contributing archetypes**. The
+report format exposes the candidate set with orthogonal fields for *candidate
+exists*, *candidate is emittable*, and *candidate participates in runtime
+selection*.
+
+**Committee drafting.** ADR-0022 was drafted via three-way committee (opus +
+gpt-5.4 + gemini), cross-critique, and opus synthesis — the same pattern that
+produced the SPRINT-0013 and SPRINT-0015 composite research notes. Committee
+drafts and critiques preserved at `docs/sprints/drafts/SPRINT-0016-*.md`.
+
+**Primary artifacts:** `docs/decisions/0022-composite-archetype-regions.md` · `docs/sprints/SPRINT-0016-BRIEF.md` · `docs/sprints/SPRINT-0016.md` · `docs/sprints/drafts/SPRINT-0016-*.md`
+
+---
+
+## 2026-04-25 — ADR-0022 vertical slice: Caddy actor alternative set · [ADR-0022](decisions/0022-composite-archetype-regions.md)
+
+SPRINT-0017 lands the first end-to-end ADR-0022 slice on Caddy
+`Handler.connections`. The compiler now builds candidate sets for
+`serialized-actor` and `keyed-partitioned-state`, reduces them by
+subsumption plus utility-tier fallback, reports `archetype_kind:
+"alternative_set"` with a tier-tagged alternative rationale, and emits a
+descriptive `actor` adapter for the selected `serialized-actor` primary.
+
+ADR-0022 now includes a 2026-04 clarification that `archetype_kind` describes
+how the set was reduced: `single` for subsumption-decided, `alternative_set`
+for incomparable plus tier-decided, and `composite` for emitted composites.
+
+**Primary artifacts:** `pkg/compiler/stateclass/{archetype,candidates,subsumption,tiers,selection}.go` · `pkg/compiler/extract/extract.go` · `pkg/compiler/reportv2/report.go` · `test/e2e/targets/caddy/golden/report.json`
+
+---
+
+## 2026-04-26 — Real-symbol sidecar execution: Caddy CleanPath · [ADR-0023](decisions/0023-sidecar-emission-and-real-symbol-execution.md)
+
+SPRINT-0018 lands the first extract-to-sidecar execution slice. The compiler
+admits a basic synchronous boundary, emits an HTTP/JSON extracted service that
+imports and calls the real `caddyhttp.CleanPath` symbol, and builds a lifted
+Caddy image from a patched copy of the host source tree.
+
+The host patch prepends an AST-generated env-gated prelude to `CleanPath` while
+keeping all imports in a generated sibling file. The lifted Caddy deployment can
+run lifted or unlifted from the same image, records structured invocation data,
+and verifies every remote result against an in-process oracle. The e2e harness
+now checks per-request counter deltas, aggregate bounds, `/invocations` oracle
+equality, extracted-service logs, transcript parity, env-off zero calls,
+fail-closed 404 behavior, and fail-open 200 behavior.
+
+The slice is intentionally narrow: `CleanPath` has no receiver state and a
+simple `(string, bool) -> string` signature. ADR-0023 records the mechanism
+tradeoffs and the next pressure points: receiver-bearing symbols, `internal/`
+import legality, and non-Caddy host layouts.
+
+**Primary artifacts:** `pkg/compiler/transport/admission.go` · `pkg/compiler/transport/emit/` · `test/e2e/stubcompiler/main.go` · `test/e2e/e2e_test.go` · `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`
+
+---
+
 ## Pending
+
+- **Full archetype catalog migration.** SPRINT-0017 migrates only
+  `serialized-actor` and `keyed-partitioned-state` to first-class required
+  property sets for the Caddy ADR-0022 vertical slice. The remaining archetypes
+  stay on the legacy path until a future un-numbered sprint.
 
 - **Category B backlog** (from `docs/specs/reviews/systems-review.md` §§B1/B3/B8/S13/S14/T1/T2):
   thesis statement, Waldo-delta appendix, prior-art References section (≥10
