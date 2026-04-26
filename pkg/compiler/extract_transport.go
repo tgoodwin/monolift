@@ -31,7 +31,7 @@ func ExtractWithTransport(sources []string, pragmas []*Pragma) (*reportv2.Report
 		return nil, nil, transport.Result{}, err
 	}
 
-	contexts := caddyEmitContexts(result.Report)
+	contexts := emitContexts(result.Report)
 	if len(contexts) == 0 {
 		return &result.Report, nil, transportResult, nil
 	}
@@ -51,7 +51,7 @@ func ExtractWithTransport(sources []string, pragmas []*Pragma) (*reportv2.Report
 }
 
 func cleanPathEmitContext(report reportv2.Report) (emit.Context, bool) {
-	for _, ctx := range caddyEmitContexts(report) {
+	for _, ctx := range emitContexts(report) {
 		if ctx.ObjectName == "CleanPath" {
 			return ctx, true
 		}
@@ -59,7 +59,7 @@ func cleanPathEmitContext(report reportv2.Report) (emit.Context, bool) {
 	return emit.Context{}, false
 }
 
-func caddyEmitContexts(report reportv2.Report) []emit.Context {
+func emitContexts(report reportv2.Report) []emit.Context {
 	found := map[string]bool{}
 	for _, symbol := range report.Closure.IncludedSymbols {
 		identity := symbol.Identity
@@ -88,6 +88,17 @@ func caddyEmitContexts(report reportv2.Report) []emit.Context {
 			UpstreamModulePath: "github.com/caddyserver/caddy/v2",
 			ServiceName:        "monolift-extracted-sanitizemethod",
 			EnvVarPrefix:       "MONOLIFT_LIFT_SANITIZEMETHOD",
+		})
+	}
+	if found["miniflux.app/v2/internal/reader/readingtime.EstimateReadingTime"] {
+		contexts = append(contexts, emit.Context{
+			SymbolImportPath:   "miniflux.app/v2/internal/reader/readingtime",
+			ObjectName:         "EstimateReadingTime",
+			ParamFields:        []emit.FieldSpec{{Name: "Content", JSONName: "content", GoType: "string"}, {Name: "DefaultReadingSpeed", JSONName: "default_reading_speed", GoType: "int"}, {Name: "CjkReadingSpeed", JSONName: "cjk_reading_speed", GoType: "int"}},
+			ResultFields:       []emit.FieldSpec{{Name: "ReadingTime", JSONName: "reading_time", GoType: "int"}},
+			UpstreamModulePath: "miniflux.app/v2",
+			ServiceName:        "monolift-extracted-estimatereadingtime",
+			EnvVarPrefix:       "MONOLIFT_LIFT_ESTIMATEREADINGTIME",
 		})
 	}
 	return contexts
