@@ -2,12 +2,14 @@ package passes
 
 import (
 	"github.com/tgoodwin/monolift/pkg/compiler/extract"
-	"github.com/tgoodwin/monolift/pkg/compiler/shape"
+	"github.com/tgoodwin/monolift/pkg/compiler/liftability"
 	"github.com/tgoodwin/monolift/pkg/compiler/stateclass"
+	"github.com/tgoodwin/monolift/pkg/compiler/transport"
 )
 
 func init() {
-	extract.RegisterShapeClassifier(shape.ForExtract)
-	extract.RegisterShapeValidator(shape.ValidatePragmaOptions)
+	extract.RegisterLiftabilityAnalyzer(liftability.ForExtract)
+	extract.RegisterShapeClassifier(transport.ForExtract)
+	extract.RegisterShapeValidator(transport.ValidatePragmaOptions)
 	extract.RegisterStateInferer(stateclass.ForExtract)
 }

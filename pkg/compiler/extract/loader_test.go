@@ -2,9 +2,11 @@ package extract
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -12,6 +14,10 @@ import (
 
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 )
+
+// MONOLIFT_CORPUS_TESTS=1 opts into corpus-scale tests that load evaluation
+// targets. Keep them out of the default unit lane to avoid whole-corpus SSA
+// builds during normal package runs.
 
 func TestLoadModuleScopesToAnnotatedRootModule(t *testing.T) {
 	t.Parallel()
@@ -286,8 +292,8 @@ func TestAnalyzeRefusesReflectionDispatchWithoutRegistry(t *testing.T) {
 	if result.Report.Pruning.Bounded {
 		t.Fatal("pruning.bounded = true, want false after refusal")
 	}
-	gotCodes := diagnosticCodes(t, result.Diagnostics)
-	wantCodes := []string{codeReflectionDispatch, "MLV2_SHAPE_UNSUPPORTED"}
+	gotCodes := uniqueDiagnosticCodes(t, result.Diagnostics)
+	wantCodes := []string{"MLV2_NO_ERROR_CHANNEL", codeReflectionDispatch, "MLV2_SERIALIZATION_UNSUPPORTED", "MLV2_SHAPE_UNSUPPORTED"}
 	if !reflect.DeepEqual(gotCodes, wantCodes) {
 		t.Fatalf("diagnostic codes = %v, want %v", gotCodes, wantCodes)
 	}
@@ -324,8 +330,8 @@ func TestAnalyzeRefusesUnsafeBoundary(t *testing.T) {
 	if result.Report.Pruning.Bounded {
 		t.Fatal("pruning.bounded = true, want false after refusal")
 	}
-	gotCodes := diagnosticCodes(t, result.Diagnostics)
-	wantCodes := []string{codeClosureUnbounded, "MLV2_SHAPE_UNSUPPORTED"}
+	gotCodes := uniqueDiagnosticCodes(t, result.Diagnostics)
+	wantCodes := []string{codeClosureUnbounded, "MLV2_NO_ERROR_CHANNEL", "MLV2_SERIALIZATION_UNSUPPORTED"}
 	if !reflect.DeepEqual(gotCodes, wantCodes) {
 		t.Fatalf("diagnostic codes = %v, want %v", gotCodes, wantCodes)
 	}
@@ -363,10 +369,89 @@ func TestAnalyzeRefusesDynamicPluginLoad(t *testing.T) {
 		t.Fatal("pruning.bounded = true, want false after refusal")
 	}
 
-	gotCodes := diagnosticCodes(t, result.Diagnostics)
-	wantCodes := []string{codeClosureUnbounded, codeDynamicPlugin, "MLV2_SHAPE_UNSUPPORTED"}
+	gotCodes := uniqueDiagnosticCodes(t, result.Diagnostics)
+	wantCodes := []string{"MLV2_CHANNEL_BOUNDARY", codeClosureUnbounded, codeDynamicPlugin, "MLV2_SERIALIZATION_UNSUPPORTED"}
 	if !reflect.DeepEqual(gotCodes, wantCodes) {
 		t.Fatalf("diagnostic codes = %v, want %v", gotCodes, wantCodes)
+	}
+}
+
+func TestAnalyzeEmitsLiftabilityDiagnosticsOncePerIdentity(t *testing.T) {
+	t.Parallel()
+
+	rootFile := filepath.Join("..", "testdata", "reflectiondispatch", "root.go")
+	result, err := Analyze(Request{
+		Sources: []string{filepath.Join("..", "testdata", "reflectiondispatch")},
+		Pragmas: []Pragma{{
+			Name:     "reflection-root",
+			Surface:  SurfaceFunction,
+			DeclName: "Entry",
+			DeclKind: "func",
+			Span: Span{
+				Filename: rootFile,
+				Line:     5,
+				EndLine:  5,
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+
+	gotCounts := diagnosticIdentityCounts(t, result.Diagnostics)
+	if len(gotCounts) != len(result.Diagnostics) {
+		t.Fatalf("diagnostic identities = %v, diagnostics = %+v; want one emission per identity", gotCounts, result.Diagnostics)
+	}
+	if len(result.Diagnostics) != 5 {
+		t.Fatalf("diagnostics = %+v, want 5 distinct findings after extract-seam dedup", result.Diagnostics)
+	}
+	for key, count := range gotCounts {
+		if count != 1 {
+			t.Fatalf("diagnostic %q count = %d, want 1 (all diagnostics: %+v)", key, count, result.Diagnostics)
+		}
+	}
+}
+
+func TestAnalyzeKeepsDistinctSameCodeDiagnosticsWhenSpansDiffer(t *testing.T) {
+	t.Parallel()
+
+	rootFile := filepath.Join("..", "testdata", "multiunsafehelpers", "root.go")
+	result, err := Analyze(Request{
+		Sources: []string{filepath.Join("..", "testdata", "multiunsafehelpers")},
+		Pragmas: []Pragma{{
+			Name:     "multiunsafehelpers-root",
+			Surface:  SurfaceFunction,
+			DeclName: "Entry",
+			DeclKind: "func",
+			Span: Span{
+				Filename: rootFile,
+				Line:     5,
+				EndLine:  5,
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+
+	seenSpans := map[string]bool{}
+	for _, diagnostic := range result.Diagnostics {
+		if diagnostic.Code != codeClosureUnbounded || diagnostic.Message != "unsafe.Pointer crosses the extraction boundary" {
+			continue
+		}
+		seenSpans[diagnostic.Span.Filename+":"+strconv.Itoa(diagnostic.Span.Line)] = true
+	}
+	got := make([]string, 0, len(seenSpans))
+	for span := range seenSpans {
+		got = append(got, span)
+	}
+	slices.Sort(got)
+	want := []string{
+		"root.go:11",
+		"root.go:15",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("%s detector spans = %v, want %v (all diagnostics: %+v)", codeClosureUnbounded, got, want, result.Diagnostics)
 	}
 }
 
@@ -382,9 +467,46 @@ func diagnosticCodes(t *testing.T, diagnostics []Diagnostic) []string {
 	return codes
 }
 
+func uniqueDiagnosticCodes(t *testing.T, diagnostics []Diagnostic) []string {
+	t.Helper()
+	raw := diagnosticCodes(t, diagnostics)
+	seen := map[string]bool{}
+	out := make([]string, 0, len(raw))
+	for _, code := range raw {
+		if seen[code] {
+			continue
+		}
+		seen[code] = true
+		out = append(out, code)
+	}
+	return out
+}
+
+func diagnosticIdentityCounts(t *testing.T, diagnostics []Diagnostic) map[string]int {
+	t.Helper()
+	counts := map[string]int{}
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Severity != SeverityError {
+			t.Fatalf("diagnostic severity = %q, want error (diagnostic %+v)", diagnostic.Severity, diagnostic)
+		}
+		counts[diagnosticIdentityKey(diagnostic)]++
+	}
+	return counts
+}
+
+func diagnosticIdentityKey(d Diagnostic) string {
+	return strings.Join([]string{
+		d.Code,
+		d.Span.Filename,
+		strconv.Itoa(d.Span.Line),
+		strconv.Itoa(d.Span.EndLine),
+		d.Message,
+	}, "|")
+}
+
 func TestAnalyzeDetectsPocketBaseRefusals(t *testing.T) {
-	if testing.Short() {
-		t.Skip("SSA-heavy; load real evaluation corpus")
+	if os.Getenv("MONOLIFT_CORPUS_TESTS") != "1" {
+		t.Skip("skipping corpus-scale test; set MONOLIFT_CORPUS_TESTS=1 to run")
 	}
 	t.Parallel()
 
@@ -435,6 +557,36 @@ func TestAnalyzeDetectsPocketBaseRefusals(t *testing.T) {
 	}
 	if !reflect.DeepEqual(gotRows, wantRows) {
 		t.Fatalf("state rows = %v, want %v", gotRows, wantRows)
+	}
+}
+
+func TestAnalyzePreservesAcceptWithWarningsVerdict(t *testing.T) {
+	t.Parallel()
+
+	rootFile := filepath.Join("..", "transport", "testdata", "fixtures", "root.go")
+	result, err := Analyze(Request{
+		Sources: []string{filepath.Join("..", "transport", "testdata", "fixtures")},
+		Pragmas: []Pragma{{
+			Name:     "request-reply-warning",
+			Surface:  SurfaceFunction,
+			DeclName: "RequestReply",
+			DeclKind: "func",
+			Options: map[string]string{
+				"verdict": "accept-with-warnings",
+			},
+			Span: Span{
+				Filename: rootFile,
+				Line:     22,
+				EndLine:  22,
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+
+	if got := result.Report.Pragma.Options["verdict"]; got != "accept-with-warnings" {
+		t.Fatalf("pragma verdict = %q, want accept-with-warnings", got)
 	}
 }
 
@@ -647,6 +799,41 @@ func TestAnalyzeRefinesRegistryDispatchWithRTA(t *testing.T) {
 		"rta-escape:(*Handler).ServeHTTP",
 	}) {
 		t.Fatalf("precision triggers = %v, want dispatch-growth + registry-key + rta-escape", result.Report.Analysis.PrecisionTriggers)
+	}
+}
+
+func TestAnalyzeBuildsCallgraphAtMostOncePerProgramPerPass(t *testing.T) {
+	rootFile := filepath.Join("..", "testdata", "closurewalk", "root.go")
+	resetCallgraphBuildCounters()
+
+	result, err := Analyze(Request{
+		Sources: []string{filepath.Join("..", "testdata", "closurewalk")},
+		Pragmas: []Pragma{{
+			Name:     "closure-root",
+			Surface:  SurfaceStruct,
+			DeclName: "Handler",
+			DeclKind: "struct",
+			Options: map[string]string{
+				"registry": "http.handlers.reverse_proxy",
+				"methods":  "ServeHTTP",
+			},
+			Span: Span{
+				Filename: rootFile,
+				Line:     7,
+				EndLine:  7,
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	if len(result.Report.Closure.IncludedSymbols) == 0 {
+		t.Fatal("closure includedSymbols is empty")
+	}
+
+	counts := snapshotCallgraphBuildCounters()
+	if counts.cha != 1 || counts.rta != 1 {
+		t.Fatalf("callgraph build counts = %+v, want exactly one CHA build and one RTA build", counts)
 	}
 }
 
