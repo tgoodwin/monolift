@@ -1,0 +1,6 @@
+effects.no-param-heap-mutation=Hold
+effects.no-param-escape=Hold
+effects.no-global-writes=Hold
+state.mutex-encloses-store-invariant=Hold
+state.receiver-owned-state=Hold
+state.keyed-access-invariant=Hold

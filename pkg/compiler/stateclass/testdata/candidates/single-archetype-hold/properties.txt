@@ -1,0 +1,3 @@
+effects.no-global-writes=Hold
+state.receiver-owned-state=Hold
+state.keyed-access-invariant=Hold
