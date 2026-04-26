@@ -148,8 +148,8 @@ Goal: now that miniflux is on the real compiler, `usesRealCompiler` is dead code
   - `git grep -i` for the historical binary name returns zero matches after the rename commit (excluding historical sprint docs, which stay as read-only history).
   - **Scope-cut fallback (only if the rename's blast radius exceeds estimate):** keep the historical binary name with a one-line comment in `main.go` ("historical name; binary is now a real-compiler driver — see SPRINT-0020"). C.5 then becomes a no-op rename + comment-only commit. Decision recorded in C.7.
 - [x] **C.6** Add ADR-0023 amendment titled "Internal-rule compliance for oracle binaries via cmd-inside-host" recording: (a) the cmd-inside-host oracle binary pattern as the load-bearing fix to SPRINT-0019's mirror-in-harness fragility, (b) the non-`error`-returning fail-closed sentinel semantics (sentinel value at the result-type level; HTTP status remains 200), (c) the closure of the stub-fixture path across all OSS targets. ADR-0018 unchanged.
-- [ ] **C.7** Append `docs/evolution.md` paragraph summarising the SPRINT-0020 landing. Record the rename decision (kept rename / scope-cut comment).
-- [ ] **C.8** Verify `cmd/main.go` unchanged.
+- [x] **C.7** Append `docs/evolution.md` paragraph summarising the SPRINT-0020 landing. Record the rename decision (kept rename / scope-cut comment).
+- [x] **C.8** Verify `cmd/main.go` unchanged.
 
 **Block C gate (sprint acceptance):** `usesRealCompiler` gone; generated-output fixtures gone; full per-target matrix passes pre-rename; rename committed atomically (or scope-cut to comment) and post-rename matrix still passes; active references to the historical binary name are gone outside historical docs.
 

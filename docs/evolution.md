@@ -504,6 +504,24 @@ single-increment recursion checks, and per-symbol fail-mode behavior.
 
 ---
 
+## 2026-04-26 — Miniflux real-compiler lift and e2e compile driver rename · [ADR-0023](decisions/0023-sidecar-emission-and-real-symbol-execution.md)
+
+SPRINT-0020 moves miniflux off the legacy generated-output fixture path and
+onto the real compiler. The proof lifts
+`internal/reader/readingtime.EstimateReadingTime(string, int, int) int`,
+verifying `int` result rendering, type-aware fail-closed sentinel behavior,
+cmd-inside-host oracle binaries for internal-package legality, per-request
+counter deltas, oracle equality, transcript parity, env-off behavior, and
+fail-open/fail-closed recovery.
+
+The old fixture-copy branch and generated fixtures are gone. The test compile
+driver was renamed atomically to `bin/e2e-compile` with source under
+`test/e2e/e2ecompile/`; the scope-cut fallback was not used.
+
+**Primary artifacts:** `pkg/compiler/extract_transport.go` · `pkg/compiler/transport/emit/httpjson/` · `pkg/compiler/transport/emit/liftpatch/` · `test/e2e/e2ecompile/main.go` · `test/e2e/e2e_test.go` · `test/e2e/targets/miniflux/` · `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`
+
+---
+
 ## Pending
 
 - **Full archetype catalog migration.** SPRINT-0017 migrates only
