@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 
 	"github.com/tgoodwin/monolift/pkg/compiler"
 	compilerdiagnostics "github.com/tgoodwin/monolift/pkg/compiler/diagnostics"
@@ -16,6 +17,26 @@ import (
 	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit"
 	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit/liftpatch"
 )
+
+// stubcompiler loads the full host module via go/packages and consumes ~3 GB
+// of RAM. Concurrent invocations from parallel `go test` runs OOM-killed the
+// agent driving SPRINT-0019. Take an exclusive flock at startup so concurrent
+// invocations queue instead of stacking. The lock releases automatically when
+// the process exits (no explicit unlock needed).
+func acquireStartupLock() {
+	lockPath := filepath.Join(os.TempDir(), "monolift-stubcompiler.lock")
+	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "stubcompiler: open lock %s: %v\n", lockPath, err)
+		os.Exit(2)
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		fmt.Fprintf(os.Stderr, "stubcompiler: flock %s: %v\n", lockPath, err)
+		os.Exit(2)
+	}
+	// Intentionally leak the FD: closing it would release the lock. The OS
+	// reclaims it at process exit.
+}
 
 type sourceFlags []string
 
@@ -39,6 +60,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "usage: stubcompiler --target=<name> --output=<dir> [--source=<dir>...]")
 		os.Exit(2)
 	}
+
+	acquireStartupLock()
 
 	fixtureDir := filepath.Join("test", "e2e", "stubcompiler", "fixtures", *target)
 	if _, err := os.Stat(fixtureDir); err != nil {
