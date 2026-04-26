@@ -319,7 +319,7 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
 - [x] **D.4** Extend `test/e2e/harness/target.go` with `LiftedHostBuild *HostBuildSpec{ Dockerfile, ContextRoot, ImageTag }` and `LiftedExtractedServices []ExtractedServiceSpec{ Name, Dockerfile, ContextRoot, ImageTag, DeploymentYAML, ServiceYAML, ReadinessPath }`. Both share `<output>/lifted/` as `ContextRoot`.
 - [x] **D.5** Update `test/e2e/targets/caddy/target.go`: populate `LiftedHostBuild` and one `LiftedExtractedServices` entry. Baseline `Dockerfile`, `BaselineManifests` (echo-upstream, baseline caddy deployment, configmap, baseline service) unchanged. **Lifted Caddy reuses the same Caddyfile ConfigMap as baseline** — no fragments, no new routes. Same workload runs on both env-on and env-off deployments.
 - [x] **D.6** Snapshot `test/e2e/stubcompiler/fixtures/caddy/lifted/` → `lifted-baseline-snapshot/` in a separate commit (precedes Block E). Final closeout commit (Block F) deletes it.
-- [ ] **D.7** Stubcompiler integration test `test/e2e/stubcompiler/stubcompiler_test.go::TestEmitsLiftedTreeForCaddy`:
+- [x] **D.7** Stubcompiler integration test `test/e2e/stubcompiler/stubcompiler_test.go::TestEmitsLiftedTreeForCaddy`:
   - patched `caddyhttp.go` differs from original at exactly the `CleanPath` body (prepended `*ast.IfStmt` with `monoliftLiftEnabled` cond) — and **only** there;
   - `monolift_lift_cleanpath.go` exists, parses, contains `*http.Client` package-level var, `monoliftLiftFailureSentinel` constant;
   - `extracted-cleanpath/main.go` AST contains the real `caddyhttp.CleanPath` selector call inside the `/invoke` handler;
