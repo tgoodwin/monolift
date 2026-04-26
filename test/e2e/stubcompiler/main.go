@@ -423,6 +423,12 @@ spec:
               value: postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable
             - name: RUN_MIGRATIONS
               value: "1"
+            - name: CREATE_ADMIN
+              value: "1"
+            - name: ADMIN_USERNAME
+              value: admin
+            - name: ADMIN_PASSWORD
+              value: password
             - name: MONOLIFT_LIFT_ESTIMATEREADINGTIME
               value: "on"
             - name: MONOLIFT_LIFT_FAILMODE
