@@ -25,9 +25,14 @@ type TargetCase struct {
 	LiftedExtractedServices []ExtractedServiceSpec
 	GoldenReport            string
 	Workload                WorkloadExecutor
+	Oracle                  SymbolInvoker
 	Invariants              []Invariant
 	ServiceName             string
 	ServicePort             int
+}
+
+type SymbolInvoker interface {
+	Invoke(args map[string]any) (any, error)
 }
 
 type HostBuildSpec struct {

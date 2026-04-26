@@ -19,4 +19,8 @@ data:
       handle /headers {
         respond "headers ok"
       }
+
+      handle {
+        error 404
+      }
     }

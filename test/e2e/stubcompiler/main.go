@@ -203,11 +203,13 @@ func hostDockerfile() string {
 
 WORKDIR /src/caddy
 COPY ./host-patch /src/caddy
-RUN go build -mod=mod -o /out/caddy ./cmd/caddy
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/caddy ./cmd/caddy
 
-FROM gcr.io/distroless/static
+FROM alpine:3.20
+RUN adduser -D -H caddy
 COPY --from=builder /out/caddy /usr/bin/caddy
 COPY ./static /srv/static
+USER caddy
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
 `
@@ -245,8 +247,7 @@ spec:
             - name: caddyfile
               mountPath: /etc/caddy
           readinessProbe:
-            httpGet:
-              path: /headers
+            tcpSocket:
               port: 8080
             periodSeconds: 2
       volumes:

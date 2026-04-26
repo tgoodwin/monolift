@@ -1,23 +1,55 @@
 package caddy
 
-import "github.com/tgoodwin/monolift/test/e2e/harness"
+import (
+	"github.com/tgoodwin/monolift/pkg/compiler/liftability"
+	"github.com/tgoodwin/monolift/test/e2e/harness"
+)
 
 func Target() harness.TargetCase {
+	trueValue := true
+	falseValue := false
 	return harness.TargetCase{
-		Name:            "caddy",
-		ExpectedVerdict: "accept",
-		StopAtStage:     10,
-		SpecTrace:       "docs/specs/monolift-v2-contract.md §Cross-target validation: Caddy",
+		Name:                  "caddy",
+		ExpectedVerdict:       "refuse-blocking",
+		ExpectedRootShape:     "http-handler",
+		ExpectedTransport:     "handler",
+		ExpectedArchetypeKind: "alternative_set",
+		ExpectedPrimary: harness.ExpectedArchetypeChoice{
+			Archetype:              "serialized-actor",
+			ContributingArchetypes: []string{"serialized-actor"},
+			Alias:                  "",
+			Emittable:              &trueValue,
+			RuntimeSelectable:      &falseValue,
+		},
+		ExpectedAlternatives: []harness.ExpectedArchetypeChoice{{
+			Archetype:              "keyed-partitioned-state",
+			ContributingArchetypes: []string{"keyed-partitioned-state"},
+			RationaleTierEqual:     "[TOPOLOGY]",
+			RationaleNonEmpty:      true,
+		}},
+		ExpectedAdapterKind: "actor",
+		ExpectedAdapterID:   "serialized-actor",
+		RequiredRootFacts: []harness.ExpectedPropertyFact{
+			{PropertyID: string(liftability.PropertyTransportHandlerBoundary), Verdict: "Hold"},
+		},
+		StopAtStage: 10,
+		RequiredDiagnostics: []string{
+			"MLV2_CHANNEL_BOUNDARY",
+			"MLV2_REFLECTION_DISPATCH",
+			"MLV2_SERIALIZATION_UNSUPPORTED",
+			"MLV2_SHAPE_UNSUPPORTED",
+		},
+		SpecTrace: "docs/specs/monolift-v2-contract.md §Cross-target validation: Caddy",
 		BaselineManifests: []string{
 			"test/e2e/targets/caddy/baseline/caddyfile-configmap.yaml",
 			"test/e2e/targets/caddy/baseline/echo-upstream.yaml",
 			"test/e2e/targets/caddy/baseline/deployment.yaml",
 			"test/e2e/targets/caddy/baseline/service.yaml",
 		},
-		Dockerfile:   "test/e2e/targets/caddy/Dockerfile",
-		ContextDir:   ".",
-		SourceDirs:   []string{"evaluation/caddy", "test/e2e/targets/caddy"},
-		ImageTag:     "monolift-e2e/caddy:e2e",
+		Dockerfile: "test/e2e/targets/caddy/Dockerfile",
+		ContextDir: ".",
+		SourceDirs: []string{"evaluation/caddy", "test/e2e/targets/caddy"},
+		ImageTag:   "monolift-e2e/caddy:e2e",
 		LiftedHostBuild: &harness.HostBuildSpec{
 			Dockerfile:  "lifted/Dockerfile.host",
 			ContextRoot: "lifted",
@@ -32,8 +64,10 @@ func Target() harness.TargetCase {
 			ServiceYAML:    "lifted/manifests/extracted-service.yaml",
 			ReadinessPath:  "/healthz",
 		}},
+		// Regen: go build -o ./bin/stubcompiler ./test/e2e/stubcompiler && ./bin/stubcompiler --target=caddy --output=$(mktemp -d) --source=evaluation/caddy --source=test/e2e/targets/caddy
 		GoldenReport: "test/e2e/targets/caddy/golden/report.json",
 		Workload:     Workload{},
+		Oracle:       Oracle{},
 		Invariants: []harness.Invariant{
 			{Path: "/static/hello.txt", Status: true, Headers: []string{"X-Caddy"}, Body: true},
 			{Path: "/proxy?x=1", Status: true, Headers: []string{"X-Caddy"}, Body: true},
