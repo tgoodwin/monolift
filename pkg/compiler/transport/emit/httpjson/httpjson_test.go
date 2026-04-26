@@ -46,6 +46,57 @@ func TestRenderImportsRealSymbol_SanitizeMethod(t *testing.T) {
 	}
 }
 
+func TestRenderEstimateReadingTimeIntResult(t *testing.T) {
+	ctx := estimateReadingTimeContext()
+	artifact, err := Render(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mainGo := artifact.Files[filepath.ToSlash(filepath.Join("cmd", ctx.ServiceName, "main.go"))]
+	file := parseGo(t, mainGo)
+	if !hasImport(file, "miniflux.app/v2/internal/reader/readingtime") {
+		t.Fatal("rendered main.go does not import miniflux readingtime")
+	}
+	if !hasSelectorCallWithArgsInFunc(file, "handleInvoke", "readingtime", "EstimateReadingTime", []string{"in.Content", "in.DefaultReadingSpeed", "in.CjkReadingSpeed"}) {
+		t.Fatal("rendered main.go does not call readingtime.EstimateReadingTime(in.Content, in.DefaultReadingSpeed, in.CjkReadingSpeed)")
+	}
+	if !hasStructField(file, "invokeResponse", "ReadingTime", "int") {
+		t.Fatal("invokeResponse missing int ReadingTime field")
+	}
+	if _, ok := artifact.Files["Dockerfile.extracted-estimatereadingtime"]; !ok {
+		t.Fatal("Dockerfile.extracted-estimatereadingtime missing from artifact")
+	}
+
+	root := t.TempDir()
+	if err := os.CopyFS(root, os.DirFS(filepath.Join(repoRoot(t), "evaluation", "miniflux"))); err != nil {
+		t.Fatalf("CopyFS host root: %v", err)
+	}
+	for path, data := range artifact.Files {
+		out := filepath.Join(root, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(out, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, path := range []string{
+		"Dockerfile.extracted-estimatereadingtime",
+		filepath.ToSlash(filepath.Join("cmd", ctx.ServiceName, "main.go")),
+	} {
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
+			t.Fatalf("artifact path %s does not resolve in miniflux module: %v", path, err)
+		}
+	}
+	cmd := exec.Command("go", "build", "-mod=mod", "./cmd/"+ctx.ServiceName)
+	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("go build: %v\n%s", err, output)
+	}
+}
+
 func TestRenderRejectsSyntheticBody(t *testing.T) {
 	t.Parallel()
 
@@ -252,6 +303,18 @@ func sanitizeMethodContext() emit.Context {
 	}
 }
 
+func estimateReadingTimeContext() emit.Context {
+	return emit.Context{
+		SymbolImportPath:   "miniflux.app/v2/internal/reader/readingtime",
+		ObjectName:         "EstimateReadingTime",
+		ParamFields:        []emit.FieldSpec{{Name: "Content", JSONName: "content", GoType: "string"}, {Name: "DefaultReadingSpeed", JSONName: "default_reading_speed", GoType: "int"}, {Name: "CjkReadingSpeed", JSONName: "cjk_reading_speed", GoType: "int"}},
+		ResultFields:       []emit.FieldSpec{{Name: "ReadingTime", JSONName: "reading_time", GoType: "int"}},
+		UpstreamModulePath: "miniflux.app/v2",
+		ServiceName:        "monolift-extracted-estimatereadingtime",
+		EnvVarPrefix:       "MONOLIFT_LIFT_ESTIMATEREADINGTIME",
+	}
+}
+
 func parseGo(t *testing.T, src []byte) *ast.File {
 	t.Helper()
 	file, err := parser.ParseFile(token.NewFileSet(), "main.go", src, 0)
@@ -290,6 +353,61 @@ func hasSelectorCallInFunc(file *ast.File, funcName, pkg, name string) bool {
 	return found
 }
 
+func hasSelectorCallWithArgsInFunc(file *ast.File, funcName, pkg, name string, args []string) bool {
+	found := false
+	ast.Inspect(file, func(node ast.Node) bool {
+		fn, ok := node.(*ast.FuncDecl)
+		if !ok || fn.Name.Name != funcName {
+			return true
+		}
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok || !isSelector(call.Fun, pkg, name) || len(call.Args) != len(args) {
+				return true
+			}
+			for i, arg := range call.Args {
+				if exprString(arg) != args[i] {
+					return true
+				}
+			}
+			found = true
+			return false
+		})
+		return false
+	})
+	return found
+}
+
+func hasStructField(file *ast.File, typeName, fieldName, goType string) bool {
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			typeSpec, ok := spec.(*ast.TypeSpec)
+			if !ok || typeSpec.Name.Name != typeName {
+				continue
+			}
+			structType, ok := typeSpec.Type.(*ast.StructType)
+			if !ok {
+				continue
+			}
+			for _, field := range structType.Fields.List {
+				if exprString(field.Type) != goType {
+					continue
+				}
+				for _, name := range field.Names {
+					if name.Name == fieldName {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 func hasCleanPathCall(file *ast.File) bool {
 	found := false
 	ast.Inspect(file, func(node ast.Node) bool {
@@ -301,6 +419,12 @@ func hasCleanPathCall(file *ast.File) bool {
 		return true
 	})
 	return found
+}
+
+func exprString(expr ast.Expr) string {
+	var b bytes.Buffer
+	_ = format.Node(&b, token.NewFileSet(), expr)
+	return b.String()
 }
 
 func isSelector(expr ast.Expr, pkg, name string) bool {
