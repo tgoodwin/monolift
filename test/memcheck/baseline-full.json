@@ -1,0 +1,66 @@
+{
+  "label": "baseline-full",
+  "command": [
+    "go",
+    "test",
+    "./pkg/...",
+    "-count=1",
+    "-shuffle=101"
+  ],
+  "sample_ms": 250,
+  "rss_limit_mb": 4096,
+  "wall_limit_sec": 900,
+  "runs": [
+    {
+      "seed": 101,
+      "exit_code": 1,
+      "killed": false,
+      "kill_reason": "",
+      "elapsed_sec": 198.2,
+      "peak_tree_rss_kb": 3898032,
+      "peak_process_rss_kb": 3884784,
+      "peak_process_comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build1331067968/b357/shape.test",
+      "peak_process_pid": 92550,
+      "last_observed_tree_rss_kb": 10736
+    },
+    {
+      "seed": 202,
+      "exit_code": -1,
+      "killed": true,
+      "kill_reason": "rss_limit",
+      "elapsed_sec": 14.8,
+      "peak_tree_rss_kb": 4220180,
+      "peak_process_rss_kb": 4138432,
+      "peak_process_comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build2952279714/b333/compiler.test",
+      "peak_process_pid": 94985,
+      "last_observed_tree_rss_kb": 4192996
+    },
+    {
+      "seed": 303,
+      "exit_code": -1,
+      "killed": true,
+      "kill_reason": "rss_limit",
+      "elapsed_sec": 13.8,
+      "peak_tree_rss_kb": 4353556,
+      "peak_process_rss_kb": 4277264,
+      "peak_process_comm": "/var/folders/pt/x4j1pnkd50q7h5zxwhftgzch0000gn/T/go-build2894686687/b333/compiler.test",
+      "peak_process_pid": 96145
+    }
+  ],
+  "summary": {
+    "status": "regressed",
+    "baseline_artifact": "",
+    "candidate_artifact": "test/memcheck/baseline-full.json",
+    "worst_peak_tree_rss_kb": 4353556,
+    "delta_pct": 0,
+    "spread_pct": 10.5,
+    "stability_ok": false
+  },
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "ncpu": 10,
+    "go_version": "go1.25.4",
+    "gomaxprocs": 10
+  }
+}
