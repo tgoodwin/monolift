@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
@@ -241,6 +242,27 @@ func TestEmitsLiftedTreeForMiniflux(t *testing.T) {
 		if _, err := os.ReadFile(filepath.Join(lifted, filepath.FromSlash(path))); err != nil {
 			t.Fatalf("%s missing: %v", path, err)
 		}
+	}
+	hostDeployment, err := os.ReadFile(filepath.Join(lifted, "manifests", "miniflux-lifted-deployment.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, needle := range []string{
+		"MONOLIFT_LIFT_ESTIMATEREADINGTIME",
+		"MONOLIFT_LIFT_FAILMODE",
+		"MONOLIFT_LIFT_ESTIMATEREADINGTIME_ENDPOINT",
+		"http://monolift-extracted-estimatereadingtime:8081/invoke",
+	} {
+		if !strings.Contains(string(hostDeployment), needle) {
+			t.Fatalf("miniflux lifted deployment missing %q", needle)
+		}
+	}
+	extractedDeployment, err := os.ReadFile(filepath.Join(lifted, "manifests", "extracted-estimatereadingtime-deployment.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(extractedDeployment), "MONOLIFT_LIFT_") {
+		t.Fatalf("extracted deployment contains lift env:\n%s", extractedDeployment)
 	}
 
 	goBuild(t, hostPatch, "-mod=mod", ".")
