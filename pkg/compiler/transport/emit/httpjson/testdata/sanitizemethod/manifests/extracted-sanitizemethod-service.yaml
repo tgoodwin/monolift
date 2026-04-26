@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .ServiceName }}
+  name: monolift-extracted-sanitizemethod
 spec:
   selector:
-    app: {{ .ServiceName }}
+    app: monolift-extracted-sanitizemethod
   ports:
     - name: http
       port: 8081

@@ -20,16 +20,29 @@ import (
 
 var updateGolden = flag.Bool("update-golden", false, "update httpjson golden files")
 
-func TestRenderImportsRealSymbol(t *testing.T) {
+func TestRenderImportsRealSymbol_CleanPath(t *testing.T) {
 	t.Parallel()
 
-	mainGo := renderedMain(t)
+	mainGo := renderedMain(t, cleanPathContext())
 	file := parseGo(t, mainGo)
 	if !hasImport(file, "github.com/caddyserver/caddy/v2/modules/caddyhttp") {
 		t.Fatal("rendered main.go does not import caddyhttp")
 	}
-	if !hasCleanPathCall(file) {
-		t.Fatal("rendered main.go does not call caddyhttp.CleanPath")
+	if !hasSelectorCallInFunc(file, "handleInvoke", "caddyhttp", "CleanPath") {
+		t.Fatal("rendered main.go does not call caddyhttp.CleanPath inside handleInvoke")
+	}
+}
+
+func TestRenderImportsRealSymbol_SanitizeMethod(t *testing.T) {
+	t.Parallel()
+
+	mainGo := renderedMain(t, sanitizeMethodContext())
+	file := parseGo(t, mainGo)
+	if !hasImport(file, "github.com/caddyserver/caddy/v2/internal/metrics") {
+		t.Fatal("rendered main.go does not import internal metrics")
+	}
+	if !hasSelectorCallInFunc(file, "handleInvoke", "metrics", "SanitizeMethod") {
+		t.Fatal("rendered main.go does not call metrics.SanitizeMethod inside handleInvoke")
 	}
 }
 
@@ -47,7 +60,7 @@ func CleanPath(p string, collapseSlashes bool) string { return cleanPath(p) }
 func TestCounterIncrementsBeforeRealCall(t *testing.T) {
 	t.Parallel()
 
-	file := parseGo(t, renderedMain(t))
+	file := parseGo(t, renderedMain(t, cleanPathContext()))
 	var sawOrdering bool
 	ast.Inspect(file, func(node ast.Node) bool {
 		fn, ok := node.(*ast.FuncDecl)
@@ -134,12 +147,20 @@ func TestRenderGoBuild(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	artifact, err := Render(cleanPathContext())
-	if err != nil {
-		t.Fatal(err)
+	if err := os.CopyFS(root, os.DirFS(filepath.Join(repoRoot(t), "evaluation", "caddy"))); err != nil {
+		t.Fatalf("CopyFS host root: %v", err)
 	}
-	for path, data := range artifact.Files {
-		out := filepath.Join(root, path)
+	for _, ctx := range []emit.Context{cleanPathContext(), sanitizeMethodContext()} {
+		artifact, err := Render(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mainPath := filepath.ToSlash(filepath.Join("cmd", ctx.ServiceName, "main.go"))
+		data, ok := artifact.Files[mainPath]
+		if !ok {
+			t.Fatalf("%s missing from artifact", mainPath)
+		}
+		out := filepath.Join(root, filepath.FromSlash(mainPath))
 		if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -147,11 +168,8 @@ func TestRenderGoBuild(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.CopyFS(filepath.Join(root, "upstream"), os.DirFS(filepath.Join(repoRoot(t), "evaluation", "caddy"))); err != nil {
-		t.Fatalf("CopyFS upstream: %v", err)
-	}
-	cmd := exec.Command("go", "build", "-mod=mod", "./...")
-	cmd.Dir = filepath.Join(root, "extracted-cleanpath")
+	cmd := exec.Command("go", "build", "-mod=mod", "./cmd/...")
+	cmd.Dir = root
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go build: %v\n%s", err, output)
@@ -159,44 +177,54 @@ func TestRenderGoBuild(t *testing.T) {
 }
 
 func TestRenderMatchesGoldens(t *testing.T) {
-	artifact, err := Render(cleanPathContext())
-	if err != nil {
-		t.Fatal(err)
-	}
-	paths := make([]string, 0, len(artifact.Files))
-	for path := range artifact.Files {
-		paths = append(paths, path)
-	}
-	sort.Strings(paths)
-	for _, path := range paths {
-		data := artifact.Files[path]
-		golden := filepath.Join("testdata", "cleanpath", filepath.FromSlash(path))
-		if *updateGolden {
-			if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
+	for _, tc := range []struct {
+		name string
+		ctx  emit.Context
+	}{
+		{name: "cleanpath", ctx: cleanPathContext()},
+		{name: "sanitizemethod", ctx: sanitizeMethodContext()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			artifact, err := Render(tc.ctx)
+			if err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(golden, data, 0o644); err != nil {
-				t.Fatal(err)
+			paths := make([]string, 0, len(artifact.Files))
+			for path := range artifact.Files {
+				paths = append(paths, path)
 			}
-			continue
-		}
-		want, err := os.ReadFile(golden)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(data, want) {
-			t.Fatalf("%s differs from golden; run go test ./pkg/compiler/transport/emit/httpjson -run TestRenderMatchesGoldens -update-golden", path)
-		}
+			sort.Strings(paths)
+			for _, path := range paths {
+				data := artifact.Files[path]
+				golden := filepath.Join("testdata", tc.name, filepath.FromSlash(path))
+				if *updateGolden {
+					if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
+						t.Fatal(err)
+					}
+					if err := os.WriteFile(golden, data, 0o644); err != nil {
+						t.Fatal(err)
+					}
+					continue
+				}
+				want, err := os.ReadFile(golden)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(data, want) {
+					t.Fatalf("%s differs from golden; run go test ./pkg/compiler/transport/emit/httpjson -run TestRenderMatchesGoldens -update-golden", path)
+				}
+			}
+		})
 	}
 }
 
-func renderedMain(t *testing.T) []byte {
+func renderedMain(t *testing.T, ctx emit.Context) []byte {
 	t.Helper()
-	artifact, err := Render(cleanPathContext())
+	artifact, err := Render(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return artifact.Files["extracted-cleanpath/main.go"]
+	return artifact.Files[filepath.ToSlash(filepath.Join("cmd", ctx.ServiceName, "main.go"))]
 }
 
 func cleanPathContext() emit.Context {
@@ -209,6 +237,18 @@ func cleanPathContext() emit.Context {
 		UpstreamLocalPath:  "../upstream",
 		ServiceName:        "monolift-extracted-cleanpath",
 		EnvVarPrefix:       "MONOLIFT_LIFT_CLEANPATH",
+	}
+}
+
+func sanitizeMethodContext() emit.Context {
+	return emit.Context{
+		SymbolImportPath:   "github.com/caddyserver/caddy/v2/internal/metrics",
+		ObjectName:         "SanitizeMethod",
+		ParamFields:        []emit.FieldSpec{{Name: "M", JSONName: "m", GoType: "string"}},
+		ResultFields:       []emit.FieldSpec{{Name: "Result", JSONName: "result", GoType: "string"}},
+		UpstreamModulePath: "github.com/caddyserver/caddy/v2",
+		ServiceName:        "monolift-extracted-sanitizemethod",
+		EnvVarPrefix:       "MONOLIFT_LIFT_SANITIZEMETHOD",
 	}
 }
 
@@ -228,6 +268,26 @@ func hasImport(file *ast.File, path string) bool {
 		}
 	}
 	return false
+}
+
+func hasSelectorCallInFunc(file *ast.File, funcName, pkg, name string) bool {
+	found := false
+	ast.Inspect(file, func(node ast.Node) bool {
+		fn, ok := node.(*ast.FuncDecl)
+		if !ok || fn.Name.Name != funcName {
+			return true
+		}
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if ok && isSelector(call.Fun, pkg, name) {
+				found = true
+				return false
+			}
+			return true
+		})
+		return false
+	})
+	return found
 }
 
 func hasCleanPathCall(file *ast.File) bool {

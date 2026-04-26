@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .ServiceName }}
+  name: monolift-extracted-sanitizemethod
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .ServiceName }}
+      app: monolift-extracted-sanitizemethod
   template:
     metadata:
       labels:
-        app: {{ .ServiceName }}
+        app: monolift-extracted-sanitizemethod
     spec:
       containers:
         - name: extracted
-          image: monolift-e2e/extracted-{{ .ServiceSuffix }}:e2e
+          image: monolift-e2e/extracted-sanitizemethod:e2e
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081

@@ -12,27 +12,23 @@ import (
 	"sync/atomic"
 	"time"
 
-	"{{ .SymbolImportPath }}"
+	"github.com/caddyserver/caddy/v2/internal/metrics"
 )
 
 type invokeRequest struct {
-{{- range .RequestFields }}
-	{{ .Name }} {{ .GoType }} `json:"{{ .JSONName }}"`
-{{- end }}
+	M            string `json:"m"`
 	InvocationID string `json:"invocation_id,omitempty"`
 }
 
 type invokeResponse struct {
-	{{ .ResultField.Name }} {{ .ResultField.GoType }} `json:"{{ .ResultField.JSONName }}"`
+	Result string `json:"result"`
 }
 
 type invocationRecord struct {
 	ID           int64     `json:"id"`
 	InvocationID string    `json:"invocation_id,omitempty"`
-{{- range .RequestFields }}
-	{{ .Name }} {{ .GoType }} `json:"{{ .JSONName }}"`
-{{- end }}
-	{{ .ResultField.Name }} {{ .ResultField.GoType }} `json:"{{ .ResultField.JSONName }}"`
+	M            string    `json:"m"`
+	Result       string    `json:"result"`
 	Timestamp    time.Time `json:"timestamp"`
 }
 
@@ -92,10 +88,10 @@ func handleInvoke(w http.ResponseWriter, r *http.Request) {
 		in.InvocationID = r.Header.Get("X-Monolift-Invocation-ID")
 	}
 	atomic.AddInt64(&counter, 1)
-	result := {{ .PackageAlias }}.{{ .ObjectName }}({{- range $i, $field := .RequestFields }}{{ if $i }}, {{ end }}in.{{ $field.Name }}{{- end }})
+	result := metrics.SanitizeMethod(in.M)
 	record := records.append(in, result)
-	log.Printf("LIFT_INVOKE service={{ .ServiceName }} id=%s result=%v", in.InvocationID, result)
-	writeJSON(w, http.StatusOK, invokeResponse{ {{ .ResultField.Name }}: record.{{ .ResultField.Name }} })
+	log.Printf("LIFT_INVOKE service=monolift-extracted-sanitizemethod id=%s result=%v", in.InvocationID, result)
+	writeJSON(w, http.StatusOK, invokeResponse{Result: record.Result})
 }
 
 func handleCalls(w http.ResponseWriter, r *http.Request) {
@@ -123,17 +119,15 @@ func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *invocationStore) append(in invokeRequest, result {{ .ResultField.GoType }}) invocationRecord {
+func (s *invocationStore) append(in invokeRequest, result string) invocationRecord {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.nextID++
 	record := invocationRecord{
 		ID:           s.nextID,
 		InvocationID: in.InvocationID,
-{{- range .RequestFields }}
-		{{ .Name }}: in.{{ .Name }},
-{{- end }}
-		{{ .ResultField.Name }}: result,
+		M:            in.M,
+		Result:       result,
 		Timestamp:    time.Now().UTC(),
 	}
 	s.records = append(s.records, record)

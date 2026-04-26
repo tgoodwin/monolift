@@ -2,7 +2,7 @@ FROM golang:1.25 AS builder
 
 WORKDIR /src
 COPY . /src
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/extracted ./cmd/{{ .CommandTarget }}
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/extracted ./cmd/monolift-extracted-sanitizemethod
 
 FROM gcr.io/distroless/static
 COPY --from=builder /out/extracted /extracted

@@ -5,10 +5,12 @@ import (
 	"embed"
 	"fmt"
 	"go/format"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
+	"unicode"
 
 	"github.com/tgoodwin/monolift/pkg/compiler/transport"
 	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit"
@@ -22,17 +24,17 @@ func init() {
 }
 
 func Render(ctx emit.Context) (emit.Artifact, error) {
+	suffix := serviceSuffix(ctx)
 	files := map[string][]byte{}
 	for _, spec := range []struct {
 		template string
 		path     string
 		gofmt    bool
 	}{
-		{"main.go.tmpl", "extracted-cleanpath/main.go", true},
-		{"gomod.tmpl", "extracted-cleanpath/go.mod", false},
-		{"dockerfile.tmpl", "extracted-cleanpath/Dockerfile", false},
-		{"service.yaml.tmpl", "manifests/extracted-service.yaml", false},
-		{"deployment.yaml.tmpl", "manifests/extracted-deployment.yaml", false},
+		{"main.go.tmpl", path.Join("cmd", ctx.ServiceName, "main.go"), true},
+		{"dockerfile.tmpl", "Dockerfile.extracted-" + suffix, false},
+		{"service.yaml.tmpl", path.Join("manifests", "extracted-"+suffix+"-service.yaml"), false},
+		{"deployment.yaml.tmpl", path.Join("manifests", "extracted-"+suffix+"-deployment.yaml"), false},
 	} {
 		rendered, err := RenderTemplate(ctx, spec.template)
 		if err != nil {
@@ -70,7 +72,8 @@ func RenderTemplate(ctx emit.Context, name string) ([]byte, error) {
 		return nil, fmt.Errorf("%w: %s", emit.ErrTemplateUnsupported, name)
 	}
 	tmpl, err := template.New(name).Funcs(template.FuncMap{
-		"lower": strings.ToLower,
+		"lower":      strings.ToLower,
+		"lowerCamel": lowerCamel,
 	}).Parse(string(raw))
 	if err != nil {
 		return nil, err
@@ -100,6 +103,9 @@ type templateView struct {
 	emit.Context
 	RequestFields []emit.FieldSpec
 	ResultField   emit.FieldSpec
+	PackageAlias  string
+	ServiceSuffix string
+	CommandTarget string
 }
 
 func view(ctx emit.Context) templateView {
@@ -111,5 +117,29 @@ func view(ctx emit.Context) templateView {
 		Context:       ctx,
 		RequestFields: ctx.ParamFields,
 		ResultField:   result,
+		PackageAlias:  packageAlias(ctx.SymbolImportPath),
+		ServiceSuffix: serviceSuffix(ctx),
+		CommandTarget: ctx.ServiceName,
 	}
+}
+
+func packageAlias(importPath string) string {
+	return path.Base(importPath)
+}
+
+func serviceSuffix(ctx emit.Context) string {
+	suffix := strings.TrimPrefix(ctx.ServiceName, "monolift-extracted-")
+	if suffix == "" {
+		return strings.ToLower(ctx.ObjectName)
+	}
+	return suffix
+}
+
+func lowerCamel(name string) string {
+	if name == "" {
+		return ""
+	}
+	runes := []rune(name)
+	runes[0] = unicode.ToLower(runes[0])
+	return string(runes)
 }

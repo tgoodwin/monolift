@@ -91,8 +91,8 @@ func handleInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 	atomic.AddInt64(&counter, 1)
 	result := caddyhttp.CleanPath(in.P, in.CollapseSlashes)
-	record := records.append(in.InvocationID, in.P, in.CollapseSlashes, result)
-	log.Printf("LIFT_INVOKE id=%s p=%q collapse_slashes=%v result=%q", in.InvocationID, in.P, in.CollapseSlashes, result)
+	record := records.append(in, result)
+	log.Printf("LIFT_INVOKE service=monolift-extracted-cleanpath id=%s result=%v", in.InvocationID, result)
 	writeJSON(w, http.StatusOK, invokeResponse{Result: record.Result})
 }
 
@@ -121,15 +121,15 @@ func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *invocationStore) append(invocationID, p string, collapseSlashes bool, result string) invocationRecord {
+func (s *invocationStore) append(in invokeRequest, result string) invocationRecord {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.nextID++
 	record := invocationRecord{
 		ID:              s.nextID,
-		InvocationID:    invocationID,
-		P:               p,
-		CollapseSlashes: collapseSlashes,
+		InvocationID:    in.InvocationID,
+		P:               in.P,
+		CollapseSlashes: in.CollapseSlashes,
 		Result:          result,
 		Timestamp:       time.Now().UTC(),
 	}
