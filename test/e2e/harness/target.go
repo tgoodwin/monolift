@@ -1,5 +1,7 @@
 package harness
 
+import "time"
+
 type TargetCase struct {
 	Name                    string
 	ExpectedVerdict         string
@@ -17,6 +19,9 @@ type TargetCase struct {
 	SkipReason              string
 	SpecTrace               string
 	BaselineManifests       []string
+	BaselineManifestPhases  [][]string
+	BaselineReadyTimeout    time.Duration
+	LiftedReadyTimeout      time.Duration
 	Dockerfile              string
 	ContextDir              string
 	SourceDirs              []string

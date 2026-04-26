@@ -99,11 +99,8 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 
 	var baselineTranscript harness.Transcript
 	if len(target.BaselineManifests) > 0 {
-		if err := deployer.Apply(ctx, baselineNS, target.BaselineManifests); err != nil {
+		if err := deployManifestPhases(ctx, deployer, baselineNS, baselineManifestPhases(target), readyTimeout(target.BaselineReadyTimeout)); err != nil {
 			t.Fatalf("%v", harness.StageError(1, target.Name, harness.KindHarness, "baseline deploy failed: %v", err))
-		}
-		if err := deployer.WaitReady(ctx, baselineNS, 180*time.Second); err != nil {
-			t.Fatalf("%v", harness.StageError(1, target.Name, harness.KindHarness, "baseline wait failed: %v", err))
 		}
 		pf, err := harness.StartPortForward(ctx, target.Name, baselineNS, target.ServiceName, target.ServicePort)
 		if err != nil {
@@ -158,10 +155,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	}
 
 	liftedManifests := liftedManifestPaths(target, compileResult.ArtifactsDir)
-	if err := deployer.Apply(ctx, liftedNS, liftedManifests); err != nil {
-		t.Fatalf("%v", err)
-	}
-	if err := deployer.WaitReady(ctx, liftedNS, 180*time.Second); err != nil {
+	if err := deployManifestPhases(ctx, deployer, liftedNS, liftedManifestPhases(target, liftedManifests), readyTimeout(target.LiftedReadyTimeout)); err != nil {
 		t.Fatalf("%v", err)
 	}
 	liftedService := target.ServiceName
@@ -200,6 +194,35 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 			t.Fatalf("%v", harness.StageError(9, target.Name, harness.KindWorkload, "negative lifted assertions failed: %v", err))
 		}
 	}
+}
+
+func baselineManifestPhases(target harness.TargetCase) [][]string {
+	if len(target.BaselineManifestPhases) > 0 {
+		return target.BaselineManifestPhases
+	}
+	return [][]string{target.BaselineManifests}
+}
+
+func deployManifestPhases(ctx context.Context, deployer harness.Deployer, ns string, phases [][]string, timeout time.Duration) error {
+	for _, manifests := range phases {
+		if len(manifests) == 0 {
+			continue
+		}
+		if err := deployer.Apply(ctx, ns, manifests); err != nil {
+			return err
+		}
+		if err := deployer.WaitReady(ctx, ns, timeout); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func readyTimeout(configured time.Duration) time.Duration {
+	if configured > 0 {
+		return configured
+	}
+	return 180 * time.Second
 }
 
 type requestWorkload interface {
@@ -774,6 +797,35 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 		)
 	}
 	return paths
+}
+
+func liftedManifestPhases(target harness.TargetCase, manifests []string) [][]string {
+	if target.LiftedHostBuild == nil {
+		return [][]string{manifests}
+	}
+	infra := make([]string, 0, len(target.BaselineManifests))
+	for _, manifest := range target.BaselineManifests {
+		base := filepath.Base(manifest)
+		if base == "deployment.yaml" || base == "service.yaml" {
+			continue
+		}
+		infra = append(infra, manifest)
+	}
+	phases := make([][]string, 0, 2+len(target.LiftedExtractedServices))
+	if len(infra) > 0 {
+		phases = append(phases, infra)
+	}
+	phases = append(phases, manifests[len(infra):len(infra)+2])
+	offset := len(infra) + 2
+	for offset < len(manifests) {
+		next := offset + 2
+		if next > len(manifests) {
+			next = len(manifests)
+		}
+		phases = append(phases, manifests[offset:next])
+		offset = next
+	}
+	return phases
 }
 
 func assertVerdict(target harness.TargetCase, result harness.CompileResult) error {
