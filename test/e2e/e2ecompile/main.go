@@ -17,20 +17,20 @@ import (
 	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit/liftpatch"
 )
 
-// stubcompiler loads the full host module via go/packages and consumes ~3 GB
+// e2e-compile loads the full host module via go/packages and consumes ~3 GB
 // of RAM. Concurrent invocations from parallel `go test` runs OOM-killed the
 // agent driving SPRINT-0019. Take an exclusive flock at startup so concurrent
 // invocations queue instead of stacking. The lock releases automatically when
 // the process exits (no explicit unlock needed).
 func acquireStartupLock() {
-	lockPath := filepath.Join(os.TempDir(), "monolift-stubcompiler.lock")
+	lockPath := filepath.Join(os.TempDir(), "monolift-e2e-compile.lock")
 	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "stubcompiler: open lock %s: %v\n", lockPath, err)
+		fmt.Fprintf(os.Stderr, "e2e-compile: open lock %s: %v\n", lockPath, err)
 		os.Exit(2)
 	}
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		fmt.Fprintf(os.Stderr, "stubcompiler: flock %s: %v\n", lockPath, err)
+		fmt.Fprintf(os.Stderr, "e2e-compile: flock %s: %v\n", lockPath, err)
 		os.Exit(2)
 	}
 	// Intentionally leak the FD: closing it would release the lock. The OS
@@ -56,28 +56,28 @@ func main() {
 	flag.Parse()
 
 	if *target == "" || *output == "" {
-		fmt.Fprintln(os.Stderr, "usage: stubcompiler --target=<name> --output=<dir> [--source=<dir>...]")
+		fmt.Fprintln(os.Stderr, "usage: e2e-compile --target=<name> --output=<dir> [--source=<dir>...]")
 		os.Exit(2)
 	}
 
 	acquireStartupLock()
 
 	if len(sources) == 0 {
-		fmt.Fprintf(os.Stderr, "stubcompiler target %s: no --source paths\n", *target)
+		fmt.Fprintf(os.Stderr, "e2e-compile target %s: no --source paths\n", *target)
 		os.Exit(1)
 	}
 	resolvedSources := resolveSources(sources)
 	if err := emitPragmaReport(*target, *output, resolvedSources); err != nil {
-		fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
+		fmt.Fprintf(os.Stderr, "e2e-compile target %s: %v\n", *target, err)
 		os.Exit(1)
 	}
 	if emitsLiftedTree(*target) {
 		if err := emitLiftedTree(*target, *output, resolvedSources); err != nil {
-			fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
+			fmt.Fprintf(os.Stderr, "e2e-compile target %s: %v\n", *target, err)
 			os.Exit(1)
 		}
 	}
-	fmt.Fprintf(os.Stdout, "stubcompiler parsed %s to %s\n", *target, *output)
+	fmt.Fprintf(os.Stdout, "e2e-compile parsed %s to %s\n", *target, *output)
 }
 
 func emitsLiftedTree(target string) bool {

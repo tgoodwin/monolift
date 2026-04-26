@@ -1,9 +1,9 @@
 # Monolift v2 E2E Harness
 
 This harness validates the Monolift v2 compiler contract against real Go
-targets using a local Kind cluster. SPRINT-0004 uses the test-only stub
-compiler in `test/e2e/stubcompiler/`; SPRINT-0005 replaces the stub target by
-target with the real compiler.
+targets using a local Kind cluster. The test-only compile driver in
+`test/e2e/e2ecompile/` produces closure reports and lifted artifacts from the
+real compiler.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ MONOLIFT_E2E=1 go test -tags=e2e -v ./test/e2e/... -timeout=30m
   `MONOLIFT_E2E=1 required`.
 - `MONOLIFT_E2E_KEEP=1` leaves namespaces in place for debugging.
 - `MONOLIFT_COMPILER=<path>` selects the compiler binary. Default:
-  `./bin/stubcompiler`.
+  `./bin/e2e-compile`.
 - `MONOLIFT_E2E_UPDATE_GOLDEN=1` enables golden updates.
 
 ## Failure Messages

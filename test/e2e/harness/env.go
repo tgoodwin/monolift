@@ -8,7 +8,7 @@ const (
 	EnvCompiler     = "MONOLIFT_COMPILER"
 	EnvUpdateGolden = "MONOLIFT_E2E_UPDATE_GOLDEN"
 
-	DefaultCompilerPath = "./bin/stubcompiler"
+	DefaultCompilerPath = "./bin/e2e-compile"
 )
 
 func E2EEnabled() bool {

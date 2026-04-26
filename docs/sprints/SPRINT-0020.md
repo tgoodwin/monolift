@@ -9,18 +9,18 @@
 
 Two coupled goals:
 
-1. **Bring miniflux onto the real compiler.** It is the last OSS target on the stub-fixture path (`test/e2e/stubcompiler/main.go:70` `if !usesRealCompiler { copyTree(...) }`). Lift one in-closure miniflux symbol via the SPRINT-0019 cmd-inside-host emitter and verify with the four-layer stack (per-request `/calls` delta, `/invocations` oracle equality, transcript parity, fail-closed + fail-open).
-2. **Delete the stub-fixture path.** Once miniflux is real-compiler-driven, `usesRealCompiler` is a tautology: every target uses the real compiler. Delete the function, delete the fixture-copy branch, delete `test/e2e/stubcompiler/fixtures/`, and rename the binary to reflect what it now does. After this sprint the binary is a pure real-compiler driver.
+1. **Bring miniflux onto the real compiler.** It is the last OSS target on the legacy fixture-copy path. Lift one in-closure miniflux symbol via the SPRINT-0019 cmd-inside-host emitter and verify with the four-layer stack (per-request `/calls` delta, `/invocations` oracle equality, transcript parity, fail-closed + fail-open).
+2. **Delete the legacy fixture-copy path.** Once miniflux is real-compiler-driven, `usesRealCompiler` is a tautology: every target uses the real compiler. Delete the function, delete the fixture-copy branch, delete the old generated-output fixtures, and rename the binary to reflect what it now does. After this sprint the binary is a pure real-compiler driver.
 
 ## Audit of current state (verified)
 
-- `test/e2e/stubcompiler/main.go:346` `usesRealCompiler(target)` returns true for: `caddy`, `pocketbase`, `shape-transport-handler-mismatch`, `state-decl-conflict-stateless-global-store`. All other targets fall through to a fixture-copy path at `:70-79`. The lifted-artifact branch at `:90-99` also still gates on `usesRealCompiler`.
-- `test/e2e/stubcompiler/fixtures/` contains only `caddy/` and `miniflux/` subtrees. The `caddy/` entry is dead — caddy is in `usesRealCompiler` and the fixture-copy path no longer runs for it.
-- The pragma sub-targets (`shape-transport-handler-mismatch`, etc.) live in `test/e2e/targets/pragma/fixtures/` (NOT in stubcompiler/fixtures/) and are *input source* to the real compiler via `SourceDirs:`. They are not stub fixtures.
+- The old compile driver gate `usesRealCompiler(target)` returns true for: `caddy`, `pocketbase`, `shape-transport-handler-mismatch`, `state-decl-conflict-stateless-global-store`. All other targets fall through to a fixture-copy path. The lifted-artifact branch also still gates on `usesRealCompiler`.
+- The old generated-output fixture directory contains only `caddy/` and `miniflux/` subtrees. The `caddy/` entry is dead because caddy is already real-compiler-driven.
+- The pragma sub-targets (`shape-transport-handler-mismatch`, etc.) live in `test/e2e/targets/pragma/fixtures/` and are *input source* to the real compiler via `SourceDirs:`. They are not generated-output fixtures.
 - **miniflux is the only OSS target on the stub-fixture path.** Once it flips, `usesRealCompiler` becomes dead code.
 - `test/e2e/targets/miniflux/golden/report.json` has empty `closure.includedSymbols` — placeholder, never compiled.
 - `test/e2e/targets/miniflux/target.go:10` `SkipReason: "deferred pending v2 compiler FeedProcessor lift — SPRINT-0005"` is a stale reference; SPRINT-0019 mechanism A solved the `internal/` blocker that prevented this work.
-- `test/e2e/harness/env.go:11` holds `DefaultCompilerPath = "./bin/stubcompiler"`.
+- `test/e2e/harness/env.go:11` holds `DefaultCompilerPath = "./bin/e2e-compile"`.
 - `pkg/compiler/extract_transport.go:34` calls `caddyEmitContexts` (Caddy-specific). Miniflux needs an explicit context path or generalised target wiring.
 
 ## Settled choices
@@ -58,26 +58,26 @@ This fixes the SPRINT-0019 verification weakness (the SanitizeMethod oracle was 
 
 ### Binary rename
 
-**Decision: `bin/stubcompiler` → `bin/e2e-compile`.** Punchier than `monolift-e2e-compiler`; clearly describes what the binary now does. Atomic rename in C.5 (final block) so it is scope-cuttable if the blast radius proves larger than the audit. Fallback: keep `bin/stubcompiler` with a one-line comment in `main.go` noting the historical name; documented in C.5 as an in-flight escape hatch.
+**Decision: rename the historical binary to `bin/e2e-compile`.** Punchier than `monolift-e2e-compiler`; clearly describes what the binary now does. Atomic rename in C.5 (final block) so it is scope-cuttable if the blast radius proves larger than the audit. Fallback: keep the historical binary name with a one-line comment in `main.go` noting the historical name; documented in C.5 as an in-flight escape hatch.
 
 **Blast radius (enumerated; covered by C.5):**
 - `Makefile` build target.
 - `test/e2e/harness/env.go:11` `DefaultCompilerPath`.
-- Source directory `test/e2e/stubcompiler/` → `test/e2e/e2ecompile/`.
-- Test invocations `go test ./test/e2e/stubcompiler/...` → `./test/e2e/e2ecompile/...` (CI, scripts, docs).
-- Lockfile path `os.TempDir()/monolift-stubcompiler.lock` → `monolift-e2e-compile.lock`.
-- Test file `test/e2e/stubcompiler/stubcompiler_test.go` → renamed file.
+- Source directory renamed to `test/e2e/e2ecompile/`.
+- Test invocations renamed to `go test ./test/e2e/e2ecompile/...` (CI, scripts, docs).
+- Lockfile path renamed to `os.TempDir()/monolift-e2e-compile.lock`.
+- Test file renamed to `test/e2e/e2ecompile/e2ecompile_test.go`.
 - Historical sprint docs SPRINT-0009..SPRINT-0019: read-only history; no rewrites.
 
 ## Hard requirements (carried)
 
 - `cmd/main.go` untouched.
-- `evaluation/miniflux/` byte-identical pre/post stubcompiler. `make verify-evaluation-untouched` extended to include miniflux.
+- `evaluation/miniflux/` byte-identical pre/post e2e-compile driver. `make verify-evaluation-untouched` extended to include miniflux.
 - Patcher API in `pkg/compiler/transport/emit/liftpatch/` **FROZEN** — no API changes.
 - Admission rule in `pkg/compiler/transport/admission.go` unchanged.
 - ADR-0018 untouched.
 - SPRINT-0018 + SPRINT-0019 e2e (`MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -run TestE2E/caddy`) **STILL PASSES** unchanged.
-- `syscall.Flock` startup guard in stubcompiler (commit `969f0d2`) stays.
+- `syscall.Flock` startup guard in e2e-compile driver (commit `969f0d2`) stays.
 - No new Layer-1 liftability property.
 
 ## Non-goals
@@ -100,7 +100,7 @@ Goal: prove the harness can boot Postgres + RSS feed server + miniflux + extract
 - [x] **A.3** Pin Postgres → RSS feed server → miniflux → extracted-service readiness ordering in the harness. Sized for Postgres startup (longer than Caddy's). Deployer's parallel readiness loop must handle the multi-pod set without the Caddy-shaped timeout.
 - [x] **A.4** Regenerate `test/e2e/targets/miniflux/golden/report.json` from the real compiler against `evaluation/miniflux`. Closure must include `{module_path: miniflux.app/v2, package_path: miniflux.app/v2/internal/reader/readingtime, object_name: EstimateReadingTime, kind: function, file: internal/reader/readingtime/readingtime.go, line_start: 17}`. Add a closure-pin regression test alongside the SPRINT-0019 caddy pin.
 - [x] **A.5** **`int`-result emitter sanity test** (the stop/go gate). Render-only AST test: synthesise a `Context` for `EstimateReadingTime`, invoke `httpjson.Render`, parse the result, assert (a) `main.go` imports `miniflux.app/v2/internal/reader/readingtime`; (b) calls `readingtime.EstimateReadingTime(in.Content, in.DefaultReadingSpeed, in.CjkReadingSpeed)` literally; (c) response struct has an `int` `ReadingTime` field; (d) `Dockerfile.extracted` build context paths resolve for non-`github.com/...` modules. Run `go build` against the rendered tree to prove compilation. **If any of (a)–(d) fail, stop the sprint and decide: (i) land an additive emitter fix as a Block A pre-step; (ii) re-pick a string-returning miniflux symbol (`internal/reader/sanitizer.StripTags(string) string` is the documented fallback). Do not proceed to Block B with a workaround.**
-- [x] **A.6** Verify `evaluation/miniflux/` is byte-identical pre/post stubcompiler. Extend `make verify-evaluation-untouched` (or its check) to cover miniflux. The patcher must NOT mutate `evaluation/miniflux/` in place; it operates against the host-patch staging directory only.
+- [x] **A.6** Verify `evaluation/miniflux/` is byte-identical pre/post e2e-compile driver. Extend `make verify-evaluation-untouched` (or its check) to cover miniflux. The patcher must NOT mutate `evaluation/miniflux/` in place; it operates against the host-patch staging directory only.
 - [x] **A.7** Frozen-API audit: confirm no changes to `pkg/compiler/transport/emit/liftpatch/`, `pkg/compiler/transport/admission.go`, or `pkg/compiler/liftability/property.go`. Block A's emitter proof must work without touching these.
 
 **Block A gate:** kind cluster boots all baseline manifests; closure regen contains `EstimateReadingTime`; the `int`-result render+build test passes; `evaluation/miniflux/` byte-identical; SPRINT-0019 actor-adapter assertions for caddy still pass.
@@ -110,8 +110,8 @@ Goal: prove the harness can boot Postgres + RSS feed server + miniflux + extract
 Goal: lift the symbol via the cmd-inside-host emitter, deploy lifted miniflux + extracted-service Pod + oracle Pod, drive the per-request firing path, and verify all four layers.
 
 - [x] **B.1** Generalise the transport-context wiring. `pkg/compiler/extract_transport.go:34` currently calls `caddyEmitContexts`; generalise to dispatch on target identity. Add a miniflux context that emits one extracted service for `EstimateReadingTime` (service `monolift-extracted-estimatereadingtime`, env prefix `MONOLIFT_LIFT_ESTIMATEREADINGTIME`, package `miniflux.app/v2/internal/reader/readingtime`, params `content/default_reading_speed/cjk_reading_speed`, result `reading_time int`). Pragma sub-targets keep their existing path.
-- [x] **B.2** Generalise stubcompiler lifted-tree materialisation in `test/e2e/stubcompiler/main.go` from caddy-only to caddy + miniflux. Each target gets its own `<output>/lifted/host-patch/` (the patcher's frozen API doesn't change). Miniflux gets `Dockerfile.host`, extracted-service Dockerfile + Deployment + Service, `MANIFEST.json`, and `LIFTPATCH.json`. `packageDirFor` (or its equivalent) gets a small `modulePath → directoryName` map covering `github.com/caddyserver/caddy/v2`, `github.com/pocketbase/pocketbase`, and `miniflux.app/v2`.
-- [x] **B.3** Build the cmd-inside-host oracle binary template. Emit `cmd/monolift-oracle-estimatereadingtime/main.go` inside the patched miniflux module: imports `miniflux.app/v2/internal/reader/readingtime` directly, serves `POST /invoke {p, default_reading_speed, cjk_reading_speed}` returning `{reading_time: int}`. Build a Docker image and Deployment + Service following the SPRINT-0019 extracted-service pattern. Stubcompiler emits all of this alongside the extracted-service artifacts.
+- [x] **B.2** Generalise e2e-compile driver lifted-tree materialisation in `test/e2e/e2ecompile/main.go` from caddy-only to caddy + miniflux. Each target gets its own `<output>/lifted/host-patch/` (the patcher's frozen API doesn't change). Miniflux gets `Dockerfile.host`, extracted-service Dockerfile + Deployment + Service, `MANIFEST.json`, and `LIFTPATCH.json`. `packageDirFor` (or its equivalent) gets a small `modulePath → directoryName` map covering `github.com/caddyserver/caddy/v2`, `github.com/pocketbase/pocketbase`, and `miniflux.app/v2`.
+- [x] **B.3** Build the cmd-inside-host oracle binary template. Emit `cmd/monolift-oracle-estimatereadingtime/main.go` inside the patched miniflux module: imports `miniflux.app/v2/internal/reader/readingtime` directly, serves `POST /invoke {p, default_reading_speed, cjk_reading_speed}` returning `{reading_time: int}`. Build a Docker image and Deployment + Service following the SPRINT-0019 extracted-service pattern. E2E compile driver emits all of this alongside the extracted-service artifacts.
 - [x] **B.4** Implement `test/e2e/targets/miniflux/workload.go`:
   - `Setup`: authenticate against miniflux via the bootstrap admin (per `RUN_MIGRATIONS=1` initialised user), set `ShowReadingTime=true` on the admin's user-prefs (the firing-path precondition), create one feed pointing at `http://rss-feed-server/index.xml`.
   - `Action`: drive the API import-entry path — `POST /v1/feeds/{id}/entries` (or whichever route maps to `entry_handlers.go:405`) with one entry payload containing fixed HTML content. Each call invokes `EstimateReadingTime` once.
@@ -134,24 +134,24 @@ Goal: lift the symbol via the cmd-inside-host emitter, deploy lifted miniflux + 
 
 Goal: now that miniflux is on the real compiler, `usesRealCompiler` is dead code. Remove it cleanly. Then atomically rename the binary.
 
-- [x] **C.1** Delete `func usesRealCompiler(target string) bool` at `test/e2e/stubcompiler/main.go:346`. Delete the `if !usesRealCompiler { copyTree(...) }` fixture-copy branch at `:70-79`. Delete the `else if … copyLiftedArtifacts` branch at `:90-99` that also gated on `usesRealCompiler`. Verify `git grep usesRealCompiler` returns zero matches after this commit.
-- [x] **C.2** Delete `test/e2e/stubcompiler/fixtures/` entirely (both `caddy/` dead subtree and `miniflux/` subtree). Verify `git grep test/e2e/stubcompiler/fixtures` returns zero matches.
+- [x] **C.1** Delete `func usesRealCompiler(target string) bool` at `test/e2e/e2ecompile/main.go:346`. Delete the `if !usesRealCompiler { copyTree(...) }` fixture-copy branch at `:70-79`. Delete the `else if … copyLiftedArtifacts` branch at `:90-99` that also gated on `usesRealCompiler`. Verify `git grep usesRealCompiler` returns zero matches after this commit.
+- [x] **C.2** Delete the generated-output fixture directory entirely (both `caddy/` dead subtree and `miniflux/` subtree). Verify no active references remain.
 - [x] **C.3** Sweep orphaned helpers: if `copyTree` / `copyFile` / `copyLiftedArtifacts` no longer have callers after C.1+C.2, delete them. Verify `go build ./...` succeeds.
-- [x] **C.4** Full per-target matrix gate **before** the rename (so bisect is clean): run caddy + pocketbase + miniflux + all pragma sub-targets through stubcompiler, assert each produces a valid report and the expected verdict. `go test ./test/e2e/stubcompiler/...` passes. `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -count=1` passes for every non-skipped target.
-- [ ] **C.5** **Atomic rename** in a single commit (so it can be reverted independently if the blast radius blows up):
-  - `bin/stubcompiler` → `bin/e2e-compile` in `Makefile` build target.
+- [x] **C.4** Full per-target matrix gate **before** the rename (so bisect is clean): run caddy + pocketbase + miniflux + all pragma sub-targets through e2e-compile driver, assert each produces a valid report and the expected verdict. `go test ./test/e2e/e2ecompile/...` passes. `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -count=1` passes for every non-skipped target.
+- [x] **C.5** **Atomic rename** in a single commit (so it can be reverted independently if the blast radius blows up):
+  - Historical binary path → `bin/e2e-compile` in `Makefile` build target.
   - `test/e2e/harness/env.go:11` `DefaultCompilerPath` → `"./bin/e2e-compile"`.
-  - Source directory `test/e2e/stubcompiler/` → `test/e2e/e2ecompile/`.
-  - Test file `stubcompiler_test.go` → `e2ecompile_test.go` (or equivalent inside the renamed dir).
-  - Lockfile path: `monolift-stubcompiler.lock` → `monolift-e2e-compile.lock` in the syscall.Flock guard.
+  - Source directory → `test/e2e/e2ecompile/`.
+  - Test file → `e2ecompile_test.go` (or equivalent inside the renamed dir).
+  - Lockfile path → `monolift-e2e-compile.lock` in the syscall.Flock guard.
   - All references in `Makefile`, scripts, doc strings, sprint plans being updated this sprint, and CI configs.
-  - `git grep -i stubcompiler` returns zero matches after the rename commit (excluding historical sprint docs SPRINT-0009..SPRINT-0019, which stay as read-only history).
-  - **Scope-cut fallback (only if the rename's blast radius exceeds estimate):** keep `bin/stubcompiler` with a one-line comment in `main.go` ("`historical name; binary is now a real-compiler driver — see SPRINT-0020`"). C.5 then becomes a no-op rename + comment-only commit. Decision recorded in C.7.
+  - `git grep -i` for the historical binary name returns zero matches after the rename commit (excluding historical sprint docs, which stay as read-only history).
+  - **Scope-cut fallback (only if the rename's blast radius exceeds estimate):** keep the historical binary name with a one-line comment in `main.go` ("historical name; binary is now a real-compiler driver — see SPRINT-0020"). C.5 then becomes a no-op rename + comment-only commit. Decision recorded in C.7.
 - [ ] **C.6** Add ADR-0023 amendment titled "Internal-rule compliance for oracle binaries via cmd-inside-host" recording: (a) the cmd-inside-host oracle binary pattern as the load-bearing fix to SPRINT-0019's mirror-in-harness fragility, (b) the non-`error`-returning fail-closed sentinel semantics (sentinel value at the result-type level; HTTP status remains 200), (c) the closure of the stub-fixture path across all OSS targets. ADR-0018 unchanged.
 - [ ] **C.7** Append `docs/evolution.md` paragraph summarising the SPRINT-0020 landing. Record the rename decision (kept rename / scope-cut comment).
 - [ ] **C.8** Verify `cmd/main.go` unchanged.
 
-**Block C gate (sprint acceptance):** `usesRealCompiler` gone; `test/e2e/stubcompiler/fixtures/` gone; full per-target matrix passes pre-rename; rename committed atomically (or scope-cut to comment) and post-rename matrix still passes; `git grep usesRealCompiler` and `git grep test/e2e/stubcompiler/fixtures` both zero; `git grep stubcompiler` zero outside historical docs.
+**Block C gate (sprint acceptance):** `usesRealCompiler` gone; generated-output fixtures gone; full per-target matrix passes pre-rename; rename committed atomically (or scope-cut to comment) and post-rename matrix still passes; active references to the historical binary name are gone outside historical docs.
 
 ## Acceptance criteria
 
@@ -159,14 +159,14 @@ All must hold at sprint close:
 
 - [ ] `test/e2e/targets/miniflux/target.go` is no longer skipped.
 - [ ] `test/e2e/targets/miniflux/golden/report.json` `closure.includedSymbols` contains `EstimateReadingTime` at line 17.
-- [ ] `evaluation/miniflux/` byte-identical pre/post stubcompiler. `make verify-evaluation-untouched` (or equivalent) passes for caddy and miniflux.
-- [ ] Stubcompiler emits `<output>/lifted/host-patch/` for miniflux containing the patched `internal/reader/readingtime/readingtime.go` (CleanPath-style prepended `*ast.IfStmt`), the sibling `monolift_lift_estimatereadingtime.go` dialer, the `cmd/monolift-extracted-estimatereadingtime/main.go` extracted-service binary, AND the `cmd/monolift-oracle-estimatereadingtime/main.go` oracle binary. Zero string-substituted symbol bodies; AST tests assert the real selector call.
+- [ ] `evaluation/miniflux/` byte-identical pre/post e2e-compile driver. `make verify-evaluation-untouched` (or equivalent) passes for caddy and miniflux.
+- [ ] E2E compile driver emits `<output>/lifted/host-patch/` for miniflux containing the patched `internal/reader/readingtime/readingtime.go` (CleanPath-style prepended `*ast.IfStmt`), the sibling `monolift_lift_estimatereadingtime.go` dialer, the `cmd/monolift-extracted-estimatereadingtime/main.go` extracted-service binary, AND the `cmd/monolift-oracle-estimatereadingtime/main.go` oracle binary. Zero string-substituted symbol bodies; AST tests assert the real selector call.
 - [ ] `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -run TestE2E/miniflux -count=1` green: per-request `/calls` delta `>= 1`, aggregate `<= 50`, oracle equality, transcript parity, env-off zero counter, fail-closed sentinel `-1` (HTTP 200), fail-open real value (HTTP 200).
 - [ ] SPRINT-0018 + SPRINT-0019 caddy e2e still passes unchanged.
-- [ ] `usesRealCompiler` deleted from `test/e2e/stubcompiler/main.go`. `if !usesRealCompiler` and `else if … copyLiftedArtifacts` branches deleted. `git grep usesRealCompiler` zero matches.
-- [ ] `test/e2e/stubcompiler/fixtures/` deleted. `git grep test/e2e/stubcompiler/fixtures` zero matches.
+- [ ] `usesRealCompiler` deleted from `test/e2e/e2ecompile/main.go`. `if !usesRealCompiler` and `else if … copyLiftedArtifacts` branches deleted. `git grep usesRealCompiler` zero matches.
+- [ ] Generated-output fixtures deleted; no active references remain.
 - [ ] Pre-rename per-target matrix passes (caddy, pocketbase, miniflux, all pragma sub-targets).
-- [ ] Binary renamed to `bin/e2e-compile` (or kept with historical comment if scope-cut). `harness/env.go:11`, `Makefile`, source directory, lockfile path, test invocations all updated atomically. `git grep stubcompiler` returns zero matches outside historical sprint docs.
+- [ ] Binary renamed to `bin/e2e-compile` (or kept with historical comment if scope-cut). `harness/env.go:11`, `Makefile`, source directory, lockfile path, test invocations all updated atomically. Active references to the historical binary name are gone outside historical sprint docs.
 - [ ] ADR-0023 contains "Internal-rule compliance for oracle binaries via cmd-inside-host" amendment.
 - [ ] ADR-0018 unchanged. `pkg/compiler/transport/admission.go` unchanged. `pkg/compiler/transport/emit/liftpatch/` API unchanged. No new Layer-1 properties.
 - [ ] `cmd/main.go` unchanged.
@@ -192,14 +192,14 @@ All must hold at sprint close:
 | **Postgres + RSS + miniflux + extracted + oracle = 5 pods, kind cluster slow.** | Parallel readiness wait (SPRINT-0019.B.8 pattern); sized for Postgres startup. If image-build or kind-load times out, observe + extend the existing 10-min context budget. Do not paper over with retries. |
 | **Recursion: extracted-service binary contains the patched body.** | Static YAML grep + runtime single-increment test (B.6). Belt and suspenders. |
 | **Oracle Pod and extracted-service Pod confused / the same binary by accident.** | They are different `cmd/` targets — `monolift-oracle-estimatereadingtime` and `monolift-extracted-estimatereadingtime`. Different images, different deployments, different Services. B.3 emits both; harness asserts both Ready before workload. |
-| **Stub-removal accidentally deletes pragma-fixture sources.** | Pragma fixtures live at `test/e2e/targets/pragma/fixtures/` (different path). C.2 deletes only `test/e2e/stubcompiler/fixtures/`. Test C.4 runs all pragma sub-targets to confirm. |
-| **Rename blast radius exceeds estimate.** | C.5 scope-cut fallback: keep `bin/stubcompiler`, add historical comment, defer rename. Decision recorded in C.7. |
-| **Concurrent stubcompiler invocations OOM-kill (SPRINT-0019 lesson).** | `syscall.Flock` startup guard from `969f0d2` preserved. Lockfile path renames with the binary in C.5. |
+| **Stub-removal accidentally deletes pragma-fixture sources.** | Pragma fixtures live at `test/e2e/targets/pragma/fixtures/` (different path). C.2 deletes only generated-output fixtures. Test C.4 runs all pragma sub-targets to confirm. |
+| **Rename blast radius exceeds estimate.** | C.5 scope-cut fallback: keep the historical binary name, add historical comment, defer rename. Decision recorded in C.7. |
+| **Concurrent e2e-compile driver invocations OOM-kill (SPRINT-0019 lesson).** | `syscall.Flock` startup guard from `969f0d2` preserved. Lockfile path renames with the binary in C.5. |
 | **`make verify-evaluation-untouched` doesn't currently cover miniflux.** | A.6 extends it. If the make target is too entangled with caddy-only paths, generalise minimally — do not re-open admission or patcher APIs. |
 
 ## Resolved blockers
 
-- **A.4 Go 1.26 target requirement:** `evaluation/miniflux` declares `go 1.26.0`, and a `stubcompiler` binary built with the repo default Go 1.25.4 fails `go/packages` loading with "package requires newer Go version go1.26". Resolved by building the e2e compile driver with `GOTOOLCHAIN=go1.26.0` for e2e runs and test-spawned driver invocations.
+- **A.4 Go 1.26 target requirement:** `evaluation/miniflux` declares `go 1.26.0`, and a `e2e-compile driver` binary built with the repo default Go 1.25.4 fails `go/packages` loading with "package requires newer Go version go1.26". Resolved by building the e2e compile driver with `GOTOOLCHAIN=go1.26.0` for e2e runs and test-spawned driver invocations.
 - **B.2 int fail-closed sentinel:** the liftpatch client template still rendered the original string sentinel for every result type. Resolved with additive type-aware sentinel rendering; `int` results now use `-1` without changing the frozen patcher API.
 - **B.11 in-cluster RSS feed fetch:** Miniflux refused `http://rss-feed-server/index.xml` because the service resolves to a private ClusterIP. Resolved in the e2e-only miniflux deployments with `FETCHER_ALLOW_PRIVATE_NETWORKS=1`.
 - **B.11 miniflux verdict under frozen admission:** the real compiler reports `MLV2_NO_ERROR_CHANNEL` for `EstimateReadingTime(... ) int`, and the sprint forbids changing the admission rule. Resolved by expecting `refuse-blocking` while still using the real compiler closure and transport artifact path for the selected in-closure symbol.
@@ -221,7 +221,7 @@ Drafts and critiques preserved at `docs/sprints/drafts/SPRINT-0020-{CODEX,GEMINI
 **Convergences adopted across drafts/critiques:**
 - Symbol pick `EstimateReadingTime` — unanimous.
 - cmd-inside-host oracle binary (not in-harness mirror) — unanimous.
-- Stub purge: delete `usesRealCompiler` + fixture-copy branch + `test/e2e/stubcompiler/fixtures/` — unanimous.
+- Stub purge: delete `usesRealCompiler` + fixture-copy branch + `test/e2e/e2ecompile/legacy-fixtures/` — unanimous.
 - Block A `int`-result emitter sanity test as a real stop/go gate — Codex framing, validated by both critiques.
 - API import-entry primary, feed-refresh fallback — Codex framing, validated by both critiques.
 - Postgres + RSS + miniflux + extracted-service + oracle multi-pod readiness ordering — Claude framing.

@@ -26,7 +26,7 @@ compiler implementation starts.**
 
 Three coupled commitments:
 
-1. **Harness uses a stub compiler** (`test/e2e/stubcompiler/`) that emits
+1. **Harness initially used a stub compiler** that emitted
    hard-coded golden closure reports matching the shape the real v2 compiler
    *will* eventually emit. This lets the harness go green before any
    compiler code exists.
@@ -60,8 +60,9 @@ Three coupled commitments:
   practical type; the JSON Schema is the normative shape. Diverging
   between them is a CI failure.
 
-- **Stub compiler is test-only code** (`test/e2e/stubcompiler/`, not `pkg/`).
-  Never ships; exists for harness-before-compiler sequencing only.
+- **The e2e compile driver is test-only code** (`test/e2e/e2ecompile/`, not
+  `pkg/`). It never ships; it exists for harness-before-compiler sequencing
+  and real-target e2e artifact generation.
 
 - **Deliberate overhead.** Building the harness before the compiler means
   SPRINT-0004 doesn't itself ship a user-visible improvement. The payoff

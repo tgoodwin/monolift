@@ -20,7 +20,7 @@ import (
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 )
 
-func TestStubCompilerFixturesValidate(t *testing.T) {
+func TestE2ECompileTargetsValidate(t *testing.T) {
 	for _, target := range []string{"caddy", "pocketbase", "miniflux"} {
 		t.Run(target, func(t *testing.T) {
 			if target == "caddy" && testing.Short() {
@@ -40,7 +40,7 @@ func TestStubCompilerFixturesValidate(t *testing.T) {
 			cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
 			data, err := cmd.CombinedOutput()
 			if err != nil {
-				t.Fatalf("stubcompiler failed: %v\n%s", err, data)
+				t.Fatalf("e2e-compile failed: %v\n%s", err, data)
 			}
 			reportData, err := os.ReadFile(filepath.Join(out, "closure-report.json"))
 			if err != nil {
@@ -64,7 +64,7 @@ func TestEmitsLiftedTreeForCaddy(t *testing.T) {
 	cmd := exec.Command("go", "run", ".", "--target=caddy", "--output="+out, "--source=../../../evaluation/caddy")
 	data, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("stubcompiler failed: %v\n%s", err, data)
+		t.Fatalf("e2e-compile failed: %v\n%s", err, data)
 	}
 	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "caddy"))
 	if before != after {
@@ -179,7 +179,7 @@ func TestEmitsLiftedTreeForMiniflux(t *testing.T) {
 	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
 	data, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("stubcompiler failed: %v\n%s", err, data)
+		t.Fatalf("e2e-compile failed: %v\n%s", err, data)
 	}
 	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "miniflux"))
 	if before != after {
@@ -276,7 +276,7 @@ func TestCaddySourceTreeUntouched(t *testing.T) {
 	cmd := exec.Command("go", "run", ".", "--target=caddy", "--output="+out, "--source=../../../evaluation/caddy")
 	data, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("stubcompiler failed: %v\n%s", err, data)
+		t.Fatalf("e2e-compile failed: %v\n%s", err, data)
 	}
 	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "caddy"))
 	if before != after {
@@ -291,7 +291,7 @@ func TestMinifluxSourceTreeUntouched(t *testing.T) {
 	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0")
 	data, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("stubcompiler failed: %v\n%s", err, data)
+		t.Fatalf("e2e-compile failed: %v\n%s", err, data)
 	}
 	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "miniflux"))
 	if before != after {

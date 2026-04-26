@@ -61,7 +61,7 @@ reset-redis:
 include test/e2e/Makefile.include
 
 verify-evaluation-untouched:
-	go test ./test/e2e/stubcompiler -run 'Test(Caddy|Miniflux)SourceTreeUntouched' -count=1
+	go test ./test/e2e/e2ecompile -run 'Test(Caddy|Miniflux)SourceTreeUntouched' -count=1
 
 # ----------------------------------------------------------------------------
 # RSS perf harness (SPRINT-0010).

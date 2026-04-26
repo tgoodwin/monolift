@@ -1,20 +1,20 @@
 E2E_TMP_DIR ?= /tmp/monolift-e2e
-E2E_STUBCOMPILER := ./bin/stubcompiler
+E2E_COMPILE := ./bin/e2e-compile
 E2E_GOTOOLCHAIN ?= go1.26.0
 
-.PHONY: e2e e2e-reset e2e-update-golden e2e-clean build-stubcompiler
+.PHONY: e2e e2e-reset e2e-update-golden e2e-clean build-e2e-compile
 
-build-stubcompiler:
-	GOTOOLCHAIN=$(E2E_GOTOOLCHAIN) go build -o $(E2E_STUBCOMPILER) ./test/e2e/stubcompiler
+build-e2e-compile:
+	GOTOOLCHAIN=$(E2E_GOTOOLCHAIN) go build -o $(E2E_COMPILE) ./test/e2e/e2ecompile
 
-e2e: build-stubcompiler
+e2e: build-e2e-compile
 	MONOLIFT_E2E=1 go test -tags=e2e -v ./test/e2e/... -timeout=30m
 
 e2e-reset:
 	kind delete cluster --name monolift-e2e || true
 	kind create cluster --name monolift-e2e --config test/e2e/fixtures/kind-config.yaml
 
-e2e-update-golden: build-stubcompiler
+e2e-update-golden: build-e2e-compile
 	MONOLIFT_E2E=1 MONOLIFT_E2E_UPDATE_GOLDEN=1 go test -tags=e2e -v ./test/e2e/... -timeout=30m
 
 e2e-clean:

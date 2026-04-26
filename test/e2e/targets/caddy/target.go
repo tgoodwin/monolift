@@ -75,7 +75,7 @@ func Target() harness.TargetCase {
 			ServiceYAML:    "lifted/manifests/extracted-sanitizemethod-service.yaml",
 			ReadinessPath:  "/healthz",
 		}},
-		// Regen: go build -o ./bin/stubcompiler ./test/e2e/stubcompiler && ./bin/stubcompiler --target=caddy --output=$(mktemp -d) --source=evaluation/caddy --source=test/e2e/targets/caddy
+		// Regen: go build -o ./bin/e2e-compile ./test/e2e/e2ecompile && ./bin/e2e-compile --target=caddy --output=$(mktemp -d) --source=evaluation/caddy --source=test/e2e/targets/caddy
 		GoldenReport: "test/e2e/targets/caddy/golden/report.json",
 		Workload:     Workload{},
 		Oracle:       Oracle{},

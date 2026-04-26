@@ -305,9 +305,9 @@ green, no blockers. `test/e2e/` now holds a working Go harness that runs
 → kind load → lifted deploy → workload → compare), Pocketbase asserts both
 expected refusal diagnostics (stages 0, 3, 4 only), and Miniflux / Listmonk
 / Gitea / Mattermost cleanly skip with SPRINT-0005 pointers. The stub
-compiler at `test/e2e/stubcompiler/` emits hard-coded golden closure
+compiler driver at `test/e2e/e2ecompile/` emits hard-coded golden closure
 reports so the harness is green before any real v2 compiler code exists.
-Smoke run confirmed: `TestE2E` passes, `TestStubCompilerFixturesValidate`
+Smoke run confirmed: `TestE2E` passes, `TestE2ECompileTargetsValidate`
 passes, cluster-lifecycle test is opt-in.
 
 The harness carries failure messages with `[stage=N target=X kind=...]`
@@ -334,7 +334,7 @@ compiler refusals, reproducing `MLV2_EMBEDDED_DB_APP_ROOT`,
 without relying on a fixture report.
 
 The `compiler.Diagnostic -> reportv2.Diagnostic` seam moved out of
-`test/e2e/stubcompiler/main.go` into the new `pkg/compiler/diagnostics`
+`test/e2e/e2ecompile/main.go` into the new `pkg/compiler/diagnostics`
 package, which now owns rule IDs, remediation text, UTF-8-aware byte-offset
 formatting, unknown-code failure, and the import-boundary guard.
 
@@ -360,7 +360,7 @@ annotation surfaces, validates surface-specific keys, emits parser-internal
 as warning-only migration diagnostics with rewrite suggestions.
 
 The e2e harness now includes seven source-only pragma micro-fixtures, one for
-each `MLV2_PRAGMA_*` code. `test/e2e/stubcompiler/` preserves existing
+each `MLV2_PRAGMA_*` code. `test/e2e/e2ecompile/` preserves existing
 fixture-copy behavior for Caddy/Pocketbase/Miniflux, but falls through to the
 real parser for pragma source directories and translates parser diagnostics
 to `reportv2.Diagnostic` at that test seam only. ADR-0012 records the
@@ -483,7 +483,7 @@ simple `(string, bool) -> string` signature. ADR-0023 records the mechanism
 tradeoffs and the next pressure points: receiver-bearing symbols, `internal/`
 import legality, and non-Caddy host layouts.
 
-**Primary artifacts:** `pkg/compiler/transport/admission.go` · `pkg/compiler/transport/emit/` · `test/e2e/stubcompiler/main.go` · `test/e2e/e2e_test.go` · `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`
+**Primary artifacts:** `pkg/compiler/transport/admission.go` · `pkg/compiler/transport/emit/` · `test/e2e/e2ecompile/main.go` · `test/e2e/e2e_test.go` · `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`
 
 ---
 
@@ -500,7 +500,7 @@ counter deltas, aggregate bounds, oracle equality over `/invocations`,
 transcript parity, env-off zero calls, static dormant-env checks, runtime
 single-increment recursion checks, and per-symbol fail-mode behavior.
 
-**Primary artifacts:** `pkg/compiler/transport/emit/httpjson/` · `test/e2e/stubcompiler/main.go` · `test/e2e/e2e_test.go` · `test/e2e/targets/caddy/` · `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`
+**Primary artifacts:** `pkg/compiler/transport/emit/httpjson/` · `test/e2e/e2ecompile/main.go` · `test/e2e/e2e_test.go` · `test/e2e/targets/caddy/` · `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`
 
 ---
 
