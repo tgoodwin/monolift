@@ -63,23 +63,8 @@ func main() {
 
 	acquireStartupLock()
 
-	fixtureDir := filepath.Join("test", "e2e", "stubcompiler", "fixtures", *target)
-	if _, err := os.Stat(fixtureDir); err != nil {
-		fixtureDir = filepath.Join(repoRoot(), "test", "e2e", "stubcompiler", "fixtures", *target)
-	}
-	if !usesRealCompiler(*target) {
-		if _, err := os.Stat(fixtureDir); err == nil {
-			if err := copyTree(fixtureDir, *output); err != nil {
-				fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
-				os.Exit(1)
-			}
-			fmt.Fprintf(os.Stdout, "stubcompiler emitted %s to %s\n", *target, *output)
-			return
-		}
-	}
-
 	if len(sources) == 0 {
-		fmt.Fprintf(os.Stderr, "stubcompiler target %s: no fixture and no --source paths\n", *target)
+		fmt.Fprintf(os.Stderr, "stubcompiler target %s: no --source paths\n", *target)
 		os.Exit(1)
 	}
 	resolvedSources := resolveSources(sources)
@@ -87,13 +72,22 @@ func main() {
 		fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
 		os.Exit(1)
 	}
-	if usesRealCompiler(*target) {
+	if emitsLiftedTree(*target) {
 		if err := emitLiftedTree(*target, *output, resolvedSources); err != nil {
 			fmt.Fprintf(os.Stderr, "stubcompiler target %s: %v\n", *target, err)
 			os.Exit(1)
 		}
 	}
 	fmt.Fprintf(os.Stdout, "stubcompiler parsed %s to %s\n", *target, *output)
+}
+
+func emitsLiftedTree(target string) bool {
+	switch target {
+	case "caddy", "miniflux":
+		return true
+	default:
+		return false
+	}
 }
 
 func emitLiftedTree(target, output string, sources []string) error {
@@ -572,15 +566,6 @@ spec:
 `
 }
 
-func usesRealCompiler(target string) bool {
-	switch target {
-	case "caddy", "miniflux", "pocketbase", "shape-transport-handler-mismatch", "state-decl-conflict-stateless-global-store":
-		return true
-	default:
-		return false
-	}
-}
-
 func repoRoot() string {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -663,23 +648,12 @@ func resolveSources(sources []string) []string {
 }
 
 func emitPragmaReport(target, output string, sources []string) error {
-	if usesRealCompiler(target) {
-		pragmas, _, err := compiler.Parse(sources)
-		if err != nil {
-			return err
-		}
-		if target == "miniflux" && len(pragmas) == 0 {
-			pragma, err := minifluxReadingTimePragma(sources)
-			if err != nil {
-				return err
-			}
-			pragmas = []*compiler.Pragma{pragma}
-		}
-		report, diagnostics, err := compiler.Extract(sources, pragmas)
-		if err != nil {
-			return err
-		}
-		report.Diagnostics = mustTranslateDiagnostics(diagnostics, compilerdiagnostics.Options{ModuleRoot: report.BuildConfig.ModuleRoot})
+	pragmas, diagnostics, err := compiler.Parse(sources)
+	if err != nil {
+		return err
+	}
+	if usesPragmaOnlyReport(target, diagnostics) {
+		report := buildPragmaReport(target, pragmas, diagnostics)
 		data, err := json.MarshalIndent(report, "", "  ")
 		if err != nil {
 			return err
@@ -689,12 +663,18 @@ func emitPragmaReport(target, output string, sources []string) error {
 		}
 		return os.WriteFile(filepath.Join(output, "closure-report.json"), append(data, '\n'), 0o644)
 	}
-
-	pragmas, diagnostics, err := compiler.Parse(sources)
+	if target == "miniflux" && len(pragmas) == 0 {
+		pragma, err := minifluxReadingTimePragma(sources)
+		if err != nil {
+			return err
+		}
+		pragmas = []*compiler.Pragma{pragma}
+	}
+	report, diagnostics, err := compiler.Extract(sources, pragmas)
 	if err != nil {
 		return err
 	}
-	report := buildPragmaReport(target, pragmas, diagnostics)
+	report.Diagnostics = mustTranslateDiagnostics(diagnostics, compilerdiagnostics.Options{ModuleRoot: report.BuildConfig.ModuleRoot})
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return err
@@ -703,6 +683,20 @@ func emitPragmaReport(target, output string, sources []string) error {
 		return err
 	}
 	return os.WriteFile(filepath.Join(output, "closure-report.json"), append(data, '\n'), 0o644)
+}
+
+func usesPragmaOnlyReport(target string, diagnostics []compiler.Diagnostic) bool {
+	switch target {
+	case "pragma-parse", "pragma-unknown-key", "pragma-invalid-surface", "pragma-misattached", "pragma-duplicate", "pragma-unknown-verb", "pragma-v1-deprecated":
+		return true
+	}
+	for _, diagnostic := range diagnostics {
+		switch diagnostic.Code {
+		case compiler.CodeParse, compiler.CodeUnknownKey, compiler.CodeInvalidKeyForSurface, compiler.CodeMisattached, compiler.CodeDuplicate, compiler.CodeUnknownVerb, compiler.CodeV1Deprecated:
+			return true
+		}
+	}
+	return false
 }
 
 func minifluxReadingTimePragma(sources []string) (*compiler.Pragma, error) {
