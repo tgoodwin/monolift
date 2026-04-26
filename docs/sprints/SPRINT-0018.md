@@ -352,7 +352,7 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
 - [x] **F.1** `docs/decisions/0023-sidecar-emission-and-real-symbol-execution.md`. Sections: boundary admission rule v0; `replace`-directive sourcing; AST source-patch mechanism with cached-init env-var gate and `(string, bool)` dialer signature; `lifecycle.execution-profile=sync-short`; **Mechanism alternatives considered** (`-overlay`, build tags, module-level fork, wrapper package — with rejection rationale); `internal/`-import trap for future symbol picks; deferred receiver-state cliff; deferred non-Caddy generalization; fail-closed-by-default rationale; production startup-ordering note (deployments need a Caddy startup probe gated on extracted readiness or grace window).
 - [x] **F.2** Append `docs/evolution.md` with the slice landing.
 - [x] **F.3** `docs/sprints/ledger.yaml` left unchanged per resume instruction after Block E passed.
-- [ ] **F.4** Final closeout commit deletes `lifted-baseline-snapshot/`. Single dedicated commit so bisect lands cleanly.
+- [x] **F.4** Final closeout commit deletes `lifted-baseline-snapshot/`. Single dedicated commit so bisect lands cleanly.
 - [ ] **F.5** `cmd/main.go` unchanged — verified.
 
 ## Acceptance criteria
