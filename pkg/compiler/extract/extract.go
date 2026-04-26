@@ -24,39 +24,58 @@ func Analyze(req Request) (Result, error) {
 		return Result{}, err
 	}
 	report := buildSeedReport(loaded)
+	var liftabilityResult LiftabilityResult
+	if registeredLiftabilityAnalyzer != nil {
+		liftabilityResult, err = registeredLiftabilityAnalyzer(loaded, built.Program, report.Root)
+		if err != nil {
+			return Result{}, err
+		}
+		report.Root.Admission = liftabilityResult.Root.Admission
+		report.Root.Properties = append([]reportv2.PropertyEvidence(nil), liftabilityResult.Root.Properties...)
+	}
 	var shapeResult ShapeResult
 	if registeredShapeClassifier != nil {
-		shapeResult, err = registeredShapeClassifier(loaded, built.Program, report.Root)
+		shapeResult, err = registeredShapeClassifier(loaded, built.Program, report.Root, liftabilityResult)
 		if err != nil {
 			return Result{}, err
 		}
 		report.Root.Shape = shapeResult.Root.Shape
 		report.Root.DefaultTransport = shapeResult.Root.DefaultTransport
-		if transport := loaded.RootPragma.Options["transport"]; transportOverrideCompatible(report.Root.Shape, transport) {
-			report.Root.DefaultTransport = transport
-		}
 	}
-	diagnostics := append([]Diagnostic{}, shapeResult.Diagnostics...)
+	diagnostics := []Diagnostic{}
+	if registeredShapeClassifier != nil {
+		// The registered shape classifier already folds liftability diagnostics into
+		// ShapeResult.Diagnostics, so re-appending liftabilityResult.Diagnostics here
+		// would duplicate the same liftability-origin findings at the extract seam.
+		diagnostics = append(diagnostics, shapeResult.Diagnostics...)
+	} else {
+		diagnostics = append(diagnostics, liftabilityResult.Diagnostics...)
+	}
 	if registeredShapeValidator != nil {
-		diagnostics = append(diagnostics, registeredShapeValidator(loaded, report.Root, shapeResult)...)
+		diagnostics = append(diagnostics, registeredShapeValidator(loaded, report.Root, liftabilityResult, shapeResult)...)
 	}
 	closure := buildClosure(loaded, built, report.Root)
 	report.Closure = closure.Closure
 	report.ExternalDeps = closure.ExternalDeps
 	report.Analysis.PrecisionTriggers = closure.PrecisionTriggers
+	var archetypeClassification *ArchetypeClassification
 	if registeredStateInferer != nil {
 		stateResult, stateErr := registeredStateInferer(loaded, built.Program, closure.ReachableFuncs, report.Root, &loaded.RootPragma)
 		if stateErr != nil {
 			return Result{}, stateErr
 		}
 		report.State = stateResult.Items
+		if stateResult.Classification != nil {
+			archetypeClassification = stateResult.Classification
+			applyArchetypeClassification(&report.Root, stateResult.Classification)
+		}
 		diagnostics = append(diagnostics, stateResult.Diagnostics...)
 		if len(stateResult.PrecisionTriggers) > 0 {
 			report.Analysis.PrecisionTriggers = append(report.Analysis.PrecisionTriggers, stateResult.PrecisionTriggers...)
 			sort.Strings(report.Analysis.PrecisionTriggers)
 		}
 	}
-	report.Adapters = deriveAdapters(report.Root, shapeResult)
+	report.Adapters = deriveAdapters(report.Root, shapeResult, archetypeClassification)
 	diagnostics = append(diagnostics, detectReflectionDispatch(loaded, report.Root, closure.ReachableFuncs)...)
 	diagnostics = append(diagnostics, detectUnsafeBoundary(loaded, closure.ReachableFuncs)...)
 	diagnostics = append(diagnostics, detectDynamicPluginLoads(loaded, report.Root, closure.ReachableFuncs)...)
@@ -163,6 +182,7 @@ func resolveRoot(loaded *loadedModule) reportv2.Root {
 			ObjectName:  loaded.RootPragma.DeclName,
 			Kind:        rootKindForSurface(loaded.RootPragma.Surface),
 		},
+		Properties:        []reportv2.PropertyEvidence{},
 		ExposedOperations: resolveExposedOperations(loaded, modulePath),
 	}
 	if registry := loaded.RootPragma.Options["registry"]; registry != "" {
@@ -352,18 +372,7 @@ func cloneMap(in map[string]string) map[string]string {
 	return out
 }
 
-func transportOverrideCompatible(shape, transport string) bool {
-	switch transport {
-	case "handler":
-		return shape == "http-handler"
-	case "http-json":
-		return shape == "ctx-request-response" || shape == "multi-domain-args" || shape == "no-response"
-	default:
-		return false
-	}
-}
-
-func deriveAdapters(root reportv2.Root, shapeResult ShapeResult) []reportv2.Adapter {
+func deriveAdapters(root reportv2.Root, shapeResult ShapeResult, classification *ArchetypeClassification) []reportv2.Adapter {
 	var adapters []reportv2.Adapter
 	for _, operation := range shapeResult.PerOperation {
 		if operation.Shape == "http-handler" {
@@ -407,5 +416,50 @@ func deriveAdapters(root reportv2.Root, shapeResult ShapeResult) []reportv2.Adap
 			SerializationEffects: []string{},
 		})
 	}
+	// The actor adapter is derived from the ADR-0022 classification primary,
+	// not from legacy state classes or shape-only signals.
+	if classification != nil && classification.Primary != nil && classification.Primary.Archetype == "serialized-actor" && classification.Primary.Emittable {
+		adapters = append(adapters, reportv2.Adapter{
+			Kind:                 "actor",
+			ID:                   "serialized-actor",
+			MatchedSymbols:       append([]reportv2.SymbolIdentity(nil), classification.MatchedSymbols...),
+			CanonicalShapes:      append([]string(nil), classification.CanonicalShapes...),
+			StateEffects:         []string{"serialized-owner", "mutex-serialized-state"},
+			TransportEffects:     []string{"rpc-command-mailbox"},
+			SerializationEffects: []string{"command-envelope"},
+		})
+	}
 	return adapters
+}
+
+func applyArchetypeClassification(root *reportv2.Root, classification *ArchetypeClassification) {
+	root.ArchetypeKind = classification.ArchetypeKind
+	if classification.Primary != nil {
+		primary := reportChoice(*classification.Primary, "")
+		root.Primary = &primary
+	}
+	for _, alternative := range classification.Alternatives {
+		root.Alternatives = append(root.Alternatives, reportChoice(alternative, "SUGGEST"))
+	}
+}
+
+func reportChoice(choice ArchetypeChoice, verdict string) reportv2.ArchetypeChoice {
+	return reportv2.ArchetypeChoice{
+		Archetype:               choice.Archetype,
+		ContributingArchetypes:  append([]string(nil), choice.ContributingArchetypes...),
+		Alias:                   choice.Alias,
+		Verdict:                 verdict,
+		Emittable:               choice.Emittable,
+		RuntimeSelectable:       choice.RuntimeSelectable,
+		DynamicDelegateEligible: choice.DynamicDelegateEligible,
+		RationaleTier:           choice.RationaleTier,
+		Rationale:               truncateRationale(choice.Rationale),
+	}
+}
+
+func truncateRationale(value string) string {
+	if len(value) <= 140 {
+		return value
+	}
+	return value[:140]
 }

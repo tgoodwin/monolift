@@ -34,10 +34,27 @@ state-inference pass. The design pressure comes from four constraints:
     mutated
   - mutation sites, sync witnesses, channel-loop evidence, and external-client
     allowlist matches
-- Preserve the sprint's precedence intent with a pragmatic evidence stack:
-  external client type, clear shared-global mutation, sync witness,
-  channel-loop mutation, mutation-free read, then correctness-relevant
-  ambiguity (`MLV2_STATE_UNKNOWN`).
+- Preserve the sprint's precedence intent with a pragmatic six-rule evidence
+  stack tried in strict order inside `inferClass`:
+  1. `externalClientTypeRule` — external/remote client types resolved via
+     `go/types` against the allowlist
+  2. `sharedGlobalMutationRule` — package-global variables with observed
+     store sites
+  3. `syncPrimitiveRule` — sync-primitive witnesses (`sync.Mutex`,
+     `sync.RWMutex`, `sync.Once`, etc.) guarding the seed
+  4. `channelLoopRule` — mutation observed inside a channel-driven loop
+  5. `mutationFreeReadRule` — captured state read without any store sites
+  6. `stackLocalRule` — freevar captures with no store sites that do not
+     escape to shared state
+  The first rule that matches wins; the cascade is short-circuit. If all six
+  fall through and the developer did not declare `state=`, `inferSeed` emits
+  `MLV2_STATE_UNKNOWN` as a correctness-relevant ambiguity fallback —
+  distinct from the rule stack, not a seventh rule. A separate post-pass,
+  `applyCompositeEmbeddedDBRule`, then runs over the already-inferred seeds
+  to detect the embedded-DB app-root pattern and is counted as a post-pass,
+  not a precedence rule. (SPRINT-0007 closeout framing of "seven-rule
+  precedence" counts the composite post-pass alongside the six stack rules;
+  the ambiguity fallback is a separate mechanism.)
 - Keep developer `state=` declarations narrowing-only. Safe declarations mark
   rows as developer-declared; `state=stateless` on obviously mutable global or
   singleton/session state refuses with `MLV2_STATE_DECL_CONFLICT`.

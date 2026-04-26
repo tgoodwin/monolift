@@ -93,6 +93,14 @@ func Select(input SelectionInput) Selection {
 	if shouldFlagNoErrorChannel(input.Properties, selection.Shape) {
 		selection.AppliedRules = append(selection.AppliedRules, selectorRuleNoErrorChannel)
 	}
+	if selection.Template == TemplateNone {
+		if admitted, reasons := Admit(input.Properties); admitted {
+			selection.Template = TemplateHTTPJSON
+			selection.DefaultTransport = "http-json"
+			selection.Evidence = admissionReasonEvidence(reasons)
+			selection.AppliedRules = append(selection.AppliedRules, selectorRuleHTTPJSON)
+		}
+	}
 
 	switch input.PragmaTransport {
 	case "handler":

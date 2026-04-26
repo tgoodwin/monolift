@@ -49,6 +49,7 @@ var surfaceKeyRules = map[Surface]map[string]KeyRule{
 	},
 }
 
+// site:begin pragma-v2-validator
 func validatePragma(pragma *Pragma) []Diagnostic {
 	if pragma == nil {
 		return nil
@@ -96,6 +97,7 @@ func validatePragma(pragma *Pragma) []Diagnostic {
 			})
 		}
 	}
+	// site:end pragma-v2-validator
 
 	for key, rule := range rules {
 		if rule.Required && pragma.Options[key] == "" {

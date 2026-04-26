@@ -1,10 +1,15 @@
 # ADR-0006: Canonical shapes as the transport/adapter organizing concept
 
-**Status:** accepted _(v2 spec v1.0, 2026-04-19)_
+**Status:** accepted _(v2 spec v1.0, 2026-04-19; narrowed by ADR-0017 on 2026-04-22)_
 **Date:** 2026-04-19
 **Context docs:** `docs/specs/monolift-v2-contract.md` §Transport, `docs/sprints/drafts/SPRINT-0003-GEMINI.md` (origin of the "canonical shapes" framing)
 
 ## Context
+
+**Status note (2026-04-22):** ADR-0017 keeps canonical shapes as the
+transport/adapter vocabulary, but admissibility is no longer defined by these
+shapes. This ADR remains authoritative for the bounded canonical-shape set and
+its transport/adapter role; it is not fully superseded.
 
 v1 requires `(ctx context.Context, req T) (resp U, error)` — a single method
 shape, checked strictly, with a `panic()` at `pkg/lift/clientgen.go:110`

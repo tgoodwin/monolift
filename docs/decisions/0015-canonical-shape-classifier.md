@@ -1,10 +1,16 @@
 # ADR-0015: Canonical-shape classifier
 
-**Status:** accepted
+**Status:** superseded in classifier logic by ADR-0017 and ADR-0018
 **Date:** 2026-04-21
 **Context docs:** `docs/sprints/SPRINT-0007.md`, `docs/specs/monolift-v2-contract.md` §Canonical Shapes, `docs/decisions/0012-pragma-parser-diagnostics.md`
 
 ## Context
+
+**Supersession note (2026-04-22):** ADR-0015 remains the record of the first
+canonical-shape classifier landing, but the live admissibility path now runs
+through liftability-first analysis per ADR-0017, with ADR-0018 freezing the
+named property set the classifier consumes. Canonical shapes still survive as
+downstream selector outputs.
 
 SPRINT-0007 introduces a canonical-shape classifier as a new semantic pass on
 top of the SPRINT-0006 SSA extraction seam. The classifier must:

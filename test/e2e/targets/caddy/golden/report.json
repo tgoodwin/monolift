@@ -115,7 +115,7 @@
       "methods": "ServeHTTP",
       "name": "caddy-reverse-proxy",
       "registry": "http.handlers.reverse_proxy",
-      "verdict": "accept"
+      "verdict": "refuse-blocking"
     }
   },
   "root": {
@@ -126,6 +126,5014 @@
       "kind": "type"
     },
     "registryKey": "http.handlers.reverse_proxy",
+    "admission": "refused",
+    "properties": [
+      {
+        "propertyId": "boundary.context-first",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: first parameter is not context.Context"
+      },
+      {
+        "propertyId": "boundary.fully-instantiated",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: boundary is fully instantiated"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "param[1]",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "param[1]",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-callable-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: func-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-streaming-values",
+        "subject": "param[1]",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: channel-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-streaming-values",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: channel-typed boundary value"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync.Mutex"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync.Once"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync.RWMutex"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync/atomic.Bool"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync/atomic.Int32"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync/atomic.Int64"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync/atomic.align64"
+      },
+      {
+        "propertyId": "boundary.no-sync-primitives",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: sync primitive sync/atomic.noCopy"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[0]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[0]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: context.Context is control-plane metadata"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: custom JSON encoding on Int"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: custom JSON encoding on Time"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for any"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: channel values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[1]",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[2]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "param[2]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: basic value is serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: collection element serializability delegated to element walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: context.Context is control-plane metadata"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: custom JSON encoding on RawMessage"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: custom JSON encoding on WeakString"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: map serializability delegated to key/value walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: pointer to serializable element"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: struct serializability delegated to field walk"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for any"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for google.golang.org/protobuf/reflect/protoreflect.FieldNumber"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for google.golang.org/protobuf/runtime/protoiface.Methods"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for google.golang.org/protobuf/runtime/protoiface.SupportFlags"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for google.golang.org/protobuf/runtime/protoimpl.MessageState"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for google.golang.org/protobuf/runtime/protoimpl.SizeCache"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: serializability not proven for google.golang.org/protobuf/runtime/protoimpl.UnknownFields"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: channel values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: function values are not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "receiver",
+        "verdict": "Violate",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: unsafe.Pointer is not serializable"
+      },
+      {
+        "propertyId": "boundary.serializable-via-custom-encoding",
+        "subject": "result[0]",
+        "verdict": "Unknown",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: interface value needs runtime concrete type"
+      },
+      {
+        "propertyId": "boundary.variadic-free",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: signature is not variadic"
+      },
+      {
+        "propertyId": "contract.error-last",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: terminal result is error"
+      },
+      {
+        "propertyId": "contract.no-panic-only-failure",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: no panic instructions observed"
+      },
+      {
+        "propertyId": "contract.receiver-read-only",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: receiver is not mutated"
+      },
+      {
+        "propertyId": "effects.no-global-reads",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: load from global encoding/base64.StdEncoding"
+      },
+      {
+        "propertyId": "effects.no-global-reads",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: load from global encoding/base64.StdEncoding"
+      },
+      {
+        "propertyId": "effects.no-global-reads",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: load from global net/http.NoBody"
+      },
+      {
+        "propertyId": "effects.no-global-reads",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: load from global net/http.NoBody"
+      },
+      {
+        "propertyId": "effects.no-global-writes",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: no mutable global writes observed"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http/cookiejar"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http/httptrace"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http/httputil"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http/internal"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http/internal/ascii"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http/internal/httpcommon"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/http/pprof"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/netip"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/rpc"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/textproto"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package net/url"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package os"
+      },
+      {
+        "propertyId": "effects.no-os-side-effects",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable package syscall"
+      },
+      {
+        "propertyId": "effects.no-param-escape",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: no obvious boundary escapes observed"
+      },
+      {
+        "propertyId": "effects.no-param-heap-mutation",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: no param-derived heap mutation observed"
+      },
+      {
+        "propertyId": "effects.no-param-interface-callbacks",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: no boundary-derived interface callbacks observed"
+      },
+      {
+        "propertyId": "effects.no-reflect-unsafe",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "callgraph",
+        "detail": "(*Handler).ServeHTTP: reachable symbol reflect.Addr"
+      },
+      {
+        "propertyId": "lifecycle.execution-profile",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: detail=sync-short"
+      },
+      {
+        "propertyId": "lifecycle.long-running-loop",
+        "subject": "body",
+        "verdict": "Violate",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: no long-running receive loop observed"
+      },
+      {
+        "propertyId": "lifecycle.no-async-fork",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "ssa",
+        "detail": "(*Handler).ServeHTTP: body does not spawn goroutines"
+      },
+      {
+        "propertyId": "transport.handler-boundary",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: signature matches caddyhttp.MiddlewareHandler"
+      },
+      {
+        "propertyId": "transport.receiver-returns-self",
+        "subject": "body",
+        "verdict": "Hold",
+        "source": "types",
+        "detail": "(*Handler).ServeHTTP: first result does not return receiver/builder self"
+      }
+    ],
     "shape": "http-handler",
     "defaultTransport": "handler",
     "exposedOperations": [
@@ -134,6 +5142,32 @@
         "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
         "object_name": "(*Handler).ServeHTTP",
         "kind": "method"
+      }
+    ],
+    "archetype_kind": "alternative_set",
+    "primary": {
+      "archetype": "serialized-actor",
+      "contributing_archetypes": [
+        "serialized-actor"
+      ],
+      "emittable": true,
+      "runtime_selectable": false,
+      "dynamic_delegate_eligible": false,
+      "rationale_tier": "[TOPOLOGY]",
+      "rationale": "native state topology preserves one serialized owner"
+    },
+    "alternatives": [
+      {
+        "archetype": "keyed-partitioned-state",
+        "contributing_archetypes": [
+          "keyed-partitioned-state"
+        ],
+        "verdict": "SUGGEST",
+        "emittable": false,
+        "runtime_selectable": false,
+        "dynamic_delegate_eligible": false,
+        "rationale_tier": "[TOPOLOGY]",
+        "rationale": "runtime selection is not hosted yet"
       }
     ]
   },
@@ -16837,11 +21871,11 @@
           "kind": "method"
         },
         "span": {
-          "file_relative_path": "../../../../go/pkg/mod/go.uber.org/zap@v1.27.1/zapcore/level.go",
+          "file_relative_path": "../../../../sdk/go1.25.0/src/log/slog/level.go",
           "byte_offset_start": 0,
           "byte_offset_end": 1,
-          "line_start": 113,
-          "line_end": 113
+          "line_start": 59,
+          "line_end": 59
         },
         "ruleIds": []
       },
@@ -33749,6 +38783,37 @@
       ],
       "transportEffects": [],
       "serializationEffects": []
+    },
+    {
+      "kind": "actor",
+      "id": "serialized-actor",
+      "matchedSymbols": [
+        {
+          "module_path": "github.com/caddyserver/caddy/v2",
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
+          "object_name": "Handler",
+          "kind": "type"
+        },
+        {
+          "module_path": "github.com/caddyserver/caddy/v2",
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy",
+          "object_name": "Handler.connections",
+          "kind": "field"
+        }
+      ],
+      "canonicalShapes": [
+        "http-handler"
+      ],
+      "stateEffects": [
+        "serialized-owner",
+        "mutex-serialized-state"
+      ],
+      "transportEffects": [
+        "rpc-command-mailbox"
+      ],
+      "serializationEffects": [
+        "command-envelope"
+      ]
     }
   ],
   "externalDependencies": [
@@ -34218,7 +39283,7 @@
       "identity": {
         "module_path": "github.com/caddyserver/caddy/v2",
         "package_path": "github.com/prometheus/client_model/go",
-        "object_name": "(*Metric).String",
+        "object_name": "(*BucketSpan).String",
         "kind": "method"
       },
       "accessPath": "github.com/prometheus/client_model/go",
@@ -34526,7 +39591,7 @@
       "identity": {
         "module_path": "github.com/caddyserver/caddy/v2",
         "package_path": "google.golang.org/protobuf/reflect/protoreflect",
-        "object_name": "MapKey.String",
+        "object_name": "Kind.String",
         "kind": "method"
       },
       "accessPath": "google.golang.org/protobuf/reflect/protoreflect",
@@ -34713,7 +39778,7 @@
       "identity": {
         "module_path": "github.com/caddyserver/caddy/v2",
         "package_path": "log/slog",
-        "object_name": "Attr.String",
+        "object_name": "Value.String",
         "kind": "method"
       },
       "accessPath": "log/slog",
@@ -35041,8 +40106,235 @@
     }
   ],
   "pruning": {
-    "bounded": true,
+    "bounded": false,
     "frontier": []
   },
-  "diagnostics": []
+  "diagnostics": [
+    {
+      "code": "MLV2_CHANNEL_BOUNDARY",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-SER-7"
+      ],
+      "message": "channel-typed boundary value",
+      "remediation": "replace the in-process channel boundary with a singleton worker or external queue"
+    },
+    {
+      "code": "MLV2_REFLECTION_DISPATCH",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "reachable symbol reflect.Addr",
+      "remediation": "replace reflection-driven dispatch with direct calls or an explicit registry-keyed site"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "channel values are not serializable",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "function values are not serializable",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync.Mutex",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync.Once",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync.RWMutex",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync/atomic.Bool",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync/atomic.Int32",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync/atomic.Int64",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync/atomic.align64",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "sync primitive sync/atomic.noCopy",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SERIALIZATION_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1"
+      ],
+      "message": "unsafe.Pointer is not serializable",
+      "remediation": "add supported serialization evidence or keep the value local to the handler boundary"
+    },
+    {
+      "code": "MLV2_SHAPE_UNSUPPORTED",
+      "severity": "error",
+      "span": {
+        "file_relative_path": "evaluation/caddy/modules/caddyhttp/reverseproxy/reverseproxy.go",
+        "byte_offset_start": 0,
+        "byte_offset_end": 0,
+        "line_start": 101,
+        "line_end": 101
+      },
+      "ruleIds": [
+        "TA-REFUSE-1",
+        "TA-SHAPE-1",
+        "AS-FUNC-2"
+      ],
+      "message": "func-typed boundary value",
+      "remediation": "change the lifted signature to a supported handler or domain shape"
+    }
+  ]
 }

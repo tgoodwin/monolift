@@ -21,6 +21,7 @@ type Report struct {
 	Analysis      Analysis      `json:"analysis"`
 	Pragma        Pragma        `json:"pragma"`
 	Root          Root          `json:"root"`
+	Selection     *Selection    `json:"selection,omitempty"`
 	Closure       Closure       `json:"closure"`
 	State         []StateItem   `json:"state"`
 	Adapters      []Adapter     `json:"adapters"`
@@ -60,11 +61,51 @@ type Pragma struct {
 }
 
 type Root struct {
-	Identity          SymbolIdentity   `json:"identity"`
-	RegistryKey       *string          `json:"registryKey"`
-	Shape             string           `json:"shape"`
-	DefaultTransport  string           `json:"defaultTransport"`
-	ExposedOperations []SymbolIdentity `json:"exposedOperations"`
+	Identity          SymbolIdentity     `json:"identity"`
+	RegistryKey       *string            `json:"registryKey"`
+	Admission         string             `json:"admission"`
+	Properties        []PropertyEvidence `json:"properties"`
+	Shape             string             `json:"shape"`
+	DefaultTransport  string             `json:"defaultTransport"`
+	ExposedOperations []SymbolIdentity   `json:"exposedOperations"`
+	ArchetypeKind     string             `json:"archetype_kind,omitempty"`
+	Primary           *ArchetypeChoice   `json:"primary,omitempty"`
+	Alternatives      []ArchetypeChoice  `json:"alternatives,omitempty"`
+	PragmaProvenance  *PragmaProvenance  `json:"pragma_provenance,omitempty"`
+}
+
+type PropertyEvidence struct {
+	PropertyID string `json:"propertyId"`
+	Subject    string `json:"subject"`
+	Verdict    string `json:"verdict"`
+	Source     string `json:"source"`
+	Detail     string `json:"detail"`
+}
+
+type Selection struct {
+	Admission *AdmissionRecord `json:"admission,omitempty"`
+}
+
+type AdmissionRecord struct {
+	Admitted bool     `json:"admitted"`
+	Reasons  []string `json:"reasons"`
+}
+
+type ArchetypeChoice struct {
+	Archetype               string   `json:"archetype"`
+	ContributingArchetypes  []string `json:"contributing_archetypes"`
+	Alias                   string   `json:"alias,omitempty"`
+	Verdict                 string   `json:"verdict,omitempty"`
+	Emittable               bool     `json:"emittable"`
+	RuntimeSelectable       bool     `json:"runtime_selectable"`
+	DynamicDelegateEligible bool     `json:"dynamic_delegate_eligible"`
+	RationaleTier           string   `json:"rationale_tier,omitempty"`
+	Rationale               string   `json:"rationale,omitempty"`
+}
+
+type PragmaProvenance struct {
+	File string `json:"file"`
+	Line int    `json:"line"`
 }
 
 type Closure struct {
@@ -213,6 +254,30 @@ func validateReport(report *Report) error {
 	if err := validateIdentity("root.identity", report.Root.Identity); err != nil {
 		return err
 	}
+	for i, property := range report.Root.Properties {
+		if property.PropertyID == "" || property.Subject == "" || property.Verdict == "" || property.Source == "" {
+			return fmt.Errorf("reportv2: root.properties[%d] requires propertyId, subject, verdict, and source", i)
+		}
+		if !oneOf(property.Verdict, "Hold", "Violate", "Unknown") {
+			return fmt.Errorf("reportv2: unsupported root.properties[%d].verdict %q", i, property.Verdict)
+		}
+		if !oneOf(property.Source, "types", "ssa", "callgraph") {
+			return fmt.Errorf("reportv2: unsupported root.properties[%d].source %q", i, property.Source)
+		}
+	}
+	if report.Root.ArchetypeKind != "" && !oneOf(report.Root.ArchetypeKind, "single", "alternative_set", "composite") {
+		return fmt.Errorf("reportv2: unsupported root.archetype_kind %q", report.Root.ArchetypeKind)
+	}
+	if report.Root.Primary != nil {
+		if err := validateArchetypeChoice("root.primary", *report.Root.Primary); err != nil {
+			return err
+		}
+	}
+	for i, alternative := range report.Root.Alternatives {
+		if err := validateArchetypeChoice(fmt.Sprintf("root.alternatives[%d]", i), alternative); err != nil {
+			return err
+		}
+	}
 	for i, state := range report.State {
 		if err := validateIdentity(fmt.Sprintf("state[%d].symbol", i), state.Symbol); err != nil {
 			return err
@@ -225,7 +290,7 @@ func validateReport(report *Report) error {
 		}
 	}
 	for i, adapter := range report.Adapters {
-		if !oneOf(adapter.Kind, "handler", "registry", "serialization", "context-value", "cgo", "reflection", "generic-substitution") {
+		if !oneOf(adapter.Kind, "handler", "registry", "serialization", "context-value", "cgo", "reflection", "generic-substitution", "actor") {
 			return fmt.Errorf("reportv2: unsupported adapters[%d].kind %q", i, adapter.Kind)
 		}
 	}
@@ -241,6 +306,22 @@ func validateReport(report *Report) error {
 		if !oneOf(diag.Severity, "error", "warning") {
 			return fmt.Errorf("reportv2: unsupported diagnostics[%d].severity %q", i, diag.Severity)
 		}
+	}
+	return nil
+}
+
+func validateArchetypeChoice(path string, choice ArchetypeChoice) error {
+	if choice.Archetype == "" {
+		return fmt.Errorf("reportv2: %s.archetype is required", path)
+	}
+	if len(choice.ContributingArchetypes) == 0 {
+		return fmt.Errorf("reportv2: %s.contributing_archetypes must not be empty", path)
+	}
+	if choice.Verdict != "" && !oneOf(choice.Verdict, "AUTO", "SUGGEST") {
+		return fmt.Errorf("reportv2: unsupported %s.verdict %q", path, choice.Verdict)
+	}
+	if choice.RationaleTier != "" && !oneOf(choice.RationaleTier, "[PLOS-EL]", "[TOPOLOGY]", "[OPS-COST]", "[STABILITY]") {
+		return fmt.Errorf("reportv2: unsupported %s.rationale_tier %q", path, choice.RationaleTier)
 	}
 	return nil
 }

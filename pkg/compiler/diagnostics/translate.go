@@ -133,6 +133,12 @@ var codeSpecs = map[string]ruleSpec{
 			return remediationOrDefault(d, "use handler or http-json transport until grpc transport support lands")
 		},
 	},
+	"MLV2_SERIALIZATION_UNSUPPORTED": {
+		RuleIDs: []string{"TA-SER-1"},
+		RemediationBuilder: func(d compiler.Diagnostic) string {
+			return remediationOrDefault(d, "add supported serialization evidence or keep the value local to the handler boundary")
+		},
+	},
 	"MLV2_STATE_DECL_CONFLICT": {
 		RuleIDs: []string{"SS-CLASS-3"},
 		RemediationBuilder: func(d compiler.Diagnostic) string {
@@ -171,6 +177,7 @@ var codeSpecs = map[string]ruleSpec{
 	},
 }
 
+// site:begin refusal-translate
 func Translate(d compiler.Diagnostic, opts Options) (reportv2.Diagnostic, error) {
 	spec, ok := codeSpecs[d.Code]
 	if !ok {
@@ -194,6 +201,8 @@ func Translate(d compiler.Diagnostic, opts Options) (reportv2.Diagnostic, error)
 		Remediation: stringPtr(remediation),
 	}, nil
 }
+
+// site:end refusal-translate
 
 func TranslateAll(diags []compiler.Diagnostic, opts Options) ([]reportv2.Diagnostic, error) {
 	out := make([]reportv2.Diagnostic, 0, len(diags))

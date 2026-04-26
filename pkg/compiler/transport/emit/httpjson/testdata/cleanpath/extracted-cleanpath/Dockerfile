@@ -3,7 +3,7 @@ FROM golang:1.25 AS builder
 WORKDIR /src/extracted-cleanpath
 COPY ./extracted-cleanpath /src/extracted-cleanpath
 COPY ./upstream /src/upstream
-RUN go build -mod=mod -o /out/extracted .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/extracted .
 
 FROM gcr.io/distroless/static
 COPY --from=builder /out/extracted /extracted

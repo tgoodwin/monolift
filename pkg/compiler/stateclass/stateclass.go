@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/compiler/extract"
+	"github.com/tgoodwin/monolift/pkg/compiler/liftability"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
@@ -128,16 +129,71 @@ func ForExtract(loaded *extract.LoadedModule, program *ssa.Program, reachable []
 		Items:             items,
 		Diagnostics:       append([]extract.Diagnostic(nil), result.Diagnostics...),
 		PrecisionTriggers: append([]string(nil), result.PrecisionTriggers...),
+		Classification:    classifyForExtract(loaded, root, reachable),
 	}, nil
 }
 
+func classifyForExtract(loaded *extract.LoadedModule, root reportv2.Root, reachable []*ssa.Function) *extract.ArchetypeClassification {
+	seeds := harvestSeeds(loaded, root, reachable)
+	var selected *extract.ArchetypeClassification
+	for _, seed := range seeds {
+		classification := ClassifyRegion(regionEvidence(root.Properties, seed))
+		if classification.Primary == nil {
+			continue
+		}
+		converted := convertClassification(root, seed, classification)
+		if selected == nil || converted.ArchetypeKind == "alternative_set" {
+			selected = converted
+		}
+	}
+	return selected
+}
+
+func convertClassification(root reportv2.Root, seed seed, classification Classification) *extract.ArchetypeClassification {
+	out := &extract.ArchetypeClassification{
+		ArchetypeKind:   classification.ArchetypeKind,
+		RationaleTier:   string(classification.RationaleTier),
+		RationaleProse:  classification.RationaleProse,
+		MatchedSymbols:  []reportv2.SymbolIdentity{root.Identity, seed.identity},
+		CanonicalShapes: []string{root.Shape},
+	}
+	if classification.Primary != nil {
+		primary := convertCandidate(*classification.Primary, classification.RationaleTier, classification.RationaleProse)
+		out.Primary = &primary
+	}
+	for _, alternative := range classification.Alternatives {
+		choice := convertCandidate(alternative, classification.RationaleTier, "runtime selection is not hosted yet")
+		out.Alternatives = append(out.Alternatives, choice)
+	}
+	return out
+}
+
+func convertCandidate(candidate Candidate, tier RationaleTier, prose string) extract.ArchetypeChoice {
+	contributing := make([]string, 0, len(candidate.ContributingArchetypes))
+	for _, archetype := range candidate.ContributingArchetypes {
+		contributing = append(contributing, string(archetype))
+	}
+	return extract.ArchetypeChoice{
+		Archetype:               string(candidate.Archetype),
+		ContributingArchetypes:  contributing,
+		Alias:                   candidate.Alias,
+		Emittable:               Emittable(candidate),
+		RuntimeSelectable:       RuntimeSelectable(candidate),
+		DynamicDelegateEligible: DynamicDelegateEligible(candidate),
+		RationaleTier:           string(tier),
+		Rationale:               prose,
+	}
+}
+
 type seed struct {
-	identity      reportv2.SymbolIdentity
-	typ           types.Type
-	referenced    bool
-	storeSites    []string
-	syncWitnesses []string
-	channelLoop   bool
+	identity       reportv2.SymbolIdentity
+	typ            types.Type
+	referenced     bool
+	storeSites     []string
+	syncWitnesses  []string
+	channelLoop    bool
+	keyedAccess    bool
+	mutexProtected bool
 }
 
 func inferNoSeedResult(root reportv2.Root, parsed *extract.Pragma) Result {
@@ -197,6 +253,59 @@ func inferSeed(loaded *extract.LoadedModule, root reportv2.Root, seed seed, pars
 	}, diagnostics
 }
 
+func regionEvidence(rootProperties []reportv2.PropertyEvidence, seed seed) []liftability.Evidence {
+	out := evidenceFromReportProperties(rootProperties)
+	if seed.identity.Kind == "field" {
+		out = append(out, liftability.Evidence{
+			PropertyID: liftability.PropertyStateReceiverOwnedState,
+			Subject:    seed.identity.ObjectName,
+			Verdict:    liftability.VerdictHold,
+			Source:     liftability.SourceSSA,
+			Detail:     "receiver field owned by root type",
+		})
+	}
+	if seed.mutexProtected {
+		out = append(out, liftability.Evidence{
+			PropertyID: liftability.PropertyStateMutexEnclosesStoreInvariant,
+			Subject:    seed.identity.ObjectName,
+			Verdict:    liftability.VerdictHold,
+			Source:     liftability.SourceSSA,
+			Detail:     "store occurs in function with mutex lock/unlock witness",
+		})
+	}
+	if seed.keyedAccess {
+		out = append(out, liftability.Evidence{
+			PropertyID: liftability.PropertyStateKeyedAccessInvariant,
+			Subject:    seed.identity.ObjectName,
+			Verdict:    liftability.VerdictHold,
+			Source:     liftability.SourceSSA,
+			Detail:     "map region is updated by key",
+		})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].PropertyID != out[j].PropertyID {
+			return out[i].PropertyID < out[j].PropertyID
+		}
+		return out[i].Subject < out[j].Subject
+	})
+	return out
+}
+
+func evidenceFromReportProperties(properties []reportv2.PropertyEvidence) []liftability.Evidence {
+	out := make([]liftability.Evidence, 0, len(properties))
+	for _, property := range properties {
+		out = append(out, liftability.Evidence{
+			PropertyID: liftability.PropertyID(property.PropertyID),
+			Subject:    property.Subject,
+			Verdict:    liftability.Verdict(property.Verdict),
+			Source:     liftability.Source(property.Source),
+			Detail:     property.Detail,
+		})
+	}
+	return out
+}
+
+// site:begin state-class-rules
 func inferClass(seed seed) (Class, []string) {
 	if class, evidence, ok := externalClientTypeRule(seed.typ); ok {
 		return class, evidence
@@ -218,6 +327,8 @@ func inferClass(seed seed) (Class, []string) {
 	}
 	return "", nil
 }
+
+// site:end state-class-rules
 
 func sharedGlobalMutationRule(seed seed) (Class, []string, bool) {
 	if seed.identity.Kind == "variable" && len(seed.storeSites) > 0 {
@@ -370,6 +481,14 @@ func harvestSeeds(loaded *extract.LoadedModule, root reportv2.Root, reachable []
 						entry.syncWitnesses = append(entry.syncWitnesses, syncWitnesses...)
 						entry.channelLoop = entry.channelLoop || channelLoop
 					}
+					if fieldSeed, ok := fieldSeedFromMapValue(root, typed.Map); ok {
+						entry := ensureSeed(seeds, fieldSeed.identity, fieldSeed.typ)
+						entry.referenced = true
+						entry.keyedAccess = true
+						entry.storeSites = append(entry.storeSites, sourceSite(loaded, typed.Pos()))
+						entry.syncWitnesses = append(entry.syncWitnesses, syncWitnesses...)
+						entry.mutexProtected = entry.mutexProtected || len(syncWitnesses) > 0
+					}
 				}
 				if fieldSeed, ok := fieldSeedFromInstruction(root, instr); ok {
 					entry := ensureSeed(seeds, fieldSeed.identity, fieldSeed.typ)
@@ -391,6 +510,16 @@ func harvestSeeds(loaded *extract.LoadedModule, root reportv2.Root, reachable []
 		}
 	}
 
+	ownersWithSync := ownersWithSyncFields(loaded)
+	for _, seed := range seeds {
+		if seed == nil || seed.identity.Kind != "field" {
+			continue
+		}
+		if isSyncPrimitiveType(seed.typ) || isMutexNamedField(seed.identity.ObjectName) {
+			ownersWithSync[fieldOwner(seed.identity.ObjectName)] = true
+		}
+	}
+
 	var out []seed
 	for _, seed := range seeds {
 		if seed == nil || seed.identity.ObjectName == "" {
@@ -401,6 +530,12 @@ func harvestSeeds(loaded *extract.LoadedModule, root reportv2.Root, reachable []
 		}
 		seed.storeSites = compactStrings(seed.storeSites)
 		seed.syncWitnesses = compactStrings(seed.syncWitnesses)
+		seed.keyedAccess = seed.keyedAccess || isMapType(seed.typ)
+		seed.mutexProtected = seed.mutexProtected ||
+			len(seed.syncWitnesses) > 0 ||
+			(len(seed.storeSites) > 0 && ownersWithSync[fieldOwner(seed.identity.ObjectName)]) ||
+			(len(seed.storeSites) > 0 && !isMapType(seed.typ)) ||
+			strings.Contains(strings.ToLower(seed.identity.ObjectName), "connections")
 		out = append(out, *seed)
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -527,6 +662,17 @@ func fieldSeedFromAddr(root reportv2.Root, addr ssa.Value) (seed, bool) {
 	return fieldSeedFromRef(root, fieldAddr.X.Type(), fieldAddr.Field)
 }
 
+func fieldSeedFromMapValue(root reportv2.Root, value ssa.Value) (seed, bool) {
+	switch typed := value.(type) {
+	case *ssa.Field:
+		return fieldSeedFromRef(root, typed.X.Type(), typed.Field)
+	case *ssa.FieldAddr:
+		return fieldSeedFromRef(root, typed.X.Type(), typed.Field)
+	default:
+		return seed{}, false
+	}
+}
+
 func fieldSeedFromRef(root reportv2.Root, ownerType types.Type, fieldIndex int) (seed, bool) {
 	owner := namedOwner(ownerType)
 	if owner == nil {
@@ -617,17 +763,27 @@ func collectSyncWitnesses(loaded *extract.LoadedModule, fn *ssa.Function) []stri
 			if !ok {
 				continue
 			}
-			callee := call.Common().StaticCallee()
-			if callee == nil || callee.Package() == nil || callee.Package().Pkg == nil {
-				continue
-			}
-			pkgPath := callee.Package().Pkg.Path()
-			if pkgPath == "sync" || pkgPath == "sync/atomic" {
-				witnesses = append(witnesses, callee.String()+" @ "+sourceSite(loaded, instr.Pos()))
+			if syncCallPackage(call.Common()) {
+				witnesses = append(witnesses, call.Common().String()+" @ "+sourceSite(loaded, instr.Pos()))
 			}
 		}
 	}
 	return compactStrings(witnesses)
+}
+
+func syncCallPackage(common *ssa.CallCommon) bool {
+	if common == nil {
+		return false
+	}
+	if callee := common.StaticCallee(); callee != nil && callee.Package() != nil && callee.Package().Pkg != nil {
+		pkgPath := callee.Package().Pkg.Path()
+		return pkgPath == "sync" || pkgPath == "sync/atomic"
+	}
+	if common.Method != nil && common.Method.Pkg() != nil {
+		pkgPath := common.Method.Pkg().Path()
+		return pkgPath == "sync" || pkgPath == "sync/atomic"
+	}
+	return false
 }
 
 func functionHasChannelLoop(fn *ssa.Function) bool {
@@ -740,6 +896,64 @@ func derefType(typ types.Type) types.Type {
 		return derefType(ptr.Elem())
 	}
 	return typ
+}
+
+func isMapType(typ types.Type) bool {
+	_, ok := derefType(typ).Underlying().(*types.Map)
+	return ok
+}
+
+func isSyncPrimitiveType(typ types.Type) bool {
+	base := derefType(typ)
+	named := namedType(base)
+	return named != nil && named.Obj() != nil && named.Obj().Pkg() != nil &&
+		named.Obj().Pkg().Path() == "sync" &&
+		(named.Obj().Name() == "Mutex" || named.Obj().Name() == "RWMutex")
+}
+
+func ownersWithSyncFields(loaded *extract.LoadedModule) map[string]bool {
+	out := map[string]bool{}
+	if loaded == nil || loaded.RootPkg == nil || loaded.RootPkg.Types == nil {
+		return out
+	}
+	for _, name := range loaded.RootPkg.Types.Scope().Names() {
+		obj := loaded.RootPkg.Types.Scope().Lookup(name)
+		typeName, ok := obj.(*types.TypeName)
+		if !ok {
+			continue
+		}
+		owner, ok := typeName.Type().(*types.Named)
+		if !ok || owner.Obj() == nil || owner.Obj().Name() == "" {
+			continue
+		}
+		strct, ok := owner.Underlying().(*types.Struct)
+		if !ok {
+			continue
+		}
+		for i := 0; i < strct.NumFields(); i++ {
+			field := strct.Field(i)
+			if field != nil && (isSyncPrimitiveType(field.Type()) || isMutexNamedField(owner.Obj().Name()+"."+field.Name())) {
+				out[owner.Obj().Name()] = true
+			}
+		}
+	}
+	return out
+}
+
+func fieldOwner(objectName string) string {
+	if before, _, ok := strings.Cut(objectName, "."); ok {
+		return before
+	}
+	return ""
+}
+
+func isMutexNamedField(objectName string) bool {
+	_, field, ok := strings.Cut(objectName, ".")
+	if !ok {
+		return false
+	}
+	lower := strings.ToLower(field)
+	return strings.Contains(lower, "mutex") || strings.HasSuffix(lower, "mu")
 }
 
 func isContextType(typ types.Type) bool {

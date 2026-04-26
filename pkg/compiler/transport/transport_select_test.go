@@ -149,6 +149,41 @@ func TestSelectorRuleCoverageGate(t *testing.T) {
 	}
 }
 
+func TestSelectAdmissionFallthroughPreservesImplicitHandler(t *testing.T) {
+	t.Parallel()
+
+	selection := Select(SelectionInput{
+		Properties: append(admissibleProperties(),
+			property(string(liftability.PropertyTransportHandlerBoundary), "body", "Hold", "types", "signature matches net/http handler"),
+		),
+		Signals: SelectionSignals{
+			HandlerBoundaryEvidence: []string{"signature matches net/http handler"},
+		},
+	})
+
+	if selection.Template != TemplateHandler {
+		t.Fatalf("template=%q want %q", selection.Template, TemplateHandler)
+	}
+	if !containsRule(selection.AppliedRules, selectorRuleImplicitHandler) {
+		t.Fatalf("appliedRules=%v want %q", selection.AppliedRules, selectorRuleImplicitHandler)
+	}
+}
+
+func TestSelectAdmissionFallthroughSetsHTTPJSON(t *testing.T) {
+	t.Parallel()
+
+	selection := Select(SelectionInput{Properties: admissibleProperties()})
+	if selection.Template != TemplateHTTPJSON {
+		t.Fatalf("template=%q want %q", selection.Template, TemplateHTTPJSON)
+	}
+	if selection.DefaultTransport != "http-json" {
+		t.Fatalf("defaultTransport=%q want http-json", selection.DefaultTransport)
+	}
+	if !containsRule(selection.AppliedRules, selectorRuleHTTPJSON) {
+		t.Fatalf("appliedRules=%v want %q", selection.AppliedRules, selectorRuleHTTPJSON)
+	}
+}
+
 func property(id, subject, verdict, source, detail string) reportv2.PropertyEvidence {
 	return reportv2.PropertyEvidence{
 		PropertyID: id,

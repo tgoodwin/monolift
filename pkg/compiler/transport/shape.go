@@ -1,4 +1,4 @@
-package shape
+package transport
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/compiler/extract"
+	"github.com/tgoodwin/monolift/pkg/compiler/liftability"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
@@ -28,7 +29,9 @@ const (
 )
 
 type Classification struct {
+	Admission        string
 	Operation        reportv2.SymbolIdentity
+	Properties       []reportv2.PropertyEvidence
 	Shape            Shape
 	DefaultTransport string
 	Evidence         []string
@@ -47,21 +50,29 @@ func Classify(loaded *extract.LoadedModule, program *ssa.Program, root reportv2.
 	if program == nil {
 		return Result{}, fmt.Errorf("shape: program is nil")
 	}
+	lift, err := liftability.Classify(loaded, program, root)
+	if err != nil {
+		return Result{}, err
+	}
+	return classifyWithLiftability(loaded, program, root, toExtractLiftabilityResult(lift))
+}
 
+func classifyWithLiftability(loaded *extract.LoadedModule, program *ssa.Program, root reportv2.Root, lift extract.LiftabilityResult) (Result, error) {
 	ops, err := exposedOperations(loaded, root)
 	if err != nil {
 		return Result{}, err
 	}
 
 	perOperation := make([]Classification, 0, len(ops))
-	diagnostics := make([]extract.Diagnostic, 0, len(ops))
+	diagnostics := append([]extract.Diagnostic(nil), lift.Diagnostics...)
+	liftByOperation := indexLiftabilityByOperation(lift.PerOperation)
 	for _, op := range ops {
-		classification, opDiagnostics, err := classifyOperation(loaded, program, op)
+		handle, err := resolveOperation(loaded, program, op)
 		if err != nil {
 			return Result{}, err
 		}
+		classification := classifyOperation(loaded, handle, liftByOperation[identityKey(handle.identity)])
 		perOperation = append(perOperation, classification)
-		diagnostics = append(diagnostics, opDiagnostics...)
 	}
 
 	sort.Slice(perOperation, func(i, j int) bool {
@@ -69,7 +80,7 @@ func Classify(loaded *extract.LoadedModule, program *ssa.Program, root reportv2.
 	})
 	sortDiagnostics(diagnostics)
 
-	rootClassification, rootDiagnostics := aggregateRoot(loaded, root, perOperation)
+	rootClassification, rootDiagnostics := aggregateRoot(loaded, root, lift.Root, perOperation)
 	diagnostics = append(diagnostics, rootDiagnostics...)
 	sortDiagnostics(diagnostics)
 	return Result{
@@ -79,15 +90,15 @@ func Classify(loaded *extract.LoadedModule, program *ssa.Program, root reportv2.
 	}, nil
 }
 
-func ForExtract(loaded *extract.LoadedModule, program *ssa.Program, root reportv2.Root) (extract.ShapeResult, error) {
-	result, err := Classify(loaded, program, root)
+func ForExtract(loaded *extract.LoadedModule, program *ssa.Program, root reportv2.Root, lift extract.LiftabilityResult) (extract.ShapeResult, error) {
+	result, err := classifyWithLiftability(loaded, program, root, lift)
 	if err != nil {
 		return extract.ShapeResult{}, err
 	}
 	return toExtractShapeResult(result), nil
 }
 
-func ValidatePragmaOptions(loaded *extract.LoadedModule, root reportv2.Root, classified extract.ShapeResult) []extract.Diagnostic {
+func ValidatePragmaOptions(loaded *extract.LoadedModule, root reportv2.Root, _ extract.LiftabilityResult, classified extract.ShapeResult) []extract.Diagnostic {
 	diagnostics := make([]extract.Diagnostic, 0, 4)
 	diagnostics = append(diagnostics, validateTransportAgainstShape(loaded, classified.Root)...)
 	diagnostics = append(diagnostics, validateStateAffinityKey(loaded)...)
@@ -96,9 +107,11 @@ func ValidatePragmaOptions(loaded *extract.LoadedModule, root reportv2.Root, cla
 	return diagnostics
 }
 
-func aggregateRoot(loaded *extract.LoadedModule, root reportv2.Root, perOperation []Classification) (Classification, []extract.Diagnostic) {
+func aggregateRoot(loaded *extract.LoadedModule, root reportv2.Root, liftRoot extract.LiftabilityClassification, perOperation []Classification) (Classification, []extract.Diagnostic) {
 	rootClassification := Classification{
+		Admission:        liftRoot.Admission,
 		Operation:        root.Identity,
+		Properties:       append([]reportv2.PropertyEvidence(nil), liftRoot.Properties...),
 		Shape:            ShapeUnsupported,
 		DefaultTransport: "",
 		Evidence:         []string{},
@@ -120,7 +133,7 @@ func aggregateRoot(loaded *extract.LoadedModule, root reportv2.Root, perOperatio
 	}
 	if allSameShape(shapes) {
 		rootClassification.Shape = shapes[0]
-		rootClassification.DefaultTransport = defaultTransportForShape(shapes[0])
+		rootClassification.DefaultTransport = perOperation[0].DefaultTransport
 		rootClassification.Evidence = []string{fmt.Sprintf("aggregated %d operations with the same canonical shape", len(perOperation))}
 		return rootClassification, nil
 	}
@@ -174,52 +187,77 @@ func toExtractClassification(classification Classification) extract.ShapeClassif
 	}
 }
 
-func classifyOperation(loaded *extract.LoadedModule, program *ssa.Program, op reportv2.SymbolIdentity) (Classification, []extract.Diagnostic, error) {
-	handle, err := resolveOperation(loaded, program, op)
-	if err != nil {
-		return Classification{}, nil, err
+func toExtractLiftabilityResult(result liftability.Result) extract.LiftabilityResult {
+	return extract.LiftabilityResult{
+		Root:         toExtractLiftabilityClassification(result.Root),
+		PerOperation: toExtractLiftabilityClassifications(result.PerOperation),
+		Diagnostics:  append([]extract.Diagnostic(nil), result.Diagnostics...),
 	}
-	emitDiagnostics := emitOperationDiagnostics(loaded)
-
-	if evidence, ok := isHTTPHandler(loaded, handle); ok {
-		return newClassification(handle.identity, ShapeHTTPHandler, evidence), nil, nil
-	}
-	if evidence, ok := isChannelConsumer(handle); ok {
-		return newClassification(handle.identity, ShapeChannelConsumer, evidence), nil, nil
-	}
-	if evidence, ok := isBuilderChain(handle.signature); ok {
-		classification := newClassification(handle.identity, ShapeBuilderChain, evidence)
-		if !emitDiagnostics {
-			return classification, nil, nil
-		}
-		diag := diagnostic(loaded.RootPragma.Span, "MLV2_BUILDER_CHAIN_ROOT", "builder-chain roots are unsupported", "TA-SHAPE-1")
-		return classification, []extract.Diagnostic{diag}, nil
-	}
-	if evidence, ok := isCtxRequestResponse(loaded, handle.signature); ok {
-		return newClassification(handle.identity, ShapeCtxRequestResponse, evidence), nil, nil
-	}
-	if evidence, ok := isMultiDomainArgs(loaded, handle.signature); ok {
-		return newClassification(handle.identity, ShapeMultiDomainArgs, evidence), nil, nil
-	}
-	if evidence, diag, ok := isNoResponse(loaded, handle); ok {
-		classification := newClassification(handle.identity, ShapeNoResponse, evidence)
-		if diag == nil || !emitDiagnostics {
-			return classification, nil, nil
-		}
-		return classification, []extract.Diagnostic{*diag}, nil
-	}
-
-	evidence := unsupportedEvidence(loaded, handle.signature)
-	if len(evidence) == 0 {
-		evidence = []string{"signature did not match a supported canonical shape"}
-	}
-	classification := newClassification(handle.identity, ShapeUnsupported, evidence)
-	if !emitDiagnostics {
-		return classification, nil, nil
-	}
-	diag := diagnostic(loaded.RootPragma.Span, "MLV2_SHAPE_UNSUPPORTED", "root signature does not match a supported canonical shape", "TA-SHAPE-1", "TA-REFUSE-1", "AS-FUNC-2")
-	return classification, []extract.Diagnostic{diag}, nil
 }
+
+func toExtractLiftabilityClassifications(items []liftability.Classification) []extract.LiftabilityClassification {
+	out := make([]extract.LiftabilityClassification, 0, len(items))
+	for _, item := range items {
+		out = append(out, toExtractLiftabilityClassification(item))
+	}
+	return out
+}
+
+func toExtractLiftabilityClassification(item liftability.Classification) extract.LiftabilityClassification {
+	out := make([]reportv2.PropertyEvidence, 0, len(item.Properties))
+	for _, property := range item.Properties {
+		out = append(out, reportv2.PropertyEvidence{
+			PropertyID: string(property.PropertyID),
+			Subject:    property.Subject,
+			Verdict:    string(property.Verdict),
+			Source:     string(property.Source),
+			Detail:     property.Detail,
+		})
+	}
+	return extract.LiftabilityClassification{
+		Operation:   item.Operation,
+		Admission:   string(item.Admission),
+		Properties:  out,
+		RefusalCode: item.RefusalCode,
+	}
+}
+
+func indexLiftabilityByOperation(items []extract.LiftabilityClassification) map[string]extract.LiftabilityClassification {
+	out := make(map[string]extract.LiftabilityClassification, len(items))
+	for _, item := range items {
+		out[identityKey(item.Operation)] = item
+	}
+	return out
+}
+
+func propertyVerdict(properties []reportv2.PropertyEvidence, propertyID string) string {
+	for _, property := range properties {
+		if property.PropertyID == propertyID {
+			return property.Verdict
+		}
+	}
+	return ""
+}
+
+func propertyPresent(properties []reportv2.PropertyEvidence, propertyID string) bool {
+	return propertyVerdict(properties, propertyID) != ""
+}
+
+// site:begin canonical-shapes-classifier
+func classifyOperation(loaded *extract.LoadedModule, handle operationHandle, lift extract.LiftabilityClassification) Classification {
+	classification := Classification{
+		Admission:        lift.Admission,
+		Operation:        handle.identity,
+		Properties:       append([]reportv2.PropertyEvidence(nil), lift.Properties...),
+		Shape:            ShapeUnsupported,
+		DefaultTransport: "",
+		Evidence:         []string{},
+	}
+	selection := Select(buildSelectionInput(loaded, handle, lift))
+	return newClassification(classification, selection.Shape, selection.DefaultTransport, selection.Evidence)
+}
+
+// site:end canonical-shapes-classifier
 
 func emitOperationDiagnostics(loaded *extract.LoadedModule) bool {
 	return loaded.RootPragma.Surface == extract.SurfaceFunction ||
@@ -475,9 +513,6 @@ func isNoResponse(loaded *extract.LoadedModule, handle operationHandle) ([]strin
 	if handle.signature == nil {
 		return nil, nil, false
 	}
-	if len(unsupportedEvidence(loaded, handle.signature)) > 0 {
-		return nil, nil, false
-	}
 	switch handle.signature.Results().Len() {
 	case 0:
 		diag := diagnostic(loaded.RootPragma.Span, "MLV2_NO_ERROR_CHANNEL", "no-response roots must return an error channel when dispatched remotely", "TA-SHAPE-1", "SS-WALDO-2")
@@ -488,26 +523,6 @@ func isNoResponse(loaded *extract.LoadedModule, handle operationHandle) ([]strin
 		}
 	}
 	return nil, nil, false
-}
-
-func unsupportedEvidence(loaded *extract.LoadedModule, signature *types.Signature) []string {
-	if signature == nil {
-		return nil
-	}
-	evidence := make([]string, 0, 4)
-	if signature.Variadic() {
-		evidence = append(evidence, "variadic public signatures are unsupported")
-	}
-	if hasBoundaryType(signature, isChannelType) {
-		evidence = append(evidence, "channel-typed values cross the public boundary")
-	}
-	if hasBoundaryType(signature, isFuncType) {
-		evidence = append(evidence, "function-typed values cross the public boundary")
-	}
-	if hasBoundaryType(signature, func(typ types.Type) bool { return isUnsafePointer(loaded, typ) }) {
-		evidence = append(evidence, "unsafe.Pointer values cross the public boundary")
-	}
-	return evidence
 }
 
 func validateTransportAgainstShape(loaded *extract.LoadedModule, root extract.ShapeClassification) []extract.Diagnostic {
@@ -576,23 +591,6 @@ func isChannelType(typ types.Type) bool {
 	return ok
 }
 
-func isFuncType(typ types.Type) bool {
-	_, ok := typ.(*types.Signature)
-	return ok
-}
-
-func isUnsafePointer(loaded *extract.LoadedModule, typ types.Type) bool {
-	pkg := findImportedTypesPackage(loaded.RootPkg, "unsafe")
-	if pkg == nil {
-		return false
-	}
-	obj := pkg.Scope().Lookup("Pointer")
-	if obj == nil {
-		return false
-	}
-	return types.Identical(typ, obj.Type())
-}
-
 func channelCrossesBoundary(signature *types.Signature) bool {
 	return hasBoundaryType(signature, isChannelType)
 }
@@ -608,15 +606,28 @@ func defaultTransportForShape(shape Shape) string {
 	}
 }
 
-func newClassification(op reportv2.SymbolIdentity, shape Shape, evidence []string) Classification {
+func selectDefaultTransport(loaded *extract.LoadedModule, shape Shape) string {
+	transport := loaded.RootPragma.Options["transport"]
+	switch transport {
+	case "handler":
+		if shape == ShapeHTTPHandler {
+			return "handler"
+		}
+	case "http-json":
+		if shape == ShapeCtxRequestResponse || shape == ShapeMultiDomainArgs || shape == ShapeNoResponse {
+			return "http-json"
+		}
+	}
+	return defaultTransportForShape(shape)
+}
+
+func newClassification(base Classification, shape Shape, defaultTransport string, evidence []string) Classification {
 	stableEvidence := append([]string(nil), evidence...)
 	sort.Strings(stableEvidence)
-	return Classification{
-		Operation:        op,
-		Shape:            shape,
-		DefaultTransport: defaultTransportForShape(shape),
-		Evidence:         stableEvidence,
-	}
+	base.Shape = shape
+	base.DefaultTransport = defaultTransport
+	base.Evidence = stableEvidence
+	return base
 }
 
 func diagnostic(span extract.Span, code, message string, ruleIDs ...string) extract.Diagnostic {

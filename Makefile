@@ -157,3 +157,38 @@ memcheck:
 		echo "memcheck failed with status $$status"; \
 		exit 1; \
 	fi
+
+# ----------------------------------------------------------------------------
+# Educational static site (SPRINT-0008 and onward).
+# ----------------------------------------------------------------------------
+
+PY ?= python3
+MKDOCS ?= mkdocs
+DOCS_REQUIREMENTS := docs/site/requirements.txt
+
+.PHONY: docs-site-install docs-site-refresh docs-site-verify docs-site-build \
+        docs-site-serve docs-site-check-drift docs-site-check-policy
+
+docs-site-install:
+	$(PY) -m pip install -r $(DOCS_REQUIREMENTS)
+
+docs-site-check-policy:
+	$(PY) scripts/check-docs-policy.py
+
+docs-site-check-drift:
+	$(PY) scripts/check-snippet-drift.py
+
+docs-site-refresh:
+	$(PY) scripts/refresh-external-snippets.py
+
+# Verify pipeline: policy + drift + refresh-is-noop (no working-tree diff).
+docs-site-verify: docs-site-check-policy docs-site-check-drift
+	$(PY) scripts/refresh-external-snippets.py
+	@git diff --exit-code -- docs/site/snippets/external/ \
+		|| (echo "refresh produced a diff; commit the updated snippets"; exit 1)
+
+docs-site-build:
+	$(MKDOCS) build --strict -f mkdocs.yml
+
+docs-site-serve:
+	$(MKDOCS) serve -f mkdocs.yml

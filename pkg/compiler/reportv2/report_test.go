@@ -2,8 +2,12 @@ package reportv2
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 )
+
+const propertyTransportHandlerBoundary = "transport.handler-boundary"
 
 func TestParseValidAcceptReport(t *testing.T) {
 	data := mustReportJSON(t, sampleReport("accept", nil))
@@ -88,6 +92,113 @@ func TestParseAllowsMissingOptionalRootShapeFields(t *testing.T) {
 	}
 }
 
+func TestParseAllowsMissingOptionalArchetypeFields(t *testing.T) {
+	var raw map[string]any
+	if err := json.Unmarshal(mustReportJSON(t, sampleReport("accept", nil)), &raw); err != nil {
+		t.Fatal(err)
+	}
+	root, ok := raw["root"].(map[string]any)
+	if !ok {
+		t.Fatalf("root=%T want object", raw["root"])
+	}
+	delete(root, "archetype_kind")
+	delete(root, "primary")
+	delete(root, "alternatives")
+	delete(root, "pragma_provenance")
+	data, err := json.Marshal(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+	if got.Root.ArchetypeKind != "" || got.Root.Primary != nil || got.Root.Alternatives != nil || got.Root.PragmaProvenance != nil {
+		t.Fatalf("optional archetype fields unexpectedly populated: %#v", got.Root)
+	}
+}
+
+func TestParseAllowsOptionalSelectionAdmission(t *testing.T) {
+	report := sampleReport("accept", nil)
+	report.Selection = &Selection{
+		Admission: &AdmissionRecord{
+			Admitted: true,
+			Reasons:  []string{"admitted by transport admission v0"},
+		},
+	}
+
+	got, err := Parse(mustReportJSON(t, report))
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+	if got.Selection == nil || got.Selection.Admission == nil || !got.Selection.Admission.Admitted {
+		t.Fatalf("selection admission=%#v", got.Selection)
+	}
+}
+
+func TestParseAlternativeSetWithActorAdapter(t *testing.T) {
+	report := sampleReport("accept", nil)
+	report.Root.ArchetypeKind = "alternative_set"
+	report.Root.Primary = &ArchetypeChoice{
+		Archetype:               "serialized-actor",
+		ContributingArchetypes:  []string{"serialized-actor"},
+		Emittable:               true,
+		RuntimeSelectable:       false,
+		DynamicDelegateEligible: false,
+		RationaleTier:           "[TOPOLOGY]",
+		Rationale:               "native state topology preserves one serialized owner",
+	}
+	report.Root.Alternatives = []ArchetypeChoice{{
+		Archetype:               "keyed-partitioned-state",
+		ContributingArchetypes:  []string{"keyed-partitioned-state"},
+		Verdict:                 "SUGGEST",
+		Emittable:               false,
+		RuntimeSelectable:       false,
+		DynamicDelegateEligible: false,
+		RationaleTier:           "[TOPOLOGY]",
+		Rationale:               "runtime selection is not hosted yet",
+	}}
+	report.Adapters = append(report.Adapters, Adapter{
+		Kind:                 "actor",
+		ID:                   "serialized-actor",
+		MatchedSymbols:       []SymbolIdentity{report.Root.Identity},
+		CanonicalShapes:      []string{"http-handler"},
+		StateEffects:         []string{"serialized-owner", "mutex-serialized-state"},
+		TransportEffects:     []string{"rpc-command-mailbox"},
+		SerializationEffects: []string{"command-envelope"},
+	})
+
+	got, err := Parse(mustReportJSON(t, report))
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+	if got.Root.ArchetypeKind != "alternative_set" || got.Root.Primary == nil || len(got.Root.Alternatives) != 1 {
+		t.Fatalf("archetype fields=%#v", got.Root)
+	}
+	if got.Adapters[len(got.Adapters)-1].Kind != "actor" {
+		t.Fatalf("last adapter=%#v", got.Adapters[len(got.Adapters)-1])
+	}
+}
+
+func TestPreSprintGoldensValidateAgainstAdditiveSchema(t *testing.T) {
+	for _, path := range []string{
+		filepath.Join("..", "..", "..", "test", "e2e", "targets", "caddy", "golden", "report.json"),
+		filepath.Join("..", "..", "..", "test", "e2e", "targets", "miniflux", "golden", "report.json"),
+		filepath.Join("..", "..", "..", "test", "e2e", "targets", "pocketbase", "golden", "report.json"),
+	} {
+		t.Run(filepath.Base(filepath.Dir(filepath.Dir(path))), func(t *testing.T) {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("ReadFile: %v", err)
+			}
+			if err := Validate(data); err != nil {
+				t.Fatalf("Validate(%s): %v", path, err)
+			}
+		})
+	}
+}
+
 func mustReportJSON(t *testing.T, report Report) []byte {
 	t.Helper()
 
@@ -126,6 +237,8 @@ func sampleReport(verdict string, diagnostics []Diagnostic) Report {
 		Root: Root{
 			Identity:          root,
 			RegistryKey:       nil,
+			Admission:         "liftable",
+			Properties:        []PropertyEvidence{{PropertyID: propertyTransportHandlerBoundary, Subject: "body", Verdict: "Hold", Source: "types", Detail: "unit-test"}},
 			Shape:             "http-handler",
 			DefaultTransport:  "handler",
 			ExposedOperations: []SymbolIdentity{root},

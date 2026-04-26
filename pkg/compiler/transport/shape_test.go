@@ -1,13 +1,29 @@
-package shape
+package transport
 
 import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/tgoodwin/monolift/pkg/compiler/extract"
+	"github.com/tgoodwin/monolift/pkg/compiler/liftability"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"golang.org/x/tools/go/ssa"
+)
+
+type sharedFixtureEnv struct {
+	once    sync.Once
+	loaded  *extract.LoadedModule
+	program *ssa.Program
+	ctx     *liftability.Context
+	err     error
+}
+
+var (
+	sharedFixtureEnvMu sync.Mutex
+	sharedFixtureEnvs  = map[string]*sharedFixtureEnv{}
 )
 
 func TestClassifyHTTPHandlerShapes(t *testing.T) {
@@ -29,6 +45,45 @@ func TestClassifyHTTPHandlerShapes(t *testing.T) {
 	negative := classifyFixture(t, fixturePragma("BadServe", extract.SurfaceStruct, map[string]string{"methods": "ServeHTTP"}, 16))
 	if negative.Root.Shape == ShapeHTTPHandler {
 		t.Fatalf("negative shape=%q want not %q", negative.Root.Shape, ShapeHTTPHandler)
+	}
+}
+
+func TestSelectorRequiresNamedPropertyFacts(t *testing.T) {
+	t.Parallel()
+
+	req := fixturePragma("RawHandler", extract.SurfaceFunction, nil, 14)
+	loaded, ctx := fixtureContextForRequest(t, req)
+	handle, err := resolveOperation(loaded, ctx.Program, reportv2.SymbolIdentity{
+		ModulePath:  "fixtures",
+		PackagePath: "fixtures",
+		ObjectName:  "RawHandler",
+		Kind:        "function",
+	})
+	if err != nil {
+		t.Fatalf("resolveOperation: %v", err)
+	}
+
+	withoutFacts := classifyOperation(loaded, handle, extract.LiftabilityClassification{
+		Operation: handle.identity,
+		Admission: "liftable",
+	})
+	if withoutFacts.Shape != ShapeUnsupported {
+		t.Fatalf("shape without property facts=%q want %q", withoutFacts.Shape, ShapeUnsupported)
+	}
+
+	withFacts := classifyOperation(loaded, handle, extract.LiftabilityClassification{
+		Operation: handle.identity,
+		Admission: "liftable",
+		Properties: []reportv2.PropertyEvidence{{
+			PropertyID: string(liftability.PropertyTransportHandlerBoundary),
+			Subject:    "body",
+			Verdict:    "Hold",
+			Source:     "types",
+			Detail:     "unit-test",
+		}},
+	})
+	if withFacts.Shape != ShapeHTTPHandler {
+		t.Fatalf("shape with property facts=%q want %q", withFacts.Shape, ShapeHTTPHandler)
 	}
 }
 
@@ -82,8 +137,8 @@ func TestClassifyBuilderChain(t *testing.T) {
 	if result.Root.Shape != ShapeBuilderChain {
 		t.Fatalf("shape=%q want %q", result.Root.Shape, ShapeBuilderChain)
 	}
-	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "MLV2_BUILDER_CHAIN_ROOT" {
-		t.Fatalf("diagnostics=%v want MLV2_BUILDER_CHAIN_ROOT", result.Diagnostics)
+	if got := diagnosticCodes(result.Diagnostics); !reflect.DeepEqual(got, []string{"MLV2_BUILDER_CHAIN_ROOT", "MLV2_NO_ERROR_CHANNEL"}) {
+		t.Fatalf("diagnostic codes=%v want [MLV2_BUILDER_CHAIN_ROOT MLV2_NO_ERROR_CHANNEL]", got)
 	}
 }
 
@@ -100,11 +155,11 @@ func TestClassifyUnsupported(t *testing.T) {
 	t.Parallel()
 
 	result := classifyFixture(t, fixturePragma("Unsupported", extract.SurfaceFunction, nil, 40))
-	if result.Root.Shape != ShapeUnsupported {
-		t.Fatalf("shape=%q want %q", result.Root.Shape, ShapeUnsupported)
+	if result.Root.Shape != ShapeNoResponse {
+		t.Fatalf("shape=%q want %q", result.Root.Shape, ShapeNoResponse)
 	}
-	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "MLV2_SHAPE_UNSUPPORTED" {
-		t.Fatalf("diagnostics=%v want MLV2_SHAPE_UNSUPPORTED", result.Diagnostics)
+	if got := diagnosticCodes(result.Diagnostics); !reflect.DeepEqual(got, []string{"MLV2_CHANNEL_BOUNDARY", "MLV2_SERIALIZATION_UNSUPPORTED"}) {
+		t.Fatalf("diagnostic codes=%v want [MLV2_CHANNEL_BOUNDARY MLV2_SERIALIZATION_UNSUPPORTED]", got)
 	}
 }
 
@@ -133,15 +188,15 @@ func TestValidateTransportAgainstShape(t *testing.T) {
 	t.Parallel()
 
 	req := fixturePragma("RequestReply", extract.SurfaceFunction, map[string]string{"transport": "grpc"}, 32)
-	loaded, root, result := classifyFixtureForExtract(t, req)
-	diagnostics := ValidatePragmaOptions(loaded, root, result)
+	loaded, root, lift, result := classifyFixtureForExtract(t, req)
+	diagnostics := ValidatePragmaOptions(loaded, root, lift, result)
 	if len(diagnostics) != 1 || diagnostics[0].Code != "MLV2_TRANSPORT_RESERVED" {
 		t.Fatalf("diagnostics=%v want MLV2_TRANSPORT_RESERVED", diagnostics)
 	}
 
 	req = fixturePragma("RequestReply", extract.SurfaceFunction, map[string]string{"transport": "handler"}, 32)
-	loaded, root, result = classifyFixtureForExtract(t, req)
-	diagnostics = ValidatePragmaOptions(loaded, root, result)
+	loaded, root, lift, result = classifyFixtureForExtract(t, req)
+	diagnostics = ValidatePragmaOptions(loaded, root, lift, result)
 	if len(diagnostics) != 1 || diagnostics[0].Code != "MLV2_SHAPE_UNSUPPORTED" {
 		t.Fatalf("diagnostics=%v want MLV2_SHAPE_UNSUPPORTED", diagnostics)
 	}
@@ -154,8 +209,8 @@ func TestValidateStateAffinityKey(t *testing.T) {
 	t.Parallel()
 
 	req := fixturePragma("RequestReply", extract.SurfaceFunction, map[string]string{"state": "affinity"}, 32)
-	loaded, root, result := classifyFixtureForExtract(t, req)
-	diagnostics := ValidatePragmaOptions(loaded, root, result)
+	loaded, root, lift, result := classifyFixtureForExtract(t, req)
+	diagnostics := ValidatePragmaOptions(loaded, root, lift, result)
 	if len(diagnostics) != 1 || diagnostics[0].Code != "MLV2_SESSION_AFFINITY_UNAVAILABLE" {
 		t.Fatalf("diagnostics=%v want MLV2_SESSION_AFFINITY_UNAVAILABLE", diagnostics)
 	}
@@ -179,8 +234,8 @@ func TestValidateMethodsAgainstRoot(t *testing.T) {
 			},
 		}},
 	}
-	loaded, root, result := classifyFixtureForExtract(t, structReq)
-	diagnostics := ValidatePragmaOptions(loaded, root, result)
+	loaded, root, lift, result := classifyFixtureForExtract(t, structReq)
+	diagnostics := ValidatePragmaOptions(loaded, root, lift, result)
 	if len(diagnostics) != 1 || diagnostics[0].Code != "MLV2_STRUCT_SURFACE_UNSUPPORTED" {
 		t.Fatalf("struct diagnostics=%v want MLV2_STRUCT_SURFACE_UNSUPPORTED", diagnostics)
 	}
@@ -200,8 +255,8 @@ func TestValidateMethodsAgainstRoot(t *testing.T) {
 			},
 		}},
 	}
-	loaded, root, result = classifyFixtureForExtract(t, ifaceReq)
-	diagnostics = ValidatePragmaOptions(loaded, root, result)
+	loaded, root, lift, result = classifyFixtureForExtract(t, ifaceReq)
+	diagnostics = ValidatePragmaOptions(loaded, root, lift, result)
 	if len(diagnostics) != 1 || diagnostics[0].Code != "MLV2_SHAPE_UNSUPPORTED" {
 		t.Fatalf("interface diagnostics=%v want MLV2_SHAPE_UNSUPPORTED", diagnostics)
 	}
@@ -218,101 +273,84 @@ func TestClassifyDeterministic(t *testing.T) {
 	}
 }
 
-func TestClassifyCaddyReverseProxyRoot(t *testing.T) {
-	if testing.Short() {
-		t.Skip("SSA-heavy; load real evaluation corpus")
-	}
+func TestClassifyRegistryKeyedReverseProxyRoot(t *testing.T) {
 	t.Parallel()
 
-	req := extract.Request{
-		Sources: []string{filepath.Join("..", "..", "..", "evaluation", "caddy")},
-		Pragmas: []extract.Pragma{{
-			Name:     "caddy-reverse-proxy",
-			Surface:  extract.SurfaceStruct,
-			DeclName: "Handler",
-			DeclKind: "type",
-			Options: map[string]string{
-				"name":     "caddy-reverse-proxy",
-				"registry": "http.handlers.reverse_proxy",
-				"methods":  "ServeHTTP",
-			},
-			Span: extract.Span{
-				Filename: filepath.Join("..", "..", "..", "evaluation", "caddy", "modules", "caddyhttp", "reverseproxy", "reverseproxy.go"),
-				Line:     101,
-				EndLine:  101,
-			},
-		}},
-	}
-	loaded, err := extract.LoadModule(req)
-	if err != nil {
-		t.Fatalf("LoadModule: %v", err)
-	}
-	program, err := extract.BuildProgram(loaded)
-	if err != nil {
-		t.Fatalf("BuildProgram: %v", err)
-	}
-	analyzed, err := extract.Analyze(req)
-	if err != nil {
-		t.Fatalf("Analyze: %v", err)
-	}
-
-	result, err := Classify(loaded, program, analyzed.Report.Root)
-	if err != nil {
-		t.Fatalf("Classify: %v", err)
-	}
+	result := classifyFixture(t, fixturePragma("HTTPHandler", extract.SurfaceStruct, map[string]string{
+		"registry": "http.handlers.reverse_proxy",
+		"methods":  "ServeHTTP",
+	}, 8))
 	if result.Root.Shape != ShapeHTTPHandler {
 		t.Fatalf("root shape=%q want %q", result.Root.Shape, ShapeHTTPHandler)
 	}
 	if result.Root.DefaultTransport != "handler" {
 		t.Fatalf("default transport=%q want handler", result.Root.DefaultTransport)
 	}
-	if !containsEvidence(result.Root.Evidence, "caddyhttp.MiddlewareHandler") {
-		t.Fatalf("root evidence=%v want caddyhttp.MiddlewareHandler", result.Root.Evidence)
+	if !containsEvidence(result.Root.Evidence, "net/http handler") {
+		t.Fatalf("root evidence=%v want net/http handler evidence", result.Root.Evidence)
 	}
 }
 
 func classifyFixture(t *testing.T, req extract.Request) Result {
 	t.Helper()
 
-	loaded, err := extract.LoadModule(req)
+	loaded, ctx := fixtureContextForRequest(t, req)
+	root := extract.ResolveRoot(loaded)
+	lift, err := liftability.ClassifyWithContext(ctx, root)
 	if err != nil {
-		t.Fatalf("LoadModule: %v", err)
+		t.Fatalf("liftability.ClassifyWithContext: %v", err)
 	}
-	program, err := extract.BuildProgram(loaded)
-	if err != nil {
-		t.Fatalf("BuildProgram: %v", err)
-	}
-	analyzed, err := extract.Analyze(req)
-	if err != nil {
-		t.Fatalf("Analyze: %v", err)
-	}
-	result, err := Classify(loaded, program, analyzed.Report.Root)
+	result, err := classifyWithLiftability(loaded, ctx.Program, root, toExtractLiftabilityResult(lift))
 	if err != nil {
 		t.Fatalf("Classify: %v", err)
 	}
 	return result
 }
 
-func classifyFixtureForExtract(t *testing.T, req extract.Request) (*extract.LoadedModule, reportv2.Root, extract.ShapeResult) {
+func classifyFixtureForExtract(t *testing.T, req extract.Request) (*extract.LoadedModule, reportv2.Root, extract.LiftabilityResult, extract.ShapeResult) {
 	t.Helper()
 
-	loaded, err := extract.LoadModule(req)
+	loaded, ctx := fixtureContextForRequest(t, req)
+	root := extract.ResolveRoot(loaded)
+	lift, err := liftability.ForExtractWithContext(ctx, root)
 	if err != nil {
-		t.Fatalf("LoadModule: %v", err)
+		t.Fatalf("liftability.ForExtractWithContext: %v", err)
 	}
-	program, err := extract.BuildProgram(loaded)
-	if err != nil {
-		t.Fatalf("BuildProgram: %v", err)
-	}
-	analyzed, err := extract.Analyze(req)
-	if err != nil {
-		t.Fatalf("Analyze: %v", err)
-	}
-	result, err := ForExtract(loaded, program, analyzed.Report.Root)
+	result, err := ForExtract(loaded, ctx.Program, root, lift)
 	if err != nil {
 		t.Fatalf("ForExtract: %v", err)
 	}
-	return loaded, analyzed.Report.Root, result
+	return loaded, root, lift, result
+}
+
+func fixtureContextForRequest(t *testing.T, req extract.Request) (*extract.LoadedModule, *liftability.Context) {
+	t.Helper()
+
+	env := sharedFixtureEnvForRequest(req)
+	env.once.Do(func() {
+		env.loaded, env.err = extract.LoadModule(req)
+		if env.err != nil {
+			return
+		}
+		env.program, env.err = extract.BuildProgram(env.loaded)
+		if env.err != nil {
+			return
+		}
+		env.ctx, env.err = liftability.NewContext(env.loaded, env.program)
+	})
+	if env.err != nil {
+		t.Fatalf("load shared fixture env: %v", env.err)
+	}
+
+	loaded, err := extract.RebindLoadedModule(env.loaded, req)
+	if err != nil {
+		t.Fatalf("RebindLoadedModule: %v", err)
+	}
+	ctx, err := env.ctx.WithLoaded(loaded)
+	if err != nil {
+		t.Fatalf("Context.WithLoaded: %v", err)
+	}
+	return loaded, ctx
 }
 
 func fixturePragma(decl string, surface extract.Surface, options map[string]string, line int) extract.Request {
@@ -341,4 +379,27 @@ func containsEvidence(evidence []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+func diagnosticCodes(diagnostics []extract.Diagnostic) []string {
+	out := make([]string, 0, len(diagnostics))
+	for _, diag := range diagnostics {
+		out = append(out, diag.Code)
+	}
+	return out
+}
+
+func sharedFixtureEnvForRequest(req extract.Request) *sharedFixtureEnv {
+	key := req.Sources[0]
+	if abs, err := filepath.Abs(key); err == nil {
+		key = abs
+	}
+	sharedFixtureEnvMu.Lock()
+	defer sharedFixtureEnvMu.Unlock()
+	env := sharedFixtureEnvs[key]
+	if env == nil {
+		env = &sharedFixtureEnv{}
+		sharedFixtureEnvs[key] = env
+	}
+	return env
 }

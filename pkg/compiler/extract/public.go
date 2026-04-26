@@ -1,7 +1,10 @@
 package extract
 
 import (
+	"path/filepath"
+
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -19,6 +22,10 @@ func BuildProgram(loaded *LoadedModule) (*ssa.Program, error) {
 	return built.Program, nil
 }
 
+func CallGraphForProgram(program *ssa.Program) *callgraph.Graph {
+	return callGraphForProgram(program)
+}
+
 func ReachableFunctions(loaded *LoadedModule, root reportv2.Root) (*ssa.Program, []*ssa.Function, error) {
 	built, err := buildProgram(loaded)
 	if err != nil {
@@ -26,4 +33,34 @@ func ReachableFunctions(loaded *LoadedModule, root reportv2.Root) (*ssa.Program,
 	}
 	closure := buildClosure(loaded, built, root)
 	return built.Program, closure.ReachableFuncs, nil
+}
+
+func ResolveRoot(loaded *LoadedModule) reportv2.Root {
+	return resolveRoot(loaded)
+}
+
+func RebindLoadedModule(loaded *LoadedModule, req Request) (*LoadedModule, error) {
+	if loaded == nil {
+		return nil, nil
+	}
+	rootPragma, err := selectRootPragma(req.Pragmas)
+	if err != nil {
+		return nil, err
+	}
+
+	rootFile, err := filepath.Abs(rootPragma.Span.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	rootPkg := findPackageForFile(loaded.Packages, rootFile)
+	if rootPkg == nil {
+		return nil, err
+	}
+
+	clone := *loaded
+	clone.RootPragma = rootPragma
+	clone.RootFile = rootFile
+	clone.RootPkg = rootPkg
+	return &clone, nil
 }

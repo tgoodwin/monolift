@@ -3,7 +3,10 @@ bin/
 output/**/*
 .envrc
 inspiration/
-evaluation/
 docs/sprints/drafts/
 /tmp/monolift-e2e/
 test/e2e/targets/*/bin/
+
+# SPRINT-0008 docs site
+docs/site/site/
+.cache/evaluation-snippets/
