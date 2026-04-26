@@ -210,6 +210,35 @@ func TestRenderLiftClient(t *testing.T) {
 	}
 }
 
+func TestRenderLiftClientUsesIntFailureSentinel(t *testing.T) {
+	artifact, err := Render(estimateReadingTimeContext())
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := artifact.Files["monolift_lift_estimatereadingtime.go"]
+	if _, err := format.Source(data); err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, needle := range []string{
+		"const monoliftLiftFailureSentinel = -1",
+		"func monoliftLiftEstimateReadingTime(content string, defaultReadingSpeed int, cjkReadingSpeed int) (int, bool)",
+	} {
+		if !strings.Contains(text, needle) {
+			t.Fatalf("rendered int lift client missing %q\n%s", needle, data)
+		}
+	}
+	if strings.Contains(text, `"\x00MONOLIFT_LIFT_FAILED\x00"`) {
+		t.Fatalf("rendered int lift client contains string sentinel\n%s", data)
+	}
+	if artifact.HostPatchOps[0].ExpectedSignature != "func(string, int, int) int" {
+		t.Fatalf("signature=%q", artifact.HostPatchOps[0].ExpectedSignature)
+	}
+	if !strings.Contains(artifact.HostPatchOps[0].PreludeSource, "return monoliftLiftFailureSentinel") {
+		t.Fatalf("prelude missing failure sentinel return: %s", artifact.HostPatchOps[0].PreludeSource)
+	}
+}
+
 func TestRenderMatchesGoldens(t *testing.T) {
 	artifact, err := Render(cleanPathContext())
 	if err != nil {
@@ -354,5 +383,22 @@ func cleanPathContext() emit.Context {
 		},
 		ServiceName:  "monolift-extracted-cleanpath",
 		EnvVarPrefix: "MONOLIFT_LIFT_CLEANPATH",
+	}
+}
+
+func estimateReadingTimeContext() emit.Context {
+	return emit.Context{
+		SymbolImportPath: "miniflux.app/v2/internal/reader/readingtime",
+		ObjectName:       "EstimateReadingTime",
+		ParamFields: []emit.FieldSpec{
+			{Name: "Content", JSONName: "content", GoType: "string"},
+			{Name: "DefaultReadingSpeed", JSONName: "default_reading_speed", GoType: "int"},
+			{Name: "CjkReadingSpeed", JSONName: "cjk_reading_speed", GoType: "int"},
+		},
+		ResultFields: []emit.FieldSpec{
+			{Name: "ReadingTime", JSONName: "reading_time", GoType: "int"},
+		},
+		ServiceName:  "monolift-extracted-estimatereadingtime",
+		EnvVarPrefix: "MONOLIFT_LIFT_ESTIMATEREADINGTIME",
 	}
 }

@@ -200,6 +200,7 @@ All must hold at sprint close:
 ## Resolved blockers
 
 - **A.4 Go 1.26 target requirement:** `evaluation/miniflux` declares `go 1.26.0`, and a `stubcompiler` binary built with the repo default Go 1.25.4 fails `go/packages` loading with "package requires newer Go version go1.26". Resolved by building the e2e compile driver with `GOTOOLCHAIN=go1.26.0` for e2e runs and test-spawned driver invocations.
+- **B.2 int fail-closed sentinel:** the liftpatch client template still rendered the original string sentinel for every result type. Resolved with additive type-aware sentinel rendering; `int` results now use `-1` without changing the frozen patcher API.
 
 ## Roadmap follow-ups
 

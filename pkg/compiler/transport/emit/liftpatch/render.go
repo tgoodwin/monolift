@@ -71,7 +71,8 @@ func RenderTemplate(ctx emit.Context, name string) ([]byte, error) {
 
 type templateView struct {
 	emit.Context
-	ResultField emit.FieldSpec
+	ResultField     emit.FieldSpec
+	FailureSentinel string
 }
 
 func view(ctx emit.Context) templateView {
@@ -79,7 +80,7 @@ func view(ctx emit.Context) templateView {
 	if len(ctx.ResultFields) > 0 {
 		result = ctx.ResultFields[0]
 	}
-	return templateView{Context: ctx, ResultField: result}
+	return templateView{Context: ctx, ResultField: result, FailureSentinel: failureSentinel(result.GoType)}
 }
 
 func generatedSiblingName(objectName string) string {
@@ -101,6 +102,32 @@ func lowerCamel(name string) string {
 	runes := []rune(name)
 	runes[0] = unicode.ToLower(runes[0])
 	return string(runes)
+}
+
+func failureSentinel(goType string) string {
+	switch goType {
+	case "string":
+		return `"\x00MONOLIFT_LIFT_FAILED\x00"`
+	case "int":
+		return "-1"
+	case "bool":
+		return "false"
+	default:
+		return zeroValue(goType)
+	}
+}
+
+func zeroValue(goType string) string {
+	switch goType {
+	case "":
+		return "nil"
+	case "error":
+		return "nil"
+	}
+	if strings.HasPrefix(goType, "*") || strings.HasPrefix(goType, "[]") || strings.HasPrefix(goType, "map[") || strings.HasPrefix(goType, "chan ") || strings.HasPrefix(goType, "func(") || strings.HasPrefix(goType, "interface{") {
+		return "nil"
+	}
+	return goType + "{}"
 }
 
 func expectedSignature(ctx emit.Context) string {

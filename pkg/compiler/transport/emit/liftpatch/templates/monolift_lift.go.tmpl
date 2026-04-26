@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const monoliftLiftFailureSentinel = "\x00MONOLIFT_LIFT_FAILED\x00"
+const monoliftLiftFailureSentinel = {{ .FailureSentinel }}
 
 var (
 	monoliftLiftEnabled = os.Getenv("{{ .EnvVarPrefix }}") == "on"
