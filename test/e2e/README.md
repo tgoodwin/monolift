@@ -60,9 +60,7 @@ report, artifact build/load, lifted deploy/workload, compare, cleanup.
    past stage 0.
 3. Add `workload.go` implementing `harness.WorkloadExecutor`.
 4. Add `golden/report.json` using the `reportv2` schema.
-5. Add a stub compiler fixture under
-   `test/e2e/stubcompiler/fixtures/<name>/`.
-6. Import the target package in `test/e2e/e2e_test.go` and add it to the table.
+5. Import the target package in `test/e2e/e2e_test.go` and add it to the table.
 
 Deferred rows should set `SkipReason` with the sprint that will activate them.
 

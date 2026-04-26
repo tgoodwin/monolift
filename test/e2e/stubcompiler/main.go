@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -580,54 +579,6 @@ func repoRoot() string {
 			return wd
 		}
 	}
-}
-
-func copyTree(src, dst string) error {
-	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-		out := filepath.Join(dst, rel)
-		if entry.IsDir() {
-			return os.MkdirAll(out, 0o755)
-		}
-		return copyFile(path, out)
-	})
-}
-
-func copyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
-	}
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	return err
-}
-
-func copyLiftedArtifacts(fixtureDir, output string) error {
-	liftedDir := filepath.Join(fixtureDir, "lifted")
-	if _, err := os.Stat(liftedDir); err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	return copyTree(liftedDir, filepath.Join(output, "lifted"))
 }
 
 func resolveSources(sources []string) []string {

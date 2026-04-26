@@ -135,8 +135,8 @@ Goal: lift the symbol via the cmd-inside-host emitter, deploy lifted miniflux + 
 Goal: now that miniflux is on the real compiler, `usesRealCompiler` is dead code. Remove it cleanly. Then atomically rename the binary.
 
 - [x] **C.1** Delete `func usesRealCompiler(target string) bool` at `test/e2e/stubcompiler/main.go:346`. Delete the `if !usesRealCompiler { copyTree(...) }` fixture-copy branch at `:70-79`. Delete the `else if … copyLiftedArtifacts` branch at `:90-99` that also gated on `usesRealCompiler`. Verify `git grep usesRealCompiler` returns zero matches after this commit.
-- [ ] **C.2** Delete `test/e2e/stubcompiler/fixtures/` entirely (both `caddy/` dead subtree and `miniflux/` subtree). Verify `git grep test/e2e/stubcompiler/fixtures` returns zero matches.
-- [ ] **C.3** Sweep orphaned helpers: if `copyTree` / `copyFile` / `copyLiftedArtifacts` no longer have callers after C.1+C.2, delete them. Verify `go build ./...` succeeds.
+- [x] **C.2** Delete `test/e2e/stubcompiler/fixtures/` entirely (both `caddy/` dead subtree and `miniflux/` subtree). Verify `git grep test/e2e/stubcompiler/fixtures` returns zero matches.
+- [x] **C.3** Sweep orphaned helpers: if `copyTree` / `copyFile` / `copyLiftedArtifacts` no longer have callers after C.1+C.2, delete them. Verify `go build ./...` succeeds.
 - [ ] **C.4** Full per-target matrix gate **before** the rename (so bisect is clean): run caddy + pocketbase + miniflux + all pragma sub-targets through stubcompiler, assert each produces a valid report and the expected verdict. `go test ./test/e2e/stubcompiler/...` passes. `MONOLIFT_E2E=1 go test -tags=e2e ./test/e2e -count=1` passes for every non-skipped target.
 - [ ] **C.5** **Atomic rename** in a single commit (so it can be reverted independently if the blast radius blows up):
   - `bin/stubcompiler` → `bin/e2e-compile` in `Makefile` build target.
