@@ -7,8 +7,7 @@ func Target() harness.TargetCase {
 		Name:            "miniflux",
 		ExpectedVerdict: "accept",
 		StopAtStage:     10,
-		SkipReason:      "deferred pending v2 compiler FeedProcessor lift — SPRINT-0005",
-		SpecTrace:       "docs/specs/monolift-v2-contract.md §Cross-target validation: Miniflux",
+		SpecTrace:       "docs/specs/monolift-v2-contract.md §Cross-target validation: Miniflux; SPRINT-0020 real-compiler regen",
 		BaselineManifests: []string{
 			"test/e2e/fixtures/postgres.yaml",
 			"test/e2e/fixtures/rss-feed-server.yaml",
