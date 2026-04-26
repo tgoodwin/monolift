@@ -43,6 +43,8 @@ type HostPatchOp struct {
 	PackageDir        string
 	FuncName          string
 	ExpectedSignature string
+	PreludeSource     string
+	GeneratedFiles    []string
 	SentinelIdent     string
 }
 

@@ -1,0 +1,70 @@
+package caddyhttp
+
+import (
+	"bytes"
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+	"time"
+)
+
+const monoliftLiftFailureSentinel = "\x00MONOLIFT_LIFT_FAILED\x00"
+
+var (
+	monoliftLiftEnabled = os.Getenv("{{ .EnvVarPrefix }}") == "on"
+	monoliftLiftFailOpen = os.Getenv("MONOLIFT_LIFT_FAILMODE") == "open"
+	monoliftLiftEndpoint = func() string {
+		if v := os.Getenv("{{ endpointEnv .EnvVarPrefix }}"); v != "" {
+			return v
+		}
+		return "http://{{ .ServiceName }}:8081/invoke"
+	}()
+	monoliftLiftClient = &http.Client{
+		Timeout: 2 * time.Second,
+		Transport: &http.Transport{MaxIdleConnsPerHost: 16},
+	}
+)
+
+func {{ dialer .ObjectName }}({{ range $i, $field := .ParamFields }}{{ if $i }}, {{ end }}{{ camel $field.Name }} {{ $field.GoType }}{{ end }}) ({{ .ResultField.GoType }}, bool) {
+	payload, err := json.Marshal(struct {
+		{{ range .ParamFields }}{{ .Name }} {{ .GoType }} `json:"{{ .JSONName }}"`
+		{{ end }}InvocationID string `json:"invocation_id,omitempty"`
+	}{
+		{{ range .ParamFields }}{{ .Name }}: {{ camel .Name }},
+		{{ end }}
+	})
+	if err != nil {
+		log.Printf("monolift {{ lower .ObjectName }} remote error: marshal: %v", err)
+		var zero {{ .ResultField.GoType }}
+		return zero, false
+	}
+	req, err := http.NewRequest("POST", monoliftLiftEndpoint, bytes.NewReader(payload))
+	if err != nil {
+		log.Printf("monolift {{ lower .ObjectName }} remote error: newrequest: %v", err)
+		var zero {{ .ResultField.GoType }}
+		return zero, false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := monoliftLiftClient.Do(req)
+	if err != nil {
+		log.Printf("monolift {{ lower .ObjectName }} remote error: do: %v", err)
+		var zero {{ .ResultField.GoType }}
+		return zero, false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("monolift {{ lower .ObjectName }} remote error: status %d", resp.StatusCode)
+		var zero {{ .ResultField.GoType }}
+		return zero, false
+	}
+	var out struct {
+		{{ .ResultField.Name }} {{ .ResultField.GoType }} `json:"{{ .ResultField.JSONName }}"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		log.Printf("monolift {{ lower .ObjectName }} remote error: decode: %v", err)
+		var zero {{ .ResultField.GoType }}
+		return zero, false
+	}
+	return out.{{ .ResultField.Name }}, true
+}

@@ -281,10 +281,10 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
 
 ### Block C — Liftpatch emitter and patcher
 
-- [ ] **C.1** `pkg/compiler/transport/emit/liftpatch/types.go` and `patcher.go` per the API surface above. `func PatchSymbolBody(req PatchRequest) (PatchResult, error)`.
-- [ ] **C.2** `pkg/compiler/transport/emit/liftpatch/templates/monolift_lift.go.tmpl` parameterised on `(ServiceName, EnvVarPrefix, ObjectName, ParamFields, ResultFields)`. Emits the dialer, package-level cached vars (`monoliftLiftEnabled`, `monoliftLiftFailOpen`, `monoliftLiftEndpoint`, `monoliftLiftClient` shared `*http.Client` with 2s timeout + idle pool), `monoliftLiftFailureSentinel` constant, structured logging on every error path. File name: `monolift_lift_<lowercased ObjectName>.go` to avoid future upstream collision.
-- [ ] **C.3** `Render(ctx Context) (Artifact, error)` returns: rendered sibling-file bytes + `[]HostPatchOp` describing patch operations. The actual filesystem mutation happens in Block D — the emitter is pure (no I/O on host source tree).
-- [ ] **C.4** Liftpatch unit tests `pkg/compiler/transport/emit/liftpatch/liftpatch_test.go`:
+- [x] **C.1** `pkg/compiler/transport/emit/liftpatch/types.go` and `patcher.go` per the API surface above. `func PatchSymbolBody(req PatchRequest) (PatchResult, error)`.
+- [x] **C.2** `pkg/compiler/transport/emit/liftpatch/templates/monolift_lift.go.tmpl` parameterised on `(ServiceName, EnvVarPrefix, ObjectName, ParamFields, ResultFields)`. Emits the dialer, package-level cached vars (`monoliftLiftEnabled`, `monoliftLiftFailOpen`, `monoliftLiftEndpoint`, `monoliftLiftClient` shared `*http.Client` with 2s timeout + idle pool), `monoliftLiftFailureSentinel` constant, structured logging on every error path. File name: `monolift_lift_<lowercased ObjectName>.go` to avoid future upstream collision.
+- [x] **C.3** `Render(ctx Context) (Artifact, error)` returns: rendered sibling-file bytes + `[]HostPatchOp` describing patch operations. The actual filesystem mutation happens in Block D — the emitter is pure (no I/O on host source tree).
+- [x] **C.4** Liftpatch unit tests `pkg/compiler/transport/emit/liftpatch/liftpatch_test.go`:
   - `TestPatchInjectsPrelude`: fixture `func Foo(s string) string { return s }` → patch → first stmt is `*ast.IfStmt` with cond `*ast.Ident{Name: "monoliftLiftEnabled"}`.
   - `TestPatchIdempotentStructural`: applying twice returns `AlreadyApplied: true` on the second call AND produces byte-identical files.
   - `TestPatchPreservesOriginalBody`: original body statements appear after the prelude in source order; AST sequence preserved.
@@ -298,7 +298,7 @@ Six blocks; per-block validation gates explicit. Each block lands in smaller com
   - `TestPatchScansForCollisions`: package containing a pre-existing `monoliftLiftFoo` identifier returns collision diagnostic.
   - `TestPatchEmitsLIFTPATCHJson`: `LIFTPATCH.json` written with package import path, file path, function name, expected signature, sentinel, original/patched SHA-256, generated sibling paths.
   - `TestRenderLiftClient`: rendered sibling parses, gofmts, contains shared `*http.Client` package-level var, init reads env via `os.Getenv`, `monoliftLiftFailureSentinel` constant present.
-- [ ] **C.5** Goldens at `pkg/compiler/transport/emit/liftpatch/testdata/caddyhttp/`. `-update-golden` flag.
+- [x] **C.5** Goldens at `pkg/compiler/transport/emit/liftpatch/testdata/caddyhttp/`. `-update-golden` flag.
 
 **Block C gate:** `go test ./pkg/compiler/transport/emit/liftpatch/...` green; all refusal/ambiguity diagnostics fire correctly.
 
