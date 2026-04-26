@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monolift-extracted-cleanpath
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monolift-extracted-cleanpath
+  template:
+    metadata:
+      labels:
+        app: monolift-extracted-cleanpath
+    spec:
+      containers:
+        - name: extracted
+          image: monolift-e2e/extracted-cleanpath:e2e
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            periodSeconds: 2
