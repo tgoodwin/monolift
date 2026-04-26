@@ -165,6 +165,7 @@ func TestEmitsLiftedTreeForCaddy(t *testing.T) {
 	}
 
 	goBuild(t, hostPatch, "-mod=mod", "./cmd/...")
+	makeVerifyEvaluationUntouched(t)
 }
 
 func TestCaddySourceTreeUntouched(t *testing.T) {
@@ -240,6 +241,15 @@ func assertFunctionOnlyPatch(t *testing.T, originalPath, patchedPath, funcName s
 	if !ok || ident.Name != "monoliftLiftEnabled" {
 		t.Fatalf("%s prelude condition = %#v", funcName, ifStmt.Cond)
 	}
+	originalFunc := findFunc(t, original, funcName)
+	if len(patchedFunc.Body.List) != len(originalFunc.Body.List)+1 {
+		t.Fatalf("patched %s body has %d statements, want prepended sentinel plus original %d statements", funcName, len(patchedFunc.Body.List), len(originalFunc.Body.List))
+	}
+	originalBody := formatStmtList(t, originalFunc.Body.List)
+	patchedTail := formatStmtList(t, patchedFunc.Body.List[1:])
+	if !bytes.Equal(originalBody, patchedTail) {
+		t.Fatalf("patched %s does not preserve original %s body after sentinel prelude", patchedPath, funcName)
+	}
 
 	originalClone := cloneWithoutFunctionBody(t, originalPath, funcName)
 	patchedClone := cloneWithoutFunctionBody(t, patchedPath, funcName)
@@ -285,6 +295,11 @@ func formatNode(t *testing.T, node any) []byte {
 		t.Fatal(err)
 	}
 	return out.Bytes()
+}
+
+func formatStmtList(t *testing.T, stmts []ast.Stmt) []byte {
+	t.Helper()
+	return formatNode(t, &ast.BlockStmt{List: stmts})
 }
 
 func sameImports(a, b *ast.File) bool {
@@ -363,5 +378,15 @@ func goBuild(t *testing.T, dir string, args ...string) {
 	data, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go build %s: %v\n%s", dir, err, data)
+	}
+}
+
+func makeVerifyEvaluationUntouched(t *testing.T) {
+	t.Helper()
+	cmd := exec.Command("make", "verify-evaluation-untouched")
+	cmd.Dir = repoRoot()
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("make verify-evaluation-untouched: %v\n%s", err, data)
 	}
 }

@@ -4,6 +4,10 @@ metadata:
   name: caddyfile
 data:
   Caddyfile: |
+    {
+      servers { metrics }
+    }
+
     :8080 {
       header X-Caddy monolift-e2e
 

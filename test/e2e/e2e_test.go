@@ -541,16 +541,15 @@ func buildAndLoadLiftedImages(ctx context.Context, builder harness.ImageBuilder,
 	}
 
 	spec := *target.LiftedHostBuild
-	generatedBuilder := builder
-	generatedBuilder.SourceDirs = []string{filepath.Join(artifactsDir, spec.ContextRoot)}
-	if err := generatedBuilder.Build(ctx, filepath.Join(artifactsDir, spec.Dockerfile), filepath.Join(artifactsDir, spec.ContextRoot), spec.ImageTag); err != nil {
+	if err := buildGeneratedImage(ctx, builder, artifactsDir, spec.Dockerfile, spec.ContextRoot, spec.ImageTag); err != nil {
 		return err
 	}
 	for _, service := range target.LiftedExtractedServices {
-		if err := generatedBuilder.Build(ctx, filepath.Join(artifactsDir, service.Dockerfile), filepath.Join(artifactsDir, service.ContextRoot), service.ImageTag); err != nil {
+		if err := buildGeneratedImage(ctx, builder, artifactsDir, service.Dockerfile, service.ContextRoot, service.ImageTag); err != nil {
 			return err
 		}
 	}
+	generatedBuilder := builder
 	if err := generatedBuilder.LoadToKind(ctx, spec.ImageTag); err != nil {
 		return err
 	}
@@ -560,6 +559,12 @@ func buildAndLoadLiftedImages(ctx context.Context, builder harness.ImageBuilder,
 		}
 	}
 	return nil
+}
+
+func buildGeneratedImage(ctx context.Context, builder harness.ImageBuilder, artifactsDir, dockerfile, contextRoot, tag string) error {
+	generatedBuilder := builder
+	generatedBuilder.SourceDirs = []string{filepath.Join(artifactsDir, contextRoot)}
+	return generatedBuilder.Build(ctx, filepath.Join(artifactsDir, dockerfile), filepath.Join(artifactsDir, contextRoot), tag)
 }
 
 func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []string {

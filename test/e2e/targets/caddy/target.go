@@ -57,11 +57,19 @@ func Target() harness.TargetCase {
 		},
 		LiftedExtractedServices: []harness.ExtractedServiceSpec{{
 			Name:           "monolift-extracted-cleanpath",
-			Dockerfile:     "lifted/extracted-cleanpath/Dockerfile",
-			ContextRoot:    "lifted",
+			Dockerfile:     "lifted/Dockerfile.extracted-cleanpath",
+			ContextRoot:    "lifted/host-patch",
 			ImageTag:       "monolift-e2e/extracted-cleanpath:e2e",
-			DeploymentYAML: "lifted/manifests/extracted-deployment.yaml",
-			ServiceYAML:    "lifted/manifests/extracted-service.yaml",
+			DeploymentYAML: "lifted/manifests/extracted-cleanpath-deployment.yaml",
+			ServiceYAML:    "lifted/manifests/extracted-cleanpath-service.yaml",
+			ReadinessPath:  "/healthz",
+		}, {
+			Name:           "monolift-extracted-sanitizemethod",
+			Dockerfile:     "lifted/Dockerfile.extracted-sanitizemethod",
+			ContextRoot:    "lifted/host-patch",
+			ImageTag:       "monolift-e2e/extracted-sanitizemethod:e2e",
+			DeploymentYAML: "lifted/manifests/extracted-sanitizemethod-deployment.yaml",
+			ServiceYAML:    "lifted/manifests/extracted-sanitizemethod-service.yaml",
 			ReadinessPath:  "/healthz",
 		}},
 		// Regen: go build -o ./bin/stubcompiler ./test/e2e/stubcompiler && ./bin/stubcompiler --target=caddy --output=$(mktemp -d) --source=evaluation/caddy --source=test/e2e/targets/caddy
