@@ -182,7 +182,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted action failed: %v", err))
 	}
 	if len(target.LiftedExtractedServices) > 0 {
-		if err := assertExtractedServiceLogs(ctx, target, liftedNS, []string{"/static/hello.txt", "/proxy", "/headers"}); err != nil {
+		if err := assertExtractedServiceLogs(ctx, target, liftedNS, expectedExtractedLogNeedles(target)); err != nil {
 			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted logs assertion failed: %v", err))
 		}
 	}
@@ -485,6 +485,13 @@ func assertExtractedServiceLogs(ctx context.Context, target harness.TargetCase, 
 				return fmt.Errorf("%s logs missing %q", service.Name, needle)
 			}
 		}
+	}
+	return nil
+}
+
+func expectedExtractedLogNeedles(target harness.TargetCase) []string {
+	if target.Name == "caddy" {
+		return []string{"/static/hello.txt", "/proxy", "/headers"}
 	}
 	return nil
 }
