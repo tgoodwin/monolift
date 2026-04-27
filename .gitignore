@@ -10,3 +10,4 @@ test/e2e/targets/*/bin/
 # SPRINT-0008 docs site
 docs/site/site/
 .cache/evaluation-snippets/
+.yaks/**
