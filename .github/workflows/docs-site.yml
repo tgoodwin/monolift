@@ -51,6 +51,7 @@ jobs:
             --offline
             --no-progress
             --include-fragments
+            --root-dir docs/site/site
             docs/site/site
           fail: true
 
