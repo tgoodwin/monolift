@@ -9,6 +9,8 @@ type ArchetypeID string
 const (
 	ArchetypeSerializedActor       ArchetypeID = "serialized-actor"
 	ArchetypeKeyedPartitionedState ArchetypeID = "keyed-partitioned-state"
+	ArchetypeFanoutPublisher       ArchetypeID = "fanout-publisher"
+	ArchetypeSessionAffinityState  ArchetypeID = "session-affinity-state"
 )
 
 type Archetype struct {
@@ -36,6 +38,29 @@ var archetypes = map[ArchetypeID]Archetype{
 			liftability.PropertyEffectsNoGlobalWrites:     liftability.VerdictHold,
 			liftability.PropertyStateReceiverOwnedState:   liftability.VerdictHold,
 			liftability.PropertyStateKeyedAccessInvariant: liftability.VerdictHold,
+		},
+	},
+	ArchetypeFanoutPublisher: {
+		ID:   ArchetypeFanoutPublisher,
+		Name: "Fanout publisher",
+		Required: map[liftability.PropertyID]liftability.Verdict{
+			// Fanout evidence reuses ADR-0018 facts: root-owned state plus no
+			// global writes means recipient iteration stays inside the region.
+			liftability.PropertyEffectsNoGlobalWrites:   liftability.VerdictHold,
+			liftability.PropertyEffectsNoParamEscape:    liftability.VerdictHold,
+			liftability.PropertyStateReceiverOwnedState: liftability.VerdictHold,
+		},
+	},
+	ArchetypeSessionAffinityState: {
+		ID:   ArchetypeSessionAffinityState,
+		Name: "Session affinity state",
+		Required: map[liftability.PropertyID]liftability.Verdict{
+			// Existing ADR-0018 properties capture the required shape: state is
+			// receiver-owned, keyed, and not mutated through boundary params.
+			liftability.PropertyEffectsNoGlobalWrites:      liftability.VerdictHold,
+			liftability.PropertyEffectsNoParamHeapMutation: liftability.VerdictHold,
+			liftability.PropertyStateReceiverOwnedState:    liftability.VerdictHold,
+			liftability.PropertyStateKeyedAccessInvariant:  liftability.VerdictHold,
 		},
 	},
 }

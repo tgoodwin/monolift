@@ -176,6 +176,102 @@ func TestPatchEmitsLIFTPATCHJson(t *testing.T) {
 	}
 }
 
+func TestPatchRegionMultiSymbolMultiReceiver(t *testing.T) {
+	dir := writePackage(t, map[string]string{"root.go": `package p
+type Alpha struct{}
+type Beta struct{}
+func (Alpha) Serve(s string) string { return "a:" + s }
+func (Beta) Serve(s string) string { return "b:" + s }
+`})
+	shared := filepath.Join(dir, "monolift_region_client.go")
+	result, err := PatchRegion(RegionPatchRequest{
+		RegionName: "toy",
+		Symbols: []PatchSymbolRequest{
+			regionSymbol(dir, "Alpha", "Serve"),
+			regionSymbol(dir, "Beta", "Serve"),
+		},
+		SharedGeneratedFiles: []GeneratedFile{{Path: shared, Content: []byte("package p\nfunc monoliftRegionClient(s string) (string, bool) { return s, true }\n")}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Refused != nil {
+		t.Fatalf("refused: %+v", result.Refused)
+	}
+	if len(result.Files) != 2 {
+		t.Fatalf("files len=%d want 2", len(result.Files))
+	}
+	if len(result.GeneratedFiles) != 1 || result.GeneratedFiles[0].Path != shared {
+		t.Fatalf("generated=%+v", result.GeneratedFiles)
+	}
+	for _, receiver := range []string{"Alpha", "Beta"} {
+		fn := parseFunc(t, filepath.Join(dir, "root.go"), "Serve")
+		if fn == nil {
+			t.Fatalf("%s Serve not patched", receiver)
+		}
+	}
+}
+
+func TestPatchRegionMultiPackageSentinelUniqueness(t *testing.T) {
+	dirA := writePackage(t, map[string]string{"a.go": "package a\ntype Alpha struct{}\nfunc (Alpha) Serve(s string) string { return s }\n"})
+	dirB := writePackage(t, map[string]string{"b.go": "package b\ntype Beta struct{}\nfunc (Beta) Serve(s string) string { return s }\n"})
+	req := RegionPatchRequest{
+		RegionName: "toy",
+		Symbols: []PatchSymbolRequest{
+			regionSymbolWithImport(dirA, "example.com/a", "Alpha", "Serve"),
+			regionSymbolWithImport(dirB, "example.com/b", "Beta", "Serve"),
+		},
+	}
+	if req.Symbols[0].SentinelIdent == req.Symbols[1].SentinelIdent {
+		t.Fatal("sentinels should differ across package import paths")
+	}
+	result, err := PatchRegion(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Refused != nil {
+		t.Fatalf("refused: %+v", result.Refused)
+	}
+	if len(result.Files) != 2 {
+		t.Fatalf("files len=%d want 2", len(result.Files))
+	}
+}
+
+func TestPatchRegionNegativeCases(t *testing.T) {
+	t.Run("duplicate symbol identities", func(t *testing.T) {
+		dir := writePackage(t, map[string]string{"root.go": "package p\ntype Alpha struct{}\nfunc (Alpha) Serve(s string) string { return s }\n"})
+		req := RegionPatchRequest{RegionName: "toy", Symbols: []PatchSymbolRequest{regionSymbol(dir, "Alpha", "Serve"), regionSymbol(dir, "Alpha", "Serve")}}
+		assertRegionRefusal(t, req, DiagnosticAmbiguousTarget)
+	})
+	t.Run("signature mismatch", func(t *testing.T) {
+		dir := writePackage(t, map[string]string{"root.go": "package p\ntype Alpha struct{}\nfunc (Alpha) Serve(i int) string { return \"\" }\n"})
+		assertRegionRefusal(t, RegionPatchRequest{RegionName: "toy", Symbols: []PatchSymbolRequest{regionSymbol(dir, "Alpha", "Serve")}}, DiagnosticSignatureMismatch)
+	})
+	t.Run("generated-file collision", func(t *testing.T) {
+		dir := writePackage(t, map[string]string{"root.go": "package p\ntype Alpha struct{}\nfunc (Alpha) Serve(s string) string { return s }\n"})
+		path := filepath.Join(dir, "generated.go")
+		req := RegionPatchRequest{
+			RegionName: "toy",
+			Symbols: []PatchSymbolRequest{{
+				PackageImportPath: "example.com/p",
+				PackageDir:        dir,
+				FuncName:          "Serve",
+				ReceiverType:      "Alpha",
+				ExpectedSignature: "func(string) string",
+				Prelude:           PreludeSpec{GoSource: "return s"},
+				GeneratedFiles:    []GeneratedFile{{Path: path, Content: []byte("package p\n")}},
+			}},
+			SharedGeneratedFiles: []GeneratedFile{{Path: path, Content: []byte("package p\nvar X = 1\n")}},
+		}
+		assertRegionRefusal(t, req, DiagnosticIdentifierCollision)
+	})
+	t.Run("receiver mismatch", func(t *testing.T) {
+		dir := writePackage(t, map[string]string{"root.go": "package p\ntype Alpha struct{}\nfunc (Alpha) Serve(s string) string { return s }\n"})
+		symbol := regionSymbol(dir, "Beta", "Serve")
+		assertRegionRefusal(t, RegionPatchRequest{RegionName: "toy", Symbols: []PatchSymbolRequest{symbol}}, DiagnosticTargetNotFound)
+	})
+}
+
 func TestRenderLiftClient(t *testing.T) {
 	artifact, err := Render(cleanPathContext())
 	if err != nil {
@@ -304,6 +400,27 @@ func patchRequest(dir, name, signature string) PatchRequest {
 	}
 }
 
+func regionSymbol(dir, receiver, name string) PatchSymbolRequest {
+	return regionSymbolWithImport(dir, "example.com/p", receiver, name)
+}
+
+func regionSymbolWithImport(dir, importPath, receiver, name string) PatchSymbolRequest {
+	sentinel := regionSentinel("toy", importPath)
+	return PatchSymbolRequest{
+		PackageImportPath: importPath,
+		PackageDir:        dir,
+		FuncName:          name,
+		ReceiverType:      receiver,
+		ExpectedSignature: "func(string) string",
+		Prelude: PreludeSpec{GoSource: `if ` + sentinel + ` {
+	if result, ok := monoliftRegionClient(s); ok {
+		return result
+	}
+}`},
+		SentinelIdent: sentinel,
+	}
+}
+
 func parseFunc(t *testing.T, path, name string) *ast.FuncDecl {
 	t.Helper()
 	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
@@ -318,6 +435,20 @@ func parseFunc(t *testing.T, path, name string) *ast.FuncDecl {
 	}
 	t.Fatalf("%s not found", name)
 	return nil
+}
+
+func assertRegionRefusal(t *testing.T, req RegionPatchRequest, want DiagnosticKind) {
+	t.Helper()
+	result, err := PatchRegion(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Refused == nil {
+		t.Fatalf("refused=nil want %s", want)
+	}
+	if result.Refused.Kind != want {
+		t.Fatalf("refusal=%s want %s (%s)", result.Refused.Kind, want, result.Refused.Message)
+	}
 }
 
 func assertDiagnostic(t *testing.T, err error, want DiagnosticKind) {

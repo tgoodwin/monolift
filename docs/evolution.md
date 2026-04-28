@@ -522,6 +522,76 @@ driver was renamed atomically to `bin/e2e-compile` with source under
 
 ---
 
+## 2026-04-27 — Mattermost composite probe surfaces multi-root region gap · branch (C)
+
+SPRINT-0021 attempted the ADR-0022 composite vertical slice on Mattermost Hub/WebConn. A.1 closure analysis succeeded under budget (88s wall, 2.15GB max RSS, 4.1GB Go heap; 2956 included / 4838 excluded symbols). A.2 region pinning surfaced the cliff: the intended composite boundary is genuinely multi-root — Hub fanout/index ownership at one root, per-connection write-pump/replay state at another — and the current closure model accepts one pragma root per region. `WebConn.writePump` does not appear under a Hub-rooted closure; field-level state (`send`, `deadQueue`, `Sequence`, `connectionID`) is not modeled as closure symbols at all.
+
+The sprint stopped on branch (C) per design. The cliff doc captures reproduction steps, resource numbers, observed-vs-intended boundary diff, and a follow-up shape: first-class multi-root region declaration + closure union with per-root provenance + stateclass evidence aggregation across the union + report schema for contributing roots distinct from contributing archetypes. The framing is generalizable, not Mattermost-specific.
+
+SPRINT-0022 implemented that multi-root analysis path and landed branch (R). Shared-name pragmas now regroup into one region; the Mattermost overlay declares Hub and WebConn as peer roots without touching `evaluation/mattermost/`. The union closure includes `(*WebConn).writePump`, every union symbol carries sorted reachability provenance, and SSA seam detection records the `WebConn.send` channel seam as Hub writers to WebConn readers. Admission accepts in-region channel seams under the single-service emission hypothesis. Emission stops at a characterized tooling gap: the current liftpatch API patches one free function per request and cannot replace multiple receiver methods across the Hub/WebConn root set with one extracted service.
+
+ADR-0022 specified composite *archetypes* but tacitly assumed one region = one root. Mattermost surfaced that the region model itself is the missing piece — that's the research output.
+
+**Primary artifacts:** `docs/research/runs/SPRINT-0021-region-granularity.md` · `test/e2e/e2ecompile/main.go` (additive: Mattermost packageDirFor + synthetic Hub pragma helper) · `test/e2e/targets/mattermost/target.go` (SkipReason updated)
+
+---
+
+## 2026-04-27 — Boot-path, RegionPatchRequest, and stream-proxy machinery · branch (R)
+
+SPRINT-0023 lands the next tranche of Mattermost-forcing machinery: surface
+derivation, additive `RegionPatchRequest`, a bounded boot-path pass, config
+manifest rendering, and the stream-proxy emitter/test harness for session
+surfaces. The Mattermost boot-path probe completed under budget at 55.41s wall
+and 2.35GB max RSS with the required Mattermost `GOWORK`.
+
+Mattermost lands branch (R), not (S). The new machinery passes toy stream-proxy
+and multi-root fixtures, but Mattermost still needs route-to-region surface
+derivation and true reverse boot-chain reconstruction before host/extracted
+artifacts can be emitted honestly. The characterized gaps are tooling
+immaturity, not fundamental distribution blockers.
+
+**Primary artifacts:** `pkg/compiler/surface/` · `pkg/compiler/extract/bootpath/` · `pkg/compiler/transport/emit/liftpatch/` · `pkg/compiler/transport/emit/manifest/` · `pkg/compiler/transport/emit/streamproxy/` · `docs/research/runs/SPRINT-0023-mattermost-attempt.md` · `docs/decisions/0026-bootpath-extraction.md` · `docs/decisions/0027-region-patch-request.md`
+
+---
+
+## 2026-04-27 — EntryPath invocation probe stops at gate-A
+
+SPRINT-0024 added the `pkg/compiler/entrypath` probe package, a debug
+`cmd/entrypath-probe` binary, toy fixtures for reverse reachability and
+function-value flow, and e2e harness wiring that can request a Mattermost probe
+artifact without consuming it. The Mattermost run did not reach chain-quality
+checks: with the required Mattermost `GOWORK`, the probe exceeded the 60s
+gate-A wall-clock budget before emitting JSON and was killed. Without that
+workspace, package loading fails earlier due the known local `server/public`
+module skew.
+
+No Phase 2 reportv2 or surface consumer work landed. The next probe should
+separate package load, SSA build, RTA/VTA, reverse BFS, and function-value walk
+timing, then narrow function-value propagation to reverse-path and HTTP-sink
+candidate starts instead of every indexed function value.
+
+**Primary artifacts:** `pkg/compiler/entrypath/` · `cmd/entrypath-probe/` · `docs/research/runs/SPRINT-0024-mattermost-probe.md`
+
+---
+
+## 2026-04-27 — EntryPath search matrix redirects Mattermost work to seeded diagnostics
+
+SPRINT-0025 turned the broad EntryPath probe into measured search modes. The
+full `all` index can recover `connectWebSocket` and the
+`APIHandlerTrustRequester` chain, but only at whole-program scale. Reverse-path
+mode is cheap and bounded but too narrow; current HTTP-sink and targeted modes
+spend their budgets in seed discovery before indexed flow reaches Mattermost
+evidence.
+
+The next sprint should be another diagnostic, not report wiring: make
+HTTP-shaped seed discovery incremental from reverse-path owners and nearby
+callgraph structure, then require recovery inside a split gate for baseline
+loader/SSA/callgraph cost and incremental EntryPath cost.
+
+**Primary artifacts:** `docs/research/runs/SPRINT-0025-entrypath-baseline.md` · `docs/research/runs/SPRINT-0025-entrypath-search-matrix.md`
+
+---
+
 ## Pending
 
 - **Full archetype catalog migration.** SPRINT-0017 migrates only

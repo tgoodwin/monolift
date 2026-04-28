@@ -399,6 +399,110 @@ func Modern() {}`)
 	requireDiagnostic(t, diagnostics, CodeV1Deprecated, SeverityWarning)
 }
 
+func TestRegroupPragmas(t *testing.T) {
+	t.Run("same name peers coalesce", func(t *testing.T) {
+		pragmas, diagnostics := parseSource(t, `package p
+type Hub struct{}
+type WebConn struct{}
+//monolift:lift name=connection-hub-buffer mode=remote transport=http-json
+func (h *Hub) Broadcast() {}
+//monolift:lift name=connection-hub-buffer mode=remote transport=http-json
+func (wc *WebConn) Pump() {}`)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected parse diagnostics: %#v", diagnostics)
+		}
+		regions, diagnostics := RegroupPragmas(pragmas)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected regroup diagnostics: %#v", diagnostics)
+		}
+		if len(regions) != 1 || len(regions[0].Roots) != 2 {
+			t.Fatalf("regions=%#v, want one region with two roots", regions)
+		}
+		if regions[0].Roots[0].ID != "Hub.Broadcast" || regions[0].Roots[1].ID != "WebConn.Pump" {
+			t.Fatalf("root ids=%q,%q", regions[0].Roots[0].ID, regions[0].Roots[1].ID)
+		}
+	})
+
+	t.Run("conflicting mode", func(t *testing.T) {
+		pragmas, parseDiagnostics := parseSource(t, `package p
+//monolift:lift name=svc mode=remote
+func A() {}
+//monolift:lift name=svc mode=local
+func B() {}`)
+		if len(parseDiagnostics) != 0 {
+			t.Fatalf("unexpected parse diagnostics: %#v", parseDiagnostics)
+		}
+		_, diagnostics := RegroupPragmas(pragmas)
+		requireDiagnostic(t, diagnostics, CodeRegionConflict, SeverityError)
+	})
+
+	t.Run("different names", func(t *testing.T) {
+		pragmas, diagnostics := parseSource(t, `package p
+//monolift:lift name=a
+func A() {}
+//monolift:lift name=b
+func B() {}`)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected parse diagnostics: %#v", diagnostics)
+		}
+		regions, diagnostics := RegroupPragmas(pragmas)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected regroup diagnostics: %#v", diagnostics)
+		}
+		if len(regions) != 2 {
+			t.Fatalf("got %d regions, want 2", len(regions))
+		}
+	})
+
+	t.Run("empty name legacy fallback", func(t *testing.T) {
+		pragmas := []*Pragma{
+			{Span: Span{Filename: "a.go", Line: 1}, DeclName: "A", Options: map[string]string{"mode": "remote"}},
+			{Span: Span{Filename: "a.go", Line: 2}, DeclName: "B", Options: map[string]string{"mode": "remote"}},
+		}
+		regions, diagnostics := RegroupPragmas(pragmas)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected regroup diagnostics: %#v", diagnostics)
+		}
+		if len(regions) != 2 || len(regions[0].Roots) != 1 || len(regions[1].Roots) != 1 {
+			t.Fatalf("regions=%#v, want two single-root regions", regions)
+		}
+	})
+
+	t.Run("three peers sorted deterministically", func(t *testing.T) {
+		pragmas := []*Pragma{
+			{Name: "svc", Span: Span{Filename: "a.go", Line: 3}, DeclIdentity: "C", Options: map[string]string{"name": "svc", "mode": "remote"}},
+			{Name: "svc", Span: Span{Filename: "a.go", Line: 2}, DeclIdentity: "A", Options: map[string]string{"name": "svc", "mode": "remote"}},
+			{Name: "svc", Span: Span{Filename: "a.go", Line: 1}, DeclIdentity: "B", Options: map[string]string{"name": "svc", "mode": "remote"}},
+		}
+		regions, diagnostics := RegroupPragmas(pragmas)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected regroup diagnostics: %#v", diagnostics)
+		}
+		if len(regions) != 1 || len(regions[0].Roots) != 3 {
+			t.Fatalf("regions=%#v, want one three-root region", regions)
+		}
+		got := []string{regions[0].Roots[0].ID, regions[0].Roots[1].ID, regions[0].Roots[2].ID}
+		if strings.Join(got, ",") != "A,B,C" {
+			t.Fatalf("root order=%v, want A,B,C", got)
+		}
+	})
+
+	t.Run("post default mode equivalence", func(t *testing.T) {
+		pragmas, diagnostics := parseSource(t, `package p
+//monolift:lift name=svc
+func A() {}
+//monolift:lift name=svc mode=remote
+func B() {}`)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected parse diagnostics: %#v", diagnostics)
+		}
+		_, diagnostics = RegroupPragmas(pragmas)
+		if len(diagnostics) != 0 {
+			t.Fatalf("unexpected regroup diagnostics: %#v", diagnostics)
+		}
+	})
+}
+
 func parseSource(t *testing.T, src string) ([]*Pragma, []Diagnostic) {
 	t.Helper()
 	fset := token.NewFileSet()

@@ -128,8 +128,11 @@ func TestTierTableEnumeration(t *testing.T) {
 		got[id] = priority
 	}
 	want := map[ArchetypeID]int{
-		ArchetypeSerializedActor:       100,
-		ArchetypeKeyedPartitionedState: 50,
+		ArchetypeSerializedActor:             100,
+		ArchetypeKeyedPartitionedState:       50,
+		ArchetypeFanoutPublisher:             75,
+		ArchetypeSessionAffinityState:        40,
+		ArchetypeID("connection-hub-buffer"): 150,
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("topology tier table=%v want %v", got, want)

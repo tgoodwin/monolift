@@ -11,6 +11,24 @@ type PatchRequest struct {
 	SentinelIdent     string
 }
 
+type RegionPatchRequest struct {
+	RegionName           string
+	Symbols              []PatchSymbolRequest
+	SharedGeneratedFiles []GeneratedFile
+}
+
+type PatchSymbolRequest struct {
+	PackageImportPath string
+	PackageDir        string
+	File              string
+	FuncName          string
+	ReceiverType      string
+	ExpectedSignature string
+	Prelude           PreludeSpec
+	SentinelIdent     string
+	GeneratedFiles    []GeneratedFile
+}
+
 type PreludeSpec struct {
 	GoSource        string
 	RequiredImports []string
@@ -28,6 +46,31 @@ type PatchResult struct {
 	OriginalSHA256 string
 	PatchedSHA256  string
 	AlreadyApplied bool
+}
+
+type RegionPatchResult struct {
+	Files          []PatchedFileResult
+	GeneratedFiles []GeneratedFileResult
+	Refused        *RegionPatchRefusal
+}
+
+type PatchedFileResult struct {
+	Path           string
+	OriginalSHA256 string
+	PatchedSHA256  string
+	AddedImports   []string
+	AlreadyApplied bool
+}
+
+type GeneratedFileResult struct {
+	Path   string
+	SHA256 string
+}
+
+type RegionPatchRefusal struct {
+	Kind    DiagnosticKind
+	Message string
+	Symbol  PatchSymbolRequest
 }
 
 type LiftPatchManifest struct {

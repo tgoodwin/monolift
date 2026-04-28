@@ -3,6 +3,7 @@ package extract
 import (
 	"go/token"
 	"go/types"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -17,6 +18,8 @@ type closureResult struct {
 	ExternalDeps      []reportv2.ExternalDep
 	PrecisionTriggers []string
 	ReachableFuncs    []*ssa.Function
+	ReachableByRoot   map[string][]*ssa.Function
+	Provenance        map[string][]string
 }
 
 type dispatchPlan struct {
@@ -99,6 +102,11 @@ func buildClosure(loaded *loadedModule, built *builtProgram, root reportv2.Root)
 		}
 	}
 
+	rootID := root.Identity.ObjectName
+	if rootID == "" {
+		rootID = "root"
+	}
+	reachableFuncs := sortedFunctions(visitedFunctions)
 	return closureResult{
 		Closure: reportv2.Closure{
 			IncludedSymbols: sortedEntries(included),
@@ -107,8 +115,91 @@ func buildClosure(loaded *loadedModule, built *builtProgram, root reportv2.Root)
 		},
 		ExternalDeps:      sortedExternalDeps(externalDeps),
 		PrecisionTriggers: sortedTriggerKeys(dispatch.triggers),
-		ReachableFuncs:    sortedFunctions(visitedFunctions),
+		ReachableFuncs:    reachableFuncs,
+		ReachableByRoot:   map[string][]*ssa.Function{rootID: reachableFuncs},
 	}
+}
+
+func buildRegionClosure(loaded *loadedModule, built *builtProgram, root reportv2.Root) closureResult {
+	if loaded == nil || len(loaded.RootRegion.Roots) <= 1 {
+		return buildClosure(loaded, built, root)
+	}
+
+	included := map[string]reportv2.SymbolEntry{}
+	excluded := map[string]reportv2.SymbolEntry{}
+	externalDeps := map[string]reportv2.ExternalDep{}
+	provenance := map[string]map[string]bool{}
+	triggers := map[string]bool{}
+	reachable := map[*ssa.Function]bool{}
+	reachableByRoot := map[string][]*ssa.Function{}
+	var wiring []reportv2.WiringPath
+
+	for _, regionRoot := range loaded.RootRegion.Roots {
+		rootLoaded, ok := loadedForRegionRoot(loaded, regionRoot)
+		if !ok {
+			continue
+		}
+		rootReport := resolveRoot(rootLoaded)
+		rootClosure := buildClosure(rootLoaded, built, rootReport)
+		rootID := regionRoot.ID
+		if rootID == "" {
+			rootID = stableExtractRootID(regionRoot.Pragma)
+		}
+		for _, entry := range rootClosure.Closure.IncludedSymbols {
+			key := symbolKey(entry)
+			addIncludedEntry(included, entry)
+			addProvenance(provenance, key, rootID)
+		}
+		for _, entry := range rootClosure.Closure.ExcludedSymbols {
+			key := symbolKey(entry)
+			addExcludedEntry(excluded, entry)
+			addProvenance(provenance, key, rootID)
+		}
+		for _, dep := range rootClosure.ExternalDeps {
+			externalDeps[identityKey(dep.Identity)] = dep
+		}
+		for _, trigger := range rootClosure.PrecisionTriggers {
+			triggers[trigger] = true
+		}
+		for _, fn := range rootClosure.ReachableFuncs {
+			reachable[fn] = true
+		}
+		reachableByRoot[rootID] = append([]*ssa.Function(nil), rootClosure.ReachableFuncs...)
+		wiring = append(wiring, rootClosure.Closure.WiringPaths...)
+	}
+
+	includedEntries := sortedEntries(included)
+	excludedEntries := sortedEntries(excluded)
+	applyEntryProvenance(includedEntries, provenance)
+	applyEntryProvenance(excludedEntries, provenance)
+	return closureResult{
+		Closure: reportv2.Closure{
+			IncludedSymbols: includedEntries,
+			ExcludedSymbols: excludedEntries,
+			WiringPaths:     sortedWiringPaths(wiring),
+		},
+		ExternalDeps:      sortedExternalDeps(externalDeps),
+		PrecisionTriggers: sortedTriggerKeys(triggers),
+		ReachableFuncs:    sortedFunctions(reachable),
+		ReachableByRoot:   reachableByRoot,
+		Provenance:        flattenProvenance(provenance),
+	}
+}
+
+func loadedForRegionRoot(loaded *loadedModule, regionRoot RegionRoot) (*loadedModule, bool) {
+	rootFile, err := filepath.Abs(regionRoot.Pragma.Span.Filename)
+	if err != nil {
+		return nil, false
+	}
+	rootPkg := findPackageForFile(loaded.Packages, rootFile)
+	if rootPkg == nil {
+		return nil, false
+	}
+	clone := *loaded
+	clone.RootPragma = regionRoot.Pragma
+	clone.RootFile = rootFile
+	clone.RootPkg = rootPkg
+	return &clone, true
 }
 
 func resolveRootFunctions(built *builtProgram, root reportv2.Root) []*ssa.Function {
@@ -478,6 +569,54 @@ func sortedEntries(entries map[string]reportv2.SymbolEntry) []reportv2.SymbolEnt
 	return out
 }
 
+func addProvenance(provenance map[string]map[string]bool, symbolKey, rootID string) {
+	if symbolKey == "" || rootID == "" {
+		return
+	}
+	roots := provenance[symbolKey]
+	if roots == nil {
+		roots = map[string]bool{}
+		provenance[symbolKey] = roots
+	}
+	roots[rootID] = true
+}
+
+func applyEntryProvenance(entries []reportv2.SymbolEntry, provenance map[string]map[string]bool) {
+	for i := range entries {
+		entries[i].Provenance = sortedProvenance(provenance[symbolKey(entries[i])])
+	}
+}
+
+func flattenProvenance(provenance map[string]map[string]bool) map[string][]string {
+	out := make(map[string][]string, len(provenance))
+	for key, roots := range provenance {
+		out[key] = sortedProvenance(roots)
+	}
+	return out
+}
+
+func sortedProvenance(roots map[string]bool) []string {
+	out := make([]string, 0, len(roots))
+	for root := range roots {
+		out = append(out, root)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func sortedWiringPaths(paths []reportv2.WiringPath) []reportv2.WiringPath {
+	out := append([]reportv2.WiringPath(nil), paths...)
+	sort.SliceStable(out, func(i, j int) bool {
+		left := identityKey(out[i].Target)
+		right := identityKey(out[j].Target)
+		if left == right {
+			return len(out[i].Steps) < len(out[j].Steps)
+		}
+		return left < right
+	})
+	return out
+}
+
 func buildWiringPaths(loaded *loadedModule, rootEntry reportv2.SymbolEntry, roots []*ssa.Function) []reportv2.WiringPath {
 	paths := map[string]reportv2.WiringPath{}
 	if len(roots) == 0 {
@@ -513,6 +652,14 @@ func buildWiringPaths(loaded *loadedModule, rootEntry reportv2.SymbolEntry, root
 
 func wiringPathKey(identity reportv2.SymbolIdentity) string {
 	return identity.PackagePath + "|" + identity.ObjectName + "|" + identity.Kind
+}
+
+func symbolKey(entry reportv2.SymbolEntry) string {
+	return identityKey(entry.Identity)
+}
+
+func identityKey(identity reportv2.SymbolIdentity) string {
+	return identity.ModulePath + "|" + identity.PackagePath + "|" + identity.ObjectName + "|" + identity.Kind
 }
 
 func sameIdentity(left, right reportv2.SymbolIdentity) bool {

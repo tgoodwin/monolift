@@ -6,6 +6,7 @@ type TargetCase struct {
 	Name                    string
 	ExpectedVerdict         string
 	ExpectedRoot            string
+	ExpectedRoots           []string
 	ExpectedRootShape       string
 	ExpectedTransport       string
 	ExpectedArchetypeKind   string
@@ -30,6 +31,8 @@ type TargetCase struct {
 	LiftedExtractedServices []ExtractedServiceSpec
 	LiftedOracleServices    []ExtractedServiceSpec
 	GoldenReport            string
+	EntryPathProbePackage   string
+	EntryPathProbeRoots     []string
 	Workload                WorkloadExecutor
 	Oracle                  SymbolInvoker
 	Invariants              []Invariant

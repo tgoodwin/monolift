@@ -1,0 +1,38 @@
+{
+  "env": [
+    {
+      "name": "API_TOKEN",
+      "from": "monolift-boot-secret",
+      "key": "API_TOKEN"
+    },
+    {
+      "name": "FLAG_CONFIG",
+      "from": "monolift-boot-config",
+      "key": "FLAG_CONFIG"
+    },
+    {
+      "name": "PUBLIC_HOST",
+      "from": "monolift-boot-config",
+      "key": "PUBLIC_HOST"
+    }
+  ],
+  "configMapData": {
+    "CONFIG": "",
+    "FLAG_CONFIG": "config.json",
+    "PUBLIC_HOST": "localhost"
+  },
+  "secretData": {
+    "API_TOKEN": "redacted"
+  },
+  "volumeMounts": [
+    {
+      "name": "boot-config",
+      "mountPath": "/etc/mattermost/config.json",
+      "subPath": "CONFIG",
+      "readOnly": true
+    }
+  ],
+  "args": [
+    "--config=$(FLAG_CONFIG)"
+  ]
+}

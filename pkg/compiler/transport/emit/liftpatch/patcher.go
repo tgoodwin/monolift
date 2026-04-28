@@ -28,6 +28,139 @@ type targetDecl struct {
 	tags bool
 }
 
+func PatchRegion(req RegionPatchRequest) (RegionPatchResult, error) {
+	if len(req.Symbols) == 0 {
+		return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticTargetNotFound, Message: "region patch has no symbols"}}, nil
+	}
+	if refusal := validateRegionRequest(req); refusal != nil {
+		return RegionPatchResult{Refused: refusal}, nil
+	}
+
+	type plannedPatch struct {
+		symbol PatchSymbolRequest
+		target targetDecl
+		files  []targetDecl
+		fset   *token.FileSet
+	}
+	plans := make([]plannedPatch, 0, len(req.Symbols))
+	for _, symbol := range req.Symbols {
+		if symbol.PackageDir == "" {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticTargetNotFound, Message: "package dir is required", Symbol: symbol}}, nil
+		}
+		sentinel := symbol.SentinelIdent
+		if sentinel == "" {
+			sentinel = regionSentinel(req.RegionName, symbol.PackageImportPath)
+			symbol.SentinelIdent = sentinel
+		}
+		fset := token.NewFileSet()
+		files, err := parsePackageFiles(fset, symbol.PackageDir)
+		if err != nil {
+			return RegionPatchResult{}, err
+		}
+		if err := scanCollisions(files); err != nil {
+			if diag, ok := err.(*DiagnosticError); ok {
+				return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: diag.Kind, Message: diag.Message, Symbol: symbol}}, nil
+			}
+			return RegionPatchResult{}, err
+		}
+		targets := findRegionTargets(files, symbol)
+		if len(targets) == 0 {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticTargetNotFound, Message: fmt.Sprintf("symbol %s not found", symbol.FuncName), Symbol: symbol}}, nil
+		}
+		if len(targets) > 1 {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticAmbiguousTarget, Message: fmt.Sprintf("symbol %s found in %d files", symbol.FuncName, len(targets)), Symbol: symbol}}, nil
+		}
+		target := targets[0]
+		if target.tags {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticUnsupportedBuildTags, Message: fmt.Sprintf("%s has build constraints", target.path), Symbol: symbol}}, nil
+		}
+		if symbol.ReceiverType == "" && target.fn.Recv != nil {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticMethodReceiver, Message: fmt.Sprintf("%s is a method", symbol.FuncName), Symbol: symbol}}, nil
+		}
+		if symbol.ReceiverType != "" && receiverTypeString(fset, target.fn) != symbol.ReceiverType {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticMethodReceiver, Message: fmt.Sprintf("receiver mismatch for %s", symbol.FuncName), Symbol: symbol}}, nil
+		}
+		if target.fn.Type.TypeParams != nil && len(target.fn.Type.TypeParams.List) > 0 {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticGenericFunction, Message: fmt.Sprintf("%s is generic", symbol.FuncName), Symbol: symbol}}, nil
+		}
+		if signature := signatureString(fset, target.fn.Type); signature != symbol.ExpectedSignature {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticSignatureMismatch, Message: fmt.Sprintf("got %q want %q", signature, symbol.ExpectedSignature), Symbol: symbol}}, nil
+		}
+		if hasNamedResults(target.fn.Type) && hasNakedReturn(target.fn.Body) {
+			return RegionPatchResult{Refused: &RegionPatchRefusal{Kind: DiagnosticNamedNakedReturn, Message: fmt.Sprintf("%s has named results and a naked return", symbol.FuncName), Symbol: symbol}}, nil
+		}
+		if _, err := parsePrelude(fset, symbol.Prelude.GoSource); err != nil {
+			return RegionPatchResult{}, err
+		}
+		plans = append(plans, plannedPatch{symbol: symbol, target: target, files: files, fset: fset})
+	}
+
+	result := RegionPatchResult{}
+	for _, plan := range plans {
+		fset := token.NewFileSet()
+		files, err := parsePackageFiles(fset, plan.symbol.PackageDir)
+		if err != nil {
+			return RegionPatchResult{}, err
+		}
+		targets := findRegionTargets(files, plan.symbol)
+		if len(targets) != 1 {
+			return RegionPatchResult{}, fmt.Errorf("region patch target changed during write: %s", plan.symbol.FuncName)
+		}
+		target := targets[0]
+		original, err := os.ReadFile(target.path)
+		if err != nil {
+			return RegionPatchResult{}, err
+		}
+		originalHash := sha256Hex(original)
+		if isAlreadyApplied(target.fn, plan.symbol.SentinelIdent) {
+			result.Files = append(result.Files, PatchedFileResult{
+				Path:           target.path,
+				OriginalSHA256: originalHash,
+				PatchedSHA256:  originalHash,
+				AlreadyApplied: true,
+			})
+			continue
+		}
+		prelude, err := parsePrelude(fset, plan.symbol.Prelude.GoSource)
+		if err != nil {
+			return RegionPatchResult{}, err
+		}
+		target.fn.Body.List = append(prelude, target.fn.Body.List...)
+		var added []string
+		for _, imp := range plan.symbol.Prelude.RequiredImports {
+			if astutil.AddImport(fset, target.file, imp) {
+				added = append(added, imp)
+			}
+		}
+		sort.Strings(added)
+		var formatted bytes.Buffer
+		if err := format.Node(&formatted, fset, target.file); err != nil {
+			return RegionPatchResult{}, err
+		}
+		if err := os.WriteFile(target.path, formatted.Bytes(), 0o644); err != nil {
+			return RegionPatchResult{}, err
+		}
+		result.Files = append(result.Files, PatchedFileResult{
+			Path:           target.path,
+			OriginalSHA256: originalHash,
+			PatchedSHA256:  sha256Hex(formatted.Bytes()),
+			AddedImports:   added,
+		})
+	}
+	for _, file := range regionGeneratedFiles(req) {
+		if err := os.MkdirAll(filepath.Dir(file.Path), 0o755); err != nil {
+			return RegionPatchResult{}, err
+		}
+		if err := os.WriteFile(file.Path, file.Content, 0o644); err != nil {
+			return RegionPatchResult{}, err
+		}
+		result.GeneratedFiles = append(result.GeneratedFiles, GeneratedFileResult{Path: file.Path, SHA256: sha256Hex(file.Content)})
+	}
+	sort.Slice(result.Files, func(i, j int) bool { return result.Files[i].Path < result.Files[j].Path })
+	sort.Slice(result.GeneratedFiles, func(i, j int) bool { return result.GeneratedFiles[i].Path < result.GeneratedFiles[j].Path })
+	return result, nil
+}
+
 func PatchSymbolBody(req PatchRequest) (PatchResult, error) {
 	if req.PackageDir == "" {
 		return PatchResult{}, fmt.Errorf("package dir is required")
@@ -126,6 +259,78 @@ func PatchSymbolBody(req PatchRequest) (PatchResult, error) {
 		return PatchResult{}, err
 	}
 	return result, nil
+}
+
+func validateRegionRequest(req RegionPatchRequest) *RegionPatchRefusal {
+	symbols := map[string]PatchSymbolRequest{}
+	files := map[string]GeneratedFile{}
+	for _, symbol := range req.Symbols {
+		key := symbol.PackageDir + "\x00" + symbol.ReceiverType + "\x00" + symbol.FuncName
+		if previous, ok := symbols[key]; ok {
+			return &RegionPatchRefusal{Kind: DiagnosticAmbiguousTarget, Message: "duplicate symbol identity", Symbol: previous}
+		}
+		symbols[key] = symbol
+		for _, file := range symbol.GeneratedFiles {
+			if previous, ok := files[file.Path]; ok && !bytes.Equal(previous.Content, file.Content) {
+				return &RegionPatchRefusal{Kind: DiagnosticIdentifierCollision, Message: "generated-file collision", Symbol: symbol}
+			}
+			files[file.Path] = file
+		}
+	}
+	for _, file := range req.SharedGeneratedFiles {
+		if previous, ok := files[file.Path]; ok && !bytes.Equal(previous.Content, file.Content) {
+			return &RegionPatchRefusal{Kind: DiagnosticIdentifierCollision, Message: "generated-file collision"}
+		}
+		files[file.Path] = file
+	}
+	return nil
+}
+
+func regionSentinel(regionName, packageImportPath string) string {
+	sum := sha256.Sum256([]byte(regionName + "\x00" + packageImportPath))
+	return "monolift_" + hex.EncodeToString(sum[:])[:12] + "_sentinel"
+}
+
+func findRegionTargets(files []targetDecl, symbol PatchSymbolRequest) []targetDecl {
+	var targets []targetDecl
+	for _, file := range files {
+		if symbol.File != "" && filepath.Clean(symbol.File) != filepath.Clean(file.path) && filepath.Base(symbol.File) != filepath.Base(file.path) {
+			continue
+		}
+		for _, decl := range file.file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Name.Name != symbol.FuncName {
+				continue
+			}
+			if symbol.ReceiverType != "" && receiverTypeString(token.NewFileSet(), fn) != symbol.ReceiverType {
+				continue
+			}
+			if symbol.ReceiverType == "" && fn.Recv != nil {
+				continue
+			}
+			file.fn = fn
+			targets = append(targets, file)
+		}
+	}
+	return targets
+}
+
+func receiverTypeString(fset *token.FileSet, fn *ast.FuncDecl) string {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return ""
+	}
+	var buf bytes.Buffer
+	_ = printer.Fprint(&buf, fset, fn.Recv.List[0].Type)
+	return buf.String()
+}
+
+func regionGeneratedFiles(req RegionPatchRequest) []GeneratedFile {
+	files := append([]GeneratedFile(nil), req.SharedGeneratedFiles...)
+	for _, symbol := range req.Symbols {
+		files = append(files, symbol.GeneratedFiles...)
+	}
+	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
+	return files
 }
 
 func parsePackageFiles(fset *token.FileSet, dir string) ([]targetDecl, error) {

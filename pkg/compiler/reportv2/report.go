@@ -26,6 +26,8 @@ type Report struct {
 	State         []StateItem   `json:"state"`
 	Adapters      []Adapter     `json:"adapters"`
 	ExternalDeps  []ExternalDep `json:"externalDependencies"`
+	Seams         []SeamEntry   `json:"seams,omitempty"`
+	Boot          *BootSpec     `json:"boot,omitempty"`
 	Pruning       Pruning       `json:"pruning"`
 	Diagnostics   []Diagnostic  `json:"diagnostics"`
 }
@@ -139,6 +141,50 @@ type ExternalDep struct {
 	StateEffectSummary  []string       `json:"stateEffectSummary"`
 }
 
+type SeamEntry struct {
+	Type     string     `json:"type"`
+	Field    string     `json:"field"`
+	ElemType string     `json:"elemType"`
+	Writers  []string   `json:"writers"`
+	Readers  []string   `json:"readers"`
+	Span     SourceSpan `json:"span"`
+	Evidence string     `json:"evidence"`
+}
+
+type BootSpec struct {
+	ConfigSources     []BootConfigSource    `json:"configSources"`
+	DependencyInits   []BootDependencyInit  `json:"dependencyInits"`
+	GoroutineLaunches []BootGoroutineLaunch `json:"goroutineLaunches"`
+	Refusals          []BootPathRefusal     `json:"refusals"`
+	EntryPath         []string              `json:"entryPath"`
+}
+
+type BootConfigSource struct {
+	Kind       string `json:"kind"`
+	Name       string `json:"name,omitempty"`
+	Path       string `json:"path,omitempty"`
+	Default    string `json:"default,omitempty"`
+	Required   bool   `json:"required,omitempty"`
+	Format     string `json:"format,omitempty"`
+	MountName  string `json:"mountName,omitempty"`
+	Value      string `json:"value,omitempty"`
+	QueryShape string `json:"queryShape,omitempty"`
+}
+
+type BootDependencyInit struct {
+	Name           string `json:"name"`
+	Classification string `json:"classification"`
+}
+
+type BootGoroutineLaunch struct {
+	Callee string `json:"callee"`
+}
+
+type BootPathRefusal struct {
+	Kind    string `json:"kind"`
+	Message string `json:"message"`
+}
+
 type Pruning struct {
 	Bounded  bool          `json:"bounded"`
 	Frontier []SymbolEntry `json:"frontier"`
@@ -170,9 +216,10 @@ type SourceSpan struct {
 }
 
 type SymbolEntry struct {
-	Identity SymbolIdentity `json:"identity"`
-	Span     SourceSpan     `json:"span"`
-	RuleIDs  []string       `json:"ruleIds"`
+	Identity   SymbolIdentity `json:"identity"`
+	Span       SourceSpan     `json:"span"`
+	RuleIDs    []string       `json:"ruleIds"`
+	Provenance []string       `json:"provenance,omitempty"`
 }
 
 type WiringPath struct {

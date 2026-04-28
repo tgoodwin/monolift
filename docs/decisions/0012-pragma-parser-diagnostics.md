@@ -46,3 +46,22 @@ SPRINT-0005 uses these decisions:
 - Production movement of the translation seam belongs to the later
   refusal-diagnostic framework epic; SPRINT-0005 keeps it in the stub compiler
   only.
+
+## Addendum: SPRINT-0022 shared-name regions
+
+SPRINT-0022 adds shared-name peer pragmas without changing the doc-comment
+attachment rule. Multiple declarations may each carry a `//monolift:lift`
+pragma with the same non-empty `name=`; parser regrouping turns those pragmas
+into one `Region` with stable `RegionRoot` IDs derived from declaration
+identity, such as `Hub.Broadcast` and `WebConn.Pump`.
+
+Region-wide options are `mode`, `transport`, `policy`, `dispatch`, and
+`affinity`. They are compared after parser-level defaults that are safe without
+shape analysis (`mode=remote`, and `dispatch=impl` for interface surfaces).
+When peer pragmas disagree after those defaults, the parser emits
+`MLV2_PRAGMA_REGION_CONFLICT`. Empty-name pragmas keep the legacy one-pragma,
+one-region fallback.
+
+Peer discovery remains explicit. SPRINT-0022 intentionally does not infer
+additional roots by seam analysis because inferred roots would make the
+annotation surface non-local and harder to audit.

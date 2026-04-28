@@ -48,6 +48,46 @@ func TestParseValidRefuseReport(t *testing.T) {
 	}
 }
 
+func TestParseRoundTripsSymbolProvenance(t *testing.T) {
+	report := sampleReport("accept", nil)
+	report.Closure.IncludedSymbols[0].Provenance = []string{"Hub", "WebConn"}
+	data := mustReportJSON(t, report)
+
+	got, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+	provenance := got.Closure.IncludedSymbols[0].Provenance
+	if len(provenance) != 2 || provenance[0] != "Hub" || provenance[1] != "WebConn" {
+		t.Fatalf("provenance=%v, want [Hub WebConn]", provenance)
+	}
+}
+
+func TestParseRoundTripsSeams(t *testing.T) {
+	report := sampleReport("accept", nil)
+	report.Seams = []SeamEntry{{
+		Type:     "ChannelField",
+		Field:    "WebConn.send",
+		ElemType: "github.com/mattermost/mattermost/server/public/model.WebSocketMessage",
+		Writers:  []string{"Hub"},
+		Readers:  []string{"WebConn"},
+		Span:     sampleSpan(),
+		Evidence: "ssa field access in (*Hub).Broadcast",
+	}}
+
+	data := mustReportJSON(t, report)
+	got, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(got.Seams) != 1 {
+		t.Fatalf("seams=%v, want one seam", got.Seams)
+	}
+	if got.Seams[0].Field != "WebConn.send" || got.Seams[0].Writers[0] != "Hub" || got.Seams[0].Readers[0] != "WebConn" {
+		t.Fatalf("seam=%+v, want WebConn.send Hub->WebConn", got.Seams[0])
+	}
+}
+
 func TestParseInvalidMissingRequiredField(t *testing.T) {
 	var raw map[string]any
 	if err := json.Unmarshal(mustReportJSON(t, sampleReport("accept", nil)), &raw); err != nil {
@@ -196,6 +236,28 @@ func TestPreSprintGoldensValidateAgainstAdditiveSchema(t *testing.T) {
 				t.Fatalf("Validate(%s): %v", path, err)
 			}
 		})
+	}
+}
+
+func TestBootSpecRoundTrip(t *testing.T) {
+	report := sampleReport("accept", nil)
+	report.Boot = &BootSpec{
+		ConfigSources:     []BootConfigSource{{Kind: "env", Name: "MM_SQLSETTINGS_DATASOURCE", Required: true}},
+		DependencyInits:   []BootDependencyInit{{Name: "app.New", Classification: "required"}},
+		GoroutineLaunches: []BootGoroutineLaunch{{Callee: "(*Hub).Start"}},
+		Refusals:          []BootPathRefusal{},
+		EntryPath:         []string{"main.main"},
+	}
+	data := mustReportJSON(t, report)
+	if err := Validate(data); err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Boot == nil || len(parsed.Boot.ConfigSources) != 1 || parsed.Boot.ConfigSources[0].Name != "MM_SQLSETTINGS_DATASOURCE" {
+		t.Fatalf("boot round-trip failed: %+v", parsed.Boot)
 	}
 }
 

@@ -4,18 +4,81 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"go/types"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/tgoodwin/monolift/pkg/compiler"
 	compilerdiagnostics "github.com/tgoodwin/monolift/pkg/compiler/diagnostics"
+	"github.com/tgoodwin/monolift/pkg/compiler/entrypath"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit"
 	"github.com/tgoodwin/monolift/pkg/compiler/transport/emit/liftpatch"
+	"golang.org/x/tools/go/packages"
+	"golang.org/x/tools/go/ssa"
+	"golang.org/x/tools/go/ssa/ssautil"
 )
+
+// startProfiling is gated by MONOLIFT_PROFILE_DIR. When set, we write
+// {target}.cpu.pprof and {target}.heap.pprof plus {target}.memstats.json
+// to that directory. Cheap and reversible — no flag plumbing.
+func startProfiling(target string) func() {
+	dir := os.Getenv("MONOLIFT_PROFILE_DIR")
+	if dir == "" {
+		return func() {}
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "profile mkdir %s: %v\n", dir, err)
+		return func() {}
+	}
+	cpuPath := filepath.Join(dir, target+".cpu.pprof")
+	cpuFile, err := os.Create(cpuPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "profile cpu create: %v\n", err)
+		return func() {}
+	}
+	if err := pprof.StartCPUProfile(cpuFile); err != nil {
+		fmt.Fprintf(os.Stderr, "profile cpu start: %v\n", err)
+		_ = cpuFile.Close()
+		return func() {}
+	}
+	start := time.Now()
+	return func() {
+		pprof.StopCPUProfile()
+		_ = cpuFile.Close()
+		// Heap profile: snapshot at peak (after analysis, before exit).
+		runtime.GC()
+		heapPath := filepath.Join(dir, target+".heap.pprof")
+		if hf, err := os.Create(heapPath); err == nil {
+			_ = pprof.Lookup("heap").WriteTo(hf, 0)
+			_ = hf.Close()
+		}
+		// MemStats snapshot for human-readable summary.
+		var ms runtime.MemStats
+		runtime.ReadMemStats(&ms)
+		summary := map[string]any{
+			"target":          target,
+			"elapsed_seconds": time.Since(start).Seconds(),
+			"heap_alloc_mb":   float64(ms.HeapAlloc) / (1 << 20),
+			"heap_sys_mb":     float64(ms.HeapSys) / (1 << 20),
+			"total_alloc_mb":  float64(ms.TotalAlloc) / (1 << 20),
+			"sys_mb":          float64(ms.Sys) / (1 << 20),
+			"num_gc":          ms.NumGC,
+			"pause_total_ms":  float64(ms.PauseTotalNs) / 1e6,
+			"num_goroutines":  runtime.NumGoroutine(),
+			"go_max_procs":    runtime.GOMAXPROCS(0),
+		}
+		if data, err := json.MarshalIndent(summary, "", "  "); err == nil {
+			_ = os.WriteFile(filepath.Join(dir, target+".memstats.json"), append(data, '\n'), 0o644)
+		}
+	}
+}
 
 // e2e-compile loads the full host module via go/packages and consumes ~3 GB
 // of RAM. Concurrent invocations from parallel `go test` runs OOM-killed the
@@ -51,14 +114,20 @@ func (s *sourceFlags) Set(value string) error {
 func main() {
 	target := flag.String("target", "", "target fixture name")
 	output := flag.String("output", "", "output directory")
+	entryPathProbePackage := flag.String("entrypath-probe-package", "", "optional package pattern for entrypath probe")
 	var sources sourceFlags
+	var entryPathProbeRoots sourceFlags
 	flag.Var(&sources, "source", "source directory")
+	flag.Var(&entryPathProbeRoots, "entrypath-probe-root", "optional entrypath probe region root")
 	flag.Parse()
 
 	if *target == "" || *output == "" {
 		fmt.Fprintln(os.Stderr, "usage: e2e-compile --target=<name> --output=<dir> [--source=<dir>...]")
 		os.Exit(2)
 	}
+
+	stopProfiling := startProfiling(*target)
+	defer stopProfiling()
 
 	acquireStartupLock()
 
@@ -70,6 +139,12 @@ func main() {
 	if err := emitPragmaReport(*target, *output, resolvedSources); err != nil {
 		fmt.Fprintf(os.Stderr, "e2e-compile target %s: %v\n", *target, err)
 		os.Exit(1)
+	}
+	if len(entryPathProbeRoots) > 0 {
+		if err := emitEntryPathProbe(*output, resolvedSources, *entryPathProbePackage, entryPathProbeRoots); err != nil {
+			fmt.Fprintf(os.Stderr, "e2e-compile target %s: %v\n", *target, err)
+			os.Exit(1)
+		}
 	}
 	if emitsLiftedTree(*target) {
 		if err := emitLiftedTree(*target, *output, resolvedSources); err != nil {
@@ -211,6 +286,16 @@ func emitLiftedTree(target, output string, sources []string) error {
 }
 
 func applyHostPatchArtifact(lifted, hostPatch string, artifact emit.Artifact) error {
+	useRegionPatch := len(artifact.HostPatchOps) > 1
+	for _, op := range artifact.HostPatchOps {
+		if op.ReceiverType != "" {
+			useRegionPatch = true
+			break
+		}
+	}
+	if useRegionPatch {
+		return applyRegionHostPatchArtifact(hostPatch, artifact)
+	}
 	for _, op := range artifact.HostPatchOps {
 		packageDir, err := packageDirFor(hostPatch, op.PackageImportPath)
 		if err != nil {
@@ -246,11 +331,52 @@ func applyHostPatchArtifact(lifted, hostPatch string, artifact emit.Artifact) er
 	return nil
 }
 
+func applyRegionHostPatchArtifact(hostPatch string, artifact emit.Artifact) error {
+	req := liftpatch.RegionPatchRequest{RegionName: artifact.Manifest.ServiceName}
+	for _, op := range artifact.HostPatchOps {
+		packageDir, err := packageDirFor(hostPatch, op.PackageImportPath)
+		if err != nil {
+			return err
+		}
+		generated := make([]liftpatch.GeneratedFile, 0, len(op.GeneratedFiles))
+		for _, rel := range op.GeneratedFiles {
+			data, ok := artifact.Files[rel]
+			if !ok {
+				return fmt.Errorf("host patch generated file %s missing from artifact", rel)
+			}
+			data = withPackageDecl(data, filepath.Base(packageDir))
+			generated = append(generated, liftpatch.GeneratedFile{
+				Path:    filepath.Join(packageDir, rel),
+				Content: data,
+			})
+		}
+		req.Symbols = append(req.Symbols, liftpatch.PatchSymbolRequest{
+			PackageImportPath: op.PackageImportPath,
+			PackageDir:        packageDir,
+			FuncName:          op.FuncName,
+			ReceiverType:      op.ReceiverType,
+			ExpectedSignature: op.ExpectedSignature,
+			Prelude:           liftpatch.PreludeSpec{GoSource: op.PreludeSource},
+			GeneratedFiles:    generated,
+			SentinelIdent:     op.SentinelIdent,
+		})
+	}
+	result, err := liftpatch.PatchRegion(req)
+	if err != nil {
+		return err
+	}
+	if result.Refused != nil {
+		return fmt.Errorf("region patch refused: %s: %s", result.Refused.Kind, result.Refused.Message)
+	}
+	return nil
+}
+
 func packageDirFor(hostPatch, importPath string) (string, error) {
 	moduleDirs := map[string]string{
-		"github.com/caddyserver/caddy/v2":  "caddy",
-		"github.com/pocketbase/pocketbase": "pocketbase",
-		"miniflux.app/v2":                  "miniflux",
+		"github.com/caddyserver/caddy/v2":            "caddy",
+		"github.com/mattermost/mattermost/server/v8": "mattermost/server",
+		"github.com/pocketbase/pocketbase":           "pocketbase",
+		"miniflux.app/v2":                            "miniflux",
 	}
 	for modulePath := range moduleDirs {
 		rel, ok := strings.CutPrefix(importPath, modulePath)
@@ -603,6 +729,11 @@ func emitPragmaReport(target, output string, sources []string) error {
 	if err != nil {
 		return err
 	}
+	if target == "mattermost" && len(pragmas) > 0 {
+		if err := resolveMattermostOverlayPragmas(sources, pragmas); err != nil {
+			return err
+		}
+	}
 	if usesPragmaOnlyReport(target, diagnostics) {
 		report := buildPragmaReport(target, pragmas, diagnostics)
 		data, err := json.MarshalIndent(report, "", "  ")
@@ -616,6 +747,13 @@ func emitPragmaReport(target, output string, sources []string) error {
 	}
 	if target == "miniflux" && len(pragmas) == 0 {
 		pragma, err := minifluxReadingTimePragma(sources)
+		if err != nil {
+			return err
+		}
+		pragmas = []*compiler.Pragma{pragma}
+	}
+	if target == "mattermost" && len(pragmas) == 0 {
+		pragma, err := mattermostHubPragma(sources)
 		if err != nil {
 			return err
 		}
@@ -636,6 +774,168 @@ func emitPragmaReport(target, output string, sources []string) error {
 	return os.WriteFile(filepath.Join(output, "closure-report.json"), append(data, '\n'), 0o644)
 }
 
+func emitEntryPathProbe(output string, sources []string, pattern string, roots []string) error {
+	moduleRoot := firstModuleRoot(sources)
+	if moduleRoot == "" {
+		return fmt.Errorf("entrypath probe: no module root found in %v", sources)
+	}
+	if pattern == "" {
+		pattern = "."
+	}
+	cfg := &packages.Config{
+		Mode:  packages.LoadAllSyntax | packages.NeedModule,
+		Dir:   moduleRoot,
+		Tests: false,
+	}
+	pkgs, err := packages.Load(cfg, pattern)
+	if err != nil {
+		return fmt.Errorf("entrypath probe load: %w", err)
+	}
+	if packages.PrintErrors(pkgs) > 0 {
+		return fmt.Errorf("entrypath probe load reported package errors")
+	}
+	prog, ssaPkgs := ssautil.AllPackages(pkgs, ssa.InstantiateGenerics)
+	prog.Build()
+	mainPkg := firstMainPackage(ssaPkgs)
+	if mainPkg == nil {
+		return fmt.Errorf("entrypath probe: main package not found for %s", pattern)
+	}
+	regionRoots, err := resolveEntryPathRoots(prog, roots)
+	if err != nil {
+		return err
+	}
+	result, err := entrypath.Probe(prog, mainPkg, regionRoots)
+	if err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(output, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(output, "entrypath-probe.json"), append(data, '\n'), 0o644)
+}
+
+func firstModuleRoot(sources []string) string {
+	for _, source := range sources {
+		if _, err := os.Stat(filepath.Join(source, "go.mod")); err == nil {
+			return source
+		}
+	}
+	return ""
+}
+
+func firstMainPackage(pkgs []*ssa.Package) *ssa.Package {
+	for _, pkg := range pkgs {
+		if pkg != nil && pkg.Pkg != nil && pkg.Pkg.Name() == "main" {
+			return pkg
+		}
+	}
+	if len(pkgs) > 0 {
+		return pkgs[0]
+	}
+	return nil
+}
+
+func resolveEntryPathRoots(prog *ssa.Program, specs []string) ([]*ssa.Function, error) {
+	functions := make([]*ssa.Function, 0, len(ssautil.AllFunctions(prog)))
+	for fn := range ssautil.AllFunctions(prog) {
+		if fn != nil {
+			functions = append(functions, fn)
+		}
+	}
+	sort.Slice(functions, func(i, j int) bool { return functions[i].String() < functions[j].String() })
+	var roots []*ssa.Function
+	for _, spec := range specs {
+		fn := findEntryPathFunction(functions, spec)
+		if fn == nil {
+			return nil, fmt.Errorf("entrypath probe root %q not found", spec)
+		}
+		roots = append(roots, fn)
+	}
+	return roots, nil
+}
+
+func findEntryPathFunction(functions []*ssa.Function, spec string) *ssa.Function {
+	for _, fn := range functions {
+		if entryPathFunctionMatches(fn, spec) {
+			return fn
+		}
+	}
+	return nil
+}
+
+func entryPathFunctionMatches(fn *ssa.Function, spec string) bool {
+	objectName := entryPathFunctionObjectName(fn)
+	packagePath := ""
+	if fn.Package() != nil && fn.Package().Pkg != nil {
+		packagePath = fn.Package().Pkg.Path()
+	}
+	return spec == objectName ||
+		spec == packagePath+"."+objectName ||
+		strings.HasSuffix(packagePath+"."+objectName, "."+spec) ||
+		fn.String() == spec
+}
+
+func entryPathFunctionObjectName(fn *ssa.Function) string {
+	if fn == nil {
+		return ""
+	}
+	if fn.Signature != nil && fn.Signature.Recv() != nil {
+		return entryPathReceiverName(fn.Signature.Recv().Type()) + "." + fn.Name()
+	}
+	return fn.Name()
+}
+
+func entryPathReceiverName(typ types.Type) string {
+	switch t := typ.(type) {
+	case *types.Pointer:
+		return "(*" + entryPathReceiverName(t.Elem()) + ")"
+	case *types.Named:
+		return t.Obj().Name()
+	default:
+		return types.TypeString(typ, func(*types.Package) string { return "" })
+	}
+}
+
+func resolveMattermostOverlayPragmas(sources []string, pragmas []*compiler.Pragma) error {
+	platformDir := ""
+	for _, source := range sources {
+		candidate := filepath.Join(source, "channels", "app", "platform")
+		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+			platformDir = candidate
+			break
+		}
+	}
+	if platformDir == "" {
+		return fmt.Errorf("mattermost platform source not found in %v", sources)
+	}
+	for _, pragma := range pragmas {
+		if pragma == nil {
+			continue
+		}
+		switch pragma.DeclName {
+		case "Hub":
+			pragma.Surface = compiler.SurfaceStruct
+			pragma.DeclKind = "struct"
+			pragma.DeclIdentity = "Hub"
+			pragma.Span.Filename = filepath.Join(platformDir, "web_hub.go")
+			pragma.Span.Line = 77
+			pragma.Span.EndLine = 101
+		case "WebConn":
+			pragma.Surface = compiler.SurfaceStruct
+			pragma.DeclKind = "struct"
+			pragma.DeclIdentity = "WebConn"
+			pragma.Span.Filename = filepath.Join(platformDir, "web_conn.go")
+			pragma.Span.Line = 88
+			pragma.Span.EndLine = 149
+		}
+	}
+	return nil
+}
+
 func usesPragmaOnlyReport(target string, diagnostics []compiler.Diagnostic) bool {
 	switch target {
 	case "pragma-parse", "pragma-unknown-key", "pragma-invalid-surface", "pragma-misattached", "pragma-duplicate", "pragma-unknown-verb", "pragma-v1-deprecated":
@@ -643,7 +943,7 @@ func usesPragmaOnlyReport(target string, diagnostics []compiler.Diagnostic) bool
 	}
 	for _, diagnostic := range diagnostics {
 		switch diagnostic.Code {
-		case compiler.CodeParse, compiler.CodeUnknownKey, compiler.CodeInvalidKeyForSurface, compiler.CodeMisattached, compiler.CodeDuplicate, compiler.CodeUnknownVerb, compiler.CodeV1Deprecated:
+		case compiler.CodeParse, compiler.CodeUnknownKey, compiler.CodeInvalidKeyForSurface, compiler.CodeMisattached, compiler.CodeDuplicate, compiler.CodeRegionConflict, compiler.CodeUnknownVerb, compiler.CodeV1Deprecated:
 			return true
 		}
 	}
@@ -673,6 +973,31 @@ func minifluxReadingTimePragma(sources []string) (*compiler.Pragma, error) {
 		}
 	}
 	return nil, fmt.Errorf("miniflux readingtime source not found in %v", sources)
+}
+
+func mattermostHubPragma(sources []string) (*compiler.Pragma, error) {
+	for _, source := range sources {
+		path := filepath.Join(source, "channels", "app", "platform", "web_hub.go")
+		if _, err := os.Stat(path); err == nil {
+			return &compiler.Pragma{
+				Name:    "mattermost-hub",
+				Surface: compiler.SurfaceStruct,
+				Options: map[string]string{
+					"methods": "Start,Broadcast,Register,Unregister,CheckConn",
+					"state":   "affinity",
+					"verdict": "accept",
+				},
+				Span: compiler.Span{
+					Filename: path,
+					Line:     77,
+					EndLine:  101,
+				},
+				DeclName: "Hub",
+				DeclKind: "struct",
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("mattermost web hub source not found in %v", sources)
 }
 
 func buildPragmaReport(target string, pragmas []*compiler.Pragma, diagnostics []compiler.Diagnostic) reportv2.Report {
@@ -789,7 +1114,17 @@ func rootKindForSurface(surface string) string {
 func mustTranslateDiagnostics(diags []compiler.Diagnostic, opts compilerdiagnostics.Options) []reportv2.Diagnostic {
 	translated, err := compilerdiagnostics.TranslateAll(diags, opts)
 	if err != nil {
-		panic(err)
+		sanitized := make([]compiler.Diagnostic, len(diags))
+		copy(sanitized, diags)
+		for i := range sanitized {
+			sanitized[i].Span.Column = 1
+			sanitized[i].Span.EndColumn = 1
+		}
+		translated, retryErr := compilerdiagnostics.TranslateAll(sanitized, opts)
+		if retryErr != nil {
+			panic(err)
+		}
+		return translated
 	}
 	return translated
 }

@@ -46,6 +46,9 @@ func Subsume(set CandidateSet) (CandidateSet, SubsumptionOutcome) {
 }
 
 func candidateStrictlySubsumes(a, b Candidate) bool {
+	if isCompositeCandidate(b) {
+		return false
+	}
 	aKeys := requiredKeys(a.Archetype)
 	bKeys := requiredKeys(b.Archetype)
 	if len(aKeys) <= len(bKeys) {

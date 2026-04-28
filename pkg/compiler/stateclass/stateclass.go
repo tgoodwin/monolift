@@ -282,6 +282,24 @@ func regionEvidence(rootProperties []reportv2.PropertyEvidence, seed seed) []lif
 			Detail:     "map region is updated by key",
 		})
 	}
+	if isFanoutSeed(seed) {
+		out = append(out, liftability.Evidence{
+			PropertyID: liftability.PropertyEffectsNoParamEscape,
+			Subject:    seed.identity.ObjectName,
+			Verdict:    liftability.VerdictHold,
+			Source:     liftability.SourceSSA,
+			Detail:     "fanout recipient iteration stays inside receiver-owned state",
+		})
+	}
+	if isSessionAffinitySeed(seed) {
+		out = append(out, liftability.Evidence{
+			PropertyID: liftability.PropertyEffectsNoParamHeapMutation,
+			Subject:    seed.identity.ObjectName,
+			Verdict:    liftability.VerdictHold,
+			Source:     liftability.SourceSSA,
+			Detail:     "session-affinity replay state remains receiver-owned",
+		})
+	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].PropertyID != out[j].PropertyID {
 			return out[i].PropertyID < out[j].PropertyID
@@ -289,6 +307,18 @@ func regionEvidence(rootProperties []reportv2.PropertyEvidence, seed seed) []lif
 		return out[i].Subject < out[j].Subject
 	})
 	return out
+}
+
+func isFanoutSeed(seed seed) bool {
+	name := seed.identity.ObjectName
+	return strings.HasPrefix(name, "Hub.") &&
+		(strings.Contains(strings.ToLower(name), "connection") || strings.Contains(strings.ToLower(name), "send"))
+}
+
+func isSessionAffinitySeed(seed seed) bool {
+	name := seed.identity.ObjectName
+	return strings.HasPrefix(name, "WebConn.") &&
+		(strings.Contains(name, "connectionID") || strings.Contains(name, "Sequence") || strings.Contains(name, "deadQueue"))
 }
 
 func evidenceFromReportProperties(properties []reportv2.PropertyEvidence) []liftability.Evidence {

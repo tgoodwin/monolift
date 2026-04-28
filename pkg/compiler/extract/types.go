@@ -1,6 +1,9 @@
 package extract
 
-import "github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+import (
+	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"github.com/tgoodwin/monolift/pkg/compiler/surface"
+)
 
 type Surface string
 
@@ -27,12 +30,29 @@ type Span struct {
 }
 
 type Pragma struct {
-	Name     string
-	Surface  Surface
-	Options  map[string]string
-	Span     Span
-	DeclName string
-	DeclKind string
+	Name         string
+	Surface      Surface
+	Options      map[string]string
+	Span         Span
+	DeclName     string
+	DeclKind     string
+	DeclIdentity string
+}
+
+type RegionRoot struct {
+	ID     string
+	Pragma Pragma
+}
+
+type Region struct {
+	Name      string
+	Roots     []RegionRoot
+	Span      Span
+	Mode      string
+	Transport string
+	Policy    string
+	Dispatch  string
+	Affinity  string
 }
 
 type Diagnostic struct {
@@ -47,9 +67,11 @@ type Diagnostic struct {
 type Request struct {
 	Sources []string
 	Pragmas []Pragma
+	Regions []Region
 }
 
 type Result struct {
 	Report      reportv2.Report
 	Diagnostics []Diagnostic
+	Surface     surface.RegionSurface
 }

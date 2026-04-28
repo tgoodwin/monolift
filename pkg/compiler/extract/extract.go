@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"github.com/tgoodwin/monolift/pkg/compiler/surface"
 )
 
 // Analyze is the compiler-owned v2 extraction seam for SPRINT-0006.
@@ -54,10 +55,17 @@ func Analyze(req Request) (Result, error) {
 	if registeredShapeValidator != nil {
 		diagnostics = append(diagnostics, registeredShapeValidator(loaded, report.Root, liftabilityResult, shapeResult)...)
 	}
-	closure := buildClosure(loaded, built, report.Root)
+	closure := buildRegionClosure(loaded, built, report.Root)
 	report.Closure = closure.Closure
 	report.ExternalDeps = closure.ExternalDeps
 	report.Analysis.PrecisionTriggers = closure.PrecisionTriggers
+	if registeredSeamDetector != nil {
+		seams, seamErr := registeredSeamDetector(loaded, built.Program, closure.ReachableByRoot)
+		if seamErr != nil {
+			return Result{}, seamErr
+		}
+		report.Seams = seams
+	}
 	var archetypeClassification *ArchetypeClassification
 	if registeredStateInferer != nil {
 		stateResult, stateErr := registeredStateInferer(loaded, built.Program, closure.ReachableFuncs, report.Root, &loaded.RootPragma)
@@ -75,13 +83,27 @@ func Analyze(req Request) (Result, error) {
 			sort.Strings(report.Analysis.PrecisionTriggers)
 		}
 	}
+	var regionSurface surface.RegionSurface
+	if registeredSurfaceDeriver != nil {
+		regionSurface, err = registeredSurfaceDeriver(report.Root, closure.ReachableFuncs)
+		if err != nil {
+			return Result{}, err
+		}
+		for _, refusal := range regionSurface.Refusals {
+			diagnostics = append(diagnostics, Diagnostic{
+				Code:     refusal.Code,
+				Severity: SeverityError,
+				Message:  refusal.Message,
+			})
+		}
+	}
 	report.Adapters = deriveAdapters(report.Root, shapeResult, archetypeClassification)
 	diagnostics = append(diagnostics, detectReflectionDispatch(loaded, report.Root, closure.ReachableFuncs)...)
 	diagnostics = append(diagnostics, detectUnsafeBoundary(loaded, closure.ReachableFuncs)...)
 	diagnostics = append(diagnostics, detectDynamicPluginLoads(loaded, report.Root, closure.ReachableFuncs)...)
 	sortDiagnostics(diagnostics)
 	applyRefusalMetadata(&report, diagnostics)
-	return Result{Report: report, Diagnostics: diagnostics}, nil
+	return Result{Report: report, Diagnostics: diagnostics, Surface: regionSurface}, nil
 }
 
 func buildSeedReport(loaded *loadedModule) reportv2.Report {

@@ -75,6 +75,44 @@ func TestAdmitNegatives(t *testing.T) {
 	}
 }
 
+func TestRegionAdmitsInRegionChannelSeam(t *testing.T) {
+	t.Parallel()
+
+	admitted, reasons := RegionAdmits(
+		map[string]bool{"Hub": true, "WebConn": true},
+		nil,
+		[]reportv2.SeamEntry{{
+			Type:    "ChannelField",
+			Field:   "WebConn.send",
+			Writers: []string{"Hub"},
+			Readers: []string{"WebConn"},
+		}},
+		[]string{"Hub", "WebConn"},
+	)
+	if !admitted {
+		t.Fatalf("admitted=false reasons=%v", reasons)
+	}
+}
+
+func TestRegionAdmitsRejectsEscapingChannelSeam(t *testing.T) {
+	t.Parallel()
+
+	admitted, reasons := RegionAdmits(
+		map[string]bool{"Hub": true, "WebConn": true},
+		nil,
+		[]reportv2.SeamEntry{{
+			Type:    "ChannelField",
+			Field:   "WebConn.send",
+			Writers: []string{"Hub"},
+			Readers: []string{"Other"},
+		}},
+		[]string{"Hub", "WebConn"},
+	)
+	if admitted || len(reasons) == 0 {
+		t.Fatalf("admitted=%v reasons=%v, want refusal", admitted, reasons)
+	}
+}
+
 func admissibleProperties() []reportv2.PropertyEvidence {
 	return []reportv2.PropertyEvidence{
 		property(string(liftability.PropertyBoundarySerializableViaCustomEncoding), "body", "Hold", "types", "boundary is serializable"),

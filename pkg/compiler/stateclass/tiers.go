@@ -13,7 +13,10 @@ var topologyTierPriority = map[ArchetypeID]int{
 	// ADR-0022 Decision 1: preserves the worked example's single-owner topology.
 	ArchetypeSerializedActor: 100,
 	// ADR-0022 Decision 1: sharding is useful but changes the native state topology.
-	ArchetypeKeyedPartitionedState: 50,
+	ArchetypeKeyedPartitionedState:       50,
+	ArchetypeFanoutPublisher:             75,
+	ArchetypeSessionAffinityState:        40,
+	ArchetypeID("connection-hub-buffer"): 150,
 }
 
 func SelectPrimary(set CandidateSet) (primary Candidate, alternatives []Candidate, tier RationaleTier, prose string) {

@@ -72,6 +72,8 @@
     "state": { "type": "array", "items": { "$ref": "#/$defs/stateFacet" } },
     "adapters": { "type": "array", "items": { "$ref": "#/$defs/adapter" } },
     "externalDependencies": { "type": "array", "items": { "$ref": "#/$defs/externalDependency" } },
+    "seams": { "type": "array", "items": { "$ref": "#/$defs/seamEntry" } },
+    "boot": { "$ref": "#/$defs/bootSpec" },
     "pruning": {
       "type": "object",
       "required": ["bounded", "frontier"],
@@ -157,7 +159,8 @@
       "properties": {
         "identity": { "$ref": "#/$defs/symbolIdentity" },
         "span": { "$ref": "#/$defs/sourceSpan" },
-        "ruleIds": { "type": "array", "items": { "type": "string" } }
+        "ruleIds": { "type": "array", "items": { "type": "string" } },
+        "provenance": { "type": "array", "items": { "type": "string" } }
       },
       "additionalProperties": false
     },
@@ -167,6 +170,72 @@
       "properties": {
         "target": { "$ref": "#/$defs/symbolIdentity" },
         "steps": { "type": "array", "items": { "$ref": "#/$defs/symbolEntry" } }
+      },
+      "additionalProperties": false
+    },
+    "seamEntry": {
+      "type": "object",
+      "required": ["type", "field", "elemType", "writers", "readers", "span", "evidence"],
+      "properties": {
+        "type": { "enum": ["ChannelField", "MutexField", "AtomicField"] },
+        "field": { "type": "string" },
+        "elemType": { "type": "string" },
+        "writers": { "type": "array", "items": { "type": "string" } },
+        "readers": { "type": "array", "items": { "type": "string" } },
+        "span": { "$ref": "#/$defs/sourceSpan" },
+        "evidence": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "bootSpec": {
+      "type": "object",
+      "required": ["configSources", "dependencyInits", "goroutineLaunches", "refusals", "entryPath"],
+      "properties": {
+        "configSources": { "type": "array", "items": { "$ref": "#/$defs/bootConfigSource" } },
+        "dependencyInits": { "type": "array", "items": { "$ref": "#/$defs/bootDependencyInit" } },
+        "goroutineLaunches": { "type": "array", "items": { "$ref": "#/$defs/bootGoroutineLaunch" } },
+        "refusals": { "type": "array", "items": { "$ref": "#/$defs/bootPathRefusal" } },
+        "entryPath": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "bootConfigSource": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["env", "flag", "file", "literal", "db"] },
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "default": { "type": "string" },
+        "required": { "type": "boolean" },
+        "format": { "type": "string" },
+        "mountName": { "type": "string" },
+        "value": { "type": "string" },
+        "queryShape": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "bootDependencyInit": {
+      "type": "object",
+      "required": ["name", "classification"],
+      "properties": {
+        "name": { "type": "string" },
+        "classification": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "bootGoroutineLaunch": {
+      "type": "object",
+      "required": ["callee"],
+      "properties": { "callee": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "bootPathRefusal": {
+      "type": "object",
+      "required": ["kind", "message"],
+      "properties": {
+        "kind": { "type": "string" },
+        "message": { "type": "string" }
       },
       "additionalProperties": false
     },

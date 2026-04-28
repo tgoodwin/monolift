@@ -40,6 +40,12 @@ func (c Compiler) Run(ctx context.Context, target TargetCase) (CompileResult, er
 	for _, sourceDir := range target.SourceDirs {
 		args = append(args, "--source="+sourceDir)
 	}
+	if target.EntryPathProbePackage != "" {
+		args = append(args, "--entrypath-probe-package="+target.EntryPathProbePackage)
+	}
+	for _, root := range target.EntryPathProbeRoots {
+		args = append(args, "--entrypath-probe-root="+root)
+	}
 	result, err := RunCommand(ctx, path, args...)
 	compileResult := CompileResult{
 		ArtifactsDir: outputDir,

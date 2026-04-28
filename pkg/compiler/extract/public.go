@@ -31,7 +31,7 @@ func ReachableFunctions(loaded *LoadedModule, root reportv2.Root) (*ssa.Program,
 	if err != nil {
 		return nil, nil, err
 	}
-	closure := buildClosure(loaded, built, root)
+	closure := buildRegionClosure(loaded, built, root)
 	return built.Program, closure.ReachableFuncs, nil
 }
 
@@ -43,7 +43,7 @@ func RebindLoadedModule(loaded *LoadedModule, req Request) (*LoadedModule, error
 	if loaded == nil {
 		return nil, nil
 	}
-	rootPragma, err := selectRootPragma(req.Pragmas)
+	rootRegion, rootPragma, err := selectRootRegion(req)
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +60,7 @@ func RebindLoadedModule(loaded *LoadedModule, req Request) (*LoadedModule, error
 
 	clone := *loaded
 	clone.RootPragma = rootPragma
+	clone.RootRegion = rootRegion
 	clone.RootFile = rootFile
 	clone.RootPkg = rootPkg
 	return &clone, nil

@@ -39,6 +39,7 @@ const (
 	CodeInvalidKeyForSurface = "MLV2_PRAGMA_INVALID_KEY_FOR_SURFACE"
 	CodeMisattached          = "MLV2_PRAGMA_MISATTACHED"
 	CodeDuplicate            = "MLV2_PRAGMA_DUPLICATE"
+	CodeRegionConflict       = "MLV2_PRAGMA_REGION_CONFLICT"
 	CodeUnknownVerb          = "MLV2_PRAGMA_UNKNOWN_VERB"
 	CodeV1Deprecated         = "MLV2_PRAGMA_V1_DEPRECATED"
 )
@@ -48,6 +49,7 @@ var knownPragmaDiagnosticCodes = []string{
 	CodeInvalidKeyForSurface,
 	CodeMisattached,
 	CodeParse,
+	CodeRegionConflict,
 	CodeUnknownKey,
 	CodeUnknownVerb,
 	CodeV1Deprecated,
@@ -71,19 +73,184 @@ type Diagnostic struct {
 }
 
 type Pragma struct {
-	Name     string
-	Surface  Surface
-	Options  map[string]string
-	Span     Span
-	Raw      string
-	DeclName string
-	DeclKind string
+	Name         string
+	Surface      Surface
+	Options      map[string]string
+	Span         Span
+	Raw          string
+	DeclName     string
+	DeclKind     string
+	DeclIdentity string
+}
+
+type RegionRoot struct {
+	ID     string
+	Pragma *Pragma
+}
+
+type Region struct {
+	Name      string
+	Roots     []*RegionRoot
+	Span      Span
+	Mode      string
+	Transport string
+	Policy    string
+	Dispatch  string
+	Affinity  string
 }
 
 func knownPragmaCodes() []string {
 	codes := make([]string, len(knownPragmaDiagnosticCodes))
 	copy(codes, knownPragmaDiagnosticCodes)
 	return codes
+}
+
+func ApplyPragmaDefaults(pragma *Pragma) {
+	if pragma == nil {
+		return
+	}
+	if pragma.Options == nil {
+		pragma.Options = map[string]string{}
+	}
+	if pragma.Options["mode"] == "" {
+		pragma.Options["mode"] = "remote"
+	}
+	if pragma.Surface == SurfaceInterface && pragma.Options["dispatch"] == "" {
+		pragma.Options["dispatch"] = "impl"
+	}
+	pragma.Name = pragma.Options["name"]
+}
+
+func RegroupPragmas(pragmas []*Pragma) ([]*Region, []Diagnostic) {
+	if len(pragmas) == 0 {
+		return nil, nil
+	}
+
+	var regions []*Region
+	named := map[string]*Region{}
+	for _, pragma := range pragmas {
+		if pragma == nil {
+			continue
+		}
+		if pragma.Name == "" {
+			regions = append(regions, newRegion(pragma))
+			continue
+		}
+		region := named[pragma.Name]
+		if region == nil {
+			region = newRegion(pragma)
+			named[pragma.Name] = region
+			regions = append(regions, region)
+			continue
+		}
+		region.Roots = append(region.Roots, newRegionRoot(pragma))
+	}
+
+	sort.SliceStable(regions, func(i, j int) bool {
+		return spanLess(regions[i].Span, regions[j].Span)
+	})
+	var diagnostics []Diagnostic
+	for _, region := range regions {
+		sort.SliceStable(region.Roots, func(i, j int) bool {
+			return region.Roots[i].ID < region.Roots[j].ID
+		})
+		diagnostics = append(diagnostics, validateRegionConsistency(region)...)
+	}
+	return regions, diagnostics
+}
+
+func newRegion(pragma *Pragma) *Region {
+	return &Region{
+		Name:      pragma.Name,
+		Roots:     []*RegionRoot{newRegionRoot(pragma)},
+		Span:      pragma.Span,
+		Mode:      effectivePragmaOption(pragma, "mode"),
+		Transport: effectivePragmaOption(pragma, "transport"),
+		Policy:    effectivePragmaOption(pragma, "policy"),
+		Dispatch:  effectivePragmaOption(pragma, "dispatch"),
+		Affinity:  effectivePragmaOption(pragma, "affinity"),
+	}
+}
+
+func newRegionRoot(pragma *Pragma) *RegionRoot {
+	return &RegionRoot{
+		ID:     stableRootID(pragma),
+		Pragma: pragma,
+	}
+}
+
+func stableRootID(pragma *Pragma) string {
+	if pragma == nil {
+		return ""
+	}
+	if pragma.DeclIdentity != "" {
+		return pragma.DeclIdentity
+	}
+	if pragma.DeclName != "" {
+		return pragma.DeclName
+	}
+	return fmt.Sprintf("%s:%d", pragma.Span.Filename, pragma.Span.Line)
+}
+
+func validateRegionConsistency(region *Region) []Diagnostic {
+	if region == nil || len(region.Roots) < 2 || region.Name == "" {
+		return nil
+	}
+	keys := []struct {
+		name string
+		base string
+	}{
+		{"mode", region.Mode},
+		{"transport", region.Transport},
+		{"policy", region.Policy},
+		{"dispatch", region.Dispatch},
+		{"affinity", region.Affinity},
+	}
+	var diagnostics []Diagnostic
+	for _, root := range region.Roots[1:] {
+		if root == nil || root.Pragma == nil {
+			continue
+		}
+		for _, key := range keys {
+			if got := effectivePragmaOption(root.Pragma, key.name); got != key.base {
+				diagnostics = append(diagnostics, Diagnostic{
+					Code:     CodeRegionConflict,
+					Severity: SeverityError,
+					Message:  fmt.Sprintf("region %q has conflicting %s values %q and %q", region.Name, key.name, key.base, got),
+					Span:     root.Pragma.Span,
+				})
+			}
+		}
+	}
+	return diagnostics
+}
+
+func effectivePragmaOption(pragma *Pragma, key string) string {
+	if pragma == nil {
+		return ""
+	}
+	if pragma.Options != nil && pragma.Options[key] != "" {
+		return pragma.Options[key]
+	}
+	switch key {
+	case "mode":
+		return "remote"
+	case "dispatch":
+		if pragma.Surface == SurfaceInterface {
+			return "impl"
+		}
+	}
+	return ""
+}
+
+func spanLess(a, b Span) bool {
+	if a.Filename == b.Filename {
+		if a.Line == b.Line {
+			return a.Column < b.Column
+		}
+		return a.Line < b.Line
+	}
+	return a.Filename < b.Filename
 }
 
 func spanFromPosition(base token.Position, startOffset, endOffset int) Span {
@@ -276,7 +443,7 @@ func FromDecl(decl ast.Decl, fset *token.FileSet) ([]*Pragma, []Diagnostic) {
 		return nil, nil
 	}
 
-	surface, declName, declKind, surfaceDiag := classifyDecl(decl, fset)
+	surface, declName, declKind, declIdentity, surfaceDiag := classifyDecl(decl, fset)
 	var pragmas []*Pragma
 	var diagnostics []Diagnostic
 
@@ -289,6 +456,7 @@ func FromDecl(decl ast.Decl, fset *token.FileSet) ([]*Pragma, []Diagnostic) {
 		pragma.Surface = surface
 		pragma.DeclName = declName
 		pragma.DeclKind = declKind
+		pragma.DeclIdentity = declIdentity
 		pragmas = append(pragmas, pragma)
 	}
 
@@ -425,13 +593,17 @@ func declDoc(decl ast.Decl) *ast.CommentGroup {
 	}
 }
 
-func classifyDecl(decl ast.Decl, fset *token.FileSet) (Surface, string, string, *Diagnostic) {
+func classifyDecl(decl ast.Decl, fset *token.FileSet) (Surface, string, string, string, *Diagnostic) {
 	switch d := decl.(type) {
 	case *ast.FuncDecl:
 		if d.Recv == nil {
-			return SurfaceFunction, d.Name.Name, "func", nil
+			return SurfaceFunction, d.Name.Name, "func", d.Name.Name, nil
 		}
-		return SurfaceMethod, d.Name.Name, "method", nil
+		identity := d.Name.Name
+		if receiver := receiverIdentity(d.Recv); receiver != "" {
+			identity = receiver + "." + d.Name.Name
+		}
+		return SurfaceMethod, d.Name.Name, "method", identity, nil
 	case *ast.GenDecl:
 		if d.Tok != token.TYPE {
 			return unsupportedDecl(d.Pos(), fset, "unsupported declaration kind "+d.Tok.String())
@@ -444,13 +616,13 @@ func classifyDecl(decl ast.Decl, fset *token.FileSet) (Surface, string, string, 
 			return unsupportedDecl(d.Pos(), fset, "unsupported type spec")
 		}
 		if typeSpec.Assign.IsValid() {
-			return unsupportedDecl(typeSpec.Pos(), fset, "type alias declarations are unsupported")
+			return SurfaceStruct, typeSpec.Name.Name, "type-alias", typeSpec.Name.Name, nil
 		}
 		switch typeSpec.Type.(type) {
 		case *ast.InterfaceType:
-			return SurfaceInterface, typeSpec.Name.Name, "interface", nil
+			return SurfaceInterface, typeSpec.Name.Name, "interface", typeSpec.Name.Name, nil
 		case *ast.StructType:
-			return SurfaceStruct, typeSpec.Name.Name, "struct", nil
+			return SurfaceStruct, typeSpec.Name.Name, "struct", typeSpec.Name.Name, nil
 		default:
 			return unsupportedDecl(typeSpec.Pos(), fset, fmt.Sprintf("unsupported type declaration %T", typeSpec.Type))
 		}
@@ -459,10 +631,37 @@ func classifyDecl(decl ast.Decl, fset *token.FileSet) (Surface, string, string, 
 	}
 }
 
-func unsupportedDecl(pos token.Pos, fset *token.FileSet, message string) (Surface, string, string, *Diagnostic) {
+func unsupportedDecl(pos token.Pos, fset *token.FileSet, message string) (Surface, string, string, string, *Diagnostic) {
 	base := fset.Position(pos)
 	diag := diagnostic(CodeParse, SeverityError, message, base, 0, 1)
-	return SurfaceUnknown, "", "unsupported", &diag
+	return SurfaceUnknown, "", "unsupported", "", &diag
+}
+
+func receiverIdentity(fields *ast.FieldList) string {
+	if fields == nil || len(fields.List) == 0 {
+		return ""
+	}
+	return exprIdentity(fields.List[0].Type)
+}
+
+func exprIdentity(expr ast.Expr) string {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		return e.Name
+	case *ast.StarExpr:
+		return exprIdentity(e.X)
+	case *ast.SelectorExpr:
+		if base := exprIdentity(e.X); base != "" {
+			return base + "." + e.Sel.Name
+		}
+		return e.Sel.Name
+	case *ast.IndexExpr:
+		return exprIdentity(e.X)
+	case *ast.IndexListExpr:
+		return exprIdentity(e.X)
+	default:
+		return ""
+	}
 }
 
 func shouldSkipSourceDir(name string) bool {

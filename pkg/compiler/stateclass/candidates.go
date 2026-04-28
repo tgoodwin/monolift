@@ -2,6 +2,7 @@ package stateclass
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/compiler/liftability"
 )
@@ -29,6 +30,9 @@ func ConstructCandidates(props []liftability.Evidence) CandidateSet {
 		if !requiredPropertiesSatisfied(archetype.Required, evidence) {
 			continue
 		}
+		if !archetypeEvidenceMatched(archetype.ID, props) {
+			continue
+		}
 		satisfied := make(map[liftability.PropertyID]liftability.Verdict, len(archetype.Required))
 		for property, verdict := range archetype.Required {
 			satisfied[property] = verdict
@@ -42,9 +46,24 @@ func ConstructCandidates(props []liftability.Evidence) CandidateSet {
 	return out
 }
 
-func ExtendWithComposites(set CandidateSet, _ []liftability.Evidence) CandidateSet {
-	// SPRINT-0018: composite construction lands here.
-	return set
+func archetypeEvidenceMatched(id ArchetypeID, props []liftability.Evidence) bool {
+	switch id {
+	case ArchetypeFanoutPublisher:
+		return evidenceDetailContains(props, "fanout")
+	case ArchetypeSessionAffinityState:
+		return evidenceDetailContains(props, "session-affinity")
+	default:
+		return true
+	}
+}
+
+func evidenceDetailContains(props []liftability.Evidence, needle string) bool {
+	for _, prop := range props {
+		if strings.Contains(prop.Detail, needle) {
+			return true
+		}
+	}
+	return false
 }
 
 func requiredPropertiesSatisfied(required map[liftability.PropertyID]liftability.Verdict, evidence map[liftability.PropertyID]liftability.Verdict) bool {

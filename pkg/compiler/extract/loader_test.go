@@ -100,6 +100,17 @@ func TestLoadModulePropagatesEnvAndBuildTags(t *testing.T) {
 	}
 }
 
+func TestLoaderToolchainUsesModuleWhenParentIsAuto(t *testing.T) {
+	t.Setenv("GOTOOLCHAIN", "auto")
+	if got := loaderToolchain("go1.26.0"); got != "go1.26.0" {
+		t.Fatalf("loaderToolchain(auto, module)= %q want go1.26.0", got)
+	}
+	t.Setenv("GOTOOLCHAIN", "go1.25.4")
+	if got := loaderToolchain("go1.26.0"); got != "go1.25.4" {
+		t.Fatalf("loaderToolchain(explicit, module)= %q want go1.25.4", got)
+	}
+}
+
 func compiledFilesContain(paths []string, base string) bool {
 	for _, path := range paths {
 		if filepath.Base(path) == base {

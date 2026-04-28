@@ -15,6 +15,7 @@ import (
 
 type loadedModule struct {
 	RootPragma Pragma
+	RootRegion Region
 	RootFile   string
 	ModuleRoot string
 	GOOS       string
@@ -27,7 +28,7 @@ type loadedModule struct {
 }
 
 func loadModule(req Request) (*loadedModule, error) {
-	rootPragma, err := selectRootPragma(req.Pragmas)
+	rootRegion, rootPragma, err := selectRootRegion(req)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +71,7 @@ func loadModule(req Request) (*loadedModule, error) {
 
 	return &loadedModule{
 		RootPragma: rootPragma,
+		RootRegion: rootRegion,
 		RootFile:   rootFile,
 		ModuleRoot: moduleRoot,
 		GOOS:       goos,
@@ -80,6 +82,46 @@ func loadModule(req Request) (*loadedModule, error) {
 		Packages:   pkgs,
 		RootPkg:    rootPkg,
 	}, nil
+}
+
+func selectRootRegion(req Request) (Region, Pragma, error) {
+	regions := nonEmptyRegions(req.Regions)
+	switch len(regions) {
+	case 0:
+		pragma, err := selectRootPragma(req.Pragmas)
+		if err != nil {
+			return Region{}, Pragma{}, err
+		}
+		return Region{
+			Name:      pragma.Name,
+			Span:      pragma.Span,
+			Mode:      pragma.Options["mode"],
+			Transport: pragma.Options["transport"],
+			Policy:    pragma.Options["policy"],
+			Dispatch:  pragma.Options["dispatch"],
+			Affinity:  pragma.Options["affinity"],
+			Roots:     []RegionRoot{{ID: stableExtractRootID(pragma), Pragma: pragma}},
+		}, pragma, nil
+	case 1:
+		region := regions[0]
+		if len(region.Roots) == 0 {
+			return Region{}, Pragma{}, fmt.Errorf("extract.Analyze region %q has no roots", region.Name)
+		}
+		return region, region.Roots[0].Pragma, nil
+	default:
+		return Region{}, Pragma{}, fmt.Errorf("extract.Analyze currently supports one root region, got %d", len(regions))
+	}
+}
+
+func nonEmptyRegions(regions []Region) []Region {
+	out := make([]Region, 0, len(regions))
+	for _, region := range regions {
+		if len(region.Roots) == 0 {
+			continue
+		}
+		out = append(out, region)
+	}
+	return out
 }
 
 func selectRootPragma(pragmas []Pragma) (Pragma, error) {
@@ -98,6 +140,16 @@ func selectRootPragma(pragmas []Pragma) (Pragma, error) {
 	default:
 		return Pragma{}, fmt.Errorf("extract.Analyze currently supports one root pragma, got %d", len(roots))
 	}
+}
+
+func stableExtractRootID(pragma Pragma) string {
+	if pragma.DeclIdentity != "" {
+		return pragma.DeclIdentity
+	}
+	if pragma.DeclName != "" {
+		return pragma.DeclName
+	}
+	return fmt.Sprintf("%s:%d", pragma.Span.Filename, pragma.Span.Line)
 }
 
 func findModuleRoot(rootFile string) (string, error) {
@@ -149,8 +201,18 @@ func loaderEnv(goos, goarch, cgoEnabled, toolchain string) []string {
 	env = upsertEnv(env, "GOOS", goos)
 	env = upsertEnv(env, "GOARCH", goarch)
 	env = upsertEnv(env, "CGO_ENABLED", cgoEnabled)
-	env = upsertEnv(env, "GOTOOLCHAIN", envOrDefault("GOTOOLCHAIN", toolchain))
+	env = upsertEnv(env, "GOTOOLCHAIN", loaderToolchain(toolchain))
 	return env
+}
+
+func loaderToolchain(moduleToolchain string) string {
+	if current := os.Getenv("GOTOOLCHAIN"); current != "" && current != "auto" {
+		return current
+	}
+	if moduleToolchain != "" {
+		return moduleToolchain
+	}
+	return "auto"
 }
 
 func loaderBuildFlags(buildTags []string) []string {

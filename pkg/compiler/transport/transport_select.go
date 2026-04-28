@@ -15,6 +15,7 @@ const (
 	TemplateNone            Template = ""
 	TemplateHandler         Template = "handler"
 	TemplateHTTPJSON        Template = "http-json"
+	TemplateStreamProxy     Template = "streamproxy"
 	TemplateChannelConsumer Template = "channel-consumer"
 )
 

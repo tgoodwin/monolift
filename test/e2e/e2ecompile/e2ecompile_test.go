@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -296,6 +297,96 @@ func TestMinifluxSourceTreeUntouched(t *testing.T) {
 	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "miniflux"))
 	if before != after {
 		t.Fatalf("evaluation/miniflux hash changed: before=%s after=%s", before, after)
+	}
+}
+
+func TestMattermostSourceTreeUntouched(t *testing.T) {
+	before := hashTree(t, filepath.Join(repoRoot(), "evaluation", "mattermost"))
+	out := t.TempDir()
+	bin := filepath.Join(t.TempDir(), "e2e-compile")
+	build := exec.Command("go", "build", "-o", bin, ".")
+	build.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0", "GOWORK=off")
+	if data, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build e2e-compile failed: %v\n%s", err, data)
+	}
+	cmd := exec.Command(bin, "--target=mattermost", "--output="+out, "--source=../../../evaluation/mattermost/server", "--source=../../../test/e2e/targets/mattermost")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=go1.26.0", "GOWORK="+filepath.Join(repoRoot(), ".tmp", "sprint-0021-a1-go.work"))
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("e2e-compile failed: %v\n%s", err, data)
+	}
+	reportData, err := os.ReadFile(filepath.Join(out, "closure-report.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := reportv2.Parse(reportData)
+	if err != nil {
+		t.Fatalf("Parse mattermost report: %v", err)
+	}
+	assertMattermostUnionClosurePins(t, report)
+	after := hashTree(t, filepath.Join(repoRoot(), "evaluation", "mattermost"))
+	if before != after {
+		t.Fatalf("evaluation/mattermost hash changed: before=%s after=%s", before, after)
+	}
+}
+
+func assertMattermostUnionClosurePins(t *testing.T, report *reportv2.Report) {
+	t.Helper()
+	want := map[string]bool{
+		"Hub":                                false,
+		"(*Hub).Start":                       false,
+		"(*Hub).Broadcast":                   false,
+		"(*Hub).Register":                    false,
+		"(*Hub).Unregister":                  false,
+		"hubConnectionIndex":                 false,
+		"(*hubConnectionIndex).Add":          false,
+		"(*hubConnectionIndex).Remove":       false,
+		"(*hubConnectionIndex).ForUser":      false,
+		"(*hubConnectionIndex).ForChannel":   false,
+		"WebConn":                            false,
+		"(*PlatformService).GetHubForUserId": false,
+		"(*WebConn).writePump":               false,
+	}
+	writePumpHasWebConn := false
+	for _, symbol := range report.Closure.IncludedSymbols {
+		if _, ok := want[symbol.Identity.ObjectName]; ok {
+			want[symbol.Identity.ObjectName] = true
+		}
+		if len(symbol.Provenance) == 0 {
+			t.Fatalf("symbol %s has empty provenance", symbol.Identity.ObjectName)
+		}
+		if !sort.StringsAreSorted(symbol.Provenance) {
+			t.Fatalf("symbol %s provenance is not sorted: %v", symbol.Identity.ObjectName, symbol.Provenance)
+		}
+		if symbol.Identity.ObjectName == "(*WebConn).writePump" {
+			for _, root := range symbol.Provenance {
+				if root == "WebConn" {
+					writePumpHasWebConn = true
+				}
+			}
+		}
+	}
+	for objectName, seen := range want {
+		if !seen {
+			t.Fatalf("mattermost union closure missing %s", objectName)
+		}
+	}
+	if !writePumpHasWebConn {
+		t.Fatal("(*WebConn).writePump provenance does not include WebConn")
+	}
+
+	var sendSeams []reportv2.SeamEntry
+	for _, seam := range report.Seams {
+		if seam.Type == "ChannelField" && seam.Field == "WebConn.send" {
+			sendSeams = append(sendSeams, seam)
+		}
+	}
+	if len(sendSeams) != 1 {
+		t.Fatalf("WebConn.send seams=%+v, want exactly one", sendSeams)
+	}
+	seam := sendSeams[0]
+	if seam.Field != "WebConn.send" || !reflect.DeepEqual(seam.Writers, []string{"Hub"}) || !reflect.DeepEqual(seam.Readers, []string{"WebConn"}) {
+		t.Fatalf("channel seam=%+v, want WebConn.send Hub->WebConn", seam)
 	}
 }
 

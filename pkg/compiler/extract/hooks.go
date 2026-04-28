@@ -2,6 +2,7 @@ package extract
 
 import (
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"github.com/tgoodwin/monolift/pkg/compiler/surface"
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -42,6 +43,8 @@ type StateResult struct {
 }
 
 type StateInferer func(loaded *LoadedModule, program *ssa.Program, reachable []*ssa.Function, root reportv2.Root, parsed *Pragma) (StateResult, error)
+type SeamDetector func(loaded *LoadedModule, program *ssa.Program, reachableByRoot map[string][]*ssa.Function) ([]reportv2.SeamEntry, error)
+type SurfaceDeriver func(root reportv2.Root, reachable []*ssa.Function) (surface.RegionSurface, error)
 
 type ArchetypeClassification struct {
 	ArchetypeKind   string
@@ -69,6 +72,8 @@ var (
 	registeredShapeClassifier     ShapeClassifier
 	registeredShapeValidator      ShapeValidator
 	registeredStateInferer        StateInferer
+	registeredSeamDetector        SeamDetector
+	registeredSurfaceDeriver      SurfaceDeriver
 )
 
 func RegisterLiftabilityAnalyzer(analyzer LiftabilityAnalyzer) {
@@ -85,4 +90,12 @@ func RegisterShapeValidator(validator ShapeValidator) {
 
 func RegisterStateInferer(inferer StateInferer) {
 	registeredStateInferer = inferer
+}
+
+func RegisterSeamDetector(detector SeamDetector) {
+	registeredSeamDetector = detector
+}
+
+func RegisterSurfaceDeriver(deriver SurfaceDeriver) {
+	registeredSurfaceDeriver = deriver
 }
