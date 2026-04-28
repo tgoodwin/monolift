@@ -1,0 +1,67 @@
+site_name: Monolift
+site_url: https://tgoodwin.github.io/monolift/
+site_description: Monolift — design story of a Go monolith-to-microservices compiler
+docs_dir: docs/site/docs
+site_dir: docs/site/site
+repo_url: https://github.com/tgoodwin/monolift
+repo_name: tgoodwin/monolift
+edit_uri: edit/main/docs/site/docs/
+strict: true
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - assets/stylesheets/monolift.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.snippets:
+      base_path:
+        - .
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Reasoning about liftability: canonical-shapes.md
+  - Pattern matching on stateful code: state-class-inference.md
+  - Making the compiler opinionated: refusal-diagnostics.md
+  - What's changing after the initial workshop paper: v1-to-v2.md
+  - Finding your way around the code: reading-guide.md
+  - Evaluation targets: evaluation-targets.md

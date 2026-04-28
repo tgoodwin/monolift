@@ -1,0 +1,7 @@
+mkdocs==1.6.1
+mkdocs-material==9.5.45
+pymdown-extensions==10.12
+# Pygments 2.20 breaks pymdownx.highlight's filename=None path on mkdocs build;
+# pin below 2.19 until pymdown-extensions catches up.
+pygments<2.19
+pyyaml==6.0.2

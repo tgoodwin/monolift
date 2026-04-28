@@ -1,0 +1,33 @@
+/* Monolift educational site — responsive code-pair grid.
+   Pattern: wrap a pair of code blocks in <div class="code-pair">…</div>
+   via attr_list/md_in_html. Desktop ≥1100px: two columns; mobile: one. */
+
+.code-pair {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  margin: 1.25rem 0;
+}
+
+@media (min-width: 1100px) {
+  .code-pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.code-pair > * {
+  min-width: 0;
+}
+
+.code-pair .pair-caption {
+  font-size: 0.85em;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.code-pair pre,
+.code-pair .highlight pre {
+  max-height: 32rem;
+  overflow: auto;
+}

@@ -1,0 +1,21 @@
+// source: https://github.com/pocketbase/pocketbase@c3a53cb183cc102da4cd59f52b06270f9283b87f
+// path:   core/base.go
+// lines:  L72-L85
+// SPDX-License-Identifier: MIT
+// fetched: 2026-04-19
+// rationale: BaseApp's four dbx.Builder fields — the discovered-per-field state seeds the composite rule flags.
+
+
+// BaseApp implements core.App and defines the base PocketBase app structure.
+type BaseApp struct {
+	config              *BaseAppConfig
+	txInfo              *TxAppInfo
+	store               *store.Store[string, any]
+	cron                *cron.Cron
+	settings            *Settings
+	subscriptionsBroker *subscriptions.Broker
+	logger              *slog.Logger
+	concurrentDB        dbx.Builder
+	nonconcurrentDB     dbx.Builder
+	auxConcurrentDB     dbx.Builder
+	auxNonconcurrentDB  dbx.Builder
