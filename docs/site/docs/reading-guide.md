@@ -42,7 +42,7 @@ compiler.
 - **`pkg/compiler/entrypath/`** — bounded entrypoint discovery for
   lifted regions. Builds callgraph touchpoints, bridge owners, boundary
   evidence, and a scoped function-reference index. See
-  [Finding entrypoints with a bridge search](entrypath-bridge.md).
+  [Recovering external entry paths](entrypath-bridge.md).
 - **`pkg/compiler/embeds/`** — embedded template assets referenced by
   artifact emission.
 

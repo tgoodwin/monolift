@@ -1,21 +1,25 @@
-# Finding entrypoints with a bridge search
+# Recovering external entry paths
 
 ## At a glance
 
 When Monolift lifts a region of code, it needs to know what external
-code can call into that region. The direct call graph answers part of
-that question: it can show functions that call, or are called by, the
-lifted region. Real Go services often hide the important edge somewhere
-else, though. A handler might be passed into a router, wrapped by
-middleware, stored in a registry, or attached to a service object before
-traffic ever reaches it.
+code can call into that region. This page uses **entry path** to mean
+that static path from an external boundary, such as a router or service
+registry, into the lifted code.
 
-The **EntryPath bridge** is the compiler's current answer for that
-case. It is a bounded search that starts from the lifted region, finds
-nearby code that already reaches it, then looks for statically visible
-registration evidence that connects that code to an external boundary.
-It is more expansive than a pure call-path search, but much smaller than
-scanning every function in the program.
+The direct call graph answers part of the question: it can show
+functions that call, or are called by, the lifted region. Real Go
+services often hide the important edge somewhere else, though. A handler
+might be passed into a router, wrapped by middleware, stored in a
+registry, or attached to a service object before traffic ever reaches
+it.
+
+The compiler's current strategy for this case is a
+**boundary-registration bridge**. It is a bounded search that starts
+from the lifted region, finds nearby code that already reaches it, then
+looks for statically visible registration evidence that connects that
+code to an external boundary. It is more expansive than a pure call-path
+search, but much smaller than scanning every function in the program.
 
 The important qualifier is that this is not a universal entrypoint
 solver. It is designed for **statically visible registration patterns**:
@@ -45,8 +49,9 @@ flowchart LR
 The call graph can often find `H -> R`. The harder question is how `H`
 became reachable from the boundary. That edge might be a function
 argument, a method value, a struct field, a table entry, or a wrapper
-closure. The bridge search exists to recover that registration path
-without falling back to an exhaustive whole-program reference scan.
+closure. The boundary-registration bridge exists to recover that
+registration path without falling back to an exhaustive whole-program
+reference scan.
 
 ## Terminology
 
