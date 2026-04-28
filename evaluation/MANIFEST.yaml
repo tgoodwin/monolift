@@ -1,0 +1,36 @@
+# Monolift evaluation targets — pinned clones.
+# Reproduce: for each target, `git clone <upstream> <name> && git -C <name> checkout <sha>`.
+# Note: initial clones were shallow (--depth 1); deepen with `git fetch --unshallow` if history is needed.
+
+pinned_at: 2026-04-19
+
+targets:
+  - name: gitea
+    upstream: https://github.com/go-gitea/gitea.git
+    sha: b31eef282816294dc8d2ecc913d36e304f5348cb
+    go_files: 2875
+
+  - name: mattermost
+    upstream: https://github.com/mattermost/mattermost.git
+    sha: bf84301784777a6e08f9709ee882b0eac029437a
+    go_files: 2153
+
+  - name: caddy
+    upstream: https://github.com/caddyserver/caddy.git
+    sha: 4430756d5c3047564c4d5d72793de6685ba3efda
+    go_files: 306
+
+  - name: listmonk
+    upstream: https://github.com/knadh/listmonk.git
+    sha: 3f4917035f63a82c93e19dedee8a48e55e291974
+    go_files: 92
+
+  - name: pocketbase
+    upstream: https://github.com/pocketbase/pocketbase.git
+    sha: c3a53cb183cc102da4cd59f52b06270f9283b87f
+    go_files: 445
+
+  - name: miniflux
+    upstream: https://github.com/miniflux/v2.git
+    sha: 2916831cb1038e7150969fd41d1eb968ee62696e
+    go_files: 407
