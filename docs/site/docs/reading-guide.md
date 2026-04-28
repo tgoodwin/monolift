@@ -39,6 +39,10 @@ compiler.
 - **`pkg/compiler/reportv2/`** — the stable external report schema.
   Every diagnostic, state row, and verdict the compiler emits is a
   value of one of these types.
+- **`pkg/compiler/entrypath/`** — bounded entrypoint discovery for
+  lifted regions. Builds callgraph touchpoints, bridge owners, boundary
+  evidence, and a scoped function-reference index. See
+  [Finding entrypoints with a bridge search](entrypath-bridge.md).
 - **`pkg/compiler/embeds/`** — embedded template assets referenced by
   artifact emission.
 

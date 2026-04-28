@@ -52,6 +52,10 @@ glance" block; readers who want the implementation can keep going.
   the paper's commitment to refusing lifts the compiler cannot
   distribute reliably is kept, and made concrete through a named set of
   refusal codes.
+- [**Finding entrypoints with a bridge search**](entrypath-bridge.md) —
+  why a direct call path is not enough to recover real registration
+  paths, and how EntryPath combines callgraph touchpoints with bounded
+  reference indexing.
 - [**What's changing after the initial workshop paper**](v1-to-v2.md) —
   the contract renegotiation, traced on a single function that was
   refused under v1 and is admitted under v2.

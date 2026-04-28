@@ -62,6 +62,7 @@ nav:
   - Reasoning about liftability: canonical-shapes.md
   - Pattern matching on stateful code: state-class-inference.md
   - Making the compiler opinionated: refusal-diagnostics.md
+  - Finding entrypoints with a bridge search: entrypath-bridge.md
   - What's changing after the initial workshop paper: v1-to-v2.md
   - Finding your way around the code: reading-guide.md
   - Evaluation targets: evaluation-targets.md
