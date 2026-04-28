@@ -2,32 +2,62 @@
 
 ## At a glance
 
-When Monolift lifts a region of code, it needs to know what external
-code can call into that region. This page uses **entry path** to mean
-that static path from an external boundary, such as a router or service
-registry, into the lifted code.
+When Monolift lifts a region of code, it needs to know how that region
+connects to the application's external API (i.e. how it gets invoked).
+This page uses **entry path** to mean that static path from an external
+boundary, such as a router or service registry, into the lifted code.
+Recovering that path is a precursor to choosing the right distribution
+boundary around the lifted region. Sometimes the boundary is obvious,
+such as the methods on an object being extracted. In other cases the
+right boundary is higher up: a registered handler, callback, queue
+consumer, or service method that already defines how the application
+invokes the region.
 
 The direct call graph answers part of the question: it can show
-functions that call, or are called by, the lifted region. Real Go
-services often hide the important edge somewhere else, though. A handler
-might be passed into a router, wrapped by middleware, stored in a
-registry, or attached to a service object before traffic ever reaches
-it.
+functions that call, or are called by, the lifted region. The missing
+piece is often the **registration edge**: the static connection from an
+external boundary to the handler, callback, or method that eventually
+reaches the lifted code. Real Go services often express that edge
+outside the direct call path. A handler might be passed into a router,
+wrapped by middleware, stored in a registry, or attached to a service
+object before traffic ever reaches it.
 
 The compiler's current strategy for this case is a
-**boundary-registration bridge**. It is a bounded search that starts
-from the lifted region, finds nearby code that already reaches it, then
-looks for statically visible registration evidence that connects that
-code to an external boundary. It is more expansive than a pure call-path
-search, but much smaller than scanning every function in the program.
+**boundary-registration bridge**. It combines two searches. First, it
+uses the call graph in reverse, starting at the lifted region, to find
+nearby code that already reaches that region. That is not enough by
+itself because registration often moves callable values through
+arguments, fields, tables, or wrappers rather than through a direct call
+edge. So the bridge then switches to a bounded reference search, which
+is similar to an IDE's "find all references" operation but with compiler
+budgets and filters: it asks where selected functions, methods, and
+function values are mentioned, without scanning every owner in the
+program. The search is looking for concrete instances of registration
+patterns the compiler can see in SSA: a handler passed to a router, a
+method value stored in a table, a callback returned by a wrapper, or a
+service implementation attached to a registry. It is more expansive than
+a pure call-path search, but much smaller than scanning every function
+in the program.
 
-The important qualifier is that this is not a universal entrypoint
-solver. It is designed for **statically visible registration patterns**:
-HTTP handlers registered with routers, methods attached to generated
-service registries, callback tables, worker queues, command trees, and
-similar structures. The current implementation has the strongest
-boundary predicates for HTTP-shaped Go code, but the algorithm itself is
-not tied to Mattermost or to any one router package.
+The exhaustive version of this idea is straightforward: index function
+references across the whole program and let value-flow analysis find the
+registration path wherever it lives. That gives a useful upper bound, and
+it did recover the Mattermost diagnostic chain, but it scans far more
+owners than the bridge needs. The bridge is the cheaper version of the
+same basic recovery strategy: use the call graph to narrow the search
+area, then spend the reference-indexing work only on the owners admitted
+by the bridge.
+
+That design choice keeps the analysis explainable and budgeted. Rather
+than trying to solve every possible way a program could dispatch work at
+runtime, the bridge focuses on **statically visible registration
+patterns**: HTTP handlers registered with routers, methods attached to
+generated service registries, callback tables, worker queues, command
+trees, and similar structures. Those are the cases where the compiler
+can point to a concrete registration site and say why it connects an
+external boundary to the lifted region. The current implementation has
+the strongest boundary predicates for HTTP-shaped Go code, but the
+algorithm itself is not tied to Mattermost or to any one router package.
 
 ## The problem: call paths miss registration paths
 
@@ -42,8 +72,8 @@ shape:
 ```mermaid
 flowchart LR
     B["external boundary<br/>router / service registry / queue"] --> W["wrapper or registration owner"]
-    W --> H["handler or callback"]
-    H --> R["lifted region root"]
+    W --> H["handler or callback (H)"]
+    H --> R["lifted region root (R)"]
 ```
 
 The call graph can often find `H -> R`. The harder question is how `H`
@@ -62,7 +92,11 @@ closures, method values, and interface values mechanically.
 **Call graph** means the graph of possible calls between functions. It
 includes direct static calls and type-informed edges from RTA/VTA-style
 analysis, which helps when calls go through interfaces or function
-values.
+values. In the current EntryPath implementation, Monolift builds this
+graph with RTA first and uses VTA as a fallback when RTA appears to have
+collapsed an indirect handler-shaped call. RTA/VTA help decide which
+call edges may exist; they are not the same thing as the later reference
+search for registration sites.
 
 **Reverse BFS** is a backwards graph walk from the lifted region roots.
 It finds functions that can already reach the region.
