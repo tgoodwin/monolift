@@ -1,0 +1,19 @@
+entrypath-probe phase=package_load status=start elapsed_ms=0 rss_bytes=8145160
+entrypath-probe phase=package_load status=end elapsed_ms=3027 rss_bytes=2493131848
+entrypath-probe phase=ssa_build status=start elapsed_ms=0 rss_bytes=2493131848
+entrypath-probe phase=ssa_build status=end elapsed_ms=2041 rss_bytes=4409325384
+entrypath-probe phase=root_resolution status=start elapsed_ms=0 rss_bytes=4409325384
+entrypath-probe phase=root_resolution status=end elapsed_ms=2572 rss_bytes=4955535304
+entrypath-probe phase=callgraph status=start elapsed_ms=0 rss_bytes=4955535304
+entrypath-probe phase=callgraph status=end elapsed_ms=17334 rss_bytes=5151823848
+entrypath-probe phase=reverse_bfs status=start elapsed_ms=0 rss_bytes=5151823848
+entrypath-probe phase=reverse_bfs status=end elapsed_ms=145 rss_bytes=5186103288
+entrypath-probe phase=bridge_seed_discovery status=start elapsed_ms=0 rss_bytes=5186103288
+entrypath-probe phase=bridge_seed_discovery status=end elapsed_ms=64260 rss_bytes=9171816536
+entrypath-probe phase=function_ref_index status=start elapsed_ms=0 rss_bytes=9171816536
+entrypath-probe phase=function_ref_index status=end elapsed_ms=768 rss_bytes=9171816536
+entrypath-probe phase=function_value_flow status=start elapsed_ms=0 rss_bytes=9171816536
+entrypath-probe phase=function_value_flow status=end elapsed_ms=284 rss_bytes=9171816536
+real 106.27
+user 85.62
+sys 76.63

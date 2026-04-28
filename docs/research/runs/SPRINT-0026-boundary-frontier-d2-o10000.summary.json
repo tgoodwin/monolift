@@ -1,0 +1,109 @@
+{
+  "name": "SPRINT-0026-boundary-frontier-d2-o10000",
+  "functionCount": 140801,
+  "wallClockMillis": 69135,
+  "peakRSSBytes": 9300734072,
+  "phaseTimings": [
+    {
+      "name": "callgraph",
+      "wallClockMillis": 29147,
+      "peakRSSBytes": 6927552168
+    },
+    {
+      "name": "reverse_bfs",
+      "wallClockMillis": 229,
+      "peakRSSBytes": 6927683240
+    },
+    {
+      "name": "boundary_reverse_frontier",
+      "wallClockMillis": 445,
+      "peakRSSBytes": 6928469672
+    },
+    {
+      "name": "boundary_adjacent_expansion",
+      "wallClockMillis": 253,
+      "peakRSSBytes": 6928993960
+    },
+    {
+      "name": "boundary_predicate_scan",
+      "wallClockMillis": 29351,
+      "peakRSSBytes": 9287626872
+    },
+    {
+      "name": "boundary_seed_set_assembly",
+      "wallClockMillis": 0,
+      "peakRSSBytes": 9300471928
+    },
+    {
+      "name": "function_ref_index",
+      "wallClockMillis": 119,
+      "peakRSSBytes": 9300734072
+    },
+    {
+      "name": "function_value_flow",
+      "wallClockMillis": 76,
+      "peakRSSBytes": 9300734072
+    }
+  ],
+  "functionRefIndex": {
+    "scannedFunctions": 70,
+    "scannedBlocks": 992,
+    "scannedInstructions": 6772,
+    "discoveredFunctionSources": 478,
+    "closureSources": 30,
+    "operandRefs": 4930,
+    "callArgRefs": 1680,
+    "storeRefs": 568,
+    "returnRefs": 89,
+    "skippedFunctions": 0,
+    "elapsedMillis": 100,
+    "peakRSSBytes": 9300734072
+  },
+  "functionIndexSeeds": {
+    "ownerCount": 70,
+    "reversePathOwners": 0,
+    "boundarySeedOwners": 70,
+    "boundaryEvidenceCount": 383,
+    "httpSinkOwners": 70,
+    "onDemandExpansionOwners": 0,
+    "rejectedNonHTTPInterfaceOwners": 0
+  },
+  "boundaryDiscovery": {
+    "mode": "frontier",
+    "reverseFrontierOwners": 10000,
+    "adjacentExpansionOwners": 0,
+    "candidateOwnerCount": 10000,
+    "candidatePackageCount": 439,
+    "boundarySeedOwners": 70,
+    "boundaryEvidenceCount": 383,
+    "seedSetOwners": 70,
+    "stopReasons": [
+      "duration_budget",
+      "owner_budget"
+    ]
+  },
+  "counts": {
+    "externalSurfaces": 1,
+    "registrationSites": 9,
+    "wrapperChains": 445,
+    "regionTouchpoints": 5623
+  },
+  "closeness": {
+    "channelsAPI4Reached": true,
+    "connectWebSocketTouchpoint": true,
+    "connectWebSocketExternal": false,
+    "APIHandlerTrustRequesterAny": false,
+    "targetRegistrationOwner": false,
+    "registrationOwnerFound": true,
+    "httpHandlerSink": false,
+    "shortestObservedWrapperChain": 1
+  },
+  "diagnostics": [
+    "boundary_frontier_duration_budget_exceeded",
+    "boundary_frontier_owner_budget_exceeded",
+    "funcvalue_terminated_at_unknown_sink",
+    "reverse_bfs_bound_exceeded",
+    "root_resolution_fallback_used",
+    "vta_fallback_used"
+  ]
+}

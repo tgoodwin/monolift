@@ -1,0 +1,24 @@
+entrypath-probe phase=package_load status=start elapsed_ms=0 rss_bytes=8145160
+entrypath-probe phase=package_load status=end elapsed_ms=3934 rss_bytes=2725600376
+entrypath-probe phase=ssa_build status=start elapsed_ms=0 rss_bytes=2725600376
+entrypath-probe phase=ssa_build status=end elapsed_ms=6069 rss_bytes=4254320408
+entrypath-probe phase=root_resolution status=start elapsed_ms=0 rss_bytes=4254320408
+entrypath-probe phase=root_resolution status=end elapsed_ms=5757 rss_bytes=4289910568
+entrypath-probe phase=callgraph status=start elapsed_ms=0 rss_bytes=4289910568
+entrypath-probe phase=callgraph status=end elapsed_ms=34801 rss_bytes=5606071672
+entrypath-probe phase=reverse_bfs status=start elapsed_ms=0 rss_bytes=5606071672
+entrypath-probe phase=reverse_bfs status=end elapsed_ms=304 rss_bytes=5606071672
+entrypath-probe phase=function_ref_index status=start elapsed_ms=0 rss_bytes=5606071672
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=108 rss_bytes=5606923640 scanned_functions=841 scanned_blocks=8512 scanned_instructions=50000 current_package_path=github.com/goccy/go-yaml
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=346 rss_bytes=5606923640 scanned_functions=1659 scanned_blocks=15928 scanned_instructions=100000 current_package_path=github.com/mattermost/mattermost/server/public/model
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=540 rss_bytes=5606923640 scanned_functions=2940 scanned_blocks=24082 scanned_instructions=150000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/app
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=664 rss_bytes=5606923640 scanned_functions=3723 scanned_blocks=31953 scanned_instructions=200000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/app/platform
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=861 rss_bytes=5606923640 scanned_functions=4647 scanned_blocks=39915 scanned_instructions=250000 current_package_path=github.com/nwaples/rardecode/v2
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=1013 rss_bytes=5606923640 scanned_functions=5882 scanned_blocks=50008 scanned_instructions=300000 current_package_path=golang.org/x/net/http2
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=1158 rss_bytes=5606923640 scanned_functions=7049 scanned_blocks=59154 scanned_instructions=350000 current_package_path=github.com/mholt/archives
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=1324 rss_bytes=5606923640 scanned_functions=8388 scanned_blocks=69646 scanned_instructions=400000 current_package_path=github.com/gorilla/websocket
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=1446 rss_bytes=5606989176 scanned_functions=9185 scanned_blocks=77688 scanned_instructions=450000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/api4
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=1601 rss_bytes=5606989176 scanned_functions=9972 scanned_blocks=84503 scanned_instructions=500000 current_package_path=github.com/minio/minio-go/v7/pkg/signer
+entrypath-probe phase=function_ref_index status=end elapsed_ms=7081 rss_bytes=6193044984
+entrypath-probe phase=function_value_flow status=start elapsed_ms=0 rss_bytes=6193044984
+entrypath-probe phase=function_value_flow status=end elapsed_ms=7152 rss_bytes=6613810776

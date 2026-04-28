@@ -1,0 +1,67 @@
+entrypath-probe phase=package_load status=start elapsed_ms=0 rss_bytes=8407304
+entrypath-probe phase=package_load status=end elapsed_ms=3355 rss_bytes=2480876616
+entrypath-probe phase=ssa_build status=start elapsed_ms=0 rss_bytes=2480876616
+entrypath-probe phase=ssa_build status=end elapsed_ms=3189 rss_bytes=4357613368
+entrypath-probe phase=root_resolution status=start elapsed_ms=0 rss_bytes=4357613368
+entrypath-probe phase=root_resolution status=end elapsed_ms=11724 rss_bytes=6488960584
+entrypath-probe phase=callgraph status=start elapsed_ms=0 rss_bytes=6488960584
+entrypath-probe phase=callgraph status=end elapsed_ms=26025 rss_bytes=6509407816
+entrypath-probe phase=reverse_bfs status=start elapsed_ms=0 rss_bytes=6509407816
+entrypath-probe phase=reverse_bfs status=end elapsed_ms=395 rss_bytes=6509604424
+entrypath-probe phase=function_ref_index status=start elapsed_ms=0 rss_bytes=6509604424
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=21124 rss_bytes=6963203752 scanned_functions=3950 scanned_blocks=19406 scanned_instructions=100000 current_package_path=github.com/andybalholm/brotli
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=21816 rss_bytes=6963203752 scanned_functions=8905 scanned_blocks=38747 scanned_instructions=200000
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=22291 rss_bytes=6963203752 scanned_functions=12195 scanned_blocks=58397 scanned_instructions=300000 current_package_path=github.com/klauspost/compress/gzhttp
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=22597 rss_bytes=6963203752 scanned_functions=14684 scanned_blocks=73506 scanned_instructions=400000 current_package_path=github.com/mattermost/mattermost/server/public/model
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=23054 rss_bytes=6963269288 scanned_functions=18433 scanned_blocks=89725 scanned_instructions=500000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/app
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=23268 rss_bytes=6963269288 scanned_functions=20639 scanned_blocks=105522 scanned_instructions=600000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/app/platform
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=23790 rss_bytes=6963334824 scanned_functions=29761 scanned_blocks=126235 scanned_instructions=700000
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=24140 rss_bytes=6963400360 scanned_functions=34755 scanned_blocks=146686 scanned_instructions=800000 current_package_path=github.com/mattermost/rsc/qr
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=24449 rss_bytes=6963465896 scanned_functions=38315 scanned_blocks=164703 scanned_instructions=900000 current_package_path=github.com/redis/go-redis/v9
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=25285 rss_bytes=6963531432 scanned_functions=52569 scanned_blocks=187185 scanned_instructions=1000000
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=25690 rss_bytes=6963596968 scanned_functions=59625 scanned_blocks=208179 scanned_instructions=1100000 current_package_path=go/build
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=25932 rss_bytes=6963662504 scanned_functions=63408 scanned_blocks=227117 scanned_instructions=1200000 current_package_path=google.golang.org/protobuf/internal/descfmt
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=26256 rss_bytes=6963662504 scanned_functions=68216 scanned_blocks=247722 scanned_instructions=1300000 current_package_path=net/http
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=26730 rss_bytes=6963793576 scanned_functions=72731 scanned_blocks=267655 scanned_instructions=1400000
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=27228 rss_bytes=6963859112 scanned_functions=82255 scanned_blocks=284414 scanned_instructions=1500000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/store/sqlstore
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=27673 rss_bytes=6963924648 scanned_functions=90547 scanned_blocks=298452 scanned_instructions=1600000 current_package_path=github.com/redis/rueidis/internal/cmds
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=27995 rss_bytes=6963924648 scanned_functions=95347 scanned_blocks=303894 scanned_instructions=1700000 current_package_path=github.com/redis/rueidis/internal/cmds
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=28377 rss_bytes=6964055720 scanned_functions=100712 scanned_blocks=317429 scanned_instructions=1800000 current_package_path=mime/multipart
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=28820 rss_bytes=6964448936 scanned_functions=103524 scanned_blocks=327290 scanned_instructions=1900000 current_package_path=crypto/internal/fips140/nistec
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=29025 rss_bytes=6964514472 scanned_functions=103524 scanned_blocks=327290 scanned_instructions=2000000 current_package_path=crypto/internal/fips140/nistec
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=29182 rss_bytes=6964580008 scanned_functions=104322 scanned_blocks=332467 scanned_instructions=2100000 current_package_path=debug/elf
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=29407 rss_bytes=6964645544 scanned_functions=105333 scanned_blocks=341134 scanned_instructions=2200000 current_package_path=github.com/andybalholm/brotli
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=29564 rss_bytes=6964711080 scanned_functions=105333 scanned_blocks=341134 scanned_instructions=2300000 current_package_path=github.com/andybalholm/brotli
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=29664 rss_bytes=6964842152 scanned_functions=105333 scanned_blocks=341134 scanned_instructions=2400000 current_package_path=github.com/andybalholm/brotli
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=29800 rss_bytes=6964907688 scanned_functions=105333 scanned_blocks=341134 scanned_instructions=2500000 current_package_path=github.com/andybalholm/brotli
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=29929 rss_bytes=6964973224 scanned_functions=105333 scanned_blocks=341134 scanned_instructions=2600000 current_package_path=github.com/andybalholm/brotli
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=30032 rss_bytes=6965038760 scanned_functions=105333 scanned_blocks=341134 scanned_instructions=2700000 current_package_path=github.com/andybalholm/brotli
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=30171 rss_bytes=6965104296 scanned_functions=106107 scanned_blocks=345207 scanned_instructions=2800000 current_package_path=github.com/aws/aws-sdk-go-v2/config
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=30375 rss_bytes=6977822392 scanned_functions=107762 scanned_blocks=353714 scanned_instructions=2900000 current_package_path=github.com/bits-and-blooms/bitset
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=30460 rss_bytes=7003315896 scanned_functions=107762 scanned_blocks=353714 scanned_instructions=3000000 current_package_path=github.com/bits-and-blooms/bitset
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=30565 rss_bytes=7028547256 scanned_functions=107762 scanned_blocks=353714 scanned_instructions=3100000 current_package_path=github.com/bits-and-blooms/bitset
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=30759 rss_bytes=7058042568 scanned_functions=109118 scanned_blocks=367446 scanned_instructions=3200000 current_package_path=github.com/goccy/go-json/internal/encoder/vm_color
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=32110 rss_bytes=7100313288 scanned_functions=110979 scanned_blocks=383584 scanned_instructions=3300000 current_package_path=github.com/lib/pq
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=34423 rss_bytes=7130005208 scanned_functions=112777 scanned_blocks=397978 scanned_instructions=3400000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/api4
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=37446 rss_bytes=7164083928 scanned_functions=115350 scanned_blocks=408226 scanned_instructions=3500000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/store/storetest
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=39853 rss_bytes=7202426600 scanned_functions=116583 scanned_blocks=410785 scanned_instructions=3600000 current_package_path=github.com/mattermost/mattermost/server/v8/channels/store/storetest
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=40442 rss_bytes=7202426600 scanned_functions=118452 scanned_blocks=417447 scanned_instructions=3700000 current_package_path=github.com/minio/minio-go/v7
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=41154 rss_bytes=7202426600 scanned_functions=122532 scanned_blocks=437315 scanned_instructions=3800000 current_package_path=github.com/yuin/goldmark/ast
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=41822 rss_bytes=7202426600 scanned_functions=123741 scanned_blocks=448938 scanned_instructions=3900000 current_package_path=golang.org/x/net/html
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=42159 rss_bytes=7202426600 scanned_functions=124526 scanned_blocks=453305 scanned_instructions=4000000 current_package_path=golang.org/x/text/encoding/charmap
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=42373 rss_bytes=7202426600 scanned_functions=124526 scanned_blocks=453305 scanned_instructions=4100000 current_package_path=golang.org/x/text/encoding/charmap
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=42539 rss_bytes=7202426600 scanned_functions=124538 scanned_blocks=453340 scanned_instructions=4200000 current_package_path=golang.org/x/text/encoding/korean
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=42715 rss_bytes=7202426600 scanned_functions=124542 scanned_blocks=453348 scanned_instructions=4300000 current_package_path=golang.org/x/text/encoding/simplifiedchinese
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=42874 rss_bytes=7202426600 scanned_functions=124589 scanned_blocks=453607 scanned_instructions=4400000 current_package_path=golang.org/x/text/internal/language
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=43093 rss_bytes=7202426600 scanned_functions=124733 scanned_blocks=454595 scanned_instructions=4500000 current_package_path=golang.org/x/text/unicode/norm
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=43558 rss_bytes=7202426600 scanned_functions=127216 scanned_blocks=471417 scanned_instructions=4600000 current_package_path=image/color/palette
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=44171 rss_bytes=7202426600 scanned_functions=130649 scanned_blocks=486503 scanned_instructions=4700000 current_package_path=modernc.org/mathutil
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=44388 rss_bytes=7202426600 scanned_functions=130649 scanned_blocks=486503 scanned_instructions=4800000 current_package_path=modernc.org/mathutil
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=44661 rss_bytes=7202426600 scanned_functions=131507 scanned_blocks=495280 scanned_instructions=4900000 current_package_path=modernc.org/sqlite/lib
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=45030 rss_bytes=7202426600 scanned_functions=132516 scanned_blocks=508159 scanned_instructions=5000000 current_package_path=modernc.org/sqlite/lib
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=45414 rss_bytes=7202426600 scanned_functions=133527 scanned_blocks=521540 scanned_instructions=5100000 current_package_path=modernc.org/sqlite/lib
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=45697 rss_bytes=7202426600 scanned_functions=134421 scanned_blocks=533931 scanned_instructions=5200000 current_package_path=modernc.org/sqlite/lib
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=46383 rss_bytes=7202426600 scanned_functions=135936 scanned_blocks=544893 scanned_instructions=5300000 current_package_path=reflect
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=46970 rss_bytes=7202426600 scanned_functions=139299 scanned_blocks=566004 scanned_instructions=5400000
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=47348 rss_bytes=7202426600 scanned_functions=140701 scanned_blocks=574350 scanned_instructions=5500000 current_package_path=vendor/golang.org/x/net/idna
+entrypath-probe phase=function_ref_index status=progress elapsed_ms=47597 rss_bytes=7202426600 scanned_functions=140767 scanned_blocks=574876 scanned_instructions=5600000 current_package_path=vendor/golang.org/x/text/unicode/norm

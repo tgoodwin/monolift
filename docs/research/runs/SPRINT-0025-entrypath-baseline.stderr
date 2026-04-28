@@ -1,0 +1,16 @@
+entrypath-probe phase=package_load status=start elapsed_ms=0 rss_bytes=8407304
+entrypath-probe phase=package_load status=end elapsed_ms=4417 rss_bytes=2544319576
+entrypath-probe phase=ssa_build status=start elapsed_ms=0 rss_bytes=2544319576
+entrypath-probe phase=ssa_build status=end elapsed_ms=3829 rss_bytes=4277786408
+entrypath-probe phase=root_resolution status=start elapsed_ms=0 rss_bytes=4277786408
+entrypath-probe phase=root_resolution status=end elapsed_ms=10054 rss_bytes=6106533352
+entrypath-probe phase=callgraph status=start elapsed_ms=0 rss_bytes=6106533352
+entrypath-probe phase=callgraph status=end elapsed_ms=25333 rss_bytes=6757604984
+entrypath-probe phase=reverse_bfs status=start elapsed_ms=0 rss_bytes=6757604984
+entrypath-probe phase=reverse_bfs status=end elapsed_ms=230 rss_bytes=6757736056
+entrypath-probe phase=function_ref_index status=start elapsed_ms=0 rss_bytes=6757736056
+entrypath-probe phase=function_ref_index status=end elapsed_ms=168071 rss_bytes=10865488224
+entrypath-probe phase=function_value_flow status=start elapsed_ms=0 rss_bytes=10865488224
+entrypath-probe phase=function_value_flow status=end elapsed_ms=18884 rss_bytes=10865488224
+      246.28 real       165.73 user       228.47 sys
+time: sysctl kern.clockrate: Operation not permitted

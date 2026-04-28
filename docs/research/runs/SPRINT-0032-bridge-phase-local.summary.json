@@ -1,0 +1,580 @@
+{
+  "wall": 154615,
+  "peak": 9137803352,
+  "phases": [
+    {
+      "name": "callgraph",
+      "wallClockMillis": 67248,
+      "peakRSSBytes": 5206747128
+    },
+    {
+      "name": "reverse_bfs",
+      "wallClockMillis": 207,
+      "peakRSSBytes": 5206878200
+    },
+    {
+      "name": "bridge_seed_discovery",
+      "wallClockMillis": 70464,
+      "peakRSSBytes": 9137541208
+    },
+    {
+      "name": "function_ref_index",
+      "wallClockMillis": 3533,
+      "peakRSSBytes": 9137541208
+    },
+    {
+      "name": "function_value_flow",
+      "wallClockMillis": 417,
+      "peakRSSBytes": 9137803352
+    }
+  ],
+  "index": {
+    "scannedFunctions": 1676,
+    "scannedBlocks": 15956,
+    "scannedInstructions": 124597,
+    "discoveredFunctionSources": 4165,
+    "closureSources": 213,
+    "operandRefs": 85712,
+    "callArgRefs": 41861,
+    "storeRefs": 11554,
+    "returnRefs": 8257,
+    "skippedFunctions": 0,
+    "elapsedMillis": 3486,
+    "peakRSSBytes": 9137541208
+  },
+  "seeds": {
+    "ownerCount": 1676,
+    "reversePathOwners": 0,
+    "boundarySeedOwners": 93,
+    "boundaryEvidenceCount": 4261,
+    "httpSinkOwners": 93,
+    "onDemandExpansionOwners": 0,
+    "bridgeOwners": 1676,
+    "oracleBridgeOwners": 0,
+    "rejectedNonHTTPInterfaceOwners": 0
+  },
+  "boundary": {
+    "mode": "all",
+    "reverseFrontierOwners": 0,
+    "reverseOwners": 0,
+    "adjacentExpansionOwners": 0,
+    "candidateOwnerCount": 0,
+    "boundaryCandidateOwners": 0,
+    "candidatePackageCount": 0,
+    "boundarySeedOwners": 93,
+    "boundaryEvidenceCount": 4261,
+    "boundaryEvidence": 4261,
+    "seedSetOwners": 1676,
+    "finalIndexedOwners": 1676
+  },
+  "bridge": {
+    "touchpointCount": 5616,
+    "startCandidateCount": 4577,
+    "selectedStartCount": 1000,
+    "skippedStartCount": 4616,
+    "skipReasons": [
+      {
+        "reason": "duplicate",
+        "count": 34
+      },
+      {
+        "reason": "missing_package",
+        "count": 1005
+      },
+      {
+        "reason": "start_budget",
+        "count": 3577
+      }
+    ],
+    "startPackageCount": 109,
+    "scannedPackageCount": 3,
+    "scannedPackageFunctions": 4716,
+    "scannedInstructions": 250000,
+    "bridgeOwnerCount": 1676,
+    "bridgeBoundaryCandidateCount": 2000,
+    "bridgeBoundaryOwnerCount": 93,
+    "bridgeSeedOwnerCount": 1676,
+    "indexedBridgeOwnerCount": 1676,
+    "indexPriorityClassCounts": [
+      {
+        "priorityClass": "boundary_bridge",
+        "count": 93,
+        "indexed": 93,
+        "skipped": 0
+      },
+      {
+        "priorityClass": "touchpoint_ref_bridge",
+        "count": 618,
+        "indexed": 618,
+        "skipped": 0
+      },
+      {
+        "priorityClass": "selected_package_bridge",
+        "count": 964,
+        "indexed": 964,
+        "skipped": 0
+      },
+      {
+        "priorityClass": "other_bridge",
+        "count": 1,
+        "indexed": 1,
+        "skipped": 0
+      }
+    ],
+    "duplicateOwnerSuppressions": 456,
+    "budgetStops": [
+      {
+        "budget": "boundary_owner",
+        "reason": "boundary_owner_budget"
+      },
+      {
+        "budget": "instruction",
+        "reason": "instruction_budget"
+      },
+      {
+        "budget": "package_function",
+        "reason": "package_function_budget"
+      },
+      {
+        "budget": "start",
+        "reason": "start_budget"
+      }
+    ],
+    "stopReasons": [
+      "boundary_owner_budget",
+      "instruction_budget",
+      "package_function_budget",
+      "start_budget"
+    ]
+  },
+  "counts": {
+    "external": 608,
+    "registrations": 689,
+    "chains": 3322
+  },
+  "oracle": {
+    "nodes": [
+      {
+        "id": "connect",
+        "spec": {
+          "id": "connect",
+          "packagePath": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "objectName": "connectWebSocket"
+        },
+        "resolved": {
+          "id": "github.com/mattermost/mattermost/server/v8/channels/api4.connectWebSocket@/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/websocket.go:57",
+          "label": "github.com/mattermost/mattermost/server/v8/channels/api4.connectWebSocket",
+          "identity": {
+            "module_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+            "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+            "object_name": "connectWebSocket",
+            "kind": "function"
+          },
+          "position": {
+            "filename": "/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/websocket.go",
+            "line": 57,
+            "column": 6
+          }
+        },
+        "phases": [
+          {
+            "phase": "loaded_ssa",
+            "status": "present",
+            "evidence": [
+              "github.com/mattermost/mattermost/server/v8/channels/api4.connectWebSocket"
+            ]
+          },
+          {
+            "phase": "reverse_bfs_touchpoint",
+            "status": "present",
+            "evidence": [
+              "EdgeStaticCall"
+            ]
+          },
+          {
+            "phase": "reverse_frontier_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "adjacent_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_candidate",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_predicate_evidence",
+            "status": "absent"
+          },
+          {
+            "phase": "seed_set",
+            "status": "present",
+            "evidence": [
+              "bridge"
+            ]
+          },
+          {
+            "phase": "function_ref_index",
+            "status": "present",
+            "evidence": [
+              "scanned owner",
+              "source",
+              "uses:1"
+            ]
+          },
+          {
+            "phase": "final_classification",
+            "status": "present",
+            "evidence": [
+              "chain link from",
+              "chain source",
+              "external surface",
+              "registration handler"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "api-handler-trust-requester",
+        "spec": {
+          "id": "api-handler-trust-requester",
+          "packagePath": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "objectName": "(*API).APIHandlerTrustRequester"
+        },
+        "resolved": {
+          "id": "github.com/mattermost/mattermost/server/v8/channels/api4.(*API).APIHandlerTrustRequester@/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/handlers.go:137",
+          "label": "(*github.com/mattermost/mattermost/server/v8/channels/api4.API).APIHandlerTrustRequester",
+          "identity": {
+            "module_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+            "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+            "object_name": "(*API).APIHandlerTrustRequester",
+            "kind": "method"
+          },
+          "position": {
+            "filename": "/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/handlers.go",
+            "line": 137,
+            "column": 17
+          }
+        },
+        "phases": [
+          {
+            "phase": "loaded_ssa",
+            "status": "present",
+            "evidence": [
+              "(*github.com/mattermost/mattermost/server/v8/channels/api4.API).APIHandlerTrustRequester"
+            ]
+          },
+          {
+            "phase": "reverse_bfs_touchpoint",
+            "status": "absent"
+          },
+          {
+            "phase": "reverse_frontier_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "adjacent_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_candidate",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_predicate_evidence",
+            "status": "present",
+            "evidence": [
+              "net/http argument_http_handler net/http.Handler",
+              "net/http argument_serve_http_shape *github.com/mattermost/mattermost/server/v8/channels/web.Handler",
+              "net/http callee_signature_http_handler net/http.Handler",
+              "net/http callee_signature_serve_http_shape *github.com/mattermost/mattermost/server/v8/channels/web.Handler",
+              "net/http parameter_http_handler net/http.Handler",
+              "net/http parameter_serve_http_shape *github.com/mattermost/mattermost/server/v8/channels/web.Handler",
+              "net/http store_address_field_owner_serve_http_shape *github.com/mattermost/mattermost/server/v8/channels/web.Handler"
+            ]
+          },
+          {
+            "phase": "seed_set",
+            "status": "present",
+            "evidence": [
+              "boundary,bridge,http_sink"
+            ]
+          },
+          {
+            "phase": "function_ref_index",
+            "status": "present",
+            "evidence": [
+              "scanned owner",
+              "source",
+              "uses:3"
+            ]
+          },
+          {
+            "phase": "final_classification",
+            "status": "present",
+            "evidence": [
+              "chain link from",
+              "chain link to",
+              "chain registration",
+              "chain source"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "init-websocket",
+        "spec": {
+          "id": "init-websocket",
+          "packagePath": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "objectName": "(*API).InitWebSocket"
+        },
+        "resolved": {
+          "id": "github.com/mattermost/mattermost/server/v8/channels/api4.(*API).InitWebSocket@/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/websocket.go:52",
+          "label": "(*github.com/mattermost/mattermost/server/v8/channels/api4.API).InitWebSocket",
+          "identity": {
+            "module_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+            "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+            "object_name": "(*API).InitWebSocket",
+            "kind": "method"
+          },
+          "position": {
+            "filename": "/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/websocket.go",
+            "line": 52,
+            "column": 17
+          }
+        },
+        "phases": [
+          {
+            "phase": "loaded_ssa",
+            "status": "present",
+            "evidence": [
+              "(*github.com/mattermost/mattermost/server/v8/channels/api4.API).InitWebSocket"
+            ]
+          },
+          {
+            "phase": "reverse_bfs_touchpoint",
+            "status": "absent"
+          },
+          {
+            "phase": "reverse_frontier_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "adjacent_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_candidate",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_predicate_evidence",
+            "status": "present",
+            "evidence": [
+              "net/http argument_http_handler net/http.Handler",
+              "net/http argument_serve_http_shape *github.com/gorilla/mux.Router",
+              "net/http callee_signature_http_handler net/http.Handler",
+              "net/http parameter_http_handler net/http.Handler",
+              "net/http parameter_serve_http_shape *github.com/gorilla/mux.Router"
+            ]
+          },
+          {
+            "phase": "seed_set",
+            "status": "present",
+            "evidence": [
+              "boundary,bridge,http_sink"
+            ]
+          },
+          {
+            "phase": "function_ref_index",
+            "status": "present",
+            "evidence": [
+              "scanned owner",
+              "source",
+              "uses:1"
+            ]
+          },
+          {
+            "phase": "final_classification",
+            "status": "present",
+            "evidence": [
+              "chain link from",
+              "chain link to",
+              "chain registration",
+              "chain source",
+              "registration owner"
+            ]
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "id": "connect-to-api-handler",
+        "spec": {
+          "id": "connect-to-api-handler",
+          "kind": "function_ref",
+          "from": "connect",
+          "to": "api-handler-trust-requester",
+          "edgeKind": "EdgeFunctionValueArg"
+        },
+        "phases": [
+          {
+            "phase": "loaded_ssa",
+            "status": "present",
+            "evidence": [
+              "relationship endpoints resolved"
+            ]
+          },
+          {
+            "phase": "reverse_bfs_touchpoint",
+            "status": "absent"
+          },
+          {
+            "phase": "reverse_frontier_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "adjacent_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_candidate",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_predicate_evidence",
+            "status": "absent"
+          },
+          {
+            "phase": "seed_set",
+            "status": "absent"
+          },
+          {
+            "phase": "function_ref_index",
+            "status": "absent"
+          },
+          {
+            "phase": "final_classification",
+            "status": "present",
+            "evidence": [
+              "EdgeFunctionValueArg"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "connect-registered-at-init",
+        "spec": {
+          "id": "connect-registered-at-init",
+          "kind": "registration",
+          "from": "connect",
+          "to": "init-websocket",
+          "edgeKind": "EdgeFunctionValueArg",
+          "staticTypeContains": "net/http.Handler",
+          "sinkKind": "http-handler"
+        },
+        "phases": [
+          {
+            "phase": "loaded_ssa",
+            "status": "present",
+            "evidence": [
+              "relationship endpoints resolved"
+            ]
+          },
+          {
+            "phase": "reverse_bfs_touchpoint",
+            "status": "absent"
+          },
+          {
+            "phase": "reverse_frontier_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "adjacent_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_candidate",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_predicate_evidence",
+            "status": "absent"
+          },
+          {
+            "phase": "seed_set",
+            "status": "absent"
+          },
+          {
+            "phase": "function_ref_index",
+            "status": "absent"
+          },
+          {
+            "phase": "final_classification",
+            "status": "present",
+            "evidence": [
+              "EdgeFunctionValueArg net/http.Handler"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "init-has-http-boundary",
+        "spec": {
+          "id": "init-has-http-boundary",
+          "kind": "boundary_evidence",
+          "to": "init-websocket",
+          "staticTypeContains": "net/http.Handler"
+        },
+        "phases": [
+          {
+            "phase": "loaded_ssa",
+            "status": "present",
+            "evidence": [
+              "relationship endpoints resolved"
+            ]
+          },
+          {
+            "phase": "reverse_bfs_touchpoint",
+            "status": "absent"
+          },
+          {
+            "phase": "reverse_frontier_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "adjacent_owner",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_candidate",
+            "status": "not_run"
+          },
+          {
+            "phase": "boundary_predicate_evidence",
+            "status": "present",
+            "evidence": [
+              "net/http argument_http_handler net/http.Handler",
+              "net/http callee_signature_http_handler net/http.Handler",
+              "net/http parameter_http_handler net/http.Handler"
+            ]
+          },
+          {
+            "phase": "seed_set",
+            "status": "absent"
+          },
+          {
+            "phase": "function_ref_index",
+            "status": "absent"
+          },
+          {
+            "phase": "final_classification",
+            "status": "absent"
+          }
+        ]
+      }
+    ]
+  }
+}

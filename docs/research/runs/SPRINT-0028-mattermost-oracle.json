@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    {
+      "id": "connect",
+      "packagePath": "github.com/mattermost/mattermost/server/v8/channels/api4",
+      "objectName": "connectWebSocket"
+    },
+    {
+      "id": "api-handler-trust-requester",
+      "packagePath": "github.com/mattermost/mattermost/server/v8/channels/api4",
+      "objectName": "(*API).APIHandlerTrustRequester"
+    },
+    {
+      "id": "init-websocket",
+      "packagePath": "github.com/mattermost/mattermost/server/v8/channels/api4",
+      "objectName": "(*API).InitWebSocket"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "connect-to-api-handler",
+      "kind": "function_ref",
+      "from": "connect",
+      "to": "api-handler-trust-requester",
+      "edgeKind": "EdgeFunctionValueArg"
+    },
+    {
+      "id": "connect-registered-at-init",
+      "kind": "registration",
+      "from": "connect",
+      "to": "init-websocket",
+      "edgeKind": "EdgeFunctionValueArg",
+      "staticTypeContains": "net/http.Handler",
+      "sinkKind": "http-handler"
+    },
+    {
+      "id": "init-has-http-boundary",
+      "kind": "boundary_evidence",
+      "to": "init-websocket",
+      "staticTypeContains": "net/http.Handler"
+    }
+  ],
+  "bridgeStarts": ["connect"]
+}

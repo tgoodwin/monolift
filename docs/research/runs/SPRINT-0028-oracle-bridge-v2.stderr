@@ -1,0 +1,18 @@
+entrypath-probe phase=package_load status=start elapsed_ms=0 rss_bytes=8145160
+entrypath-probe phase=package_load status=end elapsed_ms=4086 rss_bytes=2502569032
+entrypath-probe phase=ssa_build status=start elapsed_ms=0 rss_bytes=2502569032
+entrypath-probe phase=ssa_build status=end elapsed_ms=4481 rss_bytes=4276999976
+entrypath-probe phase=root_resolution status=start elapsed_ms=0 rss_bytes=4276999976
+entrypath-probe phase=root_resolution status=end elapsed_ms=5226 rss_bytes=4788602776
+entrypath-probe phase=callgraph status=start elapsed_ms=0 rss_bytes=4788602776
+entrypath-probe phase=callgraph status=end elapsed_ms=28335 rss_bytes=5096310744
+entrypath-probe phase=reverse_bfs status=start elapsed_ms=0 rss_bytes=5096310744
+entrypath-probe phase=reverse_bfs status=end elapsed_ms=258 rss_bytes=5100771304
+entrypath-probe phase=oracle_bridge_seed_discovery status=start elapsed_ms=0 rss_bytes=5100771304
+entrypath-probe phase=oracle_bridge_seed_discovery status=end elapsed_ms=38687 rss_bytes=8935088168
+entrypath-probe phase=function_ref_index status=start elapsed_ms=0 rss_bytes=8935088168
+entrypath-probe phase=function_ref_index status=end elapsed_ms=488 rss_bytes=8935219240
+entrypath-probe phase=function_value_flow status=start elapsed_ms=0 rss_bytes=8935219240
+entrypath-probe phase=function_value_flow status=end elapsed_ms=183 rss_bytes=8935350312
+      103.62 real        75.57 user        86.46 sys
+time: sysctl kern.clockrate: Operation not permitted

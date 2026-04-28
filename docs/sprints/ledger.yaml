@@ -98,4 +98,82 @@ sprints:
     status: done
     executor: gpt-5.4
     created: "2026-04-26T16:40:36+00:00"
-    updated: "2026-04-26T18:02:00+00:00"
+    updated: "2026-04-26T18:08:20+00:00"
+  - id: SPRINT-0020
+    title: Flip miniflux to real compiler; drop last OSS stub fixture
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-26T19:28:21+00:00"
+    updated: "2026-04-26T22:35:43+00:00"
+  - id: SPRINT-0021
+    title: Mattermost Hub/WebConn composite-archetype vertical slice
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-26T23:51:59+00:00"
+    updated: "2026-04-27T00:56:42+00:00"
+  - id: SPRINT-0022
+    title: Multi-root region support + pragma redesign (Mattermost Hub/WebConn)
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-27T01:29:12+00:00"
+    updated: "2026-04-27T03:48:26+00:00"
+  - id: SPRINT-0023
+    title: Boot-path extraction pass + emission gap closure (Mattermost validation)
+    status: done
+    executor: gpt-5.4
+    created: "2026-04-27T05:08:10+00:00"
+    updated: "2026-04-27T07:21:59+00:00"
+  - id: SPRINT-0024
+    title: Invocation-trace probe + InvocationTrace pass (Mattermost gated)
+    status: in-progress
+    executor: gpt-5.5-xhigh
+    created: "2026-04-27T18:27:44+00:00"
+    updated: "2026-04-27T19:02:51+00:00"
+  - id: SPRINT-0025
+    title: Targeted EntryPath diagnostic search
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-27T20:20:50+00:00"
+    updated: "2026-04-27T23:37:52+00:00"
+  - id: SPRINT-0026
+    title: Boundary-frontier EntryPath diagnostic
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-28T00:14:24+00:00"
+    updated: "2026-04-28T01:04:45+00:00"
+  - id: SPRINT-0027
+    title: Budget-partitioned boundary frontier diagnostic
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-28T01:06:33+00:00"
+    updated: "2026-04-28T01:43:28+00:00"
+  - id: SPRINT-0028
+    title: Oracle trace for bounded EntryPath recovery
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-28T01:53:51+00:00"
+    updated: "2026-04-28T03:32:28+00:00"
+  - id: SPRINT-0029
+    title: Generic touchpoint-to-boundary bridge seed source
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-28T03:53:53+00:00"
+    updated: "2026-04-28T04:53:07+00:00"
+  - id: SPRINT-0030
+    title: Bridge coverage diagnostic and one generic fix
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-28T05:05:20+00:00"
+    updated: "2026-04-28T05:57:29+00:00"
+  - id: SPRINT-0031
+    title: Bridge-index priority scheduling
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-28T06:04:08+00:00"
+    updated: "2026-04-28T06:37:31+00:00"
+  - id: SPRINT-0032
+    title: Bridge algorithm consolidation
+    status: done
+    executor: gpt-5.5-xhigh
+    created: "2026-04-28T16:10:06+00:00"
+    updated: "2026-04-28T16:24:20+00:00"
