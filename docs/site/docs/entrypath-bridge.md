@@ -5,30 +5,45 @@
 When Monolift lifts a region of code, it needs to understand how that
 region is activated by the surrounding application. This page uses
 **entry path** to mean the recovered static connection from code in or
-near a lifted region outward toward the application's activation flow.
-Along that path, an **activation boundary** is the place where the
-application enters a registered or bootstrapped unit of behavior: an
-HTTP route, gRPC service, queue worker, cron job, CLI command, lifecycle
-hook, callback registry, framework module, or similar construct.
+near a lifted region outward toward the application's binary entrypoint
+and bootstrap/dispatch machinery. Along that path, an **activation
+handoff** is the point where broad application control becomes the
+specific behavior chain that reaches the lifted region.
+
+That handoff may be implemented by an HTTP route, gRPC service, queue
+worker, cron job, CLI command, lifecycle hook, callback registry,
+framework module, or a direct startup goroutine. Those are evidence
+families, not the definition. The definition is about the role a point
+plays on the path between application startup/dispatch and the lifted
+region.
 
 Recovering the entry path is a precursor to choosing the right
-**distribution cut point** around the lifted region. Sometimes that cut
-is obvious, such as the methods on an object being extracted. In other
-cases the right cut sits higher up: a registered handler, callback,
-queue consumer, or service method that already defines how the
-application invokes the region.
+**distribution cut point** around the lifted region. The developer can
+declare the code they would like to lift, but that declaration is not
+automatically the right place to make the network incision. The compiler
+still has to decide where control should cross from the monolith into an
+extracted service. Sometimes that cut is obvious, such as the methods on
+an object being extracted. In other cases the right cut sits higher up
+or lower down along the activation path.
 
 The direct call graph answers part of the question: it can show
 functions that call, or are called by, the lifted region. The missing
-piece is often the **registration edge**: the static connection from an
-activation boundary to the handler, callback, or method that eventually
-reaches the lifted code. Real Go services often express that edge
+piece is often the **activation handoff**: the static connection between
+general application machinery and the unit of behavior that eventually
+reaches the lifted code. Real Go services often express that handoff
 outside the direct call path. A handler might be passed into a router,
-wrapped by middleware, stored in a registry, or attached to a service
-object before traffic ever reaches it.
+wrapped by middleware, stored in a registry, attached to a service
+object, scheduled as a cron callback, or launched as background work
+before the lifted region ever runs.
 
-The compiler's current strategy for this case is a
-**boundary-registration bridge**. It combines two searches. First, it
+The research question is:
+
+> What is the smallest static graph whose edges are meaningful enough
+> that a path from application roots to region roots corresponds to a
+> real activation path?
+
+The compiler's current strategy is a first approximation to that graph.
+It uses a **bridge search** that combines two searches. First, it
 uses the call graph in reverse, starting at the lifted region, to find
 nearby code that already reaches that region. That is not enough by
 itself because registration often moves callable values through
@@ -53,16 +68,16 @@ same basic recovery strategy: use the call graph to narrow the search
 area, then spend the reference-indexing work only on the owners admitted
 by the bridge.
 
-That design choice keeps the analysis explainable and budgeted. Rather
-than trying to solve every possible way a program could dispatch work at
-runtime, the bridge focuses on **statically visible registration
-patterns**: HTTP handlers registered with routers, methods attached to
-generated service registries, callback tables, worker queues, command
-trees, and similar structures. Those are the cases where the compiler
-can point to a concrete registration site and say why it connects an
-activation boundary to the lifted region. The current implementation has
-the strongest boundary predicates for HTTP-shaped Go code, but the
-algorithm itself is not tied to Mattermost or to any one router package.
+That design choice keeps the analysis explainable and budgeted. The
+current implementation mostly recognizes **statically visible
+registration patterns**: handlers registered with routers, methods
+attached to generated service registries, callback tables, worker
+queues, command trees, and similar structures. That is an evidence
+strategy, not the full abstraction. The broader target is to identify
+handoff points on the path from application entry/bootstrap to the
+lifted region. The current implementation has the strongest handoff
+evidence for HTTP-like registrations, which is exactly why the next work
+is about making the abstraction less mechanism-shaped.
 
 ## Where this is heading
 
@@ -70,17 +85,18 @@ The current EntryPath work is turning into a staged compiler pipeline:
 
 ```mermaid
 flowchart LR
-    A["lifted region<br/>region roots"] --> B["entry path recovery<br/>call graph + bridge search"]
-    B --> C["normalized EntryPath contract<br/>stable producer output"]
-    C --> D["activation boundary reasoning<br/>how application control reaches the region"]
-    D --> E["distribution cut point<br/>where generated remote boundary should sit"]
-    E --> F["transport + emission<br/>future compiler phases"]
+    A["binary / app entry<br/>main, init, bootstrap, dispatch"] --> B["application machinery<br/>routers, schedulers, workers, hooks"]
+    B --> C["activation handoff<br/>semantic transition"]
+    C --> D["behavior path<br/>handler / callback / worker / method"]
+    D --> E["lifted region<br/>region roots"]
+    E --> F["EntryPath contract<br/>recovered path + evidence"]
+    F --> G["cut-point reasoning<br/>future compiler phase"]
 ```
 
 The important separation is that EntryPath does not itself choose where
 to distribute the program. It recovers the activation context around a
 lifted region and exposes enough structured evidence for a later phase
-to reason about the activation boundary and distribution cut point.
+to reason about activation handoffs and distribution cut points.
 
 ### EntryPath contract
 
@@ -88,8 +104,7 @@ to reason about the activation boundary and distribution cut point.
 
 The next contract should be a normalized producer result, not the raw
 diagnostic probe output. It should preserve durable facts such as region
-roots, touchpoints, activation-boundary candidates,
-registration/bootstrap sites, wrapper links, edge kinds, source
+roots, touchpoints, activation handoff candidates, graph edges, source
 positions, and unsupported gaps. It should not expose probe-only details
 such as oracle traces, bridge coverage, raw timing data, peak RSS, or
 budget stops as the downstream compiler API.
@@ -98,27 +113,33 @@ TODO: replace this section with the concrete `pkg/compiler/entrypath`
 type and conversion function once the current corpus validation sprint
 lands.
 
-### Activation boundary reasoning
+### Activation Handoff Reasoning
 
 **Status:** planned.
 
-An activation boundary is not necessarily an API endpoint. It can be a
-route registration, service registration, queue consumer, background
-routine bootstrap, cron job, command hook, lifecycle callback, or custom
-framework registry. The shared question is: where does application
-control enter the unit of behavior that eventually reaches the lifted
-region?
+An activation handoff is the semantic transition on the path between
+application entry/bootstrap and the lifted region. The shared question
+is not "which framework mechanism is this?" but "where does broad
+application control become the specific behavior chain that reaches this
+region?"
 
-TODO: document the boundary-family vocabulary once the candidate corpus
-pass shows which shapes EntryPath can recover reliably and which require
-new predicates.
+Framework mechanisms still matter, but as evidence. A route
+registration, cron callback, queue worker, lifecycle hook, command
+function, direct goroutine launch, or service registry can all provide
+evidence for such a handoff. The algorithm should reason about the role
+of the handoff first, then attach protocol or framework-specific facts
+as supporting evidence.
+
+TODO: document the handoff-evidence vocabulary once the graph model is
+clearer. The useful categories may be generic edge types rather than
+framework families.
 
 ### Distribution cut point
 
 **Status:** planned.
 
 The distribution cut point is the later placement decision: given a
-recovered entry path and activation boundary evidence, where should
+recovered entry path and activation handoff evidence, where should
 Monolift introduce the generated remote boundary so the lifted region is
 invoked correctly and with the least unnecessary application context?
 
@@ -126,29 +147,46 @@ TODO: document the cut-point selector once it exists. For now, the key
 constraint is that EntryPath should retain the evidence a selector would
 need, without making the selection itself.
 
-## The problem: call paths miss registration paths
+## The Incision Problem
 
 A lifted region has **region roots**: the functions the developer asked
-Monolift to extract. From those roots, the compiler can walk backward
-through the call graph to find functions that already reach the region.
-Those functions are useful, so we call them **touchpoints**.
+Monolift to extract. But the region roots are not automatically the
+right distribution cut point. They may sit deep inside a handler,
+worker, callback, lifecycle routine, or object method. To decide where
+the extracted service should receive control, the compiler needs to
+understand how control reaches the region in the monolith.
 
-But a touchpoint is not always the activation boundary. Consider a common
-shape:
+That makes the problem a graph-search problem between two sides of the
+program:
+
+- **application roots**: `main`, `init`, server bootstrap, worker
+  startup, lifecycle registration, or other code that establishes
+  application execution machinery; and
+- **region roots**: the developer-declared lifted code.
+
+The output may not be one perfect path. Some regions have multiple
+activation paths. Some paths contain dynamic dispatch or storage that
+static analysis can only partially explain. The goal is to recover the
+smallest useful activation graph, not to pretend every monolith has a
+single clean endpoint-to-function chain.
+
+Consider a common shape:
 
 ```mermaid
 flowchart LR
-    B["activation boundary<br/>router / service registry / queue / bootstrap"] --> W["wrapper or registration owner"]
-    W --> H["handler or callback (H)"]
+    A["binary / app entry<br/>main / init / startup"] --> B["application machinery<br/>dispatch / scheduler / registry"]
+    B --> C["activation handoff<br/>semantic transition"]
+    C --> W["wrapper or registration owner"]
+    W --> H["specific behavior<br/>handler / callback / worker"]
     H --> R["lifted region root (R)"]
 ```
 
 The call graph can often find `H -> R`. The harder question is how `H`
-became reachable from the boundary. That edge might be a function
-argument, a method value, a struct field, a table entry, or a wrapper
-closure. The boundary-registration bridge exists to recover that
-registration path without falling back to an exhaustive whole-program
-reference scan.
+became reachable from application machinery. That connection might be a
+function argument, a method value, a struct field, a table entry, a
+wrapper closure, a goroutine launch, a callback registration, or a
+dynamic invocation. EntryPath exists to recover enough of that graph to
+support a later cut-point decision.
 
 ## Terminology
 
@@ -169,23 +207,38 @@ search for registration sites.
 It finds functions that can already reach the region.
 
 **Touchpoint** means a function found by reverse BFS. It is not
-necessarily an activation boundary; it is a known point near the lifted
+necessarily an activation handoff; it is a known point near the lifted
 region.
 
-**Activation boundary** means the point where the application enters a
-registered or bootstrapped unit of behavior. API endpoints are one
-activation-boundary family, but not the only one.
+**Activation graph** means the static graph Monolift is trying to
+recover between application roots and region roots. Its edges must be
+meaningful enough that paths through the graph correspond to real
+activation behavior, not merely "these two functions appeared in the
+same owner."
+
+**Activation path** means one path through that graph explaining how
+control reaches the lifted region.
+
+**Activation handoff** means the semantic transition on an activation
+path. Before the handoff, control is broad application machinery. After
+the handoff, control is following the specific behavior chain that
+reaches the region.
+
+**Distribution cut point** means the later compiler decision about where
+to insert the network transfer. It may coincide with an activation
+handoff, but it is not the same concept.
 
 **Owner** means the function whose SSA instructions contain the evidence
 we care about. If a function stores a callback in a table, passes a
 handler to a router, or returns a wrapper closure, that function is the
 owner of that evidence.
 
-**Boundary owner** means an owner with generic evidence that it is near
-an activation boundary. Today that evidence is strongest for HTTP-like
-boundaries, such as `net/http` handler interfaces or `ServeHTTP`-shaped
-values. The same role could be filled by gRPC service registration
-evidence or queue-handler registration evidence.
+**Handoff owner** means an owner with generic evidence that it is near
+an activation handoff. Today that evidence is strongest for HTTP-like
+registrations, such as `net/http` handler interfaces or
+`ServeHTTP`-shaped values. The same role could be filled by
+lifecycle-hook, scheduler, queue-handler, command-dispatch,
+service-registration, or direct goroutine-launch evidence.
 
 **Function-reference index** means a scoped "find references" pass for
 functions. It records where function values are created, passed, stored,
@@ -195,9 +248,33 @@ one important evidence channel for registration-shaped Go code.
 **Bridge owner** means an owner admitted into the bounded bridge search.
 It may be admitted because it sits in a selected touchpoint package,
 because it directly references a touchpoint, or because it carries
-boundary evidence.
+handoff evidence.
 
-## The algorithm
+## Activation As Graph Search
+
+The central research problem is defining the activation graph. A useful
+graph probably needs more than ordinary call edges, but less than every
+possible reference in the program.
+
+Candidate edge families include:
+
+- direct and type-informed call edges;
+- function or method values passed as arguments;
+- closures returned from factories;
+- callable values stored in fields, globals, maps, slices, or tables;
+- stored callable values loaded and invoked later;
+- wrapper or adapter edges;
+- goroutine launches;
+- package `init`, `main`, and bootstrap calls; and
+- explicit dynamic or unsupported gaps when the analysis can see a
+  handoff but cannot prove the eventual invocation.
+
+The hard part is precision. An edge should mean "this behavior can
+activate that behavior", not just "these names appeared in the same
+function." Without that discipline, a large router setup function can
+connect a lifted region to unrelated handlers and produce noisy paths.
+
+## Current Approximation: Bridge Search
 
 ```mermaid
 flowchart TD
@@ -206,14 +283,15 @@ flowchart TD
     C --> D["touchpoints"]
     D --> E["select bounded bridge starts<br/>near touchpoint packages"]
     E --> F["scan local owners<br/>for registration evidence"]
-    F --> G["admit bridge + boundary owners"]
+    F --> G["admit bridge + handoff owners"]
     G --> H["prioritized function-reference index"]
     H --> I["function-value flow<br/>and entrypath classification"]
     I --> J["activation candidates<br/>registration sites<br/>wrapper chains"]
 ```
 
-The phases are deliberately separated so their costs and failure modes
-are understandable.
+The current implementation is a useful approximation to activation-graph
+search. The phases are deliberately separated so their failure modes are
+understandable.
 
 1. **Load packages and build SSA.** This is the shared setup cost for
    static analysis. The bridge algorithm does not make this part cheap;
@@ -230,22 +308,23 @@ are understandable.
    functions and packages near those touchpoints. This is the first place
    the algorithm chooses not to be exhaustive.
 
-5. **Scan local owners.** Within the selected budget, the compiler scans
+5. **Scan local owners.** Within the selected scope, the compiler scans
    SSA instructions for evidence that an owner moves executable behavior
-   toward a boundary. That evidence can include function arguments,
-   method values, stores, returns, closures, and boundary-shaped types.
+   toward application machinery. That evidence can include function
+   arguments, method values, stores, returns, closures, and
+   handoff-shaped types.
 
-6. **Admit bridge and boundary owners.** Owners with useful evidence
-   become seeds for the next phase. Owners with boundary evidence get
-   special priority because they are more likely to explain how external
-   traffic enters the lifted region.
+6. **Admit bridge and handoff owners.** Owners with useful evidence
+   become seeds for the next phase. Owners with handoff evidence get
+   special priority because they are more likely to explain how broad
+   application machinery reaches the lifted region.
 
 7. **Build a prioritized function-reference index.** The index runs over
-   admitted owners, not the entire program. Owners are ordered so boundary
+   admitted owners, not the entire program. Owners are ordered so handoff
    owners are scanned first, then owners with direct touchpoint
    references, then the rest of the selected-package owners.
 
-8. **Classify entrypath evidence.** The existing function-value flow
+8. **Classify EntryPath evidence.** The existing function-value flow
    uses the index to recover activation candidates, registration sites,
    and wrapper chains. In the current probe JSON, some of these
    activation candidates are still named `ExternalSurfaces`; the
@@ -258,62 +337,67 @@ The bridge connects two views of the program:
 
 - the **call graph view**, which is good at finding code that reaches a
   lifted region; and
-- the **reference/registration view**, which is good at explaining how a
-  function or method became attached to an activation boundary.
+- the **reference/value-flow view**, which is good at explaining how a
+  function, closure, or method value moves through application
+  machinery.
 
 Neither view is enough alone. A pure call path can stop too close to the
 region and miss the registration site. A pure reference scan can recover
 the path but may be too expensive on a large monolith. The bridge uses
 the call graph to choose where to look, then uses reference evidence to
-explain the registration path.
+explain candidate activation paths.
 
-## What makes it generalizable, and what does not
+## Open Research Questions
 
-The general part is the shape of the search:
+The current bridge suggests a direction, but the activation-graph model
+is not settled. The open questions are:
 
-1. Start from region roots.
-2. Find nearby touchpoints with the call graph.
-3. Look for registration evidence near those touchpoints.
-4. Prioritize owners that look like external boundaries.
-5. Index only the admitted owners.
+1. **What are the graph nodes?** Functions are not always enough. A
+   precise graph may need closures, method values, storage slots, fields,
+   interface values, goroutine launches, and bootstrap sites.
 
-The current implementation's strongest evidence channel is
-function-value movement because Go registrations often pass functions,
-methods, or closures into framework code. That should not be read as
-"this only works for one Mattermost function." It should be read as
-"this works best when the entrypath is statically visible as executable
-behavior being registered somewhere."
+2. **What are meaningful edges?** A direct call edge is meaningful, but
+   activation often moves through values: function arguments, returns,
+   stores, loads, wrapper closures, callback registries, interface
+   dispatch, and goroutine launch.
 
-For a gRPC service, the boundary evidence might be generated
-`RegisterXServer` calls, service descriptors, or interface
-implementations. For a queue system, it might be handler registration in
-a job table. For a CLI command tree, it might be command structs with
-callable run hooks. Those would require more boundary predicates, but
-the bridge pipeline would stay the same.
+3. **How do we avoid fake paths?** A graph edge that means "same owner
+   mentions both functions" is too coarse. It can connect unrelated
+   handlers in a large router setup function. Edges need enough SSA
+   evidence to mean behavior transfer, not mere co-location.
+
+4. **Do we produce one path or a small subgraph?** Some lifted regions
+   are activated by multiple upstream paths, such as a request handler
+   and a background worker that call the same domain function. The
+   compiler may need to return multiple ranked activation paths, or a
+   compact activation subgraph, rather than a single best path.
+
+5. **How do we represent partial knowledge?** Static analysis may find a
+   touchpoint but not the handoff, or find a handoff but not prove the
+   later dynamic invocation. Those cases should be first-class evidence,
+   not hidden as empty output.
+
+6. **How does the cut-point selector consume this?** EntryPath should
+   not choose the network incision itself. It should expose enough graph
+   evidence for a later selector to evaluate possible cut points.
 
 The approach may fail when:
 
 - the activation path is created mostly through reflection or strings;
 - generated code hides the useful registration evidence;
 - dependency injection makes the static owner unclear;
-- the relevant owner is outside the bridge budgets; or
-- the boundary family has no predicate yet.
+- the graph edge is visible but currently unsupported; or
+- the available static edge is too coarse to prove a real activation
+  path.
 
-## Budget model
+## Cost Is A Later Concern
 
-Sprint 32 clarified the cost envelope. Bridge discovery and bridge
-indexing now have separate budgets:
-
-- bridge discovery is bounded by package, owner, instruction, start, and
-  duration limits; and
-- function-reference indexing has its own phase-local budget over the
-  admitted bridge owners.
-
-That split matters. Before the cleanup, bridge discovery could consume
-the function-index budget before indexing began. The compiler could find
-the right owners, then skip all of them at the indexing phase. With
-phase-local indexing, the budget now describes what it says: time spent
-indexing admitted bridge owners.
+The current research question is not primarily budget tuning. Cost
+matters for a production compiler, but optimizing the wrong graph would
+only make the wrong answer faster. The next step is to find a graph
+model whose paths correspond to real activation behavior across the
+candidate applications. Once that model is credible, the compiler can
+return to budgeting, pruning, and prioritization.
 
 ## Current status
 
@@ -324,7 +408,15 @@ result is promising enough to keep as the current EntryPath bridge
 strategy, but it should not be treated as finished general activation
 recovery.
 
-The next useful validation step is not to make the Mattermost case more
-clever. It is to test the same pipeline on a non-Mattermost registration
-shape, such as a gRPC-style service registration or a typed job-handler
-registry, and add only the boundary predicates needed for that family.
+The latest candidate pass showed the limit of the current abstraction:
+Mattermost and Miniflux Fever are viable, but Miniflux refresh is noisy,
+Gitea SSE is partial, and PocketBase autobackup misses the bootstrap and
+scheduled-callback handoff. That does not mean EntryPath should become a
+catalog of routers, queues, cron jobs, and lifecycle systems. It means
+the underlying activation graph is not defined precisely enough yet.
+
+The next useful validation step is to refine that graph model and test
+whether root-linked callable-transfer edges can explain the candidate
+set without relying on framework names or route strings. Only after that
+should Monolift freeze a normalized EntryPath contract for downstream
+cut-point selection.
