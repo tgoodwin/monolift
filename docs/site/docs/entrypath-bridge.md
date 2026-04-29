@@ -1,22 +1,27 @@
-# Recovering external entry paths
+# Recovering activation paths
 
 ## At a glance
 
-When Monolift lifts a region of code, it needs to know how that region
-connects to the application's external API (i.e. how it gets invoked).
-This page uses **entry path** to mean that static path from an external
-boundary, such as a router or service registry, into the lifted code.
-Recovering that path is a precursor to choosing the right distribution
-boundary around the lifted region. Sometimes the boundary is obvious,
-such as the methods on an object being extracted. In other cases the
-right boundary is higher up: a registered handler, callback, queue
-consumer, or service method that already defines how the application
-invokes the region.
+When Monolift lifts a region of code, it needs to understand how that
+region is activated by the surrounding application. This page uses
+**entry path** to mean the recovered static connection from code in or
+near a lifted region outward toward the application's activation flow.
+Along that path, an **activation boundary** is the place where the
+application enters a registered or bootstrapped unit of behavior: an
+HTTP route, gRPC service, queue worker, cron job, CLI command, lifecycle
+hook, callback registry, framework module, or similar construct.
+
+Recovering the entry path is a precursor to choosing the right
+**distribution cut point** around the lifted region. Sometimes that cut
+is obvious, such as the methods on an object being extracted. In other
+cases the right cut sits higher up: a registered handler, callback,
+queue consumer, or service method that already defines how the
+application invokes the region.
 
 The direct call graph answers part of the question: it can show
 functions that call, or are called by, the lifted region. The missing
 piece is often the **registration edge**: the static connection from an
-external boundary to the handler, callback, or method that eventually
+activation boundary to the handler, callback, or method that eventually
 reaches the lifted code. Real Go services often express that edge
 outside the direct call path. A handler might be passed into a router,
 wrapped by middleware, stored in a registry, or attached to a service
@@ -55,9 +60,71 @@ patterns**: HTTP handlers registered with routers, methods attached to
 generated service registries, callback tables, worker queues, command
 trees, and similar structures. Those are the cases where the compiler
 can point to a concrete registration site and say why it connects an
-external boundary to the lifted region. The current implementation has
+activation boundary to the lifted region. The current implementation has
 the strongest boundary predicates for HTTP-shaped Go code, but the
 algorithm itself is not tied to Mattermost or to any one router package.
+
+## Where this is heading
+
+The current EntryPath work is turning into a staged compiler pipeline:
+
+```mermaid
+flowchart LR
+    A["lifted region<br/>region roots"] --> B["entry path recovery<br/>call graph + bridge search"]
+    B --> C["normalized EntryPath contract<br/>stable producer output"]
+    C --> D["activation boundary reasoning<br/>how application control reaches the region"]
+    D --> E["distribution cut point<br/>where generated remote boundary should sit"]
+    E --> F["transport + emission<br/>future compiler phases"]
+```
+
+The important separation is that EntryPath does not itself choose where
+to distribute the program. It recovers the activation context around a
+lifted region and exposes enough structured evidence for a later phase
+to reason about the activation boundary and distribution cut point.
+
+### EntryPath contract
+
+**Status:** work in progress.
+
+The next contract should be a normalized producer result, not the raw
+diagnostic probe output. It should preserve durable facts such as region
+roots, touchpoints, activation-boundary candidates,
+registration/bootstrap sites, wrapper links, edge kinds, source
+positions, and unsupported gaps. It should not expose probe-only details
+such as oracle traces, bridge coverage, raw timing data, peak RSS, or
+budget stops as the downstream compiler API.
+
+TODO: replace this section with the concrete `pkg/compiler/entrypath`
+type and conversion function once the current corpus validation sprint
+lands.
+
+### Activation boundary reasoning
+
+**Status:** planned.
+
+An activation boundary is not necessarily an API endpoint. It can be a
+route registration, service registration, queue consumer, background
+routine bootstrap, cron job, command hook, lifecycle callback, or custom
+framework registry. The shared question is: where does application
+control enter the unit of behavior that eventually reaches the lifted
+region?
+
+TODO: document the boundary-family vocabulary once the candidate corpus
+pass shows which shapes EntryPath can recover reliably and which require
+new predicates.
+
+### Distribution cut point
+
+**Status:** planned.
+
+The distribution cut point is the later placement decision: given a
+recovered entry path and activation boundary evidence, where should
+Monolift introduce the generated remote boundary so the lifted region is
+invoked correctly and with the least unnecessary application context?
+
+TODO: document the cut-point selector once it exists. For now, the key
+constraint is that EntryPath should retain the evidence a selector would
+need, without making the selection itself.
 
 ## The problem: call paths miss registration paths
 
@@ -66,12 +133,12 @@ Monolift to extract. From those roots, the compiler can walk backward
 through the call graph to find functions that already reach the region.
 Those functions are useful, so we call them **touchpoints**.
 
-But a touchpoint is not always the public entrypoint. Consider a common
+But a touchpoint is not always the activation boundary. Consider a common
 shape:
 
 ```mermaid
 flowchart LR
-    B["external boundary<br/>router / service registry / queue"] --> W["wrapper or registration owner"]
+    B["activation boundary<br/>router / service registry / queue / bootstrap"] --> W["wrapper or registration owner"]
     W --> H["handler or callback (H)"]
     H --> R["lifted region root (R)"]
 ```
@@ -102,8 +169,12 @@ search for registration sites.
 It finds functions that can already reach the region.
 
 **Touchpoint** means a function found by reverse BFS. It is not
-necessarily an external entrypoint; it is a known point near the lifted
+necessarily an activation boundary; it is a known point near the lifted
 region.
+
+**Activation boundary** means the point where the application enters a
+registered or bootstrapped unit of behavior. API endpoints are one
+activation-boundary family, but not the only one.
 
 **Owner** means the function whose SSA instructions contain the evidence
 we care about. If a function stores a callback in a table, passes a
@@ -111,7 +182,7 @@ handler to a router, or returns a wrapper closure, that function is the
 owner of that evidence.
 
 **Boundary owner** means an owner with generic evidence that it is near
-an external boundary. Today that evidence is strongest for HTTP-like
+an activation boundary. Today that evidence is strongest for HTTP-like
 boundaries, such as `net/http` handler interfaces or `ServeHTTP`-shaped
 values. The same role could be filled by gRPC service registration
 evidence or queue-handler registration evidence.
@@ -138,7 +209,7 @@ flowchart TD
     F --> G["admit bridge + boundary owners"]
     G --> H["prioritized function-reference index"]
     H --> I["function-value flow<br/>and entrypath classification"]
-    I --> J["external surfaces<br/>registration sites<br/>wrapper chains"]
+    I --> J["activation candidates<br/>registration sites<br/>wrapper chains"]
 ```
 
 The phases are deliberately separated so their costs and failure modes
@@ -175,8 +246,11 @@ are understandable.
    references, then the rest of the selected-package owners.
 
 8. **Classify entrypath evidence.** The existing function-value flow
-   uses the index to recover external surfaces, registration sites, and
-   wrapper chains.
+   uses the index to recover activation candidates, registration sites,
+   and wrapper chains. In the current probe JSON, some of these
+   activation candidates are still named `ExternalSurfaces`; the
+   normalized contract is expected to use more general activation
+   language.
 
 ## Why this is a bridge
 
@@ -185,7 +259,7 @@ The bridge connects two views of the program:
 - the **call graph view**, which is good at finding code that reaches a
   lifted region; and
 - the **reference/registration view**, which is good at explaining how a
-  function or method became attached to an external boundary.
+  function or method became attached to an activation boundary.
 
 Neither view is enough alone. A pure call path can stop too close to the
 region and miss the registration site. A pure reference scan can recover
@@ -219,7 +293,7 @@ the bridge pipeline would stay the same.
 
 The approach may fail when:
 
-- the entrypoint is created mostly through reflection or strings;
+- the activation path is created mostly through reflection or strings;
 - generated code hides the useful registration evidence;
 - dependency injection makes the static owner unclear;
 - the relevant owner is outside the bridge budgets; or
@@ -247,7 +321,7 @@ On the Mattermost diagnostic chain, the consolidated bridge search
 recovered the target path while indexing roughly 1.7k bridge owners
 instead of doing the much larger exhaustive function-reference scan. The
 result is promising enough to keep as the current EntryPath bridge
-strategy, but it should not be treated as finished general entrypoint
+strategy, but it should not be treated as finished general activation
 recovery.
 
 The next useful validation step is not to make the Mattermost case more
