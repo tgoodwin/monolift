@@ -178,8 +178,8 @@ sprints:
     created: "2026-04-28T16:10:06+00:00"
     updated: "2026-04-28T16:24:20+00:00"
   - id: SPRINT-0033
-    title: EntryPath contract and corpus shapes
-    status: in-progress
+    title: EntryPath contract and corpus shapes (retired)
+    status: retired
     executor: gpt-5.5-xhigh
     created: "2026-04-29T00:38:58+00:00"
-    updated: "2026-04-29T02:07:11+00:00"
+    updated: "2026-04-29T05:06:59+00:00"
