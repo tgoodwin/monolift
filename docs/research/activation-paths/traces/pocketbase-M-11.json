@@ -1,0 +1,109 @@
+{
+  "id": "pocketbase/M-11",
+  "name": "Email template resolution (`resolveEmailTemplate`)",
+  "region_root": "mails/record.go:251",
+  "path_length": 9,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`http-handler-registration`) \u2014 the handler value flows through a generic `RouterGroup.POST` wrapper into `Route.Action` and is invoked via the per-route `Hook[T].Trigger`; resolving the dispatch requires tracking a function value through a generic registry rather than a single struct field.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "examples/base/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`examples/base/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "examples/base/main.go:119",
+      "to": "pocketbase.go:166",
+      "func": "(*PocketBase).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`examples/base/main.go:119`",
+      "to_raw": "`pocketbase.go:166` `(*PocketBase).Start`"
+    },
+    {
+      "step": 2,
+      "from": "pocketbase.go:200",
+      "to": "cmd/serve.go:24",
+      "func": "RunE",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`pocketbase.go:200`",
+      "to_raw": "`cmd/serve.go:24` `RunE` closure"
+    },
+    {
+      "step": 3,
+      "from": "cmd/serve.go:39",
+      "to": "apis/serve.go:61",
+      "func": "Serve",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/serve.go:39`",
+      "to_raw": "`apis/serve.go:61` `Serve`"
+    },
+    {
+      "step": 4,
+      "from": "apis/serve.go:72",
+      "to": "apis/base.go:19",
+      "func": "NewRouter",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/serve.go:72`",
+      "to_raw": "`apis/base.go:19` `NewRouter`"
+    },
+    {
+      "step": 5,
+      "from": "apis/base.go:39",
+      "to": "apis/settings.go:13",
+      "func": "bindSettingsApi",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/base.go:39`",
+      "to_raw": "`apis/settings.go:13` `bindSettingsApi`"
+    },
+    {
+      "step": 6,
+      "from": "apis/settings.go:18",
+      "to": "apis/settings.go:100",
+      "func": "settingsTestEmail",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`apis/settings.go:18`",
+      "to_raw": "`apis/settings.go:100` `settingsTestEmail`"
+    },
+    {
+      "step": 7,
+      "from": "apis/settings.go:109",
+      "to": "forms/test_email_send.go:78",
+      "func": "(*TestEmailSend).Submit",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`apis/settings.go:109`",
+      "to_raw": "`forms/test_email_send.go:78` `(*TestEmailSend).Submit`"
+    },
+    {
+      "step": 8,
+      "from": "forms/test_email_send.go:107",
+      "to": "mails/record.go:128",
+      "func": "SendRecordPasswordReset",
+      "edge_type": "direct-function-call",
+      "from_raw": "`forms/test_email_send.go:107`",
+      "to_raw": "`mails/record.go:128` `SendRecordPasswordReset`"
+    },
+    {
+      "step": 9,
+      "from": "mails/record.go:136",
+      "to": "mails/record.go:251",
+      "func": "resolveEmailTemplate",
+      "edge_type": "direct-function-call",
+      "from_raw": "`mails/record.go:136`",
+      "to_raw": "`mails/record.go:251` `resolveEmailTemplate` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "method-call-on-concrete-type": 2,
+    "function-value-in-struct-field": 1,
+    "direct-function-call": 5,
+    "http-handler-registration": 1
+  },
+  "project": "pocketbase",
+  "source_file": "projects/pocketbase/traces/M-11.synthesis.md"
+}

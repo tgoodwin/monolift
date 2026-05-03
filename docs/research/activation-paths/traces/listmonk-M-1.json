@@ -1,0 +1,62 @@
+{
+  "id": "listmonk/M-1",
+  "name": "Per-recipient campaign message render",
+  "region_root": "internal/manager/message.go:13",
+  "path_length": 4,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 2 (`channel-receive-to-concrete-method-call`) \u2014 only edge requiring composed reasoning (channel element-type flow followed by method dispatch); other edges are local syntactic resolutions.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:262",
+      "to": "internal/manager/manager.go:265",
+      "func": "(*Manager).Run",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`cmd/main.go:262` (`go mgr.Run()`)",
+      "to_raw": "`internal/manager/manager.go:265` `(*Manager).Run`"
+    },
+    {
+      "step": 2,
+      "from": "`internal/manager/manager.go:279",
+      "to": "internal/manager/pipe.go:76",
+      "func": "(*pipe).NextSubscribers",
+      "edge_type": "channel-receive-to-concrete-method-call",
+      "from_raw": "`internal/manager/manager.go:279-280` (`for p := range m.nextPipes { p.NextSubscribers() }`)",
+      "to_raw": "`internal/manager/pipe.go:76` `(*pipe).NextSubscribers`"
+    },
+    {
+      "step": 3,
+      "from": "internal/manager/pipe.go:96",
+      "to": "internal/manager/pipe.go:172",
+      "func": "(*pipe).newMessage",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`internal/manager/pipe.go:96` (`p.newMessage(s)`)",
+      "to_raw": "`internal/manager/pipe.go:172` `(*pipe).newMessage`"
+    },
+    {
+      "step": 4,
+      "from": "internal/manager/pipe.go:173",
+      "to": "internal/manager/message.go:13",
+      "func": "(*Manager).NewCampaignMessage",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`internal/manager/pipe.go:173` (`p.m.NewCampaignMessage(p.camp, s)`)",
+      "to_raw": "`internal/manager/message.go:13` `(*Manager).NewCampaignMessage` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "goroutine-launch": 1,
+    "channel-receive-to-concrete-method-call": 1,
+    "method-call-on-concrete-type": 2
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-1.synthesis.md"
+}

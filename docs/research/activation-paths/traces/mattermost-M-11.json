@@ -1,0 +1,71 @@
+{
+  "id": "mattermost/M-11",
+  "name": "Bulk import processing (`bulkImport`)",
+  "region_root": "server/channels/app/import.go:226",
+  "path_length": 5,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`function-value-in-struct-field`) \u2014 the only indirect call on the path; requires modeling `init`-time field stores and the `AddCommand` registration graph to enumerate possible `RunE` targets.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "vendor/github.com/spf13/cobra/command.go:1070",
+      "func": "(*Command).Execute",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+      "to_raw": "`vendor/github.com/spf13/cobra/command.go:1070` `(*Command).Execute`"
+    },
+    {
+      "step": 3,
+      "from": "vendor/github.com/spf13/cobra/command.go:1015",
+      "to": "server/cmd/mattermost/commands/import.go:104",
+      "func": "bulkImportCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`vendor/github.com/spf13/cobra/command.go:1015`",
+      "to_raw": "`server/cmd/mattermost/commands/import.go:104` `bulkImportCmdF`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/import.go:158",
+      "to": "server/channels/app/import.go:218",
+      "func": "(*App).BulkImportWithPath",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/cmd/mattermost/commands/import.go:158`",
+      "to_raw": "`server/channels/app/import.go:218` `(*App).BulkImportWithPath`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/app/import.go:219",
+      "to": "server/channels/app/import.go:226",
+      "func": "(*App).bulkImport",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/import.go:219`",
+      "to_raw": "`server/channels/app/import.go:226` `(*App).bulkImport` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 1,
+    "method-call-on-concrete-type": 3,
+    "function-value-in-struct-field": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-11.synthesis.md"
+}

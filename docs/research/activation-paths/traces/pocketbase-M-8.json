@@ -1,0 +1,128 @@
+{
+  "id": "pocketbase/M-8",
+  "name": "S3 multipart upload (`Uploader.Upload`)",
+  "region_root": "tools/filesystem/internal/s3blob/s3/uploader.go:71",
+  "path_length": 11,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 9 (`interface-method-dispatch`) \u2014 composes two interface layers (`blob.Driver` for the writer construction, `blob.DriverWriter` for the data dispatch) whose concrete types are established by a separate constructor chain (`filesystem.NewS3` \u2192 `s3blob.New` \u2192 `blob.NewBucket` \u2192 `Bucket.drv` \u2192 `Bucket.NewWriter` \u2192 `driver.NewTypedWriter` \u2192 `Writer.w`); resolving the receiver requires whole-program points-to over field assignments rather than local type information.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "examples/base/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`examples/base/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "examples/base/main.go:119",
+      "to": "pocketbase.go:166",
+      "func": "(*PocketBase).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`examples/base/main.go:119`",
+      "to_raw": "`pocketbase.go:166` `(*PocketBase).Start`"
+    },
+    {
+      "step": 2,
+      "from": "pocketbase.go:171",
+      "to": "pocketbase.go:179",
+      "func": "(*PocketBase).Execute",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`pocketbase.go:171`",
+      "to_raw": "`pocketbase.go:179` `(*PocketBase).Execute`"
+    },
+    {
+      "step": 3,
+      "from": "pocketbase.go:200",
+      "to": "cmd/serve.go:24",
+      "func": "RunE",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`pocketbase.go:200`",
+      "to_raw": "`cmd/serve.go:24` `RunE` closure"
+    },
+    {
+      "step": 4,
+      "from": "cmd/serve.go:39",
+      "to": "apis/serve.go:61",
+      "func": "Serve",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/serve.go:39`",
+      "to_raw": "`apis/serve.go:61` `Serve`"
+    },
+    {
+      "step": 5,
+      "from": "apis/serve.go:307",
+      "to": "tools/router/router.go:130",
+      "func": "mux",
+      "edge_type": "http-server-handler-dispatch",
+      "from_raw": "`apis/serve.go:307`",
+      "to_raw": "`tools/router/router.go:130` mux closure"
+    },
+    {
+      "step": 6,
+      "from": "tools/router/router.go:143",
+      "to": "apis/backup_upload.go:12",
+      "func": "backupUpload",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`tools/router/router.go:143`",
+      "to_raw": "`apis/backup_upload.go:12` `backupUpload`"
+    },
+    {
+      "step": 7,
+      "from": "apis/backup_upload.go:31",
+      "to": "tools/filesystem/filesystem.go:218",
+      "func": "(*System).UploadFile",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`apis/backup_upload.go:31`",
+      "to_raw": "`tools/filesystem/filesystem.go:218` `(*System).UploadFile`"
+    },
+    {
+      "step": 8,
+      "from": "tools/filesystem/filesystem.go:251",
+      "to": "tools/filesystem/blob/writer.go:68",
+      "func": "(*Writer).Write",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`tools/filesystem/filesystem.go:251`",
+      "to_raw": "`tools/filesystem/blob/writer.go:68` `(*Writer).Write` (via `ReadFrom`)"
+    },
+    {
+      "step": 9,
+      "from": "tools/filesystem/blob/writer.go:161",
+      "to": "tools/filesystem/internal/s3blob/s3blob.go:340",
+      "func": "(*writer).Write",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`tools/filesystem/blob/writer.go:161`",
+      "to_raw": "`tools/filesystem/internal/s3blob/s3blob.go:340` `(*writer).Write`"
+    },
+    {
+      "step": 10,
+      "from": "tools/filesystem/internal/s3blob/s3blob.go:351",
+      "to": "tools/filesystem/internal/s3blob/s3blob.go:360",
+      "func": "(*writer).open",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`tools/filesystem/internal/s3blob/s3blob.go:351`",
+      "to_raw": "`tools/filesystem/internal/s3blob/s3blob.go:360` `(*writer).open`"
+    },
+    {
+      "step": 11,
+      "from": "tools/filesystem/internal/s3blob/s3blob.go:362",
+      "to": "tools/filesystem/internal/s3blob/s3/uploader.go:71",
+      "func": "(*Uploader).Upload",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`tools/filesystem/internal/s3blob/s3blob.go:362`",
+      "to_raw": "`tools/filesystem/internal/s3blob/s3/uploader.go:71` `(*Uploader).Upload` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "method-call-on-concrete-type": 5,
+    "function-value-in-struct-field": 2,
+    "direct-function-call": 1,
+    "http-server-handler-dispatch": 1,
+    "interface-method-dispatch": 1,
+    "goroutine-launch": 1
+  },
+  "project": "pocketbase",
+  "source_file": "projects/pocketbase/traces/M-8.synthesis.md"
+}

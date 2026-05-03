@@ -1,0 +1,89 @@
+{
+  "id": "gitea/M-8",
+  "name": "Renderable git diff (`GetDiffForRender`)",
+  "region_root": "services/gitdiff/gitdiff.go:1333",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`reflect-call-on-function-value`) \u2014 the handler is registered through a variadic `...any` slice and invoked via `reflect.Value.Call`, so a naive call-graph builder loses the connection unless it models both the variadic value-flow and the reflective dispatch.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "indirect-call-through-struct-field",
+      "from_raw": "`main.go:45` (cli framework dispatch via `app.Run`)",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:228",
+      "to": "routers/init.go:183",
+      "func": "NormalRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:228`",
+      "to_raw": "`routers/init.go:183` `NormalRoutes`"
+    },
+    {
+      "step": 4,
+      "from": "routers/init.go:189",
+      "to": "routers/web/web.go:256",
+      "func": "Routes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/init.go:189`",
+      "to_raw": "`routers/web/web.go:256` `Routes`"
+    },
+    {
+      "step": 5,
+      "from": "routers/web/web.go:313",
+      "to": "routers/web/web.go:327",
+      "func": "registerWebRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/web/web.go:313`",
+      "to_raw": "`routers/web/web.go:327` `registerWebRoutes`"
+    },
+    {
+      "step": 6,
+      "from": "modules/web/handler.go:181",
+      "to": "routers/web/repo/commit.go:273",
+      "func": "Diff",
+      "edge_type": "reflect-call-on-function-value",
+      "from_raw": "`modules/web/handler.go:181` (`fn.Call(argsIn)`)",
+      "to_raw": "`routers/web/repo/commit.go:273` `Diff`"
+    },
+    {
+      "step": 7,
+      "from": "routers/web/repo/commit.go:319",
+      "to": "services/gitdiff/gitdiff.go:1333",
+      "func": "GetDiffForRender",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/web/repo/commit.go:319`",
+      "to_raw": "`services/gitdiff/gitdiff.go:1333` `GetDiffForRender` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "indirect-call-through-struct-field": 1,
+    "reflect-call-on-function-value": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-8.synthesis.md"
+}

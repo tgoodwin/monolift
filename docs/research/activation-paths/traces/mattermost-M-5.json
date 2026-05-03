@@ -1,0 +1,63 @@
+{
+  "id": "mattermost/M-5",
+  "name": "Bulk team export (`BulkExport`)",
+  "region_root": "server/channels/app/export.go:113",
+  "path_length": 4,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`function-value-in-struct-field`) \u2014 a named function value flows into a struct field, the containing struct is spliced into a tree by `init()`, and the call is then issued by an external library that loads the field; resolution requires modeling the struct-literal field assignment plus the `AddCommand` registration chain.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": null,
+      "func": null,
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+      "to_raw": "`(external) github.com/spf13/cobra.(*Command).Execute`"
+    },
+    {
+      "step": 3,
+      "from": null,
+      "to": "server/cmd/mattermost/commands/export.go:123",
+      "func": "bulkExportCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`(external) cobra dispatch`",
+      "to_raw": "`server/cmd/mattermost/commands/export.go:123` `bulkExportCmdF`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/export.go:176",
+      "to": "server/channels/app/export.go:113",
+      "func": "(*App).BulkExport",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/cmd/mattermost/commands/export.go:176`",
+      "to_raw": "`server/channels/app/export.go:113` `(*App).BulkExport` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "direct-function-call": 1,
+    "method-call-on-concrete-type": 2,
+    "function-value-in-struct-field": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-5.synthesis.md"
+}

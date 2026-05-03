@@ -1,0 +1,90 @@
+{
+  "id": "gitea/M-3",
+  "name": "Avatar image processing (`ProcessAvatarImage`)",
+  "region_root": "modules/avatar/avatar.go:101",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 5 (`http-handler-registration`) \u2014 the handler is stored in a router table via a variadic `any` parameter and dispatched through `reflect.Value.Call`; reachability requires a router/reflect summary even though every registration site is a literal package-level symbol.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`main.go:45`",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:228",
+      "to": "routers/init.go:183",
+      "func": "NormalRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:228`",
+      "to_raw": "`routers/init.go:183` `NormalRoutes`"
+    },
+    {
+      "step": 4,
+      "from": "routers/init.go:190",
+      "to": "routers/api/v1/api.go:865",
+      "func": "Routes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/init.go:190`",
+      "to_raw": "`routers/api/v1/api.go:865` `Routes`"
+    },
+    {
+      "step": 5,
+      "from": "routers/api/v1/api.go:1117",
+      "to": "routers/api/v1/user/avatar.go:17",
+      "func": "UpdateAvatar",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`routers/api/v1/api.go:1117`",
+      "to_raw": "`routers/api/v1/user/avatar.go:17` `UpdateAvatar`"
+    },
+    {
+      "step": 6,
+      "from": "routers/api/v1/user/avatar.go:39",
+      "to": "services/user/avatar.go:21",
+      "func": "UploadAvatar",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/api/v1/user/avatar.go:39`",
+      "to_raw": "`services/user/avatar.go:21` `UploadAvatar`"
+    },
+    {
+      "step": 7,
+      "from": "services/user/avatar.go:22",
+      "to": "modules/avatar/avatar.go:101",
+      "func": "ProcessAvatarImage",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/user/avatar.go:22`",
+      "to_raw": "`modules/avatar/avatar.go:101` `ProcessAvatarImage` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "function-value-in-struct-field": 1,
+    "direct-function-call": 5,
+    "http-handler-registration": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-3.synthesis.md"
+}

@@ -1,0 +1,136 @@
+{
+  "id": "caddy/M-2",
+  "name": "Buffered template execution (`executeTemplate`)",
+  "region_root": "modules/caddyhttp/templates/templates.go:455",
+  "path_length": 12,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 11 (`interface-method-dispatch`) \u2014 concrete `MiddlewareHandler` is selected via reflection-on-struct-tag + JSON inline-key lookup + string-keyed registry populated by `init()`-time module registration.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/caddy/main.go:40",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/caddy/main.go:40` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/caddy/main.go:41",
+      "to": "cmd/main.go:66",
+      "func": "Main",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/caddy/main.go:41`",
+      "to_raw": "`cmd/main.go:66` `Main`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:72",
+      "to": "cmd/commandfuncs.go:172",
+      "func": "cmdRun",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:72`",
+      "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/commandfuncs.go:267",
+      "to": "caddy.go:115",
+      "func": "Load",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/commandfuncs.go:267`",
+      "to_raw": "`caddy.go:115` `Load`"
+    },
+    {
+      "step": 4,
+      "from": "caddy.go:454",
+      "to": "modules/caddyhttp/app.go:475",
+      "func": "(*App).Start",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`caddy.go:454`",
+      "to_raw": "`modules/caddyhttp/app.go:475` `(*App).Start`"
+    },
+    {
+      "step": 5,
+      "from": "modules/caddyhttp/app.go:489",
+      "to": "modules/caddyhttp/server.go:310",
+      "func": "(*Server).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/app.go:489`",
+      "to_raw": "`modules/caddyhttp/server.go:310` `(*Server).ServeHTTP`"
+    },
+    {
+      "step": 6,
+      "from": "modules/caddyhttp/server.go:389",
+      "to": "modules/caddyhttp/server.go:471",
+      "func": "(*Server).serveHTTP",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddyhttp/server.go:389`",
+      "to_raw": "`modules/caddyhttp/server.go:471` `(*Server).serveHTTP`"
+    },
+    {
+      "step": 7,
+      "from": "modules/caddyhttp/server.go:497",
+      "to": "modules/caddyhttp/server.go:503",
+      "func": "wrapPrimaryRoute",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/server.go:497`",
+      "to_raw": "`modules/caddyhttp/server.go:503` `wrapPrimaryRoute` closure"
+    },
+    {
+      "step": 8,
+      "from": "modules/caddyhttp/server.go:504",
+      "to": "modules/caddyhttp/server.go:510",
+      "func": "(*Server).enforcementHandler",
+      "edge_type": "direct-function-call",
+      "from_raw": "`modules/caddyhttp/server.go:504`",
+      "to_raw": "`modules/caddyhttp/server.go:510` `(*Server).enforcementHandler`"
+    },
+    {
+      "step": 9,
+      "from": "modules/caddyhttp/server.go:528",
+      "to": "modules/caddyhttp/routes.go:257",
+      "func": "wrapRoute",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/server.go:528`",
+      "to_raw": "`modules/caddyhttp/routes.go:257` `wrapRoute` closure"
+    },
+    {
+      "step": 10,
+      "from": "modules/caddyhttp/routes.go:322",
+      "to": "modules/caddyhttp/routes.go:332",
+      "func": "wrapMiddleware",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/routes.go:322`",
+      "to_raw": "`modules/caddyhttp/routes.go:332` `wrapMiddleware` closure"
+    },
+    {
+      "step": 11,
+      "from": "modules/caddyhttp/routes.go:337",
+      "to": "modules/caddyhttp/templates/templates.go:410",
+      "func": "(*Templates).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/routes.go:337`",
+      "to_raw": "`modules/caddyhttp/templates/templates.go:410` `(*Templates).ServeHTTP`"
+    },
+    {
+      "step": 12,
+      "from": "modules/caddyhttp/templates/templates.go:437",
+      "to": "modules/caddyhttp/templates/templates.go:455",
+      "func": "(*Templates).executeTemplate",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddyhttp/templates/templates.go:437`",
+      "to_raw": "`modules/caddyhttp/templates/templates.go:455` `(*Templates).executeTemplate` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "function-value-in-struct-field": 1,
+    "interface-method-dispatch": 6,
+    "method-call-on-concrete-type": 2,
+    "entrypoint": 1
+  },
+  "project": "caddy",
+  "source_file": "projects/caddy/traces/M-2.synthesis.md"
+}

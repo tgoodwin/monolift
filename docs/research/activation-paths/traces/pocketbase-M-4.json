@@ -1,0 +1,112 @@
+{
+  "id": "pocketbase/M-4",
+  "name": "Backup archive zip writer (`archive.Create`)",
+  "region_root": "tools/archive/create.go:18",
+  "path_length": 10,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`closure-passed-as-variadic-argument`) \u2014 function value flows through a variadic param into a slice and is then invoked indirectly through chained `event.Next()` thunks; precision requires flow-sensitive points-to that survives variadic packing and slice element access.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "examples/base/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`examples/base/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "examples/base/main.go:119",
+      "to": "pocketbase.go:179",
+      "func": "(*PocketBase).Execute",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`examples/base/main.go:119` `app.Start()`",
+      "to_raw": "`pocketbase.go:179` `(*PocketBase).Execute` (via `Start` at `:166`, `:171`)"
+    },
+    {
+      "step": 2,
+      "from": "pocketbase.go:198",
+      "to": "pocketbase.go:200",
+      "func": null,
+      "edge_type": "goroutine-launched-closure",
+      "from_raw": "`pocketbase.go:198` `go func()`",
+      "to_raw": "`pocketbase.go:200` (goroutine body)"
+    },
+    {
+      "step": 3,
+      "from": "pocketbase.go:200",
+      "to": "plugins/ghupdate/ghupdate.go:111",
+      "func": "RunE",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`pocketbase.go:200` `pb.RootCmd.Execute()`",
+      "to_raw": "`plugins/ghupdate/ghupdate.go:111` (`update` `RunE` closure body)"
+    },
+    {
+      "step": 4,
+      "from": "plugins/ghupdate/ghupdate.go:131",
+      "to": "plugins/ghupdate/ghupdate.go:145",
+      "func": "(*plugin).update",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`plugins/ghupdate/ghupdate.go:131` `p.update(withBackup)`",
+      "to_raw": "`plugins/ghupdate/ghupdate.go:145` `(*plugin).update`"
+    },
+    {
+      "step": 5,
+      "from": "plugins/ghupdate/ghupdate.go:237",
+      "to": "core/base_backup.go:44",
+      "func": "(*BaseApp).CreateBackup",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`plugins/ghupdate/ghupdate.go:237` `p.app.CreateBackup(...)`",
+      "to_raw": "`core/base_backup.go:44` `(*BaseApp).CreateBackup`"
+    },
+    {
+      "step": 6,
+      "from": "core/base_backup.go:59",
+      "to": "core/base_backup.go:60",
+      "func": null,
+      "edge_type": "closure-passed-as-variadic-argument",
+      "from_raw": "`core/base_backup.go:59` `app.OnBackupCreate().Trigger(event, func(e *BackupEvent) error {...})`",
+      "to_raw": "`core/base_backup.go:60` (one-off `BackupEvent` callback body)"
+    },
+    {
+      "step": 7,
+      "from": "core/base_backup.go:77",
+      "to": "core/base_backup.go:78",
+      "func": null,
+      "edge_type": "interface-method-dispatch` + `closure-passed-as-argument",
+      "from_raw": "`core/base_backup.go:77` `e.App.RunInTransaction(func(txApp App) error {...})`",
+      "to_raw": "`core/base_backup.go:78` (transaction callback body)"
+    },
+    {
+      "step": 8,
+      "from": "core/base_backup.go:78",
+      "to": "core/base_backup.go:84",
+      "func": null,
+      "edge_type": "interface-method-dispatch` + `closure-passed-as-argument",
+      "from_raw": "`core/base_backup.go:78` `txApp.AuxRunInTransaction(func(txApp App) error {...})`",
+      "to_raw": "`core/base_backup.go:84` (inner transaction callback body)"
+    },
+    {
+      "step": 9,
+      "from": "core/base_backup.go:84",
+      "to": "tools/archive/create.go:18",
+      "func": "Create",
+      "edge_type": "direct-function-call",
+      "from_raw": "`core/base_backup.go:84` `archive.Create(txApp.DataDir(), tempPath, e.Exclude...)`",
+      "to_raw": "`tools/archive/create.go:18` `Create` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "method-call-on-concrete-type": 2,
+    "goroutine-launched-closure": 1,
+    "function-value-in-struct-field": 1,
+    "interface-method-dispatch": 1,
+    "closure-passed-as-variadic-argument": 1,
+    "interface-method-dispatch` + `closure-passed-as-argument": 2,
+    "direct-function-call": 1
+  },
+  "project": "pocketbase",
+  "source_file": "projects/pocketbase/traces/M-4.synthesis.md"
+}

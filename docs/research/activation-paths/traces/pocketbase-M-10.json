@@ -1,0 +1,111 @@
+{
+  "id": "pocketbase/M-10",
+  "name": "Record relation expansion (`ExpandRecords`)",
+  "region_root": "core/record_query_expand.go:34",
+  "path_length": 9,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 2 (`function-value-in-struct-field`) \u2014 recovering the cobra `RunE` target requires modeling struct-field flow plus a third-party argv-driven command-tree dispatch loop; the hook slice walk in steps 7\u20138 is mechanical once the `Hook.Trigger` body is inlined.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "examples/base/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`examples/base/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "examples/base/main.go:119",
+      "to": "pocketbase.go:166",
+      "func": "(*PocketBase).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`examples/base/main.go:119`",
+      "to_raw": "`pocketbase.go:166` `(*PocketBase).Start`"
+    },
+    {
+      "step": 2,
+      "from": "pocketbase.go:169",
+      "to": "cmd/serve.go:24",
+      "func": null,
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`pocketbase.go:169`",
+      "to_raw": "`cmd/serve.go:24` (cobra `RunE` closure)"
+    },
+    {
+      "step": 3,
+      "from": "cmd/serve.go:39",
+      "to": "apis/serve.go:61",
+      "func": "Serve",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/serve.go:39`",
+      "to_raw": "`apis/serve.go:61` `Serve`"
+    },
+    {
+      "step": 4,
+      "from": "apis/serve.go:72",
+      "to": "apis/base.go:19",
+      "func": "NewRouter",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/serve.go:72`",
+      "to_raw": "`apis/base.go:19` `NewRouter`"
+    },
+    {
+      "step": 5,
+      "from": "apis/base.go:41",
+      "to": "apis/record_crud.go:27",
+      "func": "bindRecordCrudApi",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/base.go:41`",
+      "to_raw": "`apis/record_crud.go:27` `bindRecordCrudApi`"
+    },
+    {
+      "step": 6,
+      "from": "apis/record_crud.go:29",
+      "to": "apis/record_crud.go:36",
+      "func": "recordsList",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`apis/record_crud.go:29`",
+      "to_raw": "`apis/record_crud.go:36` `recordsList`"
+    },
+    {
+      "step": 7,
+      "from": "apis/record_crud.go:99",
+      "to": "apis/record_helpers.go:265",
+      "func": "EnrichRecords",
+      "edge_type": "closure-passed-as-callback-arg",
+      "from_raw": "`apis/record_crud.go:99` (closure literal)",
+      "to_raw": "`apis/record_helpers.go:265` `EnrichRecords`"
+    },
+    {
+      "step": 8,
+      "from": "apis/record_helpers.go:275",
+      "to": "apis/record_helpers.go:348",
+      "func": "defaultEnrichRecords",
+      "edge_type": "closure-passed-as-callback-arg",
+      "from_raw": "`apis/record_helpers.go:275` (closure literal)",
+      "to_raw": "`apis/record_helpers.go:348` `defaultEnrichRecords`"
+    },
+    {
+      "step": 9,
+      "from": "apis/record_helpers.go:355",
+      "to": "core/record_query_expand.go:34",
+      "func": "(*BaseApp).ExpandRecords",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`apis/record_helpers.go:355`",
+      "to_raw": "`core/record_query_expand.go:34` `(*BaseApp).ExpandRecords` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "method-call-on-concrete-type": 1,
+    "function-value-in-struct-field": 1,
+    "direct-function-call": 3,
+    "http-handler-registration": 1,
+    "closure-passed-as-callback-arg": 2,
+    "interface-method-dispatch": 1
+  },
+  "project": "pocketbase",
+  "source_file": "projects/pocketbase/traces/M-10.synthesis.md"
+}

@@ -34,6 +34,8 @@ Each synthesis file contains: a tabular trace (From → To → Edge type), edge 
 
 Raw data (3 independent traces + 3 cross-critiques per candidate) lives alongside the synthesis files in the same `traces/` directories.
 
+**Machine-readable corpus:** [`traces/`](traces/) — 72 per-candidate JSON files (e.g. `miniflux-M-1.json`, `caddy-M-3.json`), parsed from the synthesis markdown. Each file contains the structured trace (steps with from/to file:line, edge type, function name), edge summary, region root, path length, and metadata. This is the ground truth for algorithm evaluation.
+
 ### Evaluation codebases
 
 Pinned Go source trees at [`evaluation/`](../../../evaluation/) (SHAs in [`evaluation/MANIFEST.yaml`](../../../evaluation/MANIFEST.yaml)).

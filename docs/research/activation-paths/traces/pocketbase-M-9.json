@@ -1,0 +1,175 @@
+{
+  "id": "pocketbase/M-9",
+  "name": "OAuth2 avatar download (`safeFileFromURL`)",
+  "region_root": "apis/record_auth_with_oauth2.go:468",
+  "path_length": 16,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 10 (`function-value-in-struct-field`) \u2014 the route `Action` is heap-allocated in Step 9, materialized into a `net/http` mux closure that captures it, then forwarded as a one-off handler into a hook chain before being invoked. Resolving the callee requires field-sensitive points-to through `Route[T].Action`, the closure environment, and the hook handler slice.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "examples/base/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`examples/base/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "examples/base/main.go:119",
+      "to": "pocketbase.go:166",
+      "func": "(*PocketBase).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`examples/base/main.go:119`",
+      "to_raw": "`pocketbase.go:166` `(*PocketBase).Start`"
+    },
+    {
+      "step": 2,
+      "from": "pocketbase.go:169",
+      "to": "cmd/serve.go:14",
+      "func": "NewServeCommand",
+      "edge_type": "direct-function-call",
+      "from_raw": "`pocketbase.go:169`",
+      "to_raw": "`cmd/serve.go:14` `NewServeCommand`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/serve.go:19",
+      "to": "cmd/serve.go:24",
+      "func": "RunE",
+      "edge_type": "struct-literal-field-assignment",
+      "from_raw": "`cmd/serve.go:19` (`&cobra.Command{...}`)",
+      "to_raw": "`cmd/serve.go:24` `RunE` closure"
+    },
+    {
+      "step": 4,
+      "from": "pocketbase.go:171",
+      "to": "pocketbase.go:200",
+      "func": "pb.RootCmd.Execute()",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`pocketbase.go:171` (`pb.Execute()`) \u2192 `pocketbase.go:198`",
+      "to_raw": "`pocketbase.go:200` `pb.RootCmd.Execute()` (goroutine body)"
+    },
+    {
+      "step": 5,
+      "from": "pocketbase.go:200",
+      "to": "cmd/serve.go:24",
+      "func": "RunE",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`pocketbase.go:200`",
+      "to_raw": "`cmd/serve.go:24` `RunE` closure"
+    },
+    {
+      "step": 6,
+      "from": "cmd/serve.go:39",
+      "to": "apis/serve.go:61",
+      "func": "Serve",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/serve.go:39`",
+      "to_raw": "`apis/serve.go:61` `Serve`"
+    },
+    {
+      "step": 7,
+      "from": "apis/serve.go:72",
+      "to": "apis/base.go:19",
+      "func": "NewRouter",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/serve.go:72`",
+      "to_raw": "`apis/base.go:19` `NewRouter`"
+    },
+    {
+      "step": 8,
+      "from": "apis/base.go:42",
+      "to": "apis/record_auth.go:10",
+      "func": "bindRecordAuthApi",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/base.go:42`",
+      "to_raw": "`apis/record_auth.go:10` `bindRecordAuthApi`"
+    },
+    {
+      "step": 9,
+      "from": "apis/record_auth.go:35",
+      "to": "tools/router/group.go:118",
+      "func": null,
+      "edge_type": "callback-registration",
+      "from_raw": "`apis/record_auth.go:35` (`sub.POST`)",
+      "to_raw": "`tools/router/group.go:118` (`Route.Action = action`)"
+    },
+    {
+      "step": 10,
+      "from": "tools/router/router.go:143",
+      "to": "apis/record_auth_with_oauth2.go:30",
+      "func": "recordAuthWithOAuth2",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`tools/router/router.go:143` (`routeHook.Trigger(event, v.Action)`, called from `mux.HandleFunc` closure at `:130`)",
+      "to_raw": "`apis/record_auth_with_oauth2.go:30` `recordAuthWithOAuth2`"
+    },
+    {
+      "step": 11,
+      "from": "apis/record_auth_with_oauth2.go:154",
+      "to": "core/base.go:1074",
+      "func": "(*BaseApp).OnRecordAuthWithOAuth2Request",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`apis/record_auth_with_oauth2.go:154` (`e.App.OnRecordAuthWithOAuth2Request()`)",
+      "to_raw": "`core/base.go:1074` `(*BaseApp).OnRecordAuthWithOAuth2Request`"
+    },
+    {
+      "step": 12,
+      "from": "apis/record_auth_with_oauth2.go:154",
+      "to": "apis/record_auth_with_oauth2.go:155",
+      "func": "one",
+      "edge_type": "callback-argument-dispatch",
+      "from_raw": "`apis/record_auth_with_oauth2.go:154` (`.Trigger(event, callback)`)",
+      "to_raw": "`apis/record_auth_with_oauth2.go:155` one-off callback"
+    },
+    {
+      "step": 13,
+      "from": "apis/record_auth_with_oauth2.go:155",
+      "to": "apis/record_auth_with_oauth2.go:259",
+      "func": "oauth2Submit",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/record_auth_with_oauth2.go:155`",
+      "to_raw": "`apis/record_auth_with_oauth2.go:259` `oauth2Submit`"
+    },
+    {
+      "step": 14,
+      "from": "apis/record_auth_with_oauth2.go:260",
+      "to": "core/db_tx.go:14",
+      "func": "(*BaseApp).RunInTransaction",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`apis/record_auth_with_oauth2.go:260` (`e.App.RunInTransaction(fn)`)",
+      "to_raw": "`core/db_tx.go:14` `(*BaseApp).RunInTransaction`"
+    },
+    {
+      "step": 15,
+      "from": "core/db_tx.go:34",
+      "to": "apis/record_auth_with_oauth2.go:260",
+      "func": "tx",
+      "edge_type": "callback-argument-dispatch",
+      "from_raw": "`core/db_tx.go:34` (`fn(txApp)`)",
+      "to_raw": "`apis/record_auth_with_oauth2.go:260` tx callback (resumes at `:293`)"
+    },
+    {
+      "step": 16,
+      "from": "apis/record_auth_with_oauth2.go:307",
+      "to": "apis/record_auth_with_oauth2.go:468",
+      "func": "safeFileFromURL",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/record_auth_with_oauth2.go:307`",
+      "to_raw": "`apis/record_auth_with_oauth2.go:468` `safeFileFromURL` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 6,
+    "method-call-on-concrete-type": 1,
+    "struct-literal-field-assignment": 1,
+    "goroutine-launch": 1,
+    "function-value-in-struct-field": 2,
+    "callback-registration": 1,
+    "interface-method-dispatch": 2,
+    "callback-argument-dispatch": 2
+  },
+  "project": "pocketbase",
+  "source_file": "projects/pocketbase/traces/M-9.synthesis.md"
+}

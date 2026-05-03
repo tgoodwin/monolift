@@ -1,0 +1,90 @@
+{
+  "id": "miniflux/M-5",
+  "name": "Feed icon discovery+resize (`UpdateOrCreateFeedIcon`)",
+  "region_root": "internal/reader/icon/checker.go:28",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Steps 3\u20134 (`goroutine-launch-of-closure` + `channel-send-receive`) \u2014 the closure body is only reachable with a real `model.Job` value once the analyzer links the `go` activation with the same-scope channel send; treated separately, either edge alone leaves `RefreshFeed` unreachable or reachable with a zero-value job.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:10",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:10` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:11",
+      "to": "internal/cli/cli.go:40",
+      "func": "Parse",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:11`",
+      "to_raw": "`internal/cli/cli.go:40` `Parse`"
+    },
+    {
+      "step": 2,
+      "from": "internal/cli/cli.go:239",
+      "to": "internal/cli/refresh_feeds.go:17",
+      "func": "refreshFeeds",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/cli.go:239`",
+      "to_raw": "`internal/cli/refresh_feeds.go:17` `refreshFeeds`"
+    },
+    {
+      "step": 3,
+      "from": "internal/cli/refresh_feeds.go:47",
+      "to": "internal/cli/refresh_feeds.go:49",
+      "func": null,
+      "edge_type": "goroutine-launch-of-closure",
+      "from_raw": "`internal/cli/refresh_feeds.go:47`",
+      "to_raw": "`internal/cli/refresh_feeds.go:49` (anonymous worker closure body)"
+    },
+    {
+      "step": 4,
+      "from": "internal/cli/refresh_feeds.go:68",
+      "to": "internal/cli/refresh_feeds.go:49",
+      "func": null,
+      "edge_type": "channel-send-receive",
+      "from_raw": "`internal/cli/refresh_feeds.go:68`",
+      "to_raw": "`internal/cli/refresh_feeds.go:49`"
+    },
+    {
+      "step": 5,
+      "from": "internal/cli/refresh_feeds.go:56",
+      "to": "internal/reader/handler/handler.go:207",
+      "func": "RefreshFeed",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/refresh_feeds.go:56`",
+      "to_raw": "`internal/reader/handler/handler.go:207` `RefreshFeed`"
+    },
+    {
+      "step": 6,
+      "from": "internal/reader/handler/handler.go:360",
+      "to": "internal/reader/icon/checker.go:74",
+      "func": "(*iconChecker).CreateFeedIconIfMissing",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`internal/reader/handler/handler.go:360`",
+      "to_raw": "`internal/reader/icon/checker.go:74` `(*iconChecker).CreateFeedIconIfMissing`"
+    },
+    {
+      "step": 7,
+      "from": "internal/reader/icon/checker.go:82",
+      "to": "internal/reader/icon/checker.go:28",
+      "func": "(*iconChecker).UpdateOrCreateFeedIcon",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`internal/reader/icon/checker.go:82`",
+      "to_raw": "`internal/reader/icon/checker.go:28` `(*iconChecker).UpdateOrCreateFeedIcon` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "goroutine-launch-of-closure": 1,
+    "channel-send-receive": 1,
+    "method-call-on-concrete-type": 2
+  },
+  "project": "miniflux",
+  "source_file": "projects/miniflux/traces/M-5.synthesis.md"
+}

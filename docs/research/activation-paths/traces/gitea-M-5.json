@@ -1,0 +1,108 @@
+{
+  "id": "gitea/M-5",
+  "name": "Code indexer (`index`)",
+  "region_root": "modules/indexer/code/indexer.go:41",
+  "path_length": 9,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 8 (`function-value-in-struct-field`) \u2014 requires field-sensitive points-to on a generic struct instantiation across a goroutine boundary, traversing two chained function-typed fields (`safeHandler` \u2192 `origHandler`) before reaching the registered closure body.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "evaluation/gitea/main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`evaluation/gitea/main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "evaluation/gitea/main.go:45",
+      "to": "evaluation/gitea/cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`evaluation/gitea/main.go:45` (`cmd.RunMainApp` \u2192 `app.Run` at `cmd/main.go:160`)",
+      "to_raw": "`evaluation/gitea/cmd/web.go:251` `runWeb` (bound at `cmd/web.go:44` `Action: runWeb`; `app.DefaultCommand = webCmd.Name` at `cmd/main.go:144`)"
+    },
+    {
+      "step": 2,
+      "from": "evaluation/gitea/cmd/web.go:287",
+      "to": "evaluation/gitea/cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/cmd/web.go:287`",
+      "to_raw": "`evaluation/gitea/cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 3,
+      "from": "evaluation/gitea/cmd/web.go:205",
+      "to": "evaluation/gitea/routers/init.go:115",
+      "func": "InitWebInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/cmd/web.go:205`",
+      "to_raw": "`evaluation/gitea/routers/init.go:115` `InitWebInstalled`"
+    },
+    {
+      "step": 4,
+      "from": "evaluation/gitea/routers/init.go:156",
+      "to": "evaluation/gitea/routers/init.go:60",
+      "func": "mustInit",
+      "edge_type": "function-value-as-parameter",
+      "from_raw": "`evaluation/gitea/routers/init.go:156` `mustInit(indexer_service.Init)`",
+      "to_raw": "`evaluation/gitea/routers/init.go:60` `mustInit` (param `fn`)"
+    },
+    {
+      "step": 5,
+      "from": "evaluation/gitea/routers/init.go:61",
+      "to": "evaluation/gitea/services/indexer/indexer.go:14",
+      "func": "Init",
+      "edge_type": "function-value-call-via-parameter",
+      "from_raw": "`evaluation/gitea/routers/init.go:61` `err := fn()`",
+      "to_raw": "`evaluation/gitea/services/indexer/indexer.go:14` `Init`"
+    },
+    {
+      "step": 6,
+      "from": "evaluation/gitea/services/indexer/indexer.go:18",
+      "to": "evaluation/gitea/modules/indexer/code/indexer.go:95",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/services/indexer/indexer.go:18`",
+      "to_raw": "`evaluation/gitea/modules/indexer/code/indexer.go:95` `Init`"
+    },
+    {
+      "step": 7,
+      "from": "evaluation/gitea/modules/indexer/code/indexer.go:134",
+      "to": "evaluation/gitea/modules/queue/workerqueue.go:242",
+      "func": "w.origHandler = handler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`evaluation/gitea/modules/indexer/code/indexer.go:134` (closure literal at `:121`, passed to `queue.CreateUniqueQueue`)",
+      "to_raw": "`evaluation/gitea/modules/queue/workerqueue.go:242` `w.origHandler = handler` (wrapper assigned to `w.safeHandler` at `:243`)"
+    },
+    {
+      "step": 8,
+      "from": "evaluation/gitea/modules/queue/workergroup.go:103",
+      "to": "evaluation/gitea/modules/indexer/code/indexer.go:121",
+      "func": "registered",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`evaluation/gitea/modules/queue/workergroup.go:103` `q.safeHandler(batch...)` (worker goroutine launched via `graceful.GetManager().RunWithCancel(indexerQueue)` at `modules/indexer/code/indexer.go:195`); `safeHandler` body calls `q.origHandler(t...)` at `modules/queue/workerqueue.go:254`",
+      "to_raw": "`evaluation/gitea/modules/indexer/code/indexer.go:121` registered handler closure body"
+    },
+    {
+      "step": 9,
+      "from": "evaluation/gitea/modules/indexer/code/indexer.go:125",
+      "to": "evaluation/gitea/modules/indexer/code/indexer.go:41",
+      "func": "index",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/modules/indexer/code/indexer.go:125` `index(ctx, indexer, indexerData.RepoID)`",
+      "to_raw": "`evaluation/gitea/modules/indexer/code/indexer.go:41` `index` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 4,
+    "function-value-in-struct-field": 3,
+    "function-value-as-parameter": 1,
+    "function-value-call-via-parameter": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-5.synthesis.md"
+}

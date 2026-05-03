@@ -1,0 +1,146 @@
+{
+  "id": "mattermost/M-7",
+  "name": "Slash command HTTP execution (`DoCommandRequest`)",
+  "region_root": "server/channels/app/command.go:521",
+  "path_length": 13,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 9 (`interface-method-dispatch`) \u2014 requires composing `http.Handler` interface resolution with a model of gorilla/mux's path/method-keyed handler registry built across `init()` and route-construction time, then linking back to the registration in Step 7.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:95",
+      "to": "server/channels/api4/api.go:185",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:95`",
+      "to_raw": "`server/channels/api4/api.go:185` `Init`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/api4/api.go:361",
+      "to": "server/channels/api4/command.go:16",
+      "func": "(*API).InitCommand",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/api.go:361`",
+      "to_raw": "`server/channels/api4/command.go:16` `(*API).InitCommand`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/api4/command.go:19",
+      "to": "server/channels/api4/handlers.go:53",
+      "func": "web.Handler.HandleFunc = h",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/api4/command.go:19` `APISessionRequired(executeCommand)`",
+      "to_raw": "`server/channels/api4/handlers.go:53` `web.Handler.HandleFunc = h`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/api4/command.go:19",
+      "to": null,
+      "func": null,
+      "edge_type": "http-handler-registration",
+      "from_raw": "`server/channels/api4/command.go:19` `Handle(\"/execute\", ...).Methods(POST)`",
+      "to_raw": "mux registry entry: `POST /api/v4/commands/execute` \u2192 `*web.Handler`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/app/server.go:1036",
+      "to": "server/channels/app/server.go:1099",
+      "func": "s.Server.Serve(listener)",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`server/channels/app/server.go:1036` `go func()` (launched by `server.Start()` at `server/cmd/mattermost/commands/server.go:104`)",
+      "to_raw": "`server/channels/app/server.go:1099` `s.Server.Serve(listener)`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/app/server.go:1099",
+      "to": "server/channels/web/handlers.go:145",
+      "func": "(Handler).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`server/channels/app/server.go:1099` `s.Server.Serve` (Handler bound at `server.go:962`, RootRouter at `server.go:912`)",
+      "to_raw": "`server/channels/web/handlers.go:145` `(Handler).ServeHTTP`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/web/handlers.go:355",
+      "to": "server/channels/api4/command.go:357",
+      "func": "executeCommand",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/web/handlers.go:355` `h.HandleFunc(c, w, r)`",
+      "to_raw": "`server/channels/api4/command.go:357` `executeCommand`"
+    },
+    {
+      "step": 11,
+      "from": "server/channels/api4/command.go:420",
+      "to": "server/channels/app/command.go:209",
+      "func": "(*App).ExecuteCommand",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/command.go:420` `c.App.ExecuteCommand(...)`",
+      "to_raw": "`server/channels/app/command.go:209` `(*App).ExecuteCommand`"
+    },
+    {
+      "step": 12,
+      "from": "server/channels/app/command.go:243",
+      "to": "server/channels/app/command.go:393",
+      "func": "(*App).tryExecuteCustomCommand",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/command.go:243`",
+      "to_raw": "`server/channels/app/command.go:393` `(*App).tryExecuteCustomCommand`"
+    },
+    {
+      "step": 13,
+      "from": "server/channels/app/command.go:518",
+      "to": "server/channels/app/command.go:521",
+      "func": "(*App).DoCommandRequest",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/command.go:518`",
+      "to_raw": "`server/channels/app/command.go:521` `(*App).DoCommandRequest` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "function-value-in-struct-field": 3,
+    "method-call-on-concrete-type": 4,
+    "http-handler-registration": 1,
+    "goroutine-launch": 1,
+    "interface-method-dispatch": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-7.synthesis.md"
+}

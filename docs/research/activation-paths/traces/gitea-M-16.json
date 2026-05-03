@@ -1,0 +1,100 @@
+{
+  "id": "gitea/M-16",
+  "name": "Password hashing Argon2 (`Argon2Hasher.HashWithSaltBytes`)",
+  "region_root": "modules/auth/password/hash/argon2.go:29",
+  "path_length": 8,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`map-indexed-function-value-call`) \u2014 the selector string is data from app.ini or a DB column and unknown statically, so the analyzer must reify the registry as the closed set of `MustRegister` registrations and propagate the factory's concrete return type into the embedded-interface field for Step 8 to resolve.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/main.go:157",
+      "func": "RunMainApp",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:45`",
+      "to_raw": "`cmd/main.go:157` `RunMainApp`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:160",
+      "to": "cmd/admin_user_change_password.go:47",
+      "func": "runChangePassword",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:160` (`app.Run`)",
+      "to_raw": "`cmd/admin_user_change_password.go:47` `runChangePassword`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/admin_user_change_password.go:63",
+      "to": "services/user/update.go:196",
+      "func": "UpdateAuth",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/admin_user_change_password.go:63`",
+      "to_raw": "`services/user/update.go:196` `UpdateAuth`"
+    },
+    {
+      "step": 4,
+      "from": "services/user/update.go:224",
+      "to": "models/user/user.go:379",
+      "func": "(*User).SetPassword",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`services/user/update.go:224`",
+      "to_raw": "`models/user/user.go:379` `(*User).SetPassword`"
+    },
+    {
+      "step": 5,
+      "from": "models/user/user.go:383",
+      "to": "modules/auth/password/hash/hash.go:134",
+      "func": "Parse",
+      "edge_type": "direct-function-call",
+      "from_raw": "`models/user/user.go:383`",
+      "to_raw": "`modules/auth/password/hash/hash.go:134` `Parse`"
+    },
+    {
+      "step": 6,
+      "from": "modules/auth/password/hash/hash.go:174",
+      "to": "modules/auth/password/hash/argon2.go:40",
+      "func": "NewArgon2Hasher",
+      "edge_type": "map-indexed-function-value-call",
+      "from_raw": "`modules/auth/password/hash/hash.go:174`",
+      "to_raw": "`modules/auth/password/hash/argon2.go:40` `NewArgon2Hasher`"
+    },
+    {
+      "step": 7,
+      "from": "models/user/user.go:383",
+      "to": "modules/auth/password/hash/hash.go:42",
+      "func": "(*PasswordHashAlgorithm).Hash",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`models/user/user.go:383`",
+      "to_raw": "`modules/auth/password/hash/hash.go:42` `(*PasswordHashAlgorithm).Hash`"
+    },
+    {
+      "step": 8,
+      "from": "modules/auth/password/hash/hash.go:59",
+      "to": "modules/auth/password/hash/argon2.go:29",
+      "func": "(*Argon2Hasher).HashWithSaltBytes",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/auth/password/hash/hash.go:59`",
+      "to_raw": "`modules/auth/password/hash/argon2.go:29` `(*Argon2Hasher).HashWithSaltBytes` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "method-call-on-concrete-type": 2,
+    "function-value-in-struct-field": 1,
+    "map-indexed-function-value-call": 1,
+    "interface-method-dispatch": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-16.synthesis.md"
+}

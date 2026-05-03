@@ -1,0 +1,108 @@
+{
+  "id": "caddy/M-7",
+  "name": "Directory listing (`loadDirectoryContents`)",
+  "region_root": "modules/caddyhttp/fileserver/browse.go:119",
+  "path_length": 9,
+  "fully_resolvable": "yes,",
+  "hardest_edge": "Step 7 (`interface-method-dispatch`) \u2014 `mh.ServeHTTP` resolves via a string-keyed module registry seeded from JSON config; precise resolution needs either CHA over registered `MiddlewareHandler` implementers or config-aware analysis.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/caddy/main.go:40",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/caddy/main.go:40` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/caddy/main.go:41",
+      "to": "cmd/main.go:66",
+      "func": "Main",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/caddy/main.go:41`",
+      "to_raw": "`cmd/main.go:66` `Main`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:72",
+      "to": "cmd/commandfuncs.go:172",
+      "func": "cmdRun",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:72`",
+      "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/commandfuncs.go:267",
+      "to": "caddy.go:419",
+      "func": "run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/commandfuncs.go:267`",
+      "to_raw": "`caddy.go:419` `run`"
+    },
+    {
+      "step": 4,
+      "from": "caddy.go:454",
+      "to": "modules/caddyhttp/app.go:475",
+      "func": "(*App).Start",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`caddy.go:454`",
+      "to_raw": "`modules/caddyhttp/app.go:475` `(*App).Start`"
+    },
+    {
+      "step": 5,
+      "from": "modules/caddyhttp/app.go:489",
+      "to": "modules/caddyhttp/server.go:310",
+      "func": "(*Server).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/app.go:489`",
+      "to_raw": "`modules/caddyhttp/server.go:310` `(*Server).ServeHTTP`"
+    },
+    {
+      "step": 6,
+      "from": "modules/caddyhttp/server.go:497",
+      "to": "modules/caddyhttp/routes.go:308",
+      "func": "route",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/server.go:497`",
+      "to_raw": "`modules/caddyhttp/routes.go:308` route closure"
+    },
+    {
+      "step": 7,
+      "from": "modules/caddyhttp/routes.go:337",
+      "to": "modules/caddyhttp/fileserver/staticfiles.go:268",
+      "func": "(*FileServer).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/routes.go:337`",
+      "to_raw": "`modules/caddyhttp/fileserver/staticfiles.go:268` `(*FileServer).ServeHTTP`"
+    },
+    {
+      "step": 8,
+      "from": "modules/caddyhttp/fileserver/staticfiles.go:371",
+      "to": "modules/caddyhttp/fileserver/browse.go:78",
+      "func": "(*FileServer).serveBrowse",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddyhttp/fileserver/staticfiles.go:371`",
+      "to_raw": "`modules/caddyhttp/fileserver/browse.go:78` `(*FileServer).serveBrowse`"
+    },
+    {
+      "step": 9,
+      "from": "modules/caddyhttp/fileserver/browse.go:119",
+      "to": "modules/caddyhttp/fileserver/browse.go:216",
+      "func": "(*FileServer).loadDirectoryContents",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddyhttp/fileserver/browse.go:119`",
+      "to_raw": "`modules/caddyhttp/fileserver/browse.go:216` `(*FileServer).loadDirectoryContents` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 2,
+    "function-value-in-struct-field": 1,
+    "interface-method-dispatch": 4,
+    "method-call-on-concrete-type": 2
+  },
+  "project": "caddy",
+  "source_file": "projects/caddy/traces/M-7.synthesis.md"
+}

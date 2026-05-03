@@ -1,0 +1,90 @@
+{
+  "id": "gitea/M-19",
+  "name": "Debian repo metadata rebuild (`BuildSpecificRepositoryFiles`)",
+  "region_root": "services/packages/debian/repository.go:154",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`http-handler-registration`) \u2014 the function value passes through variadic `...any` adapters that erase its static type, is interned into a route table keyed by method and an accumulated URL prefix, and is finally invoked through `reflect.Value.Call`; connecting requests to handler requires modeling the table and the reflective adapter together.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/web.go:44",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/web.go:44` (`Action: runWeb` in `newWebCommand`)",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:228",
+      "to": "routers/init.go:183",
+      "func": "NormalRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:228`",
+      "to_raw": "`routers/init.go:183` `NormalRoutes`"
+    },
+    {
+      "step": 4,
+      "from": "routers/init.go:197",
+      "to": "routers/api/packages/api.go:117",
+      "func": "CommonRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/init.go:197`",
+      "to_raw": "`routers/api/packages/api.go:117` `CommonRoutes`"
+    },
+    {
+      "step": 5,
+      "from": "routers/api/packages/api.go:130",
+      "to": "routers/api/packages/api.go:326",
+      "func": null,
+      "edge_type": "immediate-closure-callback",
+      "from_raw": "`routers/api/packages/api.go:130` \u2192 `:313` \u2192 `:323` \u2192 `:325` (nested `r.Group(pattern, fn)` bodies)",
+      "to_raw": "`routers/api/packages/api.go:326` (registration site)"
+    },
+    {
+      "step": 6,
+      "from": "routers/api/packages/api.go:326",
+      "to": "routers/api/packages/debian/debian.go:122",
+      "func": "UploadPackageFile",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`routers/api/packages/api.go:326` `r.Put(\"/upload\", debian.UploadPackageFile)`",
+      "to_raw": "`routers/api/packages/debian/debian.go:122` `UploadPackageFile`"
+    },
+    {
+      "step": 7,
+      "from": "routers/api/packages/debian/debian.go:201",
+      "to": "services/packages/debian/repository.go:154",
+      "func": "BuildSpecificRepositoryFiles",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/api/packages/debian/debian.go:201`",
+      "to_raw": "`services/packages/debian/repository.go:154` `BuildSpecificRepositoryFiles` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 4,
+    "function-value-in-struct-field": 1,
+    "immediate-closure-callback": 1,
+    "http-handler-registration": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-19.synthesis.md"
+}

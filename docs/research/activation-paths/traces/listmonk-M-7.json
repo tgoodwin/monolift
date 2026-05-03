@@ -1,0 +1,61 @@
+{
+  "id": "listmonk/M-7",
+  "name": "Campaign template compilation (`CompileTemplate`)",
+  "region_root": "models/campaigns.go:138",
+  "path_length": 4,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 1 (`goroutine-launch-of-concrete-method`) \u2014 the goroutine boundary is the only feature beyond plain direct dispatch; the callee identity itself is statically pinned.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:262",
+      "to": "internal/manager/manager.go:265",
+      "func": "(*Manager).Run",
+      "edge_type": "goroutine-launch-of-concrete-method",
+      "from_raw": "`cmd/main.go:262` `go mgr.Run()`",
+      "to_raw": "`internal/manager/manager.go:265` `(*Manager).Run`"
+    },
+    {
+      "step": 2,
+      "from": "internal/manager/manager.go:269",
+      "to": "internal/manager/manager.go:422",
+      "func": "(*Manager).scanCampaigns",
+      "edge_type": "goroutine-launch-of-concrete-method",
+      "from_raw": "`internal/manager/manager.go:269` `go m.scanCampaigns(...)`",
+      "to_raw": "`internal/manager/manager.go:422` `(*Manager).scanCampaigns`"
+    },
+    {
+      "step": 3,
+      "from": "internal/manager/manager.go:437",
+      "to": "internal/manager/pipe.go:27",
+      "func": "(*Manager).newPipe",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`internal/manager/manager.go:437` `m.newPipe(c)`",
+      "to_raw": "`internal/manager/pipe.go:27` `(*Manager).newPipe`"
+    },
+    {
+      "step": 4,
+      "from": "internal/manager/pipe.go:35",
+      "to": "models/campaigns.go:138",
+      "func": "(*Campaign).CompileTemplate",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`internal/manager/pipe.go:35` `c.CompileTemplate(...)`",
+      "to_raw": "`models/campaigns.go:138` `(*Campaign).CompileTemplate` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "goroutine-launch-of-concrete-method": 2,
+    "method-call-on-concrete-type": 2
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-7.synthesis.md"
+}

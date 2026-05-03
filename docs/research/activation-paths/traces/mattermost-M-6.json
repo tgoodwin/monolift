@@ -1,0 +1,145 @@
+{
+  "id": "mattermost/M-6",
+  "name": "Link-preview metadata fetch+parse (`getLinkMetadataForURL`)",
+  "region_root": "server/channels/app/post_metadata.go:1021",
+  "path_length": 13,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 7 (`interface-method-dispatch`) \u2014 `http.Handler` is satisfied by many types reachable from `http.Server.Handler` through the gorilla/mux router; pruning to the relevant `web.Handler.ServeHTTP` requires combining router-value points-to with the Step 6 producer set.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:95",
+      "to": "server/channels/api4/api.go:185",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:95`",
+      "to_raw": "`server/channels/api4/api.go:185` `Init`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/api4/api.go:343",
+      "to": "server/channels/api4/post.go:23",
+      "func": "(*API).InitPost",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/api.go:343`",
+      "to_raw": "`server/channels/api4/post.go:23` `(*API).InitPost`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/api4/post.go:25",
+      "to": "server/channels/api4/handlers.go:53",
+      "func": null,
+      "edge_type": "struct-literal-field-assignment",
+      "from_raw": "`server/channels/api4/post.go:25` (via `APISessionRequired` at `server/channels/api4/handlers.go:50`)",
+      "to_raw": "`server/channels/api4/handlers.go:53` \u2014 `web.Handler{HandleFunc: getPost}` literal"
+    },
+    {
+      "step": 7,
+      "from": null,
+      "to": "server/channels/web/handlers.go:145",
+      "func": "(Handler).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`net/http`: `http.Server.Handler.ServeHTTP`",
+      "to_raw": "`server/channels/web/handlers.go:145` `(Handler).ServeHTTP`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/web/handlers.go:355",
+      "to": "server/channels/api4/post.go:543",
+      "func": "getPost",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/web/handlers.go:355` `h.HandleFunc(c, w, r)`",
+      "to_raw": "`server/channels/api4/post.go:543` `getPost`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/api4/post.go:567",
+      "to": "server/channels/app/post_metadata.go:270",
+      "func": "(*App).PreparePostForClientWithEmbedsAndImages",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/post.go:567`",
+      "to_raw": "`server/channels/app/post_metadata.go:270` `(*App).PreparePostForClientWithEmbedsAndImages`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/app/post_metadata.go:272",
+      "to": "server/channels/app/post_metadata.go:277",
+      "func": "(*App).getEmbedsAndImages",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post_metadata.go:272`",
+      "to_raw": "`server/channels/app/post_metadata.go:277` `(*App).getEmbedsAndImages`"
+    },
+    {
+      "step": 11,
+      "from": "server/channels/app/post_metadata.go:298",
+      "to": "server/channels/app/post_metadata.go:543",
+      "func": "(*App).getEmbedForPost",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post_metadata.go:298`",
+      "to_raw": "`server/channels/app/post_metadata.go:543` `(*App).getEmbedForPost`"
+    },
+    {
+      "step": 12,
+      "from": "server/channels/app/post_metadata.go:566",
+      "to": "server/channels/app/post_metadata.go:892",
+      "func": "(*App).getLinkMetadata",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post_metadata.go:566`",
+      "to_raw": "`server/channels/app/post_metadata.go:892` `(*App).getLinkMetadata`"
+    },
+    {
+      "step": 13,
+      "from": "server/channels/app/post_metadata.go:934",
+      "to": "server/channels/app/post_metadata.go:1021",
+      "func": "(*App).getLinkMetadataForURL",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post_metadata.go:934`",
+      "to_raw": "`server/channels/app/post_metadata.go:1021` `(*App).getLinkMetadataForURL` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "function-value-in-struct-field": 2,
+    "struct-literal-field-assignment": 1,
+    "interface-method-dispatch": 1,
+    "method-call-on-concrete-type": 6
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-6.synthesis.md"
+}

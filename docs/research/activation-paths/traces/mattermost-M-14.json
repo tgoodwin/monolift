@@ -1,0 +1,137 @@
+{
+  "id": "mattermost/M-14",
+  "name": "PBKDF2 password hashing (`PBKDF2.Hash`)",
+  "region_root": "server/channels/app/password/hashers/pbkdf2.go:151",
+  "path_length": 12,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Steps 7+8 (`http-handler-registration` + `function-value-in-struct-field`) \u2014 the handler is stored across two struct-field layers (`web.Handler.HandleFunc` and the router's string-keyed routing tree) and only invoked at request time, so proving reachability requires modeling function-value flow through registration writes plus a request-time field load.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main()",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main()`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": null,
+      "func": null,
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+      "to_raw": "`(*cobra.Command).Execute` (external)"
+    },
+    {
+      "step": 3,
+      "from": null,
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`(*cobra.Command).Execute` body (`RunE` field load)",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 5,
+      "from": "server/cmd/mattermost/commands/server.go:95",
+      "to": "server/channels/api4/api.go:185",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:95`",
+      "to_raw": "`server/channels/api4/api.go:185` `Init`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/api4/api.go:340",
+      "to": "server/channels/api4/bot.go:15",
+      "func": "(*API).InitBot",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/api.go:340`",
+      "to_raw": "`server/channels/api4/bot.go:15` `(*API).InitBot`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/api4/bot.go:22",
+      "to": "server/channels/web/handlers.go:355",
+      "func": "(Handler).ServeHTTP",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`server/channels/api4/bot.go:22` (route registration)",
+      "to_raw": "`server/channels/web/handlers.go:355` `(Handler).ServeHTTP`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/web/handlers.go:355",
+      "to": "server/channels/api4/bot.go:274",
+      "func": "convertBotToUser",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/web/handlers.go:355` (`h.HandleFunc(c, w, r)`)",
+      "to_raw": "`server/channels/api4/bot.go:274` `convertBotToUser`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/api4/bot.go:306",
+      "to": "server/channels/app/user.go:2819",
+      "func": "(*App).ConvertBotToUser",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/bot.go:306`",
+      "to_raw": "`server/channels/app/user.go:2819` `(*App).ConvertBotToUser`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/app/user.go:2848",
+      "to": "server/channels/app/user.go:1635",
+      "func": "(*App).UpdatePassword",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/user.go:2848`",
+      "to_raw": "`server/channels/app/user.go:1635` `(*App).UpdatePassword`"
+    },
+    {
+      "step": 11,
+      "from": "server/channels/app/user.go:1649",
+      "to": "server/channels/app/password/hashers/hashers.go:138",
+      "func": "Hash",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/app/user.go:1649`",
+      "to_raw": "`server/channels/app/password/hashers/hashers.go:138` `Hash`"
+    },
+    {
+      "step": 12,
+      "from": "server/channels/app/password/hashers/hashers.go:139",
+      "to": "server/channels/app/password/hashers/pbkdf2.go:151",
+      "func": "(PBKDF2).Hash",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`server/channels/app/password/hashers/hashers.go:139`",
+      "to_raw": "`server/channels/app/password/hashers/pbkdf2.go:151` `(PBKDF2).Hash` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 4,
+    "method-call-on-concrete-type": 4,
+    "function-value-in-struct-field": 2,
+    "http-handler-registration": 1,
+    "interface-method-dispatch": 1,
+    "entrypoint": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-14.synthesis.md"
+}

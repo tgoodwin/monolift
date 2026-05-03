@@ -1,0 +1,109 @@
+{
+  "id": "mattermost/M-8",
+  "name": "Push notification fan-out (`sendPushNotificationToAllSessions`)",
+  "region_root": "server/channels/app/notification_push.go:93",
+  "path_length": 9,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 8 (`tagged-union-dispatch`) \u2014 each arm is a named `*App` method, but proving the message arm fires for M-8 requires field-sensitive value flow from a producer that writes `notificationTypeMessage` into a struct literal and sends it across `notificationsChan` to the consumer goroutine spawned in step 7.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20` `commands.Run(os.Args[1:])`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57` `runServer(...)`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:73",
+      "to": "server/channels/app/server.go:191",
+      "func": "NewServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:73` `app.NewServer(options...)`",
+      "to_raw": "`server/channels/app/server.go:191` `NewServer`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/app/server.go:368",
+      "to": "server/channels/app/notification_push.go:393",
+      "func": "(*Server).createPushNotificationsHub",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/server.go:368` `s.createPushNotificationsHub(...)`",
+      "to_raw": "`server/channels/app/notification_push.go:393` `(*Server).createPushNotificationsHub`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/app/notification_push.go:404",
+      "to": "server/channels/app/notification_push.go:408",
+      "func": "(*PushNotificationsHub).start",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`server/channels/app/notification_push.go:404` `go hub.start(rctx)`",
+      "to_raw": "`server/channels/app/notification_push.go:408` `(*PushNotificationsHub).start`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/app/notification_push.go:424",
+      "to": "server/channels/app/notification_push.go:424",
+      "func": "anonymous",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`server/channels/app/notification_push.go:424` `go func(notification PushNotification){...}(notification)`",
+      "to_raw": "`server/channels/app/notification_push.go:424` anonymous closure"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/app/notification_push.go:437",
+      "to": "server/channels/app/notification_push.go:70",
+      "func": "(*App).sendPushNotificationSync",
+      "edge_type": "tagged-union-dispatch",
+      "from_raw": "`server/channels/app/notification_push.go:437` `case notificationTypeMessage: hub.app.sendPushNotificationSync(...)`",
+      "to_raw": "`server/channels/app/notification_push.go:70` `(*App).sendPushNotificationSync`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/app/notification_push.go:90",
+      "to": "server/channels/app/notification_push.go:93",
+      "func": "(*App).sendPushNotificationToAllSessions",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/notification_push.go:90` `a.sendPushNotificationToAllSessions(...)`",
+      "to_raw": "`server/channels/app/notification_push.go:93` `(*App).sendPushNotificationToAllSessions` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "method-call-on-concrete-type": 3,
+    "function-value-in-struct-field": 1,
+    "goroutine-launch": 2,
+    "tagged-union-dispatch": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-8.synthesis.md"
+}

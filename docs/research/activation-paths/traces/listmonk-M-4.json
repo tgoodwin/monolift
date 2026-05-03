@@ -1,0 +1,61 @@
+{
+  "id": "listmonk/M-4",
+  "name": "Image thumbnail generation (`processImage`)",
+  "region_root": "cmd/media.go:212",
+  "path_length": 4,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`callback-registration`) \u2014 combines method-value receiver binding, higher-order middleware closure capture of `next`, and framework route-table installation at one syntactic site.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:309",
+      "to": "cmd/init.go:888",
+      "func": "initHTTPServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/main.go:309`",
+      "to_raw": "`cmd/init.go:888` `initHTTPServer`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/init.go:940",
+      "to": "cmd/handlers.go:33",
+      "func": "initHTTPHandlers",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/init.go:940`",
+      "to_raw": "`cmd/handlers.go:33` `initHTTPHandlers`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/handlers.go:180",
+      "to": "cmd/media.go:26",
+      "func": "(*App).UploadMedia",
+      "edge_type": "callback-registration` (method-value + closure-wrapper)",
+      "from_raw": "`cmd/handlers.go:180`",
+      "to_raw": "`cmd/media.go:26` `(*App).UploadMedia`"
+    },
+    {
+      "step": 4,
+      "from": "cmd/media.go:99",
+      "to": "cmd/media.go:212",
+      "func": "processImage",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/media.go:99`",
+      "to_raw": "`cmd/media.go:212` `processImage` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "callback-registration": 1
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-4.synthesis.md"
+}

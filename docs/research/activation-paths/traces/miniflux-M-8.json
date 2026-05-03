@@ -1,0 +1,89 @@
+{
+  "id": "miniflux/M-8",
+  "name": "Readability extractor (`ExtractContent`)",
+  "region_root": "internal/reader/readability/readability.go:73",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`goroutine-launch`) \u2014 the only edge that crosses a concurrency boundary; the analyzer must model launched closures as reachable continuations rather than dead code.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:10",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:10` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:11",
+      "to": "internal/cli/cli.go:40",
+      "func": "Parse",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:11`",
+      "to_raw": "`internal/cli/cli.go:40` `Parse`"
+    },
+    {
+      "step": 2,
+      "from": "internal/cli/cli.go:239",
+      "to": "internal/cli/refresh_feeds.go:17",
+      "func": "refreshFeeds",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/cli.go:239`",
+      "to_raw": "`internal/cli/refresh_feeds.go:17` `refreshFeeds`"
+    },
+    {
+      "step": 3,
+      "from": "internal/cli/refresh_feeds.go:47",
+      "to": "internal/cli/refresh_feeds.go:48",
+      "func": null,
+      "edge_type": "goroutine-launch",
+      "from_raw": "`internal/cli/refresh_feeds.go:47`",
+      "to_raw": "`internal/cli/refresh_feeds.go:48` (worker closure body)"
+    },
+    {
+      "step": 4,
+      "from": "internal/cli/refresh_feeds.go:56",
+      "to": "internal/reader/handler/handler.go:207",
+      "func": "RefreshFeed",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/refresh_feeds.go:56`",
+      "to_raw": "`internal/reader/handler/handler.go:207` `RefreshFeed`"
+    },
+    {
+      "step": 5,
+      "from": "internal/reader/handler/handler.go:329",
+      "to": "internal/reader/processor/processor.go:27",
+      "func": "ProcessFeedEntries",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/reader/handler/handler.go:329`",
+      "to_raw": "`internal/reader/processor/processor.go:27` `ProcessFeedEntries`"
+    },
+    {
+      "step": 6,
+      "from": "internal/reader/processor/processor.go:111",
+      "to": "internal/reader/scraper/scraper.go:21",
+      "func": "ScrapeWebsite",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/reader/processor/processor.go:111`",
+      "to_raw": "`internal/reader/scraper/scraper.go:21` `ScrapeWebsite`"
+    },
+    {
+      "step": 7,
+      "from": "internal/reader/scraper/scraper.go:61",
+      "to": "internal/reader/readability/readability.go:73",
+      "func": "ExtractContent",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/reader/scraper/scraper.go:61`",
+      "to_raw": "`internal/reader/readability/readability.go:73` `ExtractContent` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "direct-function-call": 6,
+    "goroutine-launch": 1
+  },
+  "project": "miniflux",
+  "source_file": "projects/miniflux/traces/M-8.synthesis.md"
+}

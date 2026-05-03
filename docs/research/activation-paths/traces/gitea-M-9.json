@@ -1,0 +1,89 @@
+{
+  "id": "gitea/M-9",
+  "name": "RPM repo metadata rebuild (`BuildSpecificRepositoryFiles`)",
+  "region_root": "services/packages/rpm/repository.go:163",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`http-handler-registration`) \u2014 requires modeling Gitea's `PathGroup`/`MatchPath` layer, which extracts the final variadic argument as the endpoint handler and selects it at request time by HTTP method plus regexp path matching; Step 2 is easier because the `Action` field has a single source and no aliasing.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/main.go:157",
+      "func": "RunMainApp",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:45`",
+      "to_raw": "`cmd/main.go:157` `RunMainApp`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:160",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:160` (`app.Run`)",
+      "to_raw": "`cmd/web.go:251` `runWeb` (registered as `Action` at `cmd/web.go:44`)"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 4,
+      "from": "cmd/web.go:228",
+      "to": "routers/init.go:183",
+      "func": "NormalRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:228`",
+      "to_raw": "`routers/init.go:183` `NormalRoutes`"
+    },
+    {
+      "step": 5,
+      "from": "routers/init.go:197",
+      "to": "routers/api/packages/api.go:117",
+      "func": "CommonRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/init.go:197`",
+      "to_raw": "`routers/api/packages/api.go:117` `CommonRoutes`"
+    },
+    {
+      "step": 6,
+      "from": "routers/api/packages/api.go:475",
+      "to": "routers/api/packages/rpm/rpm.go:120",
+      "func": "UploadPackageFile",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`routers/api/packages/api.go:475` (`g.MatchPath(\"PUT\", \"/<group:*>/upload\", \u2026, rpm.UploadPackageFile)`)",
+      "to_raw": "`routers/api/packages/rpm/rpm.go:120` `UploadPackageFile`"
+    },
+    {
+      "step": 7,
+      "from": "routers/api/packages/rpm/rpm.go:212",
+      "to": "services/packages/rpm/repository.go:163",
+      "func": "BuildSpecificRepositoryFiles",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/api/packages/rpm/rpm.go:212`",
+      "to_raw": "`services/packages/rpm/repository.go:163` `BuildSpecificRepositoryFiles` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "function-value-in-struct-field": 1,
+    "http-handler-registration": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-9.synthesis.md"
+}

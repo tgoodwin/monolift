@@ -1,0 +1,154 @@
+{
+  "id": "mattermost/M-3",
+  "name": "Outgoing webhook fan-out (`TriggerWebhook`)",
+  "region_root": "server/channels/app/webhook.go:99",
+  "path_length": 14,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 7 (`interface-method-dispatch`) \u2014 connecting `Server.Start()` to a specific `(*web.Handler).ServeHTTP` invocation requires modeling `net/http.Server.Handler`, gorilla-mux subrouter registration, and per-pattern method/path matching; the field-flow at Step 6 must be linked to the runtime dispatch through a conservative \"any registered handler is reachable\" assumption.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17` (`RootCmd.Execute()`)",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:95",
+      "to": "server/channels/api4/api.go:185",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:95`",
+      "to_raw": "`server/channels/api4/api.go:185` `Init`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/api4/api.go:343",
+      "to": "server/channels/api4/post.go:23",
+      "func": "(*API).InitPost",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/api.go:343`",
+      "to_raw": "`server/channels/api4/post.go:23` `(*API).InitPost`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/api4/post.go:24",
+      "to": "server/channels/api4/handlers.go:53",
+      "func": null,
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/api4/post.go:24` (`api.APISessionRequired(createPost)`)",
+      "to_raw": "`server/channels/api4/handlers.go:53` (`HandleFunc: h` field write)"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/app/server.go:962",
+      "to": "server/channels/web/handlers.go:145",
+      "func": "(Handler).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "HTTP runtime (mux entry from `server/channels/app/server.go:962`)",
+      "to_raw": "`server/channels/web/handlers.go:145` `(Handler).ServeHTTP`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/web/handlers.go:355",
+      "to": "server/channels/api4/post.go:96",
+      "func": "createPost",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/web/handlers.go:355` (`h.HandleFunc(c, w, r)`)",
+      "to_raw": "`server/channels/api4/post.go:96` `createPost`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/api4/post.go:130",
+      "to": "server/channels/app/post.go:40",
+      "func": "(*App).CreatePostAsUser",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/post.go:130`",
+      "to_raw": "`server/channels/app/post.go:40` `(*App).CreatePostAsUser`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/app/post.go:67",
+      "to": "server/channels/app/post.go:162",
+      "func": "(*App).CreatePost",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post.go:67`",
+      "to_raw": "`server/channels/app/post.go:162` `(*App).CreatePost`"
+    },
+    {
+      "step": 11,
+      "from": "server/channels/app/post.go:474",
+      "to": "server/channels/app/post.go:643",
+      "func": "(*App).handlePostEvents",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post.go:474`",
+      "to_raw": "`server/channels/app/post.go:643` `(*App).handlePostEvents`"
+    },
+    {
+      "step": 12,
+      "from": "server/channels/app/post.go:683",
+      "to": "server/channels/app/post.go:684",
+      "func": null,
+      "edge_type": "closure-capture` + `goroutine-launch",
+      "from_raw": "`server/channels/app/post.go:683` (`a.Srv().Go(func(){...})`)",
+      "to_raw": "`server/channels/app/post.go:684` (closure body)"
+    },
+    {
+      "step": 13,
+      "from": "server/channels/app/post.go:684",
+      "to": "server/channels/app/webhook.go:37",
+      "func": "(*App).handleWebhookEvents",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post.go:684`",
+      "to_raw": "`server/channels/app/webhook.go:37` `(*App).handleWebhookEvents`"
+    },
+    {
+      "step": 14,
+      "from": "server/channels/app/webhook.go:93",
+      "to": "server/channels/app/webhook.go:99",
+      "func": "(*App).TriggerWebhook",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/webhook.go:93`",
+      "to_raw": "`server/channels/app/webhook.go:99` `(*App).TriggerWebhook` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "function-value-in-struct-field": 3,
+    "method-call-on-concrete-type": 6,
+    "interface-method-dispatch": 1,
+    "closure-capture` + `goroutine-launch": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-3.synthesis.md"
+}

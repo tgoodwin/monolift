@@ -1,0 +1,73 @@
+{
+  "id": "listmonk/M-9",
+  "name": "Transactional message render (`TxMessage.Render`)",
+  "region_root": "models/messages.go:74",
+  "path_length": 5,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`http-handler-registration`) \u2014 the analyzer must thread a bound-method value through a wrapper that returns a closure capturing it, then model router registration as a callback sink whose dispatch happens later via the framework's request event loop.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:309",
+      "to": "cmd/init.go:888",
+      "func": "initHTTPServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/main.go:309`",
+      "to_raw": "`cmd/init.go:888` `initHTTPServer`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/init.go:940",
+      "to": "cmd/handlers.go:33",
+      "func": "initHTTPHandlers",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/init.go:940`",
+      "to_raw": "`cmd/handlers.go:33` `initHTTPHandlers`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/handlers.go:196",
+      "to": "internal/auth/auth.go:337",
+      "func": "anonymous",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`cmd/handlers.go:196`",
+      "to_raw": "`internal/auth/auth.go:337` anonymous closure returned by `(*Auth).Perm`"
+    },
+    {
+      "step": 4,
+      "from": "internal/auth/auth.go:365",
+      "to": "cmd/tx.go:17",
+      "func": "(*App).SendTxMessage",
+      "edge_type": "closure-captured-function-value",
+      "from_raw": "`internal/auth/auth.go:365`",
+      "to_raw": "`cmd/tx.go:17` `(*App).SendTxMessage`"
+    },
+    {
+      "step": 5,
+      "from": "cmd/tx.go:132",
+      "to": "models/messages.go:74",
+      "func": "(*TxMessage).Render",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`cmd/tx.go:132`",
+      "to_raw": "`models/messages.go:74` `(*TxMessage).Render` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "direct-function-call": 2,
+    "http-handler-registration": 1,
+    "closure-captured-function-value": 1,
+    "method-call-on-concrete-type": 1
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-9.synthesis.md"
+}

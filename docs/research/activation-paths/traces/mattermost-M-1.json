@@ -1,0 +1,118 @@
+{
+  "id": "mattermost/M-1",
+  "name": "Document text extraction (`Extract`)",
+  "region_root": "server/platform/services/docextractor/docextractor.go:21",
+  "path_length": 10,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 9 (`closure-capture` + `goroutine-launch`) \u2014 the `func()` value must be tracked through two forwarding wrappers before the `go f()` rule fires, and the goroutine boundary must be modelled as a static call edge.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF` (via `serverCmd.RunE` set at `server.go:30`)"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:95",
+      "to": "server/channels/api4/api.go:185",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:95`",
+      "to_raw": "`server/channels/api4/api.go:185` `Init`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/api4/api.go:344",
+      "to": "server/channels/api4/file.go:33",
+      "func": "(*API).InitFile",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/api.go:344`",
+      "to_raw": "`server/channels/api4/file.go:33` `(*API).InitFile`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/api4/file.go:34",
+      "to": "server/channels/api4/file.go:77",
+      "func": "uploadFileStream",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`server/channels/api4/file.go:34` `.Handle(\"\", api.APISessionRequired(uploadFileStream, ...)).Methods(POST)`",
+      "to_raw": "`server/channels/api4/file.go:77` `uploadFileStream`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/api4/file.go:114",
+      "to": "server/channels/api4/file.go:133",
+      "func": "uploadFileSimple",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/api4/file.go:114`",
+      "to_raw": "`server/channels/api4/file.go:133` `uploadFileSimple`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/api4/file.go:183",
+      "to": "server/channels/app/file.go:774",
+      "func": "(*App).UploadFileX",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/file.go:183` `c.App.UploadFileX(...)`",
+      "to_raw": "`server/channels/app/file.go:774` `(*App).UploadFileX`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/app/file.go:861",
+      "to": "server/channels/app/file.go:1624",
+      "func": "(*App).ExtractContentFromFileInfo",
+      "edge_type": "closure-capture` + `goroutine-launch",
+      "from_raw": "`server/channels/app/file.go:861` `a.Srv().GoBuffered(func(){ a.ExtractContentFromFileInfo(...) })` (forwarded `Server.GoBuffered` `server/channels/app/server.go:826` \u2192 `PlatformService.GoBuffered` `server/channels/app/platform/goroutines.go:36` `go f()` invokes `f()` at `:37`)",
+      "to_raw": "`server/channels/app/file.go:1624` `(*App).ExtractContentFromFileInfo`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/app/file.go:1635",
+      "to": "server/platform/services/docextractor/docextractor.go:21",
+      "func": "Extract",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/app/file.go:1635`",
+      "to_raw": "`server/platform/services/docextractor/docextractor.go:21` `Extract` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "method-call-on-concrete-type": 2,
+    "function-value-in-struct-field": 1,
+    "http-handler-registration": 1,
+    "closure-capture` + `goroutine-launch": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-1.synthesis.md"
+}

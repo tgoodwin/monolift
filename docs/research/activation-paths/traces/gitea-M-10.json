@@ -1,0 +1,165 @@
+{
+  "id": "gitea/M-10",
+  "name": "Push-update worker (`pushUpdates`)",
+  "region_root": "services/repository/push.go:77",
+  "path_length": 15,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 14 (`function-value-in-struct-field`) \u2014 without instance-sensitive field analysis pinning `w.origHandler` to the unique `pushQueue` allocation, the call edge fans out to every handler registered with `CreateSimpleQueue`/`CreateUniqueQueue` across the codebase. Step 8 is the symmetric registration side of the same problem.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/main.go:157",
+      "func": "RunMainApp",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:45`",
+      "to_raw": "`cmd/main.go:157` `RunMainApp`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:160",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:160` `app.Run(ctx, args)`",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 4,
+      "from": "cmd/web.go:205",
+      "to": "routers/init.go:115",
+      "func": "InitWebInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:205`",
+      "to_raw": "`routers/init.go:115` `InitWebInstalled`"
+    },
+    {
+      "step": 5,
+      "from": "routers/init.go:152",
+      "to": "routers/init.go:69",
+      "func": "mustInitCtx",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/init.go:152` `mustInitCtx(ctx, repo_service.Init)`",
+      "to_raw": "`routers/init.go:69` `mustInitCtx`"
+    },
+    {
+      "step": 6,
+      "from": "routers/init.go:70",
+      "to": "services/repository/repository.go:99",
+      "func": "Init",
+      "edge_type": "function-value-parameter-invocation",
+      "from_raw": "`routers/init.go:70` `fn(ctx)`",
+      "to_raw": "`services/repository/repository.go:99` `Init`"
+    },
+    {
+      "step": 7,
+      "from": "services/repository/repository.go:109",
+      "to": "services/repository/push.go:47",
+      "func": "initPushQueue",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/repository/repository.go:109`",
+      "to_raw": "`services/repository/push.go:47` `initPushQueue`"
+    },
+    {
+      "step": 8,
+      "from": "services/repository/push.go:48",
+      "to": "modules/queue/workerqueue.go:242",
+      "func": "w.origHandler = handler",
+      "edge_type": "function-value-stored-in-struct-field",
+      "from_raw": "`services/repository/push.go:48` `CreateSimpleQueue(..., handler)`",
+      "to_raw": "`modules/queue/workerqueue.go:242` `w.origHandler = handler`"
+    },
+    {
+      "step": 9,
+      "from": "services/repository/push.go:52",
+      "to": "modules/graceful/manager.go:73",
+      "func": "RunWithCancel",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`services/repository/push.go:52` `go RunWithCancel(pushQueue)`",
+      "to_raw": "`modules/graceful/manager.go:73` `RunWithCancel`"
+    },
+    {
+      "step": 10,
+      "from": "modules/graceful/manager.go:77",
+      "to": "modules/queue/workerqueue.go:184",
+      "func": "(*WorkerPoolQueue[T]).Run",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/graceful/manager.go:77` `rc.Run()`",
+      "to_raw": "`modules/queue/workerqueue.go:184` `(*WorkerPoolQueue[T]).Run`"
+    },
+    {
+      "step": 11,
+      "from": "modules/queue/workergroup.go:156",
+      "to": "modules/queue/workergroup.go:174",
+      "func": "worker",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`modules/queue/workergroup.go:156` `wp.wg.Go(func(){...})`",
+      "to_raw": "`modules/queue/workergroup.go:174` worker goroutine body"
+    },
+    {
+      "step": 12,
+      "from": "modules/queue/workergroup.go:174",
+      "to": "modules/queue/workergroup.go:103",
+      "func": "q.doWorkerHandle",
+      "edge_type": "channel-send-receive",
+      "from_raw": "`modules/queue/workergroup.go:174` `batch := <-q.batchChan`",
+      "to_raw": "`modules/queue/workergroup.go:103` `q.doWorkerHandle` `q.safeHandler(batch...)`"
+    },
+    {
+      "step": 13,
+      "from": "modules/queue/workergroup.go:103",
+      "to": "modules/queue/workerqueue.go:243",
+      "func": "safeHandler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`modules/queue/workergroup.go:103` `q.safeHandler(batch...)`",
+      "to_raw": "`modules/queue/workerqueue.go:243` `safeHandler` closure"
+    },
+    {
+      "step": 14,
+      "from": "modules/queue/workerqueue.go:254",
+      "to": "services/repository/push.go:36",
+      "func": "handler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`modules/queue/workerqueue.go:254` `w.origHandler(t...)`",
+      "to_raw": "`services/repository/push.go:36` `handler`"
+    },
+    {
+      "step": 15,
+      "from": "services/repository/push.go:38",
+      "to": "services/repository/push.go:77",
+      "func": "pushUpdates",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/repository/push.go:38` `pushUpdates(opts)`",
+      "to_raw": "`services/repository/push.go:77` `pushUpdates` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 6,
+    "function-value-in-struct-field": 3,
+    "function-value-stored-in-struct-field": 1,
+    "function-value-parameter-invocation": 1,
+    "goroutine-launch": 2,
+    "interface-method-dispatch": 1,
+    "channel-send-receive": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-10.synthesis.md"
+}

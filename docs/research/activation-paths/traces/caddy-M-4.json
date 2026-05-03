@@ -1,0 +1,119 @@
+{
+  "id": "caddy/M-4",
+  "name": "Internal CA cert issuance (`InternalIssuer.Issue`)",
+  "region_root": "modules/caddytls/internalissuer.go:103",
+  "path_length": 10,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 10 (`interface-method-dispatch`) \u2014 the call site lives in the external certmagic module, and the set of concrete `certmagic.Issuer` values reaching it is gated by Caddy's module registry, populated at init by `caddy.RegisterModule` and resolved through a JSON-driven string ID at `LoadModuleByID`.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/caddy/main.go:40",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/caddy/main.go:40` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/caddy/main.go:41",
+      "to": "cmd/main.go:66",
+      "func": "caddycmd.Main",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/caddy/main.go:41`",
+      "to_raw": "`cmd/main.go:66` `caddycmd.Main`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:72",
+      "to": "cmd/commands.go:166",
+      "func": null,
+      "edge_type": "init-populated-registry",
+      "from_raw": "`cmd/main.go:72` (`defaultFactory.Build()`)",
+      "to_raw": "`cmd/commands.go:166` (`cmd.RunE = WrapCommandFuncForCobra(cmdRun)`)"
+    },
+    {
+      "step": 3,
+      "from": null,
+      "to": "cmd/cobra.go:150",
+      "func": null,
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "external `cobra.Command.Execute`",
+      "to_raw": "`cmd/cobra.go:150` (RunE closure body)"
+    },
+    {
+      "step": 4,
+      "from": "cmd/cobra.go:151",
+      "to": "cmd/commandfuncs.go:172",
+      "func": "cmdRun",
+      "edge_type": "closure-captured-function-call",
+      "from_raw": "`cmd/cobra.go:151` (`f(Flags{...})`)",
+      "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+    },
+    {
+      "step": 5,
+      "from": "cmd/commandfuncs.go:267",
+      "to": "caddy.go:115",
+      "func": "Load",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/commandfuncs.go:267` (`caddy.Load(config, true)`)",
+      "to_raw": "`caddy.go:115` `Load`"
+    },
+    {
+      "step": 6,
+      "from": "caddy.go:136",
+      "to": "caddy.go:419",
+      "func": "run",
+      "edge_type": "direct-function-call` (chained)",
+      "from_raw": "`caddy.go:136` \u2192 `:247` \u2192 `:363` (`Load \u2192 changeConfig \u2192 unsyncedDecodeAndRun \u2192 run`)",
+      "to_raw": "`caddy.go:419` `run`"
+    },
+    {
+      "step": 7,
+      "from": "caddy.go:454",
+      "to": "modules/caddytls/tls.go:400",
+      "func": "(*TLS).Start",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`caddy.go:454` (`a.Start()`)",
+      "to_raw": "`modules/caddytls/tls.go:400` `(*TLS).Start`"
+    },
+    {
+      "step": 8,
+      "from": "modules/caddytls/tls.go:415",
+      "to": "modules/caddytls/tls.go:560",
+      "func": "(*TLS).Manage",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddytls/tls.go:415` (`t.Manage(...)`)",
+      "to_raw": "`modules/caddytls/tls.go:560` `(*TLS).Manage`"
+    },
+    {
+      "step": 9,
+      "from": "modules/caddytls/tls.go:585",
+      "to": null,
+      "func": null,
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddytls/tls.go:585` (`ap.magic.ManageAsync(...)`)",
+      "to_raw": "external `(*certmagic.Config).ManageAsync`"
+    },
+    {
+      "step": 10,
+      "from": null,
+      "to": "modules/caddytls/internalissuer.go:103",
+      "func": "(InternalIssuer).Issue",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "external certmagic obtain path (`ManageAsync \u2192 manageOne \u2192 obtainCert \u2192 issuer.Issue`)",
+      "to_raw": "`modules/caddytls/internalissuer.go:103` `(InternalIssuer).Issue` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "interface-method-dispatch": 2,
+    "method-call-on-concrete-type": 2,
+    "init-populated-registry": 1,
+    "function-value-in-struct-field": 1,
+    "closure-captured-function-call": 1
+  },
+  "project": "caddy",
+  "source_file": "projects/caddy/traces/M-4.synthesis.md"
+}

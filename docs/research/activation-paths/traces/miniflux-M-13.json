@@ -1,0 +1,89 @@
+{
+  "id": "miniflux/M-13",
+  "name": "User-pull full article fetch (`ProcessEntryWebPage`)",
+  "region_root": "internal/reader/processor/processor.go:180",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`http-handler-registration`) \u2014 naive call-graph traversal from `main` never visits `(*handler).fetchContent`; the analyzer must model `(*http.ServeMux).HandleFunc` as a reachability edge and bind the method value to the `*handler` constructed at `ui.go:26`.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:10",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:10` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:11",
+      "to": "internal/cli/cli.go:40",
+      "func": "Parse",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:11`",
+      "to_raw": "`internal/cli/cli.go:40` `Parse`"
+    },
+    {
+      "step": 2,
+      "from": "internal/cli/cli.go:248",
+      "to": "internal/cli/daemon.go:23",
+      "func": "startDaemon",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/cli.go:248`",
+      "to_raw": "`internal/cli/daemon.go:23` `startDaemon`"
+    },
+    {
+      "step": 3,
+      "from": "internal/cli/daemon.go:38",
+      "to": "internal/http/server/server.go:24",
+      "func": "StartWebServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/daemon.go:38`",
+      "to_raw": "`internal/http/server/server.go:24` `StartWebServer`"
+    },
+    {
+      "step": 4,
+      "from": "internal/http/server/server.go:49",
+      "to": "internal/http/server/routes.go:18",
+      "func": "newRouter",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/http/server/server.go:49`",
+      "to_raw": "`internal/http/server/routes.go:18` `newRouter`"
+    },
+    {
+      "step": 5,
+      "from": "internal/http/server/routes.go:46",
+      "to": "internal/ui/ui.go:17",
+      "func": "Serve",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/http/server/routes.go:46`",
+      "to_raw": "`internal/ui/ui.go:17` `Serve`"
+    },
+    {
+      "step": 6,
+      "from": "internal/ui/ui.go:106",
+      "to": "internal/ui/entry_scraper.go:17",
+      "func": "(*handler).fetchContent",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`internal/ui/ui.go:106`",
+      "to_raw": "`internal/ui/entry_scraper.go:17` `(*handler).fetchContent`"
+    },
+    {
+      "step": 7,
+      "from": "internal/ui/entry_scraper.go:54",
+      "to": "internal/reader/processor/processor.go:180",
+      "func": "ProcessEntryWebPage",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/ui/entry_scraper.go:54`",
+      "to_raw": "`internal/reader/processor/processor.go:180` `ProcessEntryWebPage` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "direct-function-call": 6,
+    "http-handler-registration": 1
+  },
+  "project": "miniflux",
+  "source_file": "projects/miniflux/traces/M-13.synthesis.md"
+}

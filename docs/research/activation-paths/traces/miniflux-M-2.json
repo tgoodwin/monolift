@@ -1,0 +1,71 @@
+{
+  "id": "miniflux/M-2",
+  "name": "Per-entry scrape/sanitize loop (`ProcessFeedEntries`)",
+  "region_root": "internal/reader/processor/processor.go:27",
+  "path_length": 5,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`goroutine-launch-with-closure`) \u2014 only edge whose semantics extend beyond the call graph; analyzer must treat the literal as a separately-reachable execution context and track captured `jobQueue`/`store` to connect outer state to inner direct calls.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:10",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:10` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:11",
+      "to": "internal/cli/cli.go:40",
+      "func": "Parse",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:11`",
+      "to_raw": "`internal/cli/cli.go:40` `Parse`"
+    },
+    {
+      "step": 2,
+      "from": "internal/cli/cli.go:239",
+      "to": "internal/cli/refresh_feeds.go:17",
+      "func": "refreshFeeds",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/cli.go:239`",
+      "to_raw": "`internal/cli/refresh_feeds.go:17` `refreshFeeds`"
+    },
+    {
+      "step": 3,
+      "from": "internal/cli/refresh_feeds.go:47",
+      "to": "internal/cli/refresh_feeds.go:47",
+      "func": null,
+      "edge_type": "goroutine-launch-with-closure",
+      "from_raw": "`internal/cli/refresh_feeds.go:47`",
+      "to_raw": "`internal/cli/refresh_feeds.go:47` (anonymous worker closure body)"
+    },
+    {
+      "step": 4,
+      "from": "internal/cli/refresh_feeds.go:56",
+      "to": "internal/reader/handler/handler.go:207",
+      "func": "RefreshFeed",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/refresh_feeds.go:56`",
+      "to_raw": "`internal/reader/handler/handler.go:207` `RefreshFeed`"
+    },
+    {
+      "step": 5,
+      "from": "internal/reader/handler/handler.go:329",
+      "to": "internal/reader/processor/processor.go:27",
+      "func": "ProcessFeedEntries",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/reader/handler/handler.go:329`",
+      "to_raw": "`internal/reader/processor/processor.go:27` `ProcessFeedEntries` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "direct-function-call": 4,
+    "goroutine-launch-with-closure": 1
+  },
+  "project": "miniflux",
+  "source_file": "projects/miniflux/traces/M-2.synthesis.md"
+}

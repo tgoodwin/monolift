@@ -1,0 +1,147 @@
+{
+  "id": "gitea/M-2",
+  "name": "Repository archive generator (`doArchive`)",
+  "region_root": "services/repository/archiver/archiver.go:146",
+  "path_length": 13,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 12 (`function-value-in-struct-field`) \u2014 resolving `w.origHandler` to the specific archiver `handler` closure requires per-instance flow sensitivity across a generic type: thread the closure literal from `archiver.Init` through three constructor frames (`CreateUniqueQueue` \u2192 `createWorkerPoolQueue` \u2192 `NewWorkerPoolQueueWithContext`) and bind it to the `*WorkerPoolQueue[*ArchiveRequest]` instance whose `Run` method was invoked in Step 8.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "evaluation/gitea/main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`evaluation/gitea/main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "evaluation/gitea/main.go:45",
+      "to": "evaluation/gitea/cmd/main.go:157",
+      "func": "RunMainApp",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/main.go:45`",
+      "to_raw": "`evaluation/gitea/cmd/main.go:157` `RunMainApp`"
+    },
+    {
+      "step": 2,
+      "from": "evaluation/gitea/cmd/main.go:160",
+      "to": "evaluation/gitea/cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`evaluation/gitea/cmd/main.go:160` `app.Run(ctx, args)`",
+      "to_raw": "`evaluation/gitea/cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 3,
+      "from": "evaluation/gitea/cmd/web.go:287",
+      "to": "evaluation/gitea/cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/cmd/web.go:287`",
+      "to_raw": "`evaluation/gitea/cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 4,
+      "from": "evaluation/gitea/cmd/web.go:205",
+      "to": "evaluation/gitea/routers/init.go:115",
+      "func": "InitWebInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/cmd/web.go:205`",
+      "to_raw": "`evaluation/gitea/routers/init.go:115` `InitWebInstalled`"
+    },
+    {
+      "step": 5,
+      "from": "evaluation/gitea/routers/init.go:132",
+      "to": "evaluation/gitea/services/repository/archiver/archiver.go:233",
+      "func": "Init",
+      "edge_type": "function-value-argument-call",
+      "from_raw": "`evaluation/gitea/routers/init.go:132` `mustInitCtx(ctx, archiver.Init)` \u2192 `init.go:70` `fn(ctx)`",
+      "to_raw": "`evaluation/gitea/services/repository/archiver/archiver.go:233` `Init`"
+    },
+    {
+      "step": 6,
+      "from": "evaluation/gitea/services/repository/archiver/archiver.go:246",
+      "to": "evaluation/gitea/modules/queue/workerqueue.go:242",
+      "func": "w.origHandler = handler",
+      "edge_type": "callback-registration",
+      "from_raw": "`evaluation/gitea/services/repository/archiver/archiver.go:246` `queue.CreateUniqueQueue(..., handler)`",
+      "to_raw": "`evaluation/gitea/modules/queue/workerqueue.go:242` `w.origHandler = handler`"
+    },
+    {
+      "step": 7,
+      "from": "evaluation/gitea/services/repository/archiver/archiver.go:250",
+      "to": "evaluation/gitea/modules/graceful/manager.go:73",
+      "func": "(*Manager).RunWithCancel",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`evaluation/gitea/services/repository/archiver/archiver.go:250` `go ...RunWithCancel(archiverQueue)`",
+      "to_raw": "`evaluation/gitea/modules/graceful/manager.go:73` `(*Manager).RunWithCancel`"
+    },
+    {
+      "step": 8,
+      "from": "evaluation/gitea/modules/graceful/manager.go:77",
+      "to": "evaluation/gitea/modules/queue/workerqueue.go:184",
+      "func": "(*WorkerPoolQueue[T]).Run",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`evaluation/gitea/modules/graceful/manager.go:77` `rc.Run()`",
+      "to_raw": "`evaluation/gitea/modules/queue/workerqueue.go:184` `(*WorkerPoolQueue[T]).Run`"
+    },
+    {
+      "step": 9,
+      "from": "evaluation/gitea/modules/queue/workergroup.go:156",
+      "to": "evaluation/gitea/modules/queue/workergroup.go:170",
+      "func": "worker",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`evaluation/gitea/modules/queue/workergroup.go:156` `wp.wg.Go(func() {...})`",
+      "to_raw": "`evaluation/gitea/modules/queue/workergroup.go:170` worker for-select body"
+    },
+    {
+      "step": 10,
+      "from": "evaluation/gitea/modules/queue/workergroup.go:58",
+      "to": "evaluation/gitea/modules/queue/workergroup.go:174",
+      "func": "<-q.batchChan",
+      "edge_type": "channel-send-receive",
+      "from_raw": "`evaluation/gitea/modules/queue/workergroup.go:58` / `:80` `q.batchChan <- batch`",
+      "to_raw": "`evaluation/gitea/modules/queue/workergroup.go:174` `<-q.batchChan` \u2192 `:179` `q.doWorkerHandle(batch)`"
+    },
+    {
+      "step": 11,
+      "from": "evaluation/gitea/modules/queue/workergroup.go:103",
+      "to": "evaluation/gitea/modules/queue/workerqueue.go:243",
+      "func": "safeHandler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`evaluation/gitea/modules/queue/workergroup.go:103` `q.safeHandler(batch...)`",
+      "to_raw": "`evaluation/gitea/modules/queue/workerqueue.go:243` `safeHandler` closure"
+    },
+    {
+      "step": 12,
+      "from": "evaluation/gitea/modules/queue/workerqueue.go:254",
+      "to": "evaluation/gitea/services/repository/archiver/archiver.go:234",
+      "func": "handler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`evaluation/gitea/modules/queue/workerqueue.go:254` `w.origHandler(t...)`",
+      "to_raw": "`evaluation/gitea/services/repository/archiver/archiver.go:234` `handler` closure body"
+    },
+    {
+      "step": 13,
+      "from": "evaluation/gitea/services/repository/archiver/archiver.go:237",
+      "to": "evaluation/gitea/services/repository/archiver/archiver.go:146",
+      "func": "doArchive",
+      "edge_type": "direct-function-call",
+      "from_raw": "`evaluation/gitea/services/repository/archiver/archiver.go:237` `doArchive(ctx, archiveReq)`",
+      "to_raw": "`evaluation/gitea/services/repository/archiver/archiver.go:146` `doArchive` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 4,
+    "function-value-in-struct-field": 3,
+    "goroutine-launch": 2,
+    "function-value-argument-call": 1,
+    "callback-registration": 1,
+    "interface-method-dispatch": 1,
+    "channel-send-receive": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-2.synthesis.md"
+}

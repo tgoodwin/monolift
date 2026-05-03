@@ -1,0 +1,127 @@
+{
+  "id": "mattermost/M-13",
+  "name": "Batched email render+send (`sendBatchedEmailNotification`)",
+  "region_root": "server/channels/app/email/email_batching.go:252",
+  "path_length": 11,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 9 (`goroutine-launch + indirect-call-through-captured-parameter`) \u2014 composes a goroutine boundary with an indirect call through a captured `func()` parameter whose value flowed across two delegating frames (`CreateRecurringTask` \u2192 `createTask`).",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:73",
+      "to": "server/channels/app/server.go:191",
+      "func": "NewServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:73`",
+      "to_raw": "`server/channels/app/server.go:191` `NewServer`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/app/server.go:391",
+      "to": "server/channels/app/email/service.go:71",
+      "func": "NewService",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/app/server.go:391`",
+      "to_raw": "`server/channels/app/email/service.go:71` `NewService`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/app/email/service.go:85",
+      "to": "server/channels/app/email/email_batching.go:40",
+      "func": "(*Service).InitEmailBatching",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/email/service.go:85`",
+      "to_raw": "`server/channels/app/email/email_batching.go:40` `(*Service).InitEmailBatching`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/app/email/email_batching.go:48",
+      "to": "server/channels/app/email/email_batching.go:90",
+      "func": "(*EmailBatchingJob).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/email/email_batching.go:48`",
+      "to_raw": "`server/channels/app/email/email_batching.go:90` `(*EmailBatchingJob).Start`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/app/email/email_batching.go:92",
+      "to": "server/public/model/scheduled_task.go:27",
+      "func": "CreateRecurringTask",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/app/email/email_batching.go:92`",
+      "to_raw": "`server/public/model/scheduled_task.go:27` `CreateRecurringTask`"
+    },
+    {
+      "step": 9,
+      "from": "server/public/model/scheduled_task.go:74",
+      "to": "server/channels/app/email/email_batching.go:131",
+      "func": "(*EmailBatchingJob).CheckPendingEmails",
+      "edge_type": "goroutine-launch + indirect-call-through-captured-parameter",
+      "from_raw": "`server/public/model/scheduled_task.go:74`",
+      "to_raw": "`server/channels/app/email/email_batching.go:131` `(*EmailBatchingJob).CheckPendingEmails`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/app/email/email_batching.go:136",
+      "to": "server/channels/app/email/email_batching.go:161",
+      "func": "(*EmailBatchingJob).checkPendingNotifications",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/email/email_batching.go:136`",
+      "to_raw": "`server/channels/app/email/email_batching.go:161` `(*EmailBatchingJob).checkPendingNotifications`"
+    },
+    {
+      "step": 11,
+      "from": "server/channels/app/email/email_batching.go:235",
+      "to": "server/channels/app/email/email_batching.go:252",
+      "func": "(*Service).sendBatchedEmailNotification",
+      "edge_type": "indirect-call-through-parameter",
+      "from_raw": "`server/channels/app/email/email_batching.go:235`",
+      "to_raw": "`server/channels/app/email/email_batching.go:252` `(*Service).sendBatchedEmailNotification` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "method-call-on-concrete-type": 3,
+    "function-value-in-struct-field": 1,
+    "goroutine-launch + indirect-call-through-captured-parameter": 1,
+    "indirect-call-through-parameter": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-13.synthesis.md"
+}

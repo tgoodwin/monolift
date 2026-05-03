@@ -1,0 +1,148 @@
+{
+  "id": "gitea/M-1",
+  "name": "Webhook delivery worker (`Deliver`)",
+  "region_root": "services/webhook/deliver.go:153",
+  "path_length": 13,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`function-value-as-argument-stored-in-struct-field`) \u2014 `handler` traverses three generic helper hops with `T = int64` instantiation before being stored in `w.origHandler`, and is invoked later through Steps 11\u201312 across goroutine + struct-field + closure-capture boundaries; connecting registration to invocation requires field- and context-sensitive points-to that distinguishes individual `WorkerPoolQueue[int64]` instances.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/main.go:157",
+      "func": "RunMainApp",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:45`",
+      "to_raw": "`cmd/main.go:157` `RunMainApp`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:160",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:160` (`app.Run`)",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 4,
+      "from": "cmd/web.go:205",
+      "to": "routers/init.go:115",
+      "func": "InitWebInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:205`",
+      "to_raw": "`routers/init.go:115` `InitWebInstalled`"
+    },
+    {
+      "step": 5,
+      "from": "routers/init.go:159",
+      "to": "services/webhook/deliver.go:312",
+      "func": "webhook.Init",
+      "edge_type": "function-value-as-argument",
+      "from_raw": "`routers/init.go:159` (`mustInit(webhook.Init)` \u2192 `fn()` at `:61`)",
+      "to_raw": "`services/webhook/deliver.go:312` `webhook.Init`"
+    },
+    {
+      "step": 6,
+      "from": "services/webhook/deliver.go:330",
+      "to": "modules/queue/workerqueue.go:242",
+      "func": null,
+      "edge_type": "function-value-as-argument-stored-in-struct-field",
+      "from_raw": "`services/webhook/deliver.go:330` (`CreateUniqueQueue(..., handler)`)",
+      "to_raw": "`modules/queue/workerqueue.go:242` (`w.origHandler = handler`)"
+    },
+    {
+      "step": 7,
+      "from": "services/webhook/deliver.go:334",
+      "to": "modules/graceful/manager.go:73",
+      "func": "RunWithCancel",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`services/webhook/deliver.go:334` (`go RunWithCancel(hookQueue)`)",
+      "to_raw": "`modules/graceful/manager.go:73` `RunWithCancel`"
+    },
+    {
+      "step": 8,
+      "from": "modules/graceful/manager.go:77",
+      "to": "modules/queue/workerqueue.go:184",
+      "func": "(*WorkerPoolQueue[int64]).Run",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/graceful/manager.go:77` (`rc.Run()`)",
+      "to_raw": "`modules/queue/workerqueue.go:184` `(*WorkerPoolQueue[int64]).Run`"
+    },
+    {
+      "step": 9,
+      "from": "modules/queue/workerqueue.go:185",
+      "to": "modules/queue/workergroup.go:287",
+      "func": "doRun",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/queue/workerqueue.go:185` (`q.doRun()`)",
+      "to_raw": "`modules/queue/workergroup.go:287` `doRun`"
+    },
+    {
+      "step": 10,
+      "from": "modules/queue/workergroup.go:156",
+      "to": "modules/queue/workergroup.go:179",
+      "func": null,
+      "edge_type": "goroutine-launch",
+      "from_raw": "`modules/queue/workergroup.go:156` (`wp.wg.Go(func(){...})`)",
+      "to_raw": "`modules/queue/workergroup.go:179` (worker closure \u2192 `q.doWorkerHandle(batch)`)"
+    },
+    {
+      "step": 11,
+      "from": "modules/queue/workergroup.go:103",
+      "to": "modules/queue/workerqueue.go:243",
+      "func": "safeHandler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`modules/queue/workergroup.go:103` (`q.safeHandler(batch...)`)",
+      "to_raw": "`modules/queue/workerqueue.go:243` `safeHandler` closure"
+    },
+    {
+      "step": 12,
+      "from": "modules/queue/workerqueue.go:254",
+      "to": "services/webhook/webhook.go:78",
+      "func": "handler",
+      "edge_type": "closure-capture-of-struct-field",
+      "from_raw": "`modules/queue/workerqueue.go:254` (`w.origHandler(t...)`)",
+      "to_raw": "`services/webhook/webhook.go:78` `handler`"
+    },
+    {
+      "step": 13,
+      "from": "services/webhook/webhook.go:98",
+      "to": "services/webhook/deliver.go:153",
+      "func": "Deliver",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/webhook/webhook.go:98` (`Deliver(ctx, task)`)",
+      "to_raw": "`services/webhook/deliver.go:153` `Deliver` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 4,
+    "function-value-in-struct-field": 2,
+    "function-value-as-argument": 1,
+    "function-value-as-argument-stored-in-struct-field": 1,
+    "goroutine-launch": 2,
+    "interface-method-dispatch": 1,
+    "method-call-on-concrete-type": 1,
+    "closure-capture-of-struct-field": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-1.synthesis.md"
+}

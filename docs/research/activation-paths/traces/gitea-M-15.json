@@ -1,0 +1,138 @@
+{
+  "id": "gitea/M-15",
+  "name": "Mirror LFS sync (`StoreMissingLfsObjectsInRepository`)",
+  "region_root": "modules/repository/repo.go:61",
+  "path_length": 12,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 7 (`channel-send-receive`) \u2014 connecting the producer's `mirrorQueue.Push` to the worker-side `safeHandler` requires whole-program channel-flow analysis combined with generic-type instantiation tracking (`T = *SyncRequest`); the marshal/unmarshal round-trip and the `popItemByChan`/`batchChan` bridge would defeat a context-insensitive analyzer.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main()",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main()`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`main.go:45` `cmd.RunMainApp` (cli reads `Action: runWeb` field set at `cmd/web.go:44`)",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 3,
+      "from": "routers/api/v1/api.go:1324",
+      "to": "routers/api/v1/repo/mirror.go:27",
+      "func": "MirrorSync",
+      "edge_type": "function-value-in-routing-table",
+      "from_raw": "`cmd/web.go:228-229` (chi mux; route registered at `routers/api/v1/api.go:1324`)",
+      "to_raw": "`routers/api/v1/repo/mirror.go:27` `MirrorSync`"
+    },
+    {
+      "step": 4,
+      "from": "routers/api/v1/repo/mirror.go:72",
+      "to": "services/mirror/queue.go:60",
+      "func": "addMirrorToQueue",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/api/v1/repo/mirror.go:72`",
+      "to_raw": "`services/mirror/queue.go:60` `addMirrorToQueue` (via 1-line forwarder `AddPullMirrorToQueue` at `:51`)"
+    },
+    {
+      "step": 5,
+      "from": "services/mirror/queue.go:64",
+      "to": "services/mirror/queue.go:72",
+      "func": "PushToQueue",
+      "edge_type": "goroutine-launch` + `closure-capture",
+      "from_raw": "`services/mirror/queue.go:64` (`go func() { ... }()`)",
+      "to_raw": "`services/mirror/queue.go:72` `PushToQueue`"
+    },
+    {
+      "step": 6,
+      "from": "services/mirror/queue.go:73",
+      "to": "modules/queue/workerqueue.go:167",
+      "func": "(*WorkerPoolQueue[*SyncRequest]).Push",
+      "edge_type": "method-call-on-concrete-type` + `generic-instantiation",
+      "from_raw": "`services/mirror/queue.go:73` `mirrorQueue.Push(&SyncRequest{...})`",
+      "to_raw": "`modules/queue/workerqueue.go:167` `(*WorkerPoolQueue[*SyncRequest]).Push`"
+    },
+    {
+      "step": 7,
+      "from": "modules/queue/workerqueue.go:175",
+      "to": "modules/queue/workerqueue.go:253",
+      "func": "safeHandler",
+      "edge_type": "channel-send-receive",
+      "from_raw": "`modules/queue/workerqueue.go:175` `baseQueue.PushItem` \u2192 `modules/queue/workergroup.go:103` `doWorkerHandle`",
+      "to_raw": "`modules/queue/workerqueue.go:253` `safeHandler`"
+    },
+    {
+      "step": 8,
+      "from": "modules/queue/workerqueue.go:254",
+      "to": "services/mirror/queue.go:31",
+      "func": "queueHandler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`modules/queue/workerqueue.go:254` `w.origHandler(t...)` (field set at `:242` from constructor arg)",
+      "to_raw": "`services/mirror/queue.go:31` `queueHandler`"
+    },
+    {
+      "step": 9,
+      "from": "services/mirror/queue.go:33",
+      "to": "services/mirror/mirror.go:17",
+      "func": "doMirrorSync",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/mirror/queue.go:33`",
+      "to_raw": "`services/mirror/mirror.go:17` `doMirrorSync`"
+    },
+    {
+      "step": 10,
+      "from": "services/mirror/mirror.go:26",
+      "to": "services/mirror/mirror_pull.go:269",
+      "func": "SyncPullMirror",
+      "edge_type": "enum-tag-dispatch",
+      "from_raw": "`services/mirror/mirror.go:26` (`case PullMirrorType`)",
+      "to_raw": "`services/mirror/mirror_pull.go:269` `SyncPullMirror`"
+    },
+    {
+      "step": 11,
+      "from": "services/mirror/mirror_pull.go:298",
+      "to": "services/mirror/mirror_pull.go:109",
+      "func": "runSync",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/mirror/mirror_pull.go:298`",
+      "to_raw": "`services/mirror/mirror_pull.go:109` `runSync`"
+    },
+    {
+      "step": 12,
+      "from": "services/mirror/mirror_pull.go:177",
+      "to": "modules/repository/repo.go:61",
+      "func": "StoreMissingLfsObjectsInRepository",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/mirror/mirror_pull.go:177`",
+      "to_raw": "`modules/repository/repo.go:61` `StoreMissingLfsObjectsInRepository` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "function-value-in-struct-field": 2,
+    "function-value-in-routing-table": 1,
+    "goroutine-launch` + `closure-capture": 1,
+    "method-call-on-concrete-type` + `generic-instantiation": 1,
+    "channel-send-receive": 1,
+    "enum-tag-dispatch": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-15.synthesis.md"
+}

@@ -1,0 +1,137 @@
+{
+  "id": "mattermost/M-12",
+  "name": "Per-recipient email render+send (`sendNotificationEmail`)",
+  "region_root": "server/channels/app/notification_email.go:144",
+  "path_length": 12,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 11 (`goroutine-launch-with-closure-capture`) \u2014 the function value crosses two helper frames (`Server.Go` \u2192 `PlatformService.Go`) before the `go f()`, and the analyzer must preserve closure captures so the receiver and arguments survive into the region-root call.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "init-time-function-field-dispatch",
+      "from_raw": "`server/cmd/mattermost/main.go:20` (`commands.Run` \u2192 `RootCmd.Execute`)",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:95",
+      "to": "server/channels/api4/api.go:185",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:95`",
+      "to_raw": "`server/channels/api4/api.go:185` `Init`"
+    },
+    {
+      "step": 4,
+      "from": "server/channels/api4/api.go:343",
+      "to": "server/channels/api4/post.go:23",
+      "func": "(*API).InitPost",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/api.go:343`",
+      "to_raw": "`server/channels/api4/post.go:23` `(*API).InitPost`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/api4/post.go:24",
+      "to": "server/channels/web/handlers.go:145",
+      "func": "(Handler).ServeHTTP",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`server/channels/api4/post.go:24` (`Router.Handle(\"\", api.APISessionRequired(createPost))`)",
+      "to_raw": "`server/channels/web/handlers.go:145` `(Handler).ServeHTTP`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/web/handlers.go:355",
+      "to": "server/channels/api4/post.go:96",
+      "func": "createPost",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/web/handlers.go:355` (`h.HandleFunc(c, w, r)`)",
+      "to_raw": "`server/channels/api4/post.go:96` `createPost`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/api4/post.go:130",
+      "to": "server/channels/app/post.go:40",
+      "func": "(*App).CreatePostAsUser",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/post.go:130`",
+      "to_raw": "`server/channels/app/post.go:40` `(*App).CreatePostAsUser`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/app/post.go:67",
+      "to": "server/channels/app/post.go:162",
+      "func": "(*App).CreatePost",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post.go:67`",
+      "to_raw": "`server/channels/app/post.go:162` `(*App).CreatePost`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/app/post.go:474",
+      "to": "server/channels/app/post.go:643",
+      "func": "(*App).handlePostEvents",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post.go:474`",
+      "to_raw": "`server/channels/app/post.go:643` `(*App).handlePostEvents`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/app/post.go:669",
+      "to": "server/channels/app/notification.go:54",
+      "func": "(*App).SendNotifications",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/post.go:669`",
+      "to_raw": "`server/channels/app/notification.go:54` `(*App).SendNotifications`"
+    },
+    {
+      "step": 11,
+      "from": "server/channels/app/notification.go:437",
+      "to": "server/channels/app/notification.go:438",
+      "func": null,
+      "edge_type": "goroutine-launch-with-closure-capture",
+      "from_raw": "`server/channels/app/notification.go:437` (`a.Srv().Go(func(){ ... })`)",
+      "to_raw": "`server/channels/app/notification.go:438` (closure body)"
+    },
+    {
+      "step": 12,
+      "from": "server/channels/app/notification.go:438",
+      "to": "server/channels/app/notification_email.go:144",
+      "func": "(*App).sendNotificationEmail",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/notification.go:438`",
+      "to_raw": "`server/channels/app/notification_email.go:144` `(*App).sendNotificationEmail` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "method-call-on-concrete-type": 6,
+    "direct-function-call": 2,
+    "init-time-function-field-dispatch": 1,
+    "http-handler-registration": 1,
+    "function-value-in-struct-field": 1,
+    "goroutine-launch-with-closure-capture": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-12.synthesis.md"
+}

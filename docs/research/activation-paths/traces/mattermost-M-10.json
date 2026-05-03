@@ -1,0 +1,109 @@
+{
+  "id": "mattermost/M-10",
+  "name": "Remote-cluster file transfer (`sendFileToRemote`)",
+  "region_root": "server/platform/services/remotecluster/sendfile.go:84",
+  "path_length": 9,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 8 (`channel-receive-type-switch`) \u2014 the work queue is `chan any`, so the receive site is type-erased; recovering the dispatchable type requires inter-procedural value-flow across every sender into `rcs.send[*]`.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:104",
+      "to": "server/channels/app/server.go:858",
+      "func": "(*Server).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:104`",
+      "to_raw": "`server/channels/app/server.go:858` `(*Server).Start`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/app/server.go:1116",
+      "to": "server/channels/app/server.go:598",
+      "func": "(*Server).startInterClusterServices",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/server.go:1116`",
+      "to_raw": "`server/channels/app/server.go:598` `(*Server).startInterClusterServices`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/app/server.go:625",
+      "to": "server/platform/services/remotecluster/service.go:141",
+      "func": "(*Service).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/server.go:625`",
+      "to_raw": "`server/platform/services/remotecluster/service.go:141` `(*Service).Start`"
+    },
+    {
+      "step": 7,
+      "from": "server/platform/services/remotecluster/service.go:147",
+      "to": "server/platform/services/remotecluster/send.go:42",
+      "func": "(*Service).sendLoop",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`server/platform/services/remotecluster/service.go:147`",
+      "to_raw": "`server/platform/services/remotecluster/send.go:42` `(*Service).sendLoop`"
+    },
+    {
+      "step": 8,
+      "from": "server/platform/services/remotecluster/send.go:50",
+      "to": "server/platform/services/remotecluster/sendfile.go:57",
+      "func": "(*Service).sendFile",
+      "edge_type": "channel-receive-type-switch",
+      "from_raw": "`server/platform/services/remotecluster/send.go:50`",
+      "to_raw": "`server/platform/services/remotecluster/sendfile.go:57` `(*Service).sendFile`"
+    },
+    {
+      "step": 9,
+      "from": "server/platform/services/remotecluster/sendfile.go:58",
+      "to": "server/platform/services/remotecluster/sendfile.go:84",
+      "func": "(*Service).sendFileToRemote",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/platform/services/remotecluster/sendfile.go:58`",
+      "to_raw": "`server/platform/services/remotecluster/sendfile.go:84` `(*Service).sendFileToRemote` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 2,
+    "function-value-in-struct-field": 1,
+    "method-call-on-concrete-type": 4,
+    "goroutine-launch": 1,
+    "channel-receive-type-switch": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-10.synthesis.md"
+}

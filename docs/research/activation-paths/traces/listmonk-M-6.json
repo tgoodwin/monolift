@@ -1,0 +1,62 @@
+{
+  "id": "listmonk/M-6",
+  "name": "SES/SNS bounce processing (`SES.ProcessBounce`)",
+  "region_root": "internal/bounce/webhooks/ses.go:108",
+  "path_length": 4,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`method-value-handler-registration`) \u2014 requires both Go method-value desugaring to recover the receiver and a framework-API summary for \"handler stored in router and later invoked on matching request.\"",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:309",
+      "to": "cmd/init.go:888",
+      "func": "initHTTPServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/main.go:309`",
+      "to_raw": "`cmd/init.go:888` `initHTTPServer`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/init.go:940",
+      "to": "cmd/handlers.go:33",
+      "func": "initHTTPHandlers",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/init.go:940`",
+      "to_raw": "`cmd/handlers.go:33` `initHTTPHandlers`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/handlers.go:235",
+      "to": "cmd/bounce.go:117",
+      "func": "(*App).BounceWebhook",
+      "edge_type": "method-value-handler-registration",
+      "from_raw": "`cmd/handlers.go:235`",
+      "to_raw": "`cmd/bounce.go:117` `(*App).BounceWebhook`"
+    },
+    {
+      "step": 4,
+      "from": "cmd/bounce.go:167",
+      "to": "internal/bounce/webhooks/ses.go:108",
+      "func": "(*SES).ProcessBounce",
+      "edge_type": "method-call-on-concrete-field-type",
+      "from_raw": "`cmd/bounce.go:167`",
+      "to_raw": "`internal/bounce/webhooks/ses.go:108` `(*SES).ProcessBounce` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 2,
+    "method-value-handler-registration": 1,
+    "method-call-on-concrete-field-type": 1
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-6.synthesis.md"
+}

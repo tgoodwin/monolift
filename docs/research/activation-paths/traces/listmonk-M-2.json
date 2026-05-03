@@ -1,0 +1,62 @@
+{
+  "id": "listmonk/M-2",
+  "name": "HTTP webhook delivery (`Postback.Push`)",
+  "region_root": "internal/messenger/postback/postback.go:97",
+  "path_length": 4,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 4 (`map-lookup-interface-method-dispatch`) \u2014 combines a data-dependent string-keyed receiver selection with interface dispatch over a candidate set established by a separate binding chain that spans `cmd/init.go` and `internal/manager/manager.go`.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "func main()",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `func main()`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:262",
+      "to": "internal/manager/manager.go:265",
+      "func": "(*Manager).Run",
+      "edge_type": "goroutine-launch-of-concrete-method",
+      "from_raw": "`cmd/main.go:262` `go mgr.Run()`",
+      "to_raw": "`internal/manager/manager.go:265` `(*Manager).Run`"
+    },
+    {
+      "step": 2,
+      "from": "internal/manager/manager.go:274",
+      "to": "internal/manager/manager.go:462",
+      "func": "(*Manager).worker",
+      "edge_type": "goroutine-launch-of-concrete-method",
+      "from_raw": "`internal/manager/manager.go:274` `go m.worker()`",
+      "to_raw": "`internal/manager/manager.go:462` `(*Manager).worker`"
+    },
+    {
+      "step": 3,
+      "from": "internal/manager/pipe.go:104",
+      "to": "internal/manager/manager.go:468",
+      "func": "receive",
+      "edge_type": "channel-typed-flow",
+      "from_raw": "`internal/manager/pipe.go:104` `p.m.campMsgQ <- msg`",
+      "to_raw": "`internal/manager/manager.go:468` receive on `m.campMsgQ`"
+    },
+    {
+      "step": 4,
+      "from": "internal/manager/manager.go:523",
+      "to": "internal/messenger/postback/postback.go:97",
+      "func": "(*Postback).Push",
+      "edge_type": "map-lookup-interface-method-dispatch",
+      "from_raw": "`internal/manager/manager.go:523` `m.messengers[msg.Campaign.Messenger].Push(out)`",
+      "to_raw": "`internal/messenger/postback/postback.go:97` `(*Postback).Push` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "goroutine-launch-of-concrete-method": 2,
+    "channel-typed-flow": 1,
+    "map-lookup-interface-method-dispatch": 1
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-2.synthesis.md"
+}

@@ -28,3 +28,4 @@ docs/site/site/
 *.test
 scripts/__pycache__/
 test/memcheck/_kill_smoketest/smoke.bin
+/.moab

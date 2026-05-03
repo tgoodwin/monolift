@@ -1,0 +1,119 @@
+{
+  "id": "gitea/M-12",
+  "name": "Language statistics (`GetLanguageStats`)",
+  "region_root": "modules/git/languagestats/language_stats_nogogit.go:22",
+  "path_length": 10,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 7 (`asynchronous-queue-handoff`) \u2014 crosses goroutines through a backend-pluggable typed work queue, so the analyzer must connect a `Push` site to the consumer worker spawned for the same `*WorkerPoolQueue[int64]` instance without modeling concurrent execution order.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:160",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:160`",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:205",
+      "to": "routers/init.go:115",
+      "func": "InitWebInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:205`",
+      "to_raw": "`routers/init.go:115` `InitWebInstalled`"
+    },
+    {
+      "step": 4,
+      "from": "routers/init.go:156",
+      "to": "services/indexer/indexer.go:14",
+      "func": "Init",
+      "edge_type": "function-passed-as-parameter-then-invoked",
+      "from_raw": "`routers/init.go:156`",
+      "to_raw": "`services/indexer/indexer.go:14` `Init`"
+    },
+    {
+      "step": 5,
+      "from": "services/indexer/indexer.go:19",
+      "to": "modules/indexer/stats/indexer.go:26",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/indexer/indexer.go:19`",
+      "to_raw": "`modules/indexer/stats/indexer.go:26` `Init`"
+    },
+    {
+      "step": 6,
+      "from": "modules/indexer/stats/indexer.go:33",
+      "to": "modules/indexer/stats/indexer.go:40",
+      "func": "populateRepoIndexer",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`modules/indexer/stats/indexer.go:33`",
+      "to_raw": "`modules/indexer/stats/indexer.go:40` `populateRepoIndexer`"
+    },
+    {
+      "step": 7,
+      "from": "modules/indexer/stats/indexer.go:81",
+      "to": "modules/queue/workergroup.go:103",
+      "func": "(*WorkerPoolQueue[int64]).doWorkerHandle",
+      "edge_type": "asynchronous-queue-handoff",
+      "from_raw": "`modules/indexer/stats/indexer.go:81`",
+      "to_raw": "`modules/queue/workergroup.go:103` `(*WorkerPoolQueue[int64]).doWorkerHandle`"
+    },
+    {
+      "step": 8,
+      "from": "modules/queue/workergroup.go:103",
+      "to": "modules/indexer/stats/queue.go:20",
+      "func": "handler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`modules/queue/workergroup.go:103`",
+      "to_raw": "`modules/indexer/stats/queue.go:20` `handler`"
+    },
+    {
+      "step": 9,
+      "from": "modules/indexer/stats/queue.go:22",
+      "to": "modules/indexer/stats/db.go:23",
+      "func": "(*DBIndexer).Index",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/indexer/stats/queue.go:22`",
+      "to_raw": "`modules/indexer/stats/db.go:23` `(*DBIndexer).Index`"
+    },
+    {
+      "step": 10,
+      "from": "modules/indexer/stats/db.go:66",
+      "to": "modules/git/languagestats/language_stats_nogogit.go:22",
+      "func": "GetLanguageStats",
+      "edge_type": "direct-function-call",
+      "from_raw": "`modules/indexer/stats/db.go:66`",
+      "to_raw": "`modules/git/languagestats/language_stats_nogogit.go:22` `GetLanguageStats` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 4,
+    "function-value-in-struct-field": 2,
+    "function-passed-as-parameter-then-invoked": 1,
+    "goroutine-launch": 1,
+    "asynchronous-queue-handoff": 1,
+    "interface-method-dispatch": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-12.synthesis.md"
+}

@@ -1,0 +1,128 @@
+{
+  "id": "caddy/M-3",
+  "name": "Bcrypt/Argon2 password verify (`correctPassword`)",
+  "region_root": "modules/caddyhttp/caddyauth/basicauth.go:165",
+  "path_length": 11,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 8 (`closure-capture-of-interface-value`) \u2014 compounds three difficulties at once: a closure captures an interface-typed value, the captured value originates from a slice field (`route.middleware`) populated through module-registry resolution, and the receiving closure is itself one of N composed at provisioning time, so context-sensitive analysis is needed to pin which `mh` is reached.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/caddy/main.go:40",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/caddy/main.go:40` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/caddy/main.go:41",
+      "to": "cmd/main.go:66",
+      "func": "caddycmd.Main",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/caddy/main.go:41`",
+      "to_raw": "`cmd/main.go:66` `caddycmd.Main`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:72",
+      "to": "cmd/commandfuncs.go:172",
+      "func": "cmdRun",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:72` (`...Execute()`)",
+      "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/commandfuncs.go:267",
+      "to": "modules/caddyhttp/app.go:475",
+      "func": "(*App).Start",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`cmd/commandfuncs.go:267` (`caddy.Load`)",
+      "to_raw": "`modules/caddyhttp/app.go:475` `(*App).Start`"
+    },
+    {
+      "step": 4,
+      "from": "modules/caddyhttp/app.go:489",
+      "to": "modules/caddyhttp/server.go:310",
+      "func": "(*Server).ServeHTTP",
+      "edge_type": "library-callback-through-interface-field",
+      "from_raw": "`modules/caddyhttp/app.go:489` (`Handler: srv`) + `:629` (`go srv.server.Serve`)",
+      "to_raw": "`modules/caddyhttp/server.go:310` `(*Server).ServeHTTP`"
+    },
+    {
+      "step": 5,
+      "from": "modules/caddyhttp/server.go:389",
+      "to": "modules/caddyhttp/server.go:471",
+      "func": "(*Server).serveHTTP",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddyhttp/server.go:389`",
+      "to_raw": "`modules/caddyhttp/server.go:471` `(*Server).serveHTTP`"
+    },
+    {
+      "step": 6,
+      "from": "modules/caddyhttp/server.go:497",
+      "to": "modules/caddyhttp/server.go:510",
+      "func": "(*Server).enforcementHandler",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`modules/caddyhttp/server.go:497` (`s.primaryHandlerChain.ServeHTTP`)",
+      "to_raw": "`modules/caddyhttp/server.go:510` `(*Server).enforcementHandler`"
+    },
+    {
+      "step": 7,
+      "from": "modules/caddyhttp/server.go:528",
+      "to": "modules/caddyhttp/routes.go:257",
+      "func": "wrapRoute",
+      "edge_type": "closure-capture-of-interface-value",
+      "from_raw": "`modules/caddyhttp/server.go:528` (`next.ServeHTTP`)",
+      "to_raw": "`modules/caddyhttp/routes.go:257` `wrapRoute` closure"
+    },
+    {
+      "step": 8,
+      "from": "modules/caddyhttp/routes.go:322",
+      "to": "modules/caddyhttp/routes.go:332",
+      "func": "wrapMiddleware",
+      "edge_type": "closure-capture-of-interface-value",
+      "from_raw": "`modules/caddyhttp/routes.go:322` (`nextCopy.ServeHTTP`)",
+      "to_raw": "`modules/caddyhttp/routes.go:332` `wrapMiddleware` closure"
+    },
+    {
+      "step": 9,
+      "from": "modules/caddyhttp/routes.go:337",
+      "to": "modules/caddyhttp/caddyauth/caddyauth.go:78",
+      "func": "(Authentication).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/routes.go:337` (`mh.ServeHTTP`)",
+      "to_raw": "`modules/caddyhttp/caddyauth/caddyauth.go:78` `(Authentication).ServeHTTP`"
+    },
+    {
+      "step": 10,
+      "from": "modules/caddyhttp/caddyauth/caddyauth.go:84",
+      "to": "modules/caddyhttp/caddyauth/basicauth.go:143",
+      "func": "(HTTPBasicAuth).Authenticate",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/caddyauth/caddyauth.go:84` (`prov.Authenticate`)",
+      "to_raw": "`modules/caddyhttp/caddyauth/basicauth.go:143` `(HTTPBasicAuth).Authenticate`"
+    },
+    {
+      "step": 11,
+      "from": "modules/caddyhttp/caddyauth/basicauth.go:157",
+      "to": "modules/caddyhttp/caddyauth/basicauth.go:165",
+      "func": "(HTTPBasicAuth).correctPassword",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddyhttp/caddyauth/basicauth.go:157`",
+      "to_raw": "`modules/caddyhttp/caddyauth/basicauth.go:165` `(HTTPBasicAuth).correctPassword` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 1,
+    "function-value-in-struct-field": 2,
+    "interface-method-dispatch": 3,
+    "library-callback-through-interface-field": 1,
+    "method-call-on-concrete-type": 2,
+    "closure-capture-of-interface-value": 2
+  },
+  "project": "caddy",
+  "source_file": "projects/caddy/traces/M-3.synthesis.md"
+}

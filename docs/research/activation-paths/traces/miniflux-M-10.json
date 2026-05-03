@@ -1,0 +1,89 @@
+{
+  "id": "miniflux/M-10",
+  "name": "Feed subscription finder (`FindSubscriptions`)",
+  "region_root": "internal/reader/subscription/finder.go:44",
+  "path_length": 7,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`http-handler-registration`) \u2014 the analyzer must model `net/http.ServeMux` as a callback registry that stores a bound method value at registration time and invokes it at request time, bridging a syntactic gap that ordinary call-graph construction does not cross.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:11",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:11` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:11",
+      "to": "internal/cli/cli.go:40",
+      "func": "cli.Parse",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:11`",
+      "to_raw": "`internal/cli/cli.go:40` `cli.Parse`"
+    },
+    {
+      "step": 2,
+      "from": "internal/cli/cli.go:248",
+      "to": "internal/cli/daemon.go:23",
+      "func": "startDaemon",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/cli.go:248`",
+      "to_raw": "`internal/cli/daemon.go:23` `startDaemon`"
+    },
+    {
+      "step": 3,
+      "from": "internal/cli/daemon.go:38",
+      "to": "internal/http/server/server.go:24",
+      "func": "StartWebServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/daemon.go:38`",
+      "to_raw": "`internal/http/server/server.go:24` `StartWebServer`"
+    },
+    {
+      "step": 4,
+      "from": "internal/http/server/server.go:49",
+      "to": "internal/http/server/routes.go:18",
+      "func": "newRouter",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/http/server/server.go:49`",
+      "to_raw": "`internal/http/server/routes.go:18` `newRouter`"
+    },
+    {
+      "step": 5,
+      "from": "internal/http/server/routes.go:46",
+      "to": "internal/ui/ui.go:17",
+      "func": "ui.Serve",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/http/server/routes.go:46`",
+      "to_raw": "`internal/ui/ui.go:17` `ui.Serve`"
+    },
+    {
+      "step": 6,
+      "from": "internal/ui/ui.go:39",
+      "to": "internal/ui/subscription_submit.go:22",
+      "func": "(*handler).submitSubscription",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`internal/ui/ui.go:39`",
+      "to_raw": "`internal/ui/subscription_submit.go:22` `(*handler).submitSubscription`"
+    },
+    {
+      "step": 7,
+      "from": "internal/ui/subscription_submit.go:72",
+      "to": "internal/reader/subscription/finder.go:44",
+      "func": "(*subscriptionFinder).FindSubscriptions",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`internal/ui/subscription_submit.go:72`",
+      "to_raw": "`internal/reader/subscription/finder.go:44` `(*subscriptionFinder).FindSubscriptions` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "http-handler-registration": 1,
+    "method-call-on-concrete-type": 1
+  },
+  "project": "miniflux",
+  "source_file": "projects/miniflux/traces/M-10.synthesis.md"
+}

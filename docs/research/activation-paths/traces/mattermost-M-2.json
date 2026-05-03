@@ -1,0 +1,108 @@
+{
+  "id": "mattermost/M-2",
+  "name": "Image upload post-processing (`postprocessImage`)",
+  "region_root": "server/channels/app/file.go:931",
+  "path_length": 9,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 2 (`function-value-in-struct-field`) \u2014 the analyzer must value-track a write to `cobra.Command.RunE` performed in a separate package's `init` and model `Execute`'s read-back of that field; treating Cobra as opaque erases the edge entirely.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:95",
+      "to": "server/channels/api4/api.go:185",
+      "func": "Init",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:95`",
+      "to_raw": "`server/channels/api4/api.go:185` `Init`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/api4/api.go:344",
+      "to": "server/channels/api4/file.go:33",
+      "func": "(*API).InitFile",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/api.go:344`",
+      "to_raw": "`server/channels/api4/file.go:33` `(*API).InitFile`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/api4/file.go:34",
+      "to": "server/channels/api4/file.go:77",
+      "func": "uploadFileStream",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`server/channels/api4/file.go:34` (registers via `APISessionRequired`)",
+      "to_raw": "`server/channels/api4/file.go:77` `uploadFileStream`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/api4/file.go:114",
+      "to": "server/channels/api4/file.go:133",
+      "func": "uploadFileSimple",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/api4/file.go:114`",
+      "to_raw": "`server/channels/api4/file.go:133` `uploadFileSimple`"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/api4/file.go:183",
+      "to": "server/channels/app/file.go:774",
+      "func": "(*App).UploadFileX",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/api4/file.go:183`",
+      "to_raw": "`server/channels/app/file.go:774` `(*App).UploadFileX`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/app/file.go:846",
+      "to": "server/channels/app/file.go:931",
+      "func": "(*UploadFileTask).postprocessImage",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/file.go:846`",
+      "to_raw": "`server/channels/app/file.go:931` `(*UploadFileTask).postprocessImage` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "method-call-on-concrete-type": 3,
+    "function-value-in-struct-field": 1,
+    "http-handler-registration": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-2.synthesis.md"
+}

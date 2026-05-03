@@ -1,0 +1,137 @@
+{
+  "id": "pocketbase/M-7",
+  "name": "SMTP send (`SMTPClient.send`)",
+  "region_root": "tools/mailer/smtp.go:62",
+  "path_length": 12,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 10 (`interface-method-dispatch`) \u2014 `(*SMTPClient).Send` vs `(*Sendmail).Send` is selected by `app.Settings().SMTP.Enabled` at `core/base.go:623`, a runtime boolean; both targets must stay live in the call graph.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "examples/base/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`examples/base/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "examples/base/main.go:119",
+      "to": "pocketbase.go:166",
+      "func": "(*PocketBase).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`examples/base/main.go:119` `app.Start()`",
+      "to_raw": "`pocketbase.go:166` `(*PocketBase).Start`"
+    },
+    {
+      "step": 2,
+      "from": "pocketbase.go:200",
+      "to": "cmd/serve.go:24",
+      "func": null,
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`pocketbase.go:200` `pb.RootCmd.Execute()`",
+      "to_raw": "`cmd/serve.go:24` (body of `RunE` closure)"
+    },
+    {
+      "step": 3,
+      "from": "cmd/serve.go:39",
+      "to": "apis/serve.go:61",
+      "func": "Serve",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/serve.go:39` `apis.Serve(...)`",
+      "to_raw": "`apis/serve.go:61` `Serve`"
+    },
+    {
+      "step": 4,
+      "from": "apis/serve.go:72",
+      "to": "apis/base.go:19",
+      "func": "NewRouter",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/serve.go:72` `NewRouter(app)`",
+      "to_raw": "`apis/base.go:19` `NewRouter`"
+    },
+    {
+      "step": 5,
+      "from": "apis/base.go:42",
+      "to": "apis/record_auth.go:10",
+      "func": "bindRecordAuthApi",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/base.go:42` `bindRecordAuthApi(app, apiGroup)`",
+      "to_raw": "`apis/record_auth.go:10` `bindRecordAuthApi`"
+    },
+    {
+      "step": 6,
+      "from": "tools/router/router.go:143",
+      "to": "apis/record_auth_email_change_request.go:12",
+      "func": "recordRequestEmailChange",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`tools/router/router.go:143` `routeHook.Trigger(event, v.Action)`",
+      "to_raw": "`apis/record_auth_email_change_request.go:12` `recordRequestEmailChange`"
+    },
+    {
+      "step": 7,
+      "from": "apis/record_auth_email_change_request.go:41",
+      "to": "apis/record_auth_email_change_request.go:42",
+      "func": null,
+      "edge_type": "closure-passed-as-argument",
+      "from_raw": "`apis/record_auth_email_change_request.go:41` `...Trigger(event, func(e) error {...})`",
+      "to_raw": "`apis/record_auth_email_change_request.go:42` (one-off closure body)"
+    },
+    {
+      "step": 8,
+      "from": "apis/record_auth_email_change_request.go:42",
+      "to": "mails/record.go:204",
+      "func": "SendRecordChangeEmail",
+      "edge_type": "direct-function-call",
+      "from_raw": "`apis/record_auth_email_change_request.go:42` `mails.SendRecordChangeEmail(...)`",
+      "to_raw": "`mails/record.go:204` `SendRecordChangeEmail`"
+    },
+    {
+      "step": 9,
+      "from": "mails/record.go:239",
+      "to": "mails/record.go:240",
+      "func": null,
+      "edge_type": "closure-passed-as-argument",
+      "from_raw": "`mails/record.go:239` `...Trigger(event, func(e) error {...})`",
+      "to_raw": "`mails/record.go:240` (one-off closure body)"
+    },
+    {
+      "step": 10,
+      "from": "mails/record.go:240",
+      "to": "tools/mailer/smtp.go:52",
+      "func": "(*SMTPClient).Send",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`mails/record.go:240` `e.Mailer.Send(e.Message)`",
+      "to_raw": "`tools/mailer/smtp.go:52` `(*SMTPClient).Send`"
+    },
+    {
+      "step": 11,
+      "from": "tools/mailer/smtp.go:54",
+      "to": "tools/mailer/smtp.go:55",
+      "func": null,
+      "edge_type": "closure-passed-as-argument",
+      "from_raw": "`tools/mailer/smtp.go:54` `c.onSend.Trigger(&SendEvent{...}, func(e) error {...})`",
+      "to_raw": "`tools/mailer/smtp.go:55` (one-off closure body)"
+    },
+    {
+      "step": 12,
+      "from": "tools/mailer/smtp.go:55",
+      "to": "tools/mailer/smtp.go:62",
+      "func": "(*SMTPClient).send",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`tools/mailer/smtp.go:55` `c.send(e.Message)`",
+      "to_raw": "`tools/mailer/smtp.go:62` `(*SMTPClient).send` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "method-call-on-concrete-type": 2,
+    "function-value-in-struct-field": 2,
+    "direct-function-call": 4,
+    "closure-passed-as-argument": 3,
+    "interface-method-dispatch": 1
+  },
+  "project": "pocketbase",
+  "source_file": "projects/pocketbase/traces/M-7.synthesis.md"
+}

@@ -1,0 +1,101 @@
+{
+  "id": "pocketbase/M-6",
+  "name": "Bcrypt password hash on save (`setValue`)",
+  "region_root": "core/field_password.go:286",
+  "path_length": 8,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 7 (`interface-method-dispatch`) \u2014 requires both whole-program implementer enumeration of `SetterFinder` and schema-derivation reasoning to constrain the runtime element type, since `m.Collection().Fields` is a heterogeneous `[]Field` whose concrete element types depend on the collection schema.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "examples/base/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`examples/base/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "examples/base/main.go:119",
+      "to": "pocketbase.go:166",
+      "func": "(*PocketBase).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`examples/base/main.go:119`",
+      "to_raw": "`pocketbase.go:166` `(*PocketBase).Start`"
+    },
+    {
+      "step": 2,
+      "from": "pocketbase.go:168",
+      "to": "cmd/superuser.go:77",
+      "func": "RunE",
+      "edge_type": "struct-literal-field-assignment",
+      "from_raw": "`pocketbase.go:168`",
+      "to_raw": "`cmd/superuser.go:77` `RunE` closure (registered)"
+    },
+    {
+      "step": 3,
+      "from": "pocketbase.go:200",
+      "to": "cmd/superuser.go:77",
+      "func": "RunE",
+      "edge_type": "registered-callback-dispatch",
+      "from_raw": "`pocketbase.go:200`",
+      "to_raw": "`cmd/superuser.go:77` `RunE` body"
+    },
+    {
+      "step": 4,
+      "from": "cmd/superuser.go:93",
+      "to": "core/record_model_auth.go:51",
+      "func": "(*Record).SetPassword",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`cmd/superuser.go:93`",
+      "to_raw": "`core/record_model_auth.go:51` `(*Record).SetPassword`"
+    },
+    {
+      "step": 5,
+      "from": "core/record_model_auth.go:53",
+      "to": "core/record_model.go:893",
+      "func": "(*Record).Set",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`core/record_model_auth.go:53`",
+      "to_raw": "`core/record_model.go:893` `(*Record).Set`"
+    },
+    {
+      "step": 6,
+      "from": "core/record_model.go:898",
+      "to": "core/record_model.go:867",
+      "func": "(*Record).SetIfFieldExists",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`core/record_model.go:898`",
+      "to_raw": "`core/record_model.go:867` `(*Record).SetIfFieldExists`"
+    },
+    {
+      "step": 7,
+      "from": "core/record_model.go:871",
+      "to": "core/field_password.go:277",
+      "func": "(*PasswordField).FindSetter",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`core/record_model.go:871`",
+      "to_raw": "`core/field_password.go:277` `(*PasswordField).FindSetter`"
+    },
+    {
+      "step": 8,
+      "from": "core/record_model.go:873",
+      "to": "core/field_password.go:286",
+      "func": "(*PasswordField).setValue",
+      "edge_type": "method-value-call",
+      "from_raw": "`core/record_model.go:873`",
+      "to_raw": "`core/field_password.go:286` `(*PasswordField).setValue` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "method-call-on-concrete-type": 4,
+    "struct-literal-field-assignment": 1,
+    "registered-callback-dispatch": 1,
+    "interface-method-dispatch": 1,
+    "method-value-call": 1
+  },
+  "project": "pocketbase",
+  "source_file": "projects/pocketbase/traces/M-6.synthesis.md"
+}

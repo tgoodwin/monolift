@@ -1,0 +1,109 @@
+{
+  "id": "gitea/M-14",
+  "name": "Actions workflow detection (`DetectWorkflows`)",
+  "region_root": "modules/actions/workflows.go:120",
+  "path_length": 9,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 6 (`interface-method-dispatch`) \u2014 requires combining whole-program type analysis with value-flow over all `RegisterNotifier` call sites to enumerate the closed set of concrete `Notifier` implementations.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/web.go:44",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/web.go:44` (`Action: runWeb` in `*cli.Command`)",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/web.go:287",
+      "to": "modules/web/router.go:219",
+      "func": "(*Router).ServeHTTP",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287` `runWeb` \u2192 `serveInstalled` \u2192 `NormalRoutes` \u2192 `runHTTP`",
+      "to_raw": "`modules/web/router.go:219` `(*Router).ServeHTTP`"
+    },
+    {
+      "step": 3,
+      "from": "routers/api/v1/api.go:1465",
+      "to": "routers/api/v1/repo/issue.go:602",
+      "func": "CreateIssue",
+      "edge_type": "callback-registration",
+      "from_raw": "`routers/api/v1/api.go:1465` (`m.Combo(\"\").Post(..., repo.CreateIssue)`)",
+      "to_raw": "`routers/api/v1/repo/issue.go:602` `CreateIssue`"
+    },
+    {
+      "step": 4,
+      "from": "routers/api/v1/repo/issue.go:693",
+      "to": "services/issue/issue.go:27",
+      "func": "NewIssue",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/api/v1/repo/issue.go:693`",
+      "to_raw": "`services/issue/issue.go:27` `NewIssue`"
+    },
+    {
+      "step": 5,
+      "from": "services/issue/issue.go:60",
+      "to": "services/notify/notify.go:74",
+      "func": "NewIssue",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/issue/issue.go:60`",
+      "to_raw": "`services/notify/notify.go:74` `NewIssue`"
+    },
+    {
+      "step": 6,
+      "from": "services/notify/notify.go:76",
+      "to": "services/actions/notifier.go:42",
+      "func": "(*actionsNotifier).NewIssue",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`services/notify/notify.go:76` (`notifier.NewIssue` over `notifiers` slice)",
+      "to_raw": "`services/actions/notifier.go:42` `(*actionsNotifier).NewIssue`"
+    },
+    {
+      "step": 7,
+      "from": "`services/actions/notifier.go:54",
+      "to": "services/actions/notifier_helper.go:110",
+      "func": "(*notifyInput).Notify",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`services/actions/notifier.go:54-60` (fluent `newNotifyInputFromIssue(...).WithPayload(...).Notify(...)`)",
+      "to_raw": "`services/actions/notifier_helper.go:110` `(*notifyInput).Notify`"
+    },
+    {
+      "step": 8,
+      "from": "services/actions/notifier_helper.go:113",
+      "to": "services/actions/notifier_helper.go:118",
+      "func": "notify",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/actions/notifier_helper.go:113`",
+      "to_raw": "`services/actions/notifier_helper.go:118` `notify`"
+    },
+    {
+      "step": 9,
+      "from": "services/actions/notifier_helper.go:186",
+      "to": "modules/actions/workflows.go:120",
+      "func": "DetectWorkflows",
+      "edge_type": "direct-function-call",
+      "from_raw": "`services/actions/notifier_helper.go:186`",
+      "to_raw": "`modules/actions/workflows.go:120` `DetectWorkflows` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "function-value-in-struct-field": 1,
+    "callback-registration": 1,
+    "interface-method-dispatch": 1,
+    "method-call-on-concrete-type": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-14.synthesis.md"
+}

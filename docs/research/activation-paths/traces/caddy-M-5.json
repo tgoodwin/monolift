@@ -1,0 +1,120 @@
+{
+  "id": "caddy/M-5",
+  "name": "HTTP response compression (`Encode.ServeHTTP`)",
+  "region_root": "modules/caddyhttp/encode/encode.go:154",
+  "path_length": 10,
+  "fully_resolvable": "no",
+  "hardest_edge": "Step 10 (`interface-method-dispatch`) \u2014 `mh`'s dynamic type is selected at runtime by reading a JSON string against an `init`-populated registry and materialised via `reflect`; static analysis must over-approximate to \"any registered `MiddlewareHandler`\" unless the config is fed to the analyzer.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/caddy/main.go:40",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/caddy/main.go:40` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/caddy/main.go:41",
+      "to": "cmd/main.go:66",
+      "func": "Main",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/caddy/main.go:41`",
+      "to_raw": "`cmd/main.go:66` `Main`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:72",
+      "to": "cmd/commandfuncs.go:172",
+      "func": "cmdRun",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:72` `defaultFactory.Build().Execute()`",
+      "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/commandfuncs.go:267",
+      "to": "caddy.go:115",
+      "func": "Load",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/commandfuncs.go:267`",
+      "to_raw": "`caddy.go:115` `Load`"
+    },
+    {
+      "step": 4,
+      "from": "caddy.go:454",
+      "to": "modules/caddyhttp/app.go:475",
+      "func": "(*App).Start",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`caddy.go:454` `a.Start()`",
+      "to_raw": "`modules/caddyhttp/app.go:475` `(*App).Start`"
+    },
+    {
+      "step": 5,
+      "from": "modules/caddyhttp/app.go:489",
+      "to": "modules/caddyhttp/server.go:310",
+      "func": "(*Server).ServeHTTP",
+      "edge_type": "struct-literal-field-assignment` + `goroutine-launch` + `interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/app.go:489` (`Handler: srv`) + `app.go:629` (`go srv.server.Serve(ln)`)",
+      "to_raw": "`modules/caddyhttp/server.go:310` `(*Server).ServeHTTP`"
+    },
+    {
+      "step": 6,
+      "from": "modules/caddyhttp/server.go:389",
+      "to": "modules/caddyhttp/server.go:471",
+      "func": "(*Server).serveHTTP",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`modules/caddyhttp/server.go:389` `s.serveHTTP(w, r)`",
+      "to_raw": "`modules/caddyhttp/server.go:471` `(*Server).serveHTTP`"
+    },
+    {
+      "step": 7,
+      "from": "modules/caddyhttp/server.go:497",
+      "to": "modules/caddyhttp/server.go:503",
+      "func": "wrapPrimaryRoute",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/server.go:497` `s.primaryHandlerChain.ServeHTTP(w, r)`",
+      "to_raw": "`modules/caddyhttp/server.go:503` `wrapPrimaryRoute` closure"
+    },
+    {
+      "step": 8,
+      "from": "modules/caddyhttp/server.go:528",
+      "to": "modules/caddyhttp/routes.go:257",
+      "func": "wrapRoute",
+      "edge_type": "closure-capture` + `interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/server.go:528` `next.ServeHTTP(w, r)` (inside `enforcementHandler`)",
+      "to_raw": "`modules/caddyhttp/routes.go:257` `wrapRoute` closure"
+    },
+    {
+      "step": 9,
+      "from": "modules/caddyhttp/routes.go:322",
+      "to": "modules/caddyhttp/routes.go:332",
+      "func": "wrapMiddleware",
+      "edge_type": "closure-capture` + `interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/routes.go:322` `nextCopy.ServeHTTP(rw, req)` (after folding `route.middleware`)",
+      "to_raw": "`modules/caddyhttp/routes.go:332` `wrapMiddleware` closure"
+    },
+    {
+      "step": 10,
+      "from": "modules/caddyhttp/routes.go:337",
+      "to": "modules/caddyhttp/encode/encode.go:154",
+      "func": "(*Encode).ServeHTTP",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`modules/caddyhttp/routes.go:337` `mh.ServeHTTP(w, r, next)`",
+      "to_raw": "`modules/caddyhttp/encode/encode.go:154` `(*Encode).ServeHTTP` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 2,
+    "function-value-in-struct-field": 1,
+    "method-call-on-concrete-type": 1,
+    "interface-method-dispatch": 6,
+    "struct-literal-field-assignment": 1,
+    "goroutine-launch": 1,
+    "closure-capture": 2
+  },
+  "project": "caddy",
+  "source_file": "projects/caddy/traces/M-5.synthesis.md"
+}

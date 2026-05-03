@@ -1,0 +1,71 @@
+{
+  "id": "miniflux/M-1",
+  "name": "Full feed refresh (`RefreshFeed`)",
+  "region_root": "internal/reader/handler/handler.go:207",
+  "path_length": 5,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`goroutine-launch`) \u2014 a naive forward call-graph walk from `main` never visits the closure body without recognising `go <funclit>(args)` as a reachability edge into the literal and propagating captured-variable types into its scope.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:10",
+      "func": "main()",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:10` `main()`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:11",
+      "to": "internal/cli/cli.go:40",
+      "func": "Parse()",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:11`",
+      "to_raw": "`internal/cli/cli.go:40` `Parse()`"
+    },
+    {
+      "step": 2,
+      "from": "internal/cli/cli.go:239",
+      "to": "internal/cli/refresh_feeds.go:17",
+      "func": "refreshFeeds()",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/cli.go:239`",
+      "to_raw": "`internal/cli/refresh_feeds.go:17` `refreshFeeds()`"
+    },
+    {
+      "step": 3,
+      "from": "internal/cli/refresh_feeds.go:47",
+      "to": "internal/cli/refresh_feeds.go:49",
+      "func": null,
+      "edge_type": "goroutine-launch",
+      "from_raw": "`internal/cli/refresh_feeds.go:47` (`go func(workerID int) {...}(i)`)",
+      "to_raw": "`internal/cli/refresh_feeds.go:49` (closure body, `for job := range jobQueue`)"
+    },
+    {
+      "step": 4,
+      "from": "internal/cli/refresh_feeds.go:68",
+      "to": "internal/cli/refresh_feeds.go:49",
+      "func": null,
+      "edge_type": "channel-send-receive",
+      "from_raw": "`internal/cli/refresh_feeds.go:68` (`jobQueue <- job`)",
+      "to_raw": "`internal/cli/refresh_feeds.go:49` (`for job := range jobQueue`)"
+    },
+    {
+      "step": 5,
+      "from": "internal/cli/refresh_feeds.go:56",
+      "to": "internal/reader/handler/handler.go:207",
+      "func": "RefreshFeed()",
+      "edge_type": "direct-function-call",
+      "from_raw": "`internal/cli/refresh_feeds.go:56`",
+      "to_raw": "`internal/reader/handler/handler.go:207` `RefreshFeed()` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 3,
+    "goroutine-launch": 1,
+    "channel-send-receive": 1
+  },
+  "project": "miniflux",
+  "source_file": "projects/miniflux/traces/M-1.synthesis.md"
+}

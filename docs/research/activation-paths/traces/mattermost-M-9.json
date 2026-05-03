@@ -1,0 +1,157 @@
+{
+  "id": "mattermost/M-9",
+  "name": "Recap channel processing (`ProcessRecapChannel`)",
+  "region_root": "server/channels/app/recap.go:185",
+  "path_length": 13,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 12 (`function-value-in-struct-field`) \u2014 invoking the recap closure requires connecting four facts: closure construction in `recap.MakeWorker` (step 7), capture-store into `SimpleWorker.execute`, load on a `*SimpleWorker` only reachable via `model.Worker` map dispatch (step 10), across a goroutine boundary (steps 10\u201311). Demands closure tracking + field-sensitive points-to + whole-program implementer resolution.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "server/cmd/mattermost/main.go:19",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`server/cmd/mattermost/main.go:19` `main`"
+    },
+    {
+      "step": 1,
+      "from": "server/cmd/mattermost/main.go:20",
+      "to": "server/cmd/mattermost/commands/root.go:15",
+      "func": "Run",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/main.go:20` `commands.Run(os.Args[1:])`",
+      "to_raw": "`server/cmd/mattermost/commands/root.go:15` `Run`"
+    },
+    {
+      "step": 2,
+      "from": "server/cmd/mattermost/commands/root.go:17",
+      "to": "server/cmd/mattermost/commands/server.go:39",
+      "func": "serverCmdF",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()` (RunE set at `commands/server.go:36`)",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+    },
+    {
+      "step": 3,
+      "from": "server/cmd/mattermost/commands/server.go:57",
+      "to": "server/cmd/mattermost/commands/server.go:60",
+      "func": "runServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:57`",
+      "to_raw": "`server/cmd/mattermost/commands/server.go:60` `runServer`"
+    },
+    {
+      "step": 4,
+      "from": "server/cmd/mattermost/commands/server.go:73",
+      "to": "server/channels/app/server.go:191",
+      "func": "NewServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/cmd/mattermost/commands/server.go:73` `app.NewServer(options...)`",
+      "to_raw": "`server/channels/app/server.go:191` `NewServer`"
+    },
+    {
+      "step": 5,
+      "from": "server/channels/app/server.go:405",
+      "to": "server/channels/app/server.go:1479",
+      "func": "(*Server).initJobs",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/server.go:405` `s.initJobs()`",
+      "to_raw": "`server/channels/app/server.go:1479` `(*Server).initJobs`"
+    },
+    {
+      "step": 6,
+      "from": "server/channels/app/server.go:1677",
+      "to": "server/channels/jobs/recap/worker.go:22",
+      "func": "MakeWorker",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/app/server.go:1677` `recap.MakeWorker(s.Jobs, s.Store(), New(ServerConnector(s.Channels())))`",
+      "to_raw": "`server/channels/jobs/recap/worker.go:22` `MakeWorker`"
+    },
+    {
+      "step": 7,
+      "from": "server/channels/jobs/recap/worker.go:34",
+      "to": "server/channels/jobs/base_workers.go:32",
+      "func": "SimpleWorker.execute",
+      "edge_type": "closure-capture-into-struct-field",
+      "from_raw": "`server/channels/jobs/recap/worker.go:34` `jobs.NewSimpleWorker(\"Recap\", \u2026, execute, \u2026)`",
+      "to_raw": "`server/channels/jobs/base_workers.go:32` `SimpleWorker.execute` field"
+    },
+    {
+      "step": 8,
+      "from": "server/channels/app/server.go:1675",
+      "to": "server/channels/jobs/workers.go:38",
+      "func": "workers.workers[name] = worker",
+      "edge_type": "interface-upcast-into-container",
+      "from_raw": "`server/channels/app/server.go:1675` `RegisterJobType(model.JobTypeRecap, \u2026)` \u2192 `server/channels/jobs/server.go:72` `srv.workers.AddWorker`",
+      "to_raw": "`server/channels/jobs/workers.go:38` `workers.workers[name] = worker`"
+    },
+    {
+      "step": 9,
+      "from": "server/channels/app/server.go:514",
+      "to": "server/channels/jobs/workers.go:47",
+      "func": "(*Workers).Start",
+      "edge_type": "method-call-on-concrete-type",
+      "from_raw": "`server/channels/app/server.go:514` `s.runJobs()` \u2192 `:572` `s.Jobs.StartWorkers()` \u2192 `server/channels/jobs/server.go:87` `srv.workers.Start()`",
+      "to_raw": "`server/channels/jobs/workers.go:47` `(*Workers).Start`"
+    },
+    {
+      "step": 10,
+      "from": "server/channels/jobs/workers.go:52",
+      "to": "server/channels/jobs/base_workers.go:38",
+      "func": "(*SimpleWorker).Run",
+      "edge_type": "interface-method-dispatch` + `goroutine-launch",
+      "from_raw": "`server/channels/jobs/workers.go:52` `go w.Run()` (`w` typed `model.Worker`)",
+      "to_raw": "`server/channels/jobs/base_workers.go:38` `(*SimpleWorker).Run`"
+    },
+    {
+      "step": 11,
+      "from": "server/channels/jobs/base_workers.go:51",
+      "to": "server/channels/jobs/base_workers.go:71",
+      "func": "(*SimpleWorker).DoJob",
+      "edge_type": "channel-send-receive",
+      "from_raw": "`server/channels/jobs/base_workers.go:51` `<-worker.jobs` (producer: `server/channels/jobs/jobs_watcher.go:81` `worker.JobChannel() <- *job`)",
+      "to_raw": "`server/channels/jobs/base_workers.go:71` `(*SimpleWorker).DoJob`"
+    },
+    {
+      "step": 12,
+      "from": "server/channels/jobs/base_workers.go:84",
+      "to": "server/channels/jobs/recap/worker.go:27",
+      "func": "execute",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`server/channels/jobs/base_workers.go:84` `worker.execute(logger, job)`",
+      "to_raw": "`server/channels/jobs/recap/worker.go:27` `execute` closure"
+    },
+    {
+      "step": 13,
+      "from": "server/channels/jobs/recap/worker.go:29",
+      "to": "server/channels/jobs/recap/worker.go:37",
+      "func": "processRecapJob",
+      "edge_type": "direct-function-call",
+      "from_raw": "`server/channels/jobs/recap/worker.go:29`",
+      "to_raw": "`server/channels/jobs/recap/worker.go:37` `processRecapJob`"
+    },
+    {
+      "step": 14,
+      "from": "server/channels/jobs/recap/worker.go:66",
+      "to": "server/channels/app/recap.go:185",
+      "func": "(*App).ProcessRecapChannel",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`server/channels/jobs/recap/worker.go:66` `appInstance.ProcessRecapChannel(\u2026)`",
+      "to_raw": "`server/channels/app/recap.go:185` `(*App).ProcessRecapChannel` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 5,
+    "function-value-in-struct-field": 2,
+    "method-call-on-concrete-type": 2,
+    "closure-capture-into-struct-field": 1,
+    "interface-upcast-into-container": 1,
+    "interface-method-dispatch` + `goroutine-launch": 1,
+    "channel-send-receive": 1,
+    "interface-method-dispatch": 1
+  },
+  "project": "mattermost",
+  "source_file": "projects/mattermost/traces/M-9.synthesis.md"
+}

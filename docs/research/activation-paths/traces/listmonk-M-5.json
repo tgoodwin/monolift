@@ -1,0 +1,63 @@
+{
+  "id": "listmonk/M-5",
+  "name": "Bulk subscriber CSV ingest (`Session.LoadCSV`)",
+  "region_root": "internal/subimporter/importer.go:452",
+  "path_length": 4,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`http-handler-registration-via-wrapper-closure`) \u2014 registration is a deferred callback (no syntactic call edge), and the registered value is not the bare method but a permission-wrapper closure that re-invokes its captured `next` argument; resolving the route to `ImportSubscribers` requires both router-sink modeling and closure-capture analysis.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:309",
+      "to": "cmd/init.go:888",
+      "func": "initHTTPServer",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/main.go:309`",
+      "to_raw": "`cmd/init.go:888` `initHTTPServer`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/init.go:940",
+      "to": "cmd/handlers.go:33",
+      "func": "initHTTPHandlers",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/init.go:940`",
+      "to_raw": "`cmd/handlers.go:33` `initHTTPHandlers`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/handlers.go:150",
+      "to": "cmd/import.go:18",
+      "func": "(*App).ImportSubscribers",
+      "edge_type": "http-handler-registration-via-wrapper-closure",
+      "from_raw": "`cmd/handlers.go:150`",
+      "to_raw": "`cmd/import.go:18` `(*App).ImportSubscribers`"
+    },
+    {
+      "step": 4,
+      "from": "cmd/import.go:101",
+      "to": "internal/subimporter/importer.go:452",
+      "func": "(*Session).LoadCSV",
+      "edge_type": "goroutine-launch-on-concrete-method",
+      "from_raw": "`cmd/import.go:101`",
+      "to_raw": "`internal/subimporter/importer.go:452` `(*Session).LoadCSV` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "direct-function-call": 2,
+    "http-handler-registration-via-wrapper-closure": 1,
+    "goroutine-launch-on-concrete-method": 1
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-5.synthesis.md"
+}

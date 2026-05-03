@@ -1,0 +1,136 @@
+{
+  "id": "gitea/M-17",
+  "name": "Syntax highlighting (`RenderFullFile`)",
+  "region_root": "modules/highlight/highlight.go:124",
+  "path_length": 12,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 7 (`http-handler-registration`) \u2014 `repo.Home` is registered via a variadic `...any` slot and ultimately invoked through `reflect.Value.Call` inside the router's generic wrapper, so a naive call-graph treating reflect calls as opaque would lose the edge. The registered function value is still statically visible at the registration site, so a registration-pattern model recovers it.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "main.go:39",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`main.go:39` `main`"
+    },
+    {
+      "step": 1,
+      "from": "main.go:45",
+      "to": "cmd/main.go:157",
+      "func": "RunMainApp",
+      "edge_type": "direct-function-call",
+      "from_raw": "`main.go:45`",
+      "to_raw": "`cmd/main.go:157` `RunMainApp`"
+    },
+    {
+      "step": 2,
+      "from": "cmd/main.go:160",
+      "to": "cmd/web.go:251",
+      "func": "runWeb",
+      "edge_type": "function-value-in-struct-field",
+      "from_raw": "`cmd/main.go:160` `app.Run`",
+      "to_raw": "`cmd/web.go:251` `runWeb`"
+    },
+    {
+      "step": 3,
+      "from": "cmd/web.go:287",
+      "to": "cmd/web.go:166",
+      "func": "serveInstalled",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:287`",
+      "to_raw": "`cmd/web.go:166` `serveInstalled`"
+    },
+    {
+      "step": 4,
+      "from": "cmd/web.go:228",
+      "to": "routers/init.go:183",
+      "func": "NormalRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`cmd/web.go:228`",
+      "to_raw": "`routers/init.go:183` `NormalRoutes`"
+    },
+    {
+      "step": 5,
+      "from": "routers/init.go:189",
+      "to": "routers/web/web.go:256",
+      "func": "Routes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/init.go:189`",
+      "to_raw": "`routers/web/web.go:256` `Routes`"
+    },
+    {
+      "step": 6,
+      "from": "routers/web/web.go:313",
+      "to": "routers/web/web.go:327",
+      "func": "registerWebRoutes",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/web/web.go:313`",
+      "to_raw": "`routers/web/web.go:327` `registerWebRoutes`"
+    },
+    {
+      "step": 7,
+      "from": "routers/web/web.go:1704",
+      "to": "routers/web/repo/view_home.go:389",
+      "func": "Home",
+      "edge_type": "http-handler-registration",
+      "from_raw": "`routers/web/web.go:1704`",
+      "to_raw": "`routers/web/repo/view_home.go:389` `Home`"
+    },
+    {
+      "step": 8,
+      "from": "routers/web/repo/view_home.go:437",
+      "to": "routers/web/repo/view_home.go:289",
+      "func": "prepareToRenderDirOrFile",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/web/repo/view_home.go:437`",
+      "to_raw": "`routers/web/repo/view_home.go:289` `prepareToRenderDirOrFile`"
+    },
+    {
+      "step": 9,
+      "from": "routers/web/repo/view_home.go:452",
+      "to": "routers/web/repo/view_home.go:290",
+      "func": null,
+      "edge_type": "function-value-in-slice",
+      "from_raw": "`routers/web/repo/view_home.go:452`",
+      "to_raw": "`routers/web/repo/view_home.go:290` (closure body)"
+    },
+    {
+      "step": 10,
+      "from": "routers/web/repo/view_home.go:301",
+      "to": "routers/web/repo/view_file.go:156",
+      "func": "prepareFileView",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/web/repo/view_home.go:301`",
+      "to_raw": "`routers/web/repo/view_file.go:156` `prepareFileView`"
+    },
+    {
+      "step": 11,
+      "from": "routers/web/repo/view_file.go:242",
+      "to": "routers/web/repo/view_file.go:94",
+      "func": "handleFileViewRenderSource",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/web/repo/view_file.go:242`",
+      "to_raw": "`routers/web/repo/view_file.go:94` `handleFileViewRenderSource`"
+    },
+    {
+      "step": 12,
+      "from": "routers/web/repo/view_file.go:124",
+      "to": "modules/highlight/highlight.go:124",
+      "func": "RenderFullFile",
+      "edge_type": "direct-function-call",
+      "from_raw": "`routers/web/repo/view_file.go:124`",
+      "to_raw": "`modules/highlight/highlight.go:124` `RenderFullFile` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "direct-function-call": 9,
+    "function-value-in-struct-field": 1,
+    "http-handler-registration": 1,
+    "function-value-in-slice": 1,
+    "entrypoint": 1
+  },
+  "project": "gitea",
+  "source_file": "projects/gitea/traces/M-17.synthesis.md"
+}

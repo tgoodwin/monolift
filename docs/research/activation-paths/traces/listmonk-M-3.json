@@ -1,0 +1,53 @@
+{
+  "id": "listmonk/M-3",
+  "name": "SMTP message send (`Emailer.Push`)",
+  "region_root": "internal/messenger/email/email.go:111",
+  "path_length": 3,
+  "fully_resolvable": "yes",
+  "hardest_edge": "Step 3 (`interface-method-dispatch`) \u2014 receiver flows from a slice-returning constructor in another package through `AddMessenger` into a map keyed by runtime data, requiring container-flow plus points-to to recover the implementation set.",
+  "steps": [
+    {
+      "step": 0,
+      "from": null,
+      "to": "cmd/main.go:193",
+      "func": "main",
+      "edge_type": "entrypoint",
+      "from_raw": "\u2014",
+      "to_raw": "`cmd/main.go:193` `main`"
+    },
+    {
+      "step": 1,
+      "from": "cmd/main.go:262",
+      "to": "internal/manager/manager.go:265",
+      "func": "(*Manager).Run",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`cmd/main.go:262`",
+      "to_raw": "`internal/manager/manager.go:265` `(*Manager).Run`"
+    },
+    {
+      "step": 2,
+      "from": "internal/manager/manager.go:274",
+      "to": "internal/manager/manager.go:462",
+      "func": "(*Manager).worker",
+      "edge_type": "goroutine-launch",
+      "from_raw": "`internal/manager/manager.go:274`",
+      "to_raw": "`internal/manager/manager.go:462` `(*Manager).worker`"
+    },
+    {
+      "step": 3,
+      "from": "internal/manager/manager.go:523",
+      "to": "internal/messenger/email/email.go:111",
+      "func": "(*Emailer).Push",
+      "edge_type": "interface-method-dispatch",
+      "from_raw": "`internal/manager/manager.go:523`",
+      "to_raw": "`internal/messenger/email/email.go:111` `(*Emailer).Push` \u2190 region root"
+    }
+  ],
+  "edge_summary": {
+    "entrypoint": 1,
+    "goroutine-launch": 2,
+    "interface-method-dispatch": 1
+  },
+  "project": "listmonk",
+  "source_file": "projects/listmonk/traces/M-3.synthesis.md"
+}
