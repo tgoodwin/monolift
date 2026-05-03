@@ -75,8 +75,71 @@ Sprints 25–33 explored entrypath algorithms with different approaches (frontie
 - [`SPRINT-0032-entrypath-bridge-algorithm.md`](../runs/SPRINT-0032-entrypath-bridge-algorithm.md) — refined bridge approach
 - [`SPRINT-0033-lift-target-catalog.md`](../runs/SPRINT-0033-lift-target-catalog.md) — structural diversity catalog (predecessor to the utility corpus)
 
+## Sprint history
+
+### SPRINT-0035: RTA baseline (done)
+
+Built `cmd/activation-path/` and `pkg/activation/` from scratch. RTA call graph + BFS shortest-path + tiered evaluation harness.
+
+**Result:** 49/72 reachable (68%). miniflux/listmonk/pocketbase at 100%. caddy 0%, mattermost 0% — all blocked by `StructFieldFuncValue` (cobra/urfave `RunE`/`Action` dispatch). All 6 codebases feasible for RTA.
+
+- [`SPRINT-0035-rta-baseline.md`](../runs/SPRINT-0035-rta-baseline.md)
+- [`SPRINT-0035-rta-baseline.json`](../runs/SPRINT-0035-rta-baseline.json)
+
+### SPRINT-0036: Struct-field tracking + framework predicates (done)
+
+Added struct-field function-value tracking (SSA `FieldAddr`+`Store`/`Load` scan), framework predicate registry (cobra `RunE`, urfave/cli v3 `Action`), goroutine-launch edges, and partial-path emission.
+
+**Result:** Tier 1 stayed at 49/72. The augmentation passes create the correct first-hop edges (e.g., `cobra.execute → cmdRun`), but newly-discovered functions are **dead ends in the graph** because RTA ran before augmentation and never explored their call trees. See [Key Finding](#key-finding-rta-augmentation-ordering) below.
+
+- [`SPRINT-0036-augmentation-report.md`](../runs/SPRINT-0036-augmentation-report.md)
+- [`SPRINT-0036-final.json`](../runs/SPRINT-0036-final.json)
+
+## Key finding: RTA-augmentation ordering
+
+**Discovered during SPRINT-0036 investigation.** This is the central architectural issue for the next sprint.
+
+### The problem
+
+The current pipeline is:
+
+```
+BuildRTAGraph() → AugmentStructField() → ApplyPredicates() → AugmentGoroutine() → ShortestPath()
+```
+
+RTA builds the call graph from `main`, exploring only functions reachable through the RTA-visible call graph. Then the struct-field pass adds edges like `cobra.(*Command).execute → cmdRun`. But `cmdRun` was never RTA-reachable, so **its own callees were never explored**. The node exists in the graph with an incoming edge but zero outgoing edges. BFS reaches `cmdRun` and stops — there's nowhere to go.
+
+### Concrete evidence
+
+```
+$ activation-path --target cmd/commandfuncs.go:172 --augmentations all
+found: 6 steps
+main → Main → Execute → ExecuteC → execute → [StructFieldFuncValue] → cmdRun ✓
+
+$ activation-path --target caddy.go:115 --augmentations all
+miss: target-unreachable
+```
+
+`cmdRun` calls `caddy.Load` at `commandfuncs.go:262` — a direct function call. But `caddy.Load` is not in the graph because RTA never visited `cmdRun`'s body.
+
+### The fix
+
+After augmentation adds new functions to the graph, their call trees must be transitively explored. Options:
+
+1. **Re-run RTA** with the augmentation-discovered functions as additional roots. This is the simplest — treat newly-added target functions as extra entrypoints and re-run RTA from them.
+2. **Incremental call-graph extension** — when `AddNode` adds a function not previously in the graph, walk its SSA body and add all its static/interface callees recursively. More surgical than re-running full RTA but requires careful handling of interface dispatch.
+3. **Interleave augmentation with RTA** — run struct-field scanning during RTA's worklist iteration so newly-discovered functions are immediately added to the RTA worklist. Most precise but requires modifying the RTA algorithm.
+
+Option 1 is the pragmatic first step. The struct-field pass discovers ~20 new functions across the corpus; re-running RTA from those roots adds their transitive callees to the graph. The cost is one additional RTA pass (cheap — the bulk of the program is already loaded).
+
+### Impact estimate
+
+This fix would likely unblock most of the 22 `StructFieldFuncValue` traces, since the struct-field edges themselves are already correct — they just lead to dead-end nodes. How many traces remain blocked after the fix depends on whether the *subsequent* edges in each trace are RTA-resolvable (direct calls, interface dispatch) or require additional augmentation (HTTP registration, closure capture, channel flow).
+
 ## Next steps
 
-1. **Edge-type taxonomy normalization** — collapse the long tail into ~8 canonical types with formal definitions. Output: `edge-type-taxonomy.md`.
-2. **Algorithm prototype** — Go program that builds an augmented call graph (RTA + struct-field tracking + pattern recognition) and finds shortest paths from entrypoints to annotated regions. Test against the 72 traces as ground truth.
-3. **Coverage measurement** — for each trace, does the algorithm reproduce the path? Where does it fail? Each failure maps to a specific edge type, guiding what analysis to add next.
+1. **Fix RTA-augmentation ordering** — re-run RTA from augmentation-discovered roots (the key finding above). This is the single highest-leverage change.
+2. **Re-evaluate** — measure how many of the 22 traces actually unblock once the dead-end problem is fixed. The remaining blockers will reveal the true next wall.
+3. **HTTP handler registration** — 5 traces blocked after struct-field is resolved. Pattern: `mux.Handle("/path", handler)` → framework invokes `handler.ServeHTTP`.
+4. **Closure capture** — 2 traces blocked. Caddy middleware chains, mattermost worker structs.
+5. **Channel flow** — 1 trace blocked. Mattermost queue dispatch pattern.
