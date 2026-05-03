@@ -1,0 +1,5971 @@
+{
+  "corpus": {
+    "traces": 72,
+    "reachable": 49,
+    "reachability_rate": 0.6805555555555556,
+    "mean_tier2_exact": 0.17330435767935765,
+    "mean_tier2_fuzzy": 0.19910742482014407,
+    "mean_tier3": 0
+  },
+  "projects": [
+    {
+      "project": "caddy",
+      "traces": 6,
+      "reachable": 0,
+      "reachability_rate": 0,
+      "mean_tier2_exact": 0,
+      "mean_tier2_fuzzy": 0,
+      "mean_tier3": 0,
+      "categories": [
+        {
+          "category": "unsupported-edge-kind",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "project": "gitea",
+      "traces": 18,
+      "reachable": 16,
+      "reachability_rate": 0.8888888888888888,
+      "mean_tier2_exact": 0.1330937580937581,
+      "mean_tier2_fuzzy": 0.158999333999334,
+      "mean_tier3": 0,
+      "categories": [
+        {
+          "category": "",
+          "count": 16
+        },
+        {
+          "category": "unsupported-edge-kind",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "project": "listmonk",
+      "traces": 10,
+      "reachable": 10,
+      "reachability_rate": 1,
+      "mean_tier2_exact": 0.5648484848484848,
+      "mean_tier2_fuzzy": 0.5755555555555556,
+      "mean_tier3": 0,
+      "categories": [
+        {
+          "category": "",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "project": "mattermost",
+      "traces": 15,
+      "reachable": 0,
+      "reachability_rate": 0,
+      "mean_tier2_exact": 0,
+      "mean_tier2_fuzzy": 0,
+      "mean_tier3": 0,
+      "categories": [
+        {
+          "category": "unsupported-edge-kind",
+          "count": 14
+        },
+        {
+          "category": "target-not-found",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "project": "miniflux",
+      "traces": 12,
+      "reachable": 12,
+      "reachability_rate": 1,
+      "mean_tier2_exact": 0.35612373737373737,
+      "mean_tier2_fuzzy": 0.45056818181818176,
+      "mean_tier3": 0,
+      "categories": [
+        {
+          "category": "",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "project": "pocketbase",
+      "traces": 11,
+      "reachable": 11,
+      "reachability_rate": 1,
+      "mean_tier2_exact": 0.014568764568764568,
+      "mean_tier2_fuzzy": 0.028306621608057015,
+      "mean_tier3": 0,
+      "categories": [
+        {
+          "category": "",
+          "count": 11
+        }
+      ]
+    }
+  ],
+  "feasibility": [
+    {
+      "project": "miniflux",
+      "package_pattern": ".",
+      "work_dir": "evaluation/miniflux",
+      "sha": "2916831cb1038e7150969fd41d1eb968ee62696e",
+      "completed": true,
+      "timed_out": false,
+      "wall_time_ms": 3241,
+      "heap_alloc_bytes": 1655259896
+    },
+    {
+      "project": "listmonk",
+      "package_pattern": "./cmd",
+      "work_dir": "evaluation/listmonk",
+      "sha": "3f4917035f63a82c93e19dedee8a48e55e291974",
+      "completed": true,
+      "timed_out": false,
+      "wall_time_ms": 2598,
+      "heap_alloc_bytes": 1607747208
+    },
+    {
+      "project": "pocketbase",
+      "package_pattern": "./examples/base",
+      "work_dir": "evaluation/pocketbase",
+      "sha": "c3a53cb183cc102da4cd59f52b06270f9283b87f",
+      "completed": true,
+      "timed_out": false,
+      "wall_time_ms": 5536,
+      "heap_alloc_bytes": 2737837008
+    },
+    {
+      "project": "caddy",
+      "package_pattern": "./cmd/caddy",
+      "work_dir": "evaluation/caddy",
+      "sha": "4430756d5c3047564c4d5d72793de6685ba3efda",
+      "completed": true,
+      "timed_out": false,
+      "wall_time_ms": 1463,
+      "heap_alloc_bytes": 2593746848
+    },
+    {
+      "project": "gitea",
+      "package_pattern": ".",
+      "work_dir": "evaluation/gitea",
+      "sha": "b31eef282816294dc8d2ecc913d36e304f5348cb",
+      "completed": true,
+      "timed_out": false,
+      "wall_time_ms": 23148,
+      "heap_alloc_bytes": 6278271176
+    },
+    {
+      "project": "mattermost",
+      "package_pattern": "./cmd/mattermost",
+      "work_dir": "evaluation/mattermost/server",
+      "sha": "bf84301784777a6e08f9709ee882b0eac029437a",
+      "completed": true,
+      "timed_out": false,
+      "wall_time_ms": 3543,
+      "heap_alloc_bytes": 4117713104
+    }
+  ],
+  "unsupported_breakdown": [
+    {
+      "kind": "StructFieldFuncValue",
+      "count": 22
+    },
+    {
+      "kind": "Unsupported",
+      "count": 1
+    }
+  ],
+  "traces": [
+    {
+      "id": "caddy/M-1",
+      "project": "caddy",
+      "target": "modules/caddyhttp/templates/tplcontext.go:350",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "cmdRun",
+        "from": "cmd/main.go:72",
+        "to": "cmd/commandfuncs.go:172",
+        "from_raw": "`cmd/main.go:72` `defaultFactory.Build().Execute()`",
+        "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd/caddy",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "Main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "cmdRun"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2",
+          "receiver": "a",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*App",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapPrimaryRoute"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapRoute"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapMiddleware"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/templates",
+          "receiver": "*Templates",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/templates",
+          "receiver": "*Templates",
+          "func_name": "executeTemplate"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/templates",
+          "receiver": "*TemplateContext",
+          "func_name": "executeTemplateInBuffer"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/templates",
+          "receiver": "\"markdown\": c",
+          "func_name": "funcMarkdown"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/templates",
+          "receiver": "TemplateContext",
+          "func_name": "funcMarkdown"
+        }
+      ]
+    },
+    {
+      "id": "caddy/M-2",
+      "project": "caddy",
+      "target": "modules/caddyhttp/templates/templates.go:455",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "cmdRun",
+        "from": "cmd/main.go:72",
+        "to": "cmd/commandfuncs.go:172",
+        "from_raw": "`cmd/main.go:72`",
+        "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd/caddy",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "Main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "cmdRun"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2",
+          "func_name": "Load"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*App",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "serveHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapPrimaryRoute"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "enforcementHandler"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapRoute"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapMiddleware"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/templates",
+          "receiver": "*Templates",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/templates",
+          "receiver": "*Templates",
+          "func_name": "executeTemplate"
+        }
+      ]
+    },
+    {
+      "id": "caddy/M-3",
+      "project": "caddy",
+      "target": "modules/caddyhttp/caddyauth/basicauth.go:165",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "cmdRun",
+        "from": "cmd/main.go:72",
+        "to": "cmd/commandfuncs.go:172",
+        "from_raw": "`cmd/main.go:72` (`...Execute()`)",
+        "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd/caddy",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "receiver": "caddycmd",
+          "func_name": "Main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "cmdRun"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*App",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "serveHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "enforcementHandler"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapRoute"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapMiddleware"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth",
+          "receiver": "Authentication",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth",
+          "receiver": "HTTPBasicAuth",
+          "func_name": "Authenticate"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth",
+          "receiver": "HTTPBasicAuth",
+          "func_name": "correctPassword"
+        }
+      ]
+    },
+    {
+      "id": "caddy/M-4",
+      "project": "caddy",
+      "target": "modules/caddytls/internalissuer.go:103",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "Unsupported",
+        "raw_type": "init-populated-registry",
+        "from": "cmd/main.go:72",
+        "to": "cmd/commands.go:166",
+        "from_raw": "`cmd/main.go:72` (`defaultFactory.Build()`)",
+        "to_raw": "`cmd/commands.go:166` (`cmd.RunE = WrapCommandFuncForCobra(cmdRun)`)",
+        "diagnostic": "unsupported synthesis trace edge type: init-populated-registry"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd/caddy",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "receiver": "caddycmd",
+          "func_name": "Main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "cmdRun"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2",
+          "func_name": "Load"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2",
+          "func_name": "run"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddytls",
+          "receiver": "*TLS",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddytls",
+          "receiver": "*TLS",
+          "func_name": "Manage"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddytls",
+          "receiver": "InternalIssuer",
+          "func_name": "Issue"
+        }
+      ]
+    },
+    {
+      "id": "caddy/M-5",
+      "project": "caddy",
+      "target": "modules/caddyhttp/encode/encode.go:154",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "cmdRun",
+        "from": "cmd/main.go:72",
+        "to": "cmd/commandfuncs.go:172",
+        "from_raw": "`cmd/main.go:72` `defaultFactory.Build().Execute()`",
+        "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd/caddy",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "Main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "cmdRun"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2",
+          "func_name": "Load"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*App",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "serveHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapPrimaryRoute"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapRoute"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "wrapMiddleware"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/encode",
+          "receiver": "*Encode",
+          "func_name": "ServeHTTP"
+        }
+      ]
+    },
+    {
+      "id": "caddy/M-7",
+      "project": "caddy",
+      "target": "modules/caddyhttp/fileserver/browse.go:119",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "cmdRun",
+        "from": "cmd/main.go:72",
+        "to": "cmd/commandfuncs.go:172",
+        "from_raw": "`cmd/main.go:72`",
+        "to_raw": "`cmd/commandfuncs.go:172` `cmdRun`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd/caddy",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "Main"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/cmd",
+          "func_name": "cmdRun"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2",
+          "func_name": "run"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*App",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "receiver": "*Server",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+          "func_name": "route"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/fileserver",
+          "receiver": "*FileServer",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/fileserver",
+          "receiver": "*FileServer",
+          "func_name": "serveBrowse"
+        },
+        {
+          "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp/fileserver",
+          "receiver": "*FileServer",
+          "func_name": "loadDirectoryContents"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-1",
+      "project": "gitea",
+      "target": "services/webhook/deliver.go:153",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.18181818181818182,
+        "tier2_fuzzy": 0.18181818181818182,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/webhook",
+          "receiver": "webhook",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/graceful",
+          "func_name": "RunWithCancel"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "*WorkerPoolQueue[int64]",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "func_name": "doRun"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "func_name": "safeHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/webhook",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/webhook",
+          "func_name": "Deliver"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[int64]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/webhook",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/webhook",
+          "func_name": "Deliver"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-10",
+      "project": "gitea",
+      "target": "services/repository/push.go:77",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.13333333333333333,
+        "tier2_fuzzy": 0.13333333333333333,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "mustInitCtx"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "initPushQueue"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "w",
+          "func_name": "origHandler = handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/graceful",
+          "func_name": "RunWithCancel"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "*WorkerPoolQueue[T]",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "func_name": "worker"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "q",
+          "func_name": "doWorkerHandle"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "func_name": "safeHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "pushUpdates"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[[]*code.gitea.io/gitea/modules/repository.PushUpdateOptions]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "pushUpdates"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-11",
+      "project": "gitea",
+      "target": "modules/indexer/issues/indexer.go:166",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.42857142857142855,
+        "tier2_fuzzy": 0.42857142857142855,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/indexer",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/issues",
+          "func_name": "InitIssueIndexer"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/issues",
+          "func_name": "getIssueIndexerQueueHandler"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "golang.org/x/sync/errgroup",
+          "func_name": "Go$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/indexer",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/issues",
+          "func_name": "InitIssueIndexer"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/issues",
+          "func_name": "getIssueIndexerQueueHandler"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-12",
+      "project": "gitea",
+      "target": "modules/git/languagestats/language_stats_nogogit.go:22",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.18181818181818182,
+        "tier2_fuzzy": 0.18181818181818182,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/indexer",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/stats",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/stats",
+          "func_name": "populateRepoIndexer"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "*WorkerPoolQueue[int64]",
+          "func_name": "doWorkerHandle"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/stats",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/stats",
+          "receiver": "*DBIndexer",
+          "func_name": "Index"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/git/languagestats",
+          "func_name": "GetLanguageStats"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[int64]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/stats",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/stats",
+          "receiver": "*DBIndexer",
+          "func_name": "Index"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/git/languagestats",
+          "func_name": "GetLanguageStats"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-13",
+      "project": "gitea",
+      "target": "services/mailer/sender/sender.go:17",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 1,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "runWeb",
+        "from": "cmd/main.go:160",
+        "to": "cmd/web.go:251",
+        "from_raw": "`cmd/main.go:160`",
+        "to_raw": "`cmd/web.go:251` `runWeb`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mailer",
+          "func_name": "NewContext"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mailer/sender",
+          "func_name": "send"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-14",
+      "project": "gitea",
+      "target": "modules/actions/workflows.go:120",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.14285714285714285,
+        "tier2_fuzzy": 0.14285714285714285,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/web",
+          "receiver": "*Router",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/v1/repo",
+          "func_name": "CreateIssue"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/issue",
+          "func_name": "NewIssue"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/notify",
+          "func_name": "NewIssue"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/actions",
+          "receiver": "*actionsNotifier",
+          "func_name": "NewIssue"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/actions",
+          "receiver": "*notifyInput",
+          "func_name": "Notify"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/actions",
+          "func_name": "notify"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/actions",
+          "func_name": "DetectWorkflows"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[[]*code.gitea.io/gitea/modules/repository.PushUpdateOptions]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository",
+          "func_name": "pushUpdates"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/notify",
+          "func_name": "CreateRef"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/actions",
+          "receiver": "*actionsNotifier",
+          "func_name": "CreateRef"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/actions",
+          "receiver": "*notifyInput",
+          "func_name": "Notify"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/actions",
+          "func_name": "notify"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/actions",
+          "func_name": "DetectWorkflows"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-15",
+      "project": "gitea",
+      "target": "modules/repository/repo.go:61",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.3076923076923077,
+        "tier2_fuzzy": 0.3076923076923077,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/v1/repo",
+          "func_name": "MirrorSync"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "addMirrorToQueue"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "PushToQueue"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "*WorkerPoolQueue[*SyncRequest]",
+          "func_name": "Push"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "func_name": "safeHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "queueHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "doMirrorSync"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "SyncPullMirror"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "runSync"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/repository",
+          "func_name": "StoreMissingLfsObjectsInRepository"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[*code.gitea.io/gitea/services/mirror.SyncRequest]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "queueHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "doMirrorSync"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "SyncPullMirror"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "runSync"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/repository",
+          "func_name": "StoreMissingLfsObjectsInRepository"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-16",
+      "project": "gitea",
+      "target": "modules/auth/password/hash/argon2.go:29",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "runChangePassword",
+        "from": "cmd/main.go:160",
+        "to": "cmd/admin_user_change_password.go:47",
+        "from_raw": "`cmd/main.go:160` (`app.Run`)",
+        "to_raw": "`cmd/admin_user_change_password.go:47` `runChangePassword`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runChangePassword"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/user",
+          "func_name": "UpdateAuth"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/models/user",
+          "receiver": "*User",
+          "func_name": "SetPassword"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/auth/password/hash",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/auth/password/hash",
+          "func_name": "NewArgon2Hasher"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/auth/password/hash",
+          "receiver": "*PasswordHashAlgorithm",
+          "func_name": "Hash"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/auth/password/hash",
+          "receiver": "*Argon2Hasher",
+          "func_name": "HashWithSaltBytes"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-17",
+      "project": "gitea",
+      "target": "modules/highlight/highlight.go:124",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.21428571428571427,
+        "tier2_fuzzy": 0.3076923076923077,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "NormalRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web",
+          "func_name": "Routes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web",
+          "func_name": "registerWebRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "Home"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "prepareToRenderDirOrFile"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "prepareFileView"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "handleFileViewRenderSource"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/highlight",
+          "func_name": "RenderFullFile"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "fmt",
+          "func_name": "Fprintf"
+        },
+        {
+          "package_path": "github.com/klauspost/compress/gzhttp",
+          "receiver": "*GzipResponseWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/user",
+          "func_name": "UsernameSubRoute$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "prepareToRenderDirOrFile$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "prepareFileView"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "handleFileViewRenderSource"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/highlight",
+          "func_name": "RenderFullFile"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-19",
+      "project": "gitea",
+      "target": "services/packages/debian/repository.go:154",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "NormalRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/packages",
+          "func_name": "CommonRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/packages/debian",
+          "func_name": "UploadPackageFile"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/packages/debian",
+          "func_name": "BuildSpecificRepositoryFiles"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "fmt",
+          "func_name": "Fprintf"
+        },
+        {
+          "package_path": "github.com/klauspost/compress/gzhttp",
+          "receiver": "*GzipResponseWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/user",
+          "func_name": "UsernameSubRoute$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/packages/debian",
+          "func_name": "DeletePackageFile"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/packages/debian",
+          "func_name": "BuildSpecificRepositoryFiles"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-2",
+      "project": "gitea",
+      "target": "services/repository/archiver/archiver.go:146",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.07142857142857142,
+        "tier2_fuzzy": 0.15384615384615385,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository/archiver",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "w",
+          "func_name": "origHandler = handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/graceful",
+          "receiver": "*Manager",
+          "func_name": "RunWithCancel"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "*WorkerPoolQueue[T]",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "func_name": "worker"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "\u003c-q",
+          "func_name": "batchChan"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "func_name": "safeHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository/archiver",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository/archiver",
+          "func_name": "doArchive"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[*code.gitea.io/gitea/services/repository/archiver.ArchiveRequest]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository/archiver",
+          "func_name": "Init$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/repository/archiver",
+          "func_name": "doArchive"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-3",
+      "project": "gitea",
+      "target": "modules/avatar/avatar.go:101",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.08333333333333333,
+        "tier2_fuzzy": 0.08333333333333333,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "NormalRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/v1",
+          "func_name": "Routes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/v1/user",
+          "func_name": "UpdateAvatar"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/user",
+          "func_name": "UploadAvatar"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/avatar",
+          "func_name": "ProcessAvatarImage"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "fmt",
+          "func_name": "Fprintf"
+        },
+        {
+          "package_path": "github.com/klauspost/compress/gzhttp",
+          "receiver": "*GzipResponseWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/user",
+          "func_name": "UsernameSubRoute$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/org",
+          "func_name": "SettingsAvatar"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/user/setting",
+          "func_name": "UpdateAvatarSetting"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/user",
+          "func_name": "UploadAvatar"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/avatar",
+          "func_name": "ProcessAvatarImage"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-4",
+      "project": "gitea",
+      "target": "services/migrations/migrate.go:111",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "NormalRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/v1",
+          "func_name": "Routes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/v1/repo",
+          "func_name": "Migrate"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/v1/repo",
+          "func_name": "doLongTimeMigrate"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/migrations",
+          "func_name": "MigrateRepository"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[*code.gitea.io/gitea/models/admin.Task]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/task",
+          "func_name": "handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/task",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/task",
+          "func_name": "runMigrateTask"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/migrations",
+          "func_name": "MigrateRepository"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-5",
+      "project": "gitea",
+      "target": "modules/indexer/code/indexer.go:41",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0.1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "mustInit"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/indexer",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/code",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "w",
+          "func_name": "origHandler = handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/code",
+          "func_name": "registered"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/code",
+          "func_name": "index"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[*code.gitea.io/gitea/modules/indexer/code/internal.IndexerData]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/code",
+          "func_name": "Init$2"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/indexer/code",
+          "func_name": "index"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-6",
+      "project": "gitea",
+      "target": "services/mirror/mirror_pull.go:109",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.3076923076923077,
+        "tier2_fuzzy": 0.3076923076923077,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "InitSyncMirrors"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "StartSyncMirrors"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "w",
+          "func_name": "origHandler = handler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/graceful",
+          "receiver": "*Manager",
+          "func_name": "RunWithCancel"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/modules/queue",
+          "receiver": "*WorkerPoolQueue[*SyncRequest]",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "queueHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "doMirrorSync"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "SyncPullMirror"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "runSync"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[*code.gitea.io/gitea/services/mirror.SyncRequest]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "queueHandler"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "doMirrorSync"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "SyncPullMirror"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/mirror",
+          "func_name": "runSync"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-7",
+      "project": "gitea",
+      "target": "services/pull/check.go:427",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.14285714285714285,
+        "tier2_fuzzy": 0.3333333333333333,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "InitWebInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/pull",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/pull",
+          "func_name": "checkPullRequestMergeable"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "",
+          "func_name": "doRun[string]$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/pull",
+          "func_name": "Init$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/pull",
+          "func_name": "checkPullRequestMergeable"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-8",
+      "project": "gitea",
+      "target": "services/gitdiff/gitdiff.go:1333",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.1,
+        "tier2_fuzzy": 0.1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "NormalRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web",
+          "func_name": "Routes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web",
+          "func_name": "registerWebRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "Diff"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/gitdiff",
+          "func_name": "GetDiffForRender"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "fmt",
+          "func_name": "Fprintf"
+        },
+        {
+          "package_path": "github.com/klauspost/compress/gzhttp",
+          "receiver": "*GzipResponseWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/user",
+          "func_name": "UsernameSubRoute$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/repo",
+          "func_name": "Diff"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/gitdiff",
+          "func_name": "GetDiffForRender"
+        }
+      ]
+    },
+    {
+      "id": "gitea/M-9",
+      "project": "gitea",
+      "target": "services/packages/rpm/repository.go:163",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.1,
+        "tier2_fuzzy": 0.1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "runWeb"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "serveInstalled"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers",
+          "func_name": "NormalRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/packages",
+          "func_name": "CommonRoutes"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/packages/rpm",
+          "func_name": "UploadPackageFile"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/packages/rpm",
+          "func_name": "BuildSpecificRepositoryFiles"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "code.gitea.io/gitea",
+          "func_name": "main"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/cmd",
+          "func_name": "RunMainApp"
+        },
+        {
+          "package_path": "fmt",
+          "func_name": "Fprintf"
+        },
+        {
+          "package_path": "github.com/klauspost/compress/gzhttp",
+          "receiver": "*GzipResponseWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/web/user",
+          "func_name": "UsernameSubRoute$1"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/routers/api/packages/rpm",
+          "func_name": "DeletePackageFile"
+        },
+        {
+          "package_path": "code.gitea.io/gitea/services/packages/rpm",
+          "func_name": "BuildSpecificRepositoryFiles"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-1",
+      "project": "listmonk",
+      "target": "internal/manager/message.go:13",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 1,
+        "tier2_fuzzy": 1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*pipe",
+          "func_name": "NextSubscribers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*pipe",
+          "func_name": "newMessage"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "NewCampaignMessage"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*pipe",
+          "func_name": "NextSubscribers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*pipe",
+          "func_name": "newMessage"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "NewCampaignMessage"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-10",
+      "project": "listmonk",
+      "target": "internal/bounce/webhooks/sendgrid.go:53",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.2,
+        "tier2_fuzzy": 0.2222222222222222,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPHandlers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "BounceWebhook"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce/webhooks",
+          "receiver": "*Sendgrid",
+          "func_name": "ProcessBounce"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer$2"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*Server",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*conn",
+          "func_name": "serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "serverHandler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "BounceWebhook$bound"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "BounceWebhook"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce/webhooks",
+          "receiver": "*Sendgrid",
+          "func_name": "ProcessBounce"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-2",
+      "project": "listmonk",
+      "target": "internal/messenger/postback/postback.go:97",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.6666666666666666,
+        "tier2_fuzzy": 0.6666666666666666,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "func main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "worker"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "func_name": "receive"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/messenger/postback",
+          "receiver": "*Postback",
+          "func_name": "Push"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "worker"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/messenger/postback",
+          "receiver": "*Postback",
+          "func_name": "Push"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-3",
+      "project": "listmonk",
+      "target": "internal/messenger/email/email.go:111",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 1,
+        "tier2_fuzzy": 1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "worker"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/messenger/email",
+          "receiver": "*Emailer",
+          "func_name": "Push"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "worker"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/messenger/email",
+          "receiver": "*Emailer",
+          "func_name": "Push"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-4",
+      "project": "listmonk",
+      "target": "cmd/media.go:212",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.2,
+        "tier2_fuzzy": 0.2222222222222222,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPHandlers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "UploadMedia"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "processImage"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer$2"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*Server",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*conn",
+          "func_name": "serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "serverHandler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "UploadMedia$bound"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "UploadMedia"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "processImage"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-5",
+      "project": "listmonk",
+      "target": "internal/subimporter/importer.go:452",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.2,
+        "tier2_fuzzy": 0.2222222222222222,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPHandlers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "ImportSubscribers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/subimporter",
+          "receiver": "*Session",
+          "func_name": "LoadCSV"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer$2"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*Server",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*conn",
+          "func_name": "serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "serverHandler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "ImportSubscribers$bound"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "ImportSubscribers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/subimporter",
+          "receiver": "*Session",
+          "func_name": "LoadCSV"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-6",
+      "project": "listmonk",
+      "target": "internal/bounce/webhooks/ses.go:108",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.2,
+        "tier2_fuzzy": 0.2222222222222222,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPHandlers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "BounceWebhook"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce/webhooks",
+          "receiver": "*SES",
+          "func_name": "ProcessBounce"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer$2"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*Server",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*conn",
+          "func_name": "serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "serverHandler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "BounceWebhook$bound"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "BounceWebhook"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce/webhooks",
+          "receiver": "*SES",
+          "func_name": "ProcessBounce"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-7",
+      "project": "listmonk",
+      "target": "models/campaigns.go:138",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 1,
+        "tier2_fuzzy": 1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "scanCampaigns"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "newPipe"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/models",
+          "receiver": "*Campaign",
+          "func_name": "CompileTemplate"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "scanCampaigns"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/manager",
+          "receiver": "*Manager",
+          "func_name": "newPipe"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/models",
+          "receiver": "*Campaign",
+          "func_name": "CompileTemplate"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-8",
+      "project": "listmonk",
+      "target": "internal/bounce/mailbox/pop.go:79",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 1,
+        "tier2_fuzzy": 1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce",
+          "receiver": "*Manager",
+          "func_name": "runMailboxScanner"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce/mailbox",
+          "receiver": "*POP",
+          "func_name": "Scan"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce",
+          "receiver": "*Manager",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce",
+          "receiver": "*Manager",
+          "func_name": "runMailboxScanner"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/bounce/mailbox",
+          "receiver": "*POP",
+          "func_name": "Scan"
+        }
+      ]
+    },
+    {
+      "id": "listmonk/M-9",
+      "project": "listmonk",
+      "target": "models/messages.go:74",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.18181818181818182,
+        "tier2_fuzzy": 0.2,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPHandlers"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/internal/auth",
+          "func_name": "anonymous"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "SendTxMessage"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/models",
+          "receiver": "*TxMessage",
+          "func_name": "Render"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "func_name": "initHTTPServer$2"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*Server",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "*conn",
+          "func_name": "serve"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "serverHandler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/labstack/echo/v4",
+          "receiver": "*Echo",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "SendTxMessage$bound"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/cmd",
+          "receiver": "*App",
+          "func_name": "SendTxMessage"
+        },
+        {
+          "package_path": "github.com/knadh/listmonk/models",
+          "receiver": "*TxMessage",
+          "func_name": "Render"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-1",
+      "project": "mattermost",
+      "target": "server/platform/services/docextractor/docextractor.go:21",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF` (via `serverCmd.RunE` set at `server.go:30`)"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "*API",
+          "func_name": "InitFile"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "uploadFileStream"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "uploadFileSimple"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "UploadFileX"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "ExtractContentFromFileInfo"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/platform/services/docextractor",
+          "func_name": "Extract"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-10",
+      "project": "mattermost",
+      "target": "server/platform/services/remotecluster/sendfile.go:84",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*Server",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*Server",
+          "func_name": "startInterClusterServices"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/platform/services/remotecluster",
+          "receiver": "*Service",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/platform/services/remotecluster",
+          "receiver": "*Service",
+          "func_name": "sendLoop"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/platform/services/remotecluster",
+          "receiver": "*Service",
+          "func_name": "sendFile"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/platform/services/remotecluster",
+          "receiver": "*Service",
+          "func_name": "sendFileToRemote"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-11",
+      "project": "mattermost",
+      "target": "server/channels/app/import.go:226",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 3,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "bulkImportCmdF",
+        "from": "vendor/github.com/spf13/cobra/command.go:1015",
+        "to": "server/cmd/mattermost/commands/import.go:104",
+        "from_raw": "`vendor/github.com/spf13/cobra/command.go:1015`",
+        "to_raw": "`server/cmd/mattermost/commands/import.go:104` `bulkImportCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/vendor/github.com/spf13/cobra",
+          "receiver": "*Command",
+          "func_name": "Execute"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "bulkImportCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "BulkImportWithPath"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "bulkImport"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-12",
+      "project": "mattermost",
+      "target": "server/channels/app/notification_email.go:144",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 1,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "init-time-function-field-dispatch",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/main.go:20",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/main.go:20` (`commands.Run` → `RootCmd.Execute`)",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "*API",
+          "func_name": "InitPost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/web",
+          "receiver": "Handler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "createPost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "CreatePostAsUser"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "CreatePost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "handlePostEvents"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "SendNotifications"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "sendNotificationEmail"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-13",
+      "project": "mattermost",
+      "target": "server/channels/app/email/email_batching.go:252",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "func_name": "NewServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/email",
+          "func_name": "NewService"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/email",
+          "receiver": "*Service",
+          "func_name": "InitEmailBatching"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/email",
+          "receiver": "*EmailBatchingJob",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/public/model",
+          "func_name": "CreateRecurringTask"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/email",
+          "receiver": "*EmailBatchingJob",
+          "func_name": "CheckPendingEmails"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/email",
+          "receiver": "*EmailBatchingJob",
+          "func_name": "checkPendingNotifications"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/email",
+          "receiver": "*Service",
+          "func_name": "sendBatchedEmailNotification"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-14",
+      "project": "mattermost",
+      "target": "server/channels/app/password/hashers/pbkdf2.go:151",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 3,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`(*cobra.Command).Execute` body (`RunE` field load)",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "*API",
+          "func_name": "InitBot"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/web",
+          "receiver": "Handler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "convertBotToUser"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "ConvertBotToUser"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "UpdatePassword"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/password/hashers",
+          "func_name": "Hash"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app/password/hashers",
+          "receiver": "PBKDF2",
+          "func_name": "Hash"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-15",
+      "project": "mattermost",
+      "target": "server/platform/services/slackimport/slackimport.go:131",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "slackImportCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/import.go:52",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` (`RootCmd.Execute()`)",
+        "to_raw": "`server/cmd/mattermost/commands/import.go:52` `slackImportCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "slackImportCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "SlackImport"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/platform/services/slackimport",
+          "receiver": "*SlackImporter",
+          "func_name": "SlackImport"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-2",
+      "project": "mattermost",
+      "target": "server/channels/app/file.go:931",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "*API",
+          "func_name": "InitFile"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "uploadFileStream"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "uploadFileSimple"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "UploadFileX"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*UploadFileTask",
+          "func_name": "postprocessImage"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-3",
+      "project": "mattermost",
+      "target": "server/channels/app/webhook.go:99",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` (`RootCmd.Execute()`)",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "*API",
+          "func_name": "InitPost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/web",
+          "receiver": "Handler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "createPost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "CreatePostAsUser"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "CreatePost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "handlePostEvents"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "handleWebhookEvents"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "TriggerWebhook"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-4",
+      "project": "mattermost",
+      "target": "server/enterprise/elasticsearch/common/indexing_job.go:412",
+      "reachable": false,
+      "category": "target-not-found",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` (`RootCmd.Execute()`)",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "func_name": "NewServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*Server",
+          "func_name": "runJobs"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs",
+          "receiver": "*Workers",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/enterprise/elasticsearch/common",
+          "receiver": "*IndexerWorker",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/enterprise/elasticsearch/common",
+          "receiver": "*IndexerWorker",
+          "func_name": "DoJob"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/enterprise/elasticsearch/common",
+          "receiver": "*IndexerWorker",
+          "func_name": "IndexBatch"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/enterprise/elasticsearch/common",
+          "receiver": "*IndexerWorker",
+          "func_name": "IndexPostsBatch"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/enterprise/elasticsearch/common",
+          "receiver": "*IndexerWorker",
+          "func_name": "BulkIndexPosts"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-5",
+      "project": "mattermost",
+      "target": "server/channels/app/export.go:113",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 3,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "bulkExportCmdF",
+        "to": "server/cmd/mattermost/commands/export.go:123",
+        "from_raw": "`(external) cobra dispatch`",
+        "to_raw": "`server/cmd/mattermost/commands/export.go:123` `bulkExportCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "bulkExportCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "BulkExport"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-6",
+      "project": "mattermost",
+      "target": "server/channels/app/post_metadata.go:1021",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17`",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "*API",
+          "func_name": "InitPost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/web",
+          "receiver": "Handler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "getPost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "PreparePostForClientWithEmbedsAndImages"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "getEmbedsAndImages"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "getEmbedForPost"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "getLinkMetadata"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "getLinkMetadataForURL"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-7",
+      "project": "mattermost",
+      "target": "server/channels/app/command.go:521",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "Init"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "*API",
+          "func_name": "InitCommand"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "receiver": "web.Handler",
+          "func_name": "HandleFunc = h"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "s.Server",
+          "func_name": "Serve(listener)"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/web",
+          "receiver": "Handler",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/api4",
+          "func_name": "executeCommand"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "ExecuteCommand"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "tryExecuteCustomCommand"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "DoCommandRequest"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-8",
+      "project": "mattermost",
+      "target": "server/channels/app/notification_push.go:93",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()`",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "func_name": "NewServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*Server",
+          "func_name": "createPushNotificationsHub"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*PushNotificationsHub",
+          "func_name": "start"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "func_name": "anonymous"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "sendPushNotificationSync"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "sendPushNotificationToAllSessions"
+        }
+      ]
+    },
+    {
+      "id": "mattermost/M-9",
+      "project": "mattermost",
+      "target": "server/channels/app/recap.go:185",
+      "reachable": false,
+      "category": "unsupported-edge-kind",
+      "scores": {
+        "tier1_reachable": false,
+        "tier1_score": 0,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "first_blocker": {
+        "step": 2,
+        "kind": "StructFieldFuncValue",
+        "raw_type": "function-value-in-struct-field",
+        "func": "serverCmdF",
+        "from": "server/cmd/mattermost/commands/root.go:17",
+        "to": "server/cmd/mattermost/commands/server.go:39",
+        "from_raw": "`server/cmd/mattermost/commands/root.go:17` `RootCmd.Execute()` (RunE set at `commands/server.go:36`)",
+        "to_raw": "`server/cmd/mattermost/commands/server.go:39` `serverCmdF`"
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "serverCmdF"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands",
+          "func_name": "runServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "func_name": "NewServer"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*Server",
+          "func_name": "initJobs"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs/recap",
+          "func_name": "MakeWorker"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs",
+          "receiver": "SimpleWorker",
+          "func_name": "execute"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs",
+          "receiver": "workers",
+          "func_name": "workers[name] = worker"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs",
+          "receiver": "*Workers",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs",
+          "receiver": "*SimpleWorker",
+          "func_name": "Run"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs",
+          "receiver": "*SimpleWorker",
+          "func_name": "DoJob"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs/recap",
+          "func_name": "execute"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/jobs/recap",
+          "func_name": "processRecapJob"
+        },
+        {
+          "package_path": "github.com/mattermost/mattermost/server/v8/channels/app",
+          "receiver": "*App",
+          "func_name": "ProcessRecapChannel"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-1",
+      "project": "miniflux",
+      "target": "internal/reader/handler/handler.go:207",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.6666666666666666,
+        "tier2_fuzzy": 1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds$1"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-10",
+      "project": "miniflux",
+      "target": "internal/reader/subscription/finder.go:44",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "receiver": "cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "startDaemon"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "StartWebServer"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "newRouter"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "ui",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "submitSubscription"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/subscription",
+          "receiver": "*subscriptionFinder",
+          "func_name": "FindSubscriptions"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "database/sql",
+          "receiver": "*DB",
+          "func_name": "Close"
+        },
+        {
+          "package_path": "net/http",
+          "func_name": "ServeHTTP$1"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "HandlerFunc",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "discoverSubscriptionsHandler$bound"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/api",
+          "receiver": "*handler",
+          "func_name": "discoverSubscriptionsHandler"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/subscription",
+          "receiver": "*subscriptionFinder",
+          "func_name": "FindSubscriptions"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-13",
+      "project": "miniflux",
+      "target": "internal/reader/processor/processor.go:180",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.2,
+        "tier2_fuzzy": 0.2,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "startDaemon"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "StartWebServer"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "newRouter"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "fetchContent"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessEntryWebPage"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "database/sql",
+          "receiver": "*DB",
+          "func_name": "Close"
+        },
+        {
+          "package_path": "net/http",
+          "func_name": "ServeHTTP$1"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "HandlerFunc",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "fetchContent$bound"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "fetchContent"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessEntryWebPage"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-14",
+      "project": "miniflux",
+      "target": "internal/oauth2/google.go:57",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.2,
+        "tier2_fuzzy": 0.2,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "startDaemon"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "StartWebServer"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "newRouter"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "oauth2Callback"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/oauth2",
+          "receiver": "*googleProvider",
+          "func_name": "Profile"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "database/sql",
+          "receiver": "*DB",
+          "func_name": "Close"
+        },
+        {
+          "package_path": "net/http",
+          "func_name": "ServeHTTP$1"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "HandlerFunc",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "oauth2Callback$bound"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "oauth2Callback"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/oauth2",
+          "receiver": "*googleProvider",
+          "func_name": "Profile"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-2",
+      "project": "miniflux",
+      "target": "internal/reader/processor/processor.go:27",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.75,
+        "tier2_fuzzy": 1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessFeedEntries"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds$1"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessFeedEntries"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-3",
+      "project": "miniflux",
+      "target": "internal/reader/sanitizer/sanitizer.go:217",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.1,
+        "tier2_fuzzy": 0.1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "\u003cworker closure body\u003e"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessFeedEntries"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+          "func_name": "SanitizeHTML"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "database/sql",
+          "receiver": "*DB",
+          "func_name": "Close"
+        },
+        {
+          "package_path": "net/http",
+          "func_name": "ServeHTTP$1"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "HandlerFunc",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "importFeedEntryHandler$bound"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/api",
+          "receiver": "*handler",
+          "func_name": "importFeedEntryHandler"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+          "func_name": "SanitizeHTML"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-4",
+      "project": "miniflux",
+      "target": "internal/integration/integration.go:511",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.6,
+        "tier2_fuzzy": 0.75,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "worker"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/integration",
+          "func_name": "PushEntries"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds$1"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/integration",
+          "func_name": "PushEntries"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-5",
+      "project": "miniflux",
+      "target": "internal/reader/icon/checker.go:28",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.6,
+        "tier2_fuzzy": 0.75,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/icon",
+          "receiver": "*iconChecker",
+          "func_name": "CreateFeedIconIfMissing"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/icon",
+          "receiver": "*iconChecker",
+          "func_name": "UpdateOrCreateFeedIcon"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds$1"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/icon",
+          "receiver": "*iconChecker",
+          "func_name": "UpdateOrCreateFeedIcon"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-6",
+      "project": "miniflux",
+      "target": "internal/reader/parser/parser.go:20",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.75,
+        "tier2_fuzzy": 1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/parser",
+          "func_name": "ParseFeed"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds$1"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/parser",
+          "func_name": "ParseFeed"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-7",
+      "project": "miniflux",
+      "target": "internal/reader/scraper/scraper.go:21",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.1,
+        "tier2_fuzzy": 0.1,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessFeedEntries"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/scraper",
+          "func_name": "ScrapeWebsite"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "database/sql",
+          "receiver": "*DB",
+          "func_name": "Close"
+        },
+        {
+          "package_path": "net/http",
+          "func_name": "ServeHTTP$1"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "HandlerFunc",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "fetchContent$bound"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "fetchContent"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessEntryWebPage"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/scraper",
+          "func_name": "ScrapeWebsite"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-8",
+      "project": "miniflux",
+      "target": "internal/reader/readability/readability.go:73",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.18181818181818182,
+        "tier2_fuzzy": 0.18181818181818182,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "refreshFeeds"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/handler",
+          "func_name": "RefreshFeed"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessFeedEntries"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/scraper",
+          "func_name": "ScrapeWebsite"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/readability",
+          "func_name": "ExtractContent"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "database/sql",
+          "receiver": "*DB",
+          "func_name": "Close"
+        },
+        {
+          "package_path": "net/http",
+          "func_name": "ServeHTTP$1"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "HandlerFunc",
+          "func_name": "ServeHTTP"
+        },
+        {
+          "package_path": "",
+          "func_name": "fetchContent$bound"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "fetchContent"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/processor",
+          "func_name": "ProcessEntryWebPage"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/scraper",
+          "func_name": "ScrapeWebsite"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/reader/readability",
+          "func_name": "ExtractContent"
+        }
+      ]
+    },
+    {
+      "id": "miniflux/M-9",
+      "project": "miniflux",
+      "target": "internal/integration/integration.go:41",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.125,
+        "tier2_fuzzy": 0.125,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "startDaemon"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "StartWebServer"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/http/server",
+          "func_name": "newRouter"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "saveEntry"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/ui",
+          "receiver": "*handler",
+          "func_name": "saveEntry"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/integration",
+          "func_name": "SendEntry"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "miniflux.app/v2",
+          "func_name": "main"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/cli",
+          "func_name": "Parse"
+        },
+        {
+          "package_path": "database/sql",
+          "receiver": "*DB",
+          "func_name": "Close"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/fever",
+          "func_name": "handleWriteItems$1"
+        },
+        {
+          "package_path": "miniflux.app/v2/internal/integration",
+          "func_name": "SendEntry"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-1",
+      "project": "pocketbase",
+      "target": "tools/filesystem/filesystem.go:489",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindFileApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "receiver": "*fileApi",
+          "func_name": "download"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "receiver": "*fileApi",
+          "func_name": "createThumb"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem",
+          "receiver": "*System",
+          "func_name": "CreateThumb"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "golang.org/x/sync/singleflight",
+          "func_name": "doCall$2"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "createThumb$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem",
+          "receiver": "*System",
+          "func_name": "CreateThumb"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-10",
+      "project": "pocketbase",
+      "target": "core/record_query_expand.go:34",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.08333333333333333,
+        "tier2_fuzzy": 0.18181818181818182,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindRecordCrudApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordsList"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "EnrichRecords"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "defaultEnrichRecords"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*BaseApp",
+          "func_name": "ExpandRecords"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "golang.org/x/sync/errgroup",
+          "func_name": "Go$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "EnrichRecords$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "defaultEnrichRecords"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*BaseApp",
+          "func_name": "ExpandRecords"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-11",
+      "project": "pocketbase",
+      "target": "mails/record.go:251",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindSettingsApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "settingsTestEmail"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/forms",
+          "receiver": "*TestEmailSend",
+          "func_name": "Submit"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/mails",
+          "func_name": "SendRecordPasswordReset"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/mails",
+          "func_name": "resolveEmailTemplate"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "authAlert$2"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/mails",
+          "func_name": "SendRecordAuthAlert"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/mails",
+          "func_name": "resolveEmailTemplate"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-2",
+      "project": "pocketbase",
+      "target": "apis/record_auth_with_oauth2.go:30",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindRecordAuthApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/router",
+          "receiver": "Route",
+          "func_name": "Action = action"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordAuthWithOAuth2"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "golang.org/x/sync/errgroup",
+          "func_name": "Go$1"
+        },
+        {
+          "package_path": "",
+          "func_name": "Trigger[*github.com/pocketbase/pocketbase/core.RequestEvent]$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordAuthWithOAuth2"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-3",
+      "project": "pocketbase",
+      "target": "core/field_password.go:317",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0.07692307692307693,
+        "tier2_fuzzy": 0.07692307692307693,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindRecordAuthApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordAuthWithOTP"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*Record",
+          "func_name": "ValidatePassword"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "PasswordFieldValue",
+          "func_name": "Validate"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "golang.org/x/sync/errgroup",
+          "func_name": "Go$1"
+        },
+        {
+          "package_path": "",
+          "func_name": "Trigger[*github.com/pocketbase/pocketbase/core.RecordAuthWithPasswordRequestEvent]$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordAuthWithPassword$2"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*Record",
+          "func_name": "ValidatePassword"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "PasswordFieldValue",
+          "func_name": "Validate"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-4",
+      "project": "pocketbase",
+      "target": "tools/archive/create.go:18",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Execute"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/plugins/ghupdate",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/plugins/ghupdate",
+          "receiver": "*plugin",
+          "func_name": "update"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*BaseApp",
+          "func_name": "CreateBackup"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/archive",
+          "func_name": "Create"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/dop251/goja",
+          "func_name": "AssertFunction$1$1"
+        },
+        {
+          "package_path": "github.com/dop251/goja",
+          "func_name": "wrapReflectFunc$1"
+        },
+        {
+          "package_path": "reflect",
+          "receiver": "Value",
+          "func_name": "Call"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "func_name": "CreateBackup$1$1$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/archive",
+          "func_name": "Create"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-5",
+      "project": "pocketbase",
+      "target": "mails/record.go:128",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Execute"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "receiver": "apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindSettingsApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "settingsTestEmail"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/forms",
+          "receiver": "*TestEmailSend",
+          "func_name": "Submit"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/mails",
+          "func_name": "SendRecordPasswordReset"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordRequestPasswordReset$1$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/mails",
+          "func_name": "SendRecordPasswordReset"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-6",
+      "project": "pocketbase",
+      "target": "core/field_password.go:286",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*Record",
+          "func_name": "SetPassword"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*Record",
+          "func_name": "Set"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*Record",
+          "func_name": "SetIfFieldExists"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*PasswordField",
+          "func_name": "FindSetter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*PasswordField",
+          "func_name": "setValue"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/dop251/goja",
+          "func_name": "AssertFunction$1$1"
+        },
+        {
+          "package_path": "github.com/dop251/goja",
+          "func_name": "wrapReflectFunc$1"
+        },
+        {
+          "package_path": "reflect",
+          "receiver": "Value",
+          "func_name": "Call"
+        },
+        {
+          "package_path": "",
+          "func_name": "setValue$bound"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*PasswordField",
+          "func_name": "setValue"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-7",
+      "project": "pocketbase",
+      "target": "tools/mailer/smtp.go:62",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindRecordAuthApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordRequestEmailChange"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/mails",
+          "func_name": "SendRecordChangeEmail"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/mailer",
+          "receiver": "*SMTPClient",
+          "func_name": "Send"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/mailer",
+          "receiver": "*SMTPClient",
+          "func_name": "send"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "golang.org/x/sync/errgroup",
+          "func_name": "Go$1"
+        },
+        {
+          "package_path": "",
+          "func_name": "Trigger[*github.com/pocketbase/pocketbase/tools/mailer.SendEvent]$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/mailer",
+          "func_name": "Send$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/mailer",
+          "receiver": "*SMTPClient",
+          "func_name": "send"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-8",
+      "project": "pocketbase",
+      "target": "tools/filesystem/internal/s3blob/s3/uploader.go:71",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Execute"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/router",
+          "func_name": "mux"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "backupUpload"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem",
+          "receiver": "*System",
+          "func_name": "UploadFile"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem/blob",
+          "receiver": "*Writer",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem/internal/s3blob",
+          "receiver": "*writer",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem/internal/s3blob",
+          "receiver": "*writer",
+          "func_name": "open"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem/internal/s3blob/s3",
+          "receiver": "*Uploader",
+          "func_name": "Upload"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem/internal/s3blob",
+          "func_name": "open$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/tools/filesystem/internal/s3blob/s3",
+          "receiver": "*Uploader",
+          "func_name": "Upload"
+        }
+      ]
+    },
+    {
+      "id": "pocketbase/M-9",
+      "project": "pocketbase",
+      "target": "apis/record_auth_with_oauth2.go:468",
+      "reachable": true,
+      "category": "",
+      "scores": {
+        "tier1_reachable": true,
+        "tier1_score": 1,
+        "tier2_exact": 0,
+        "tier2_fuzzy": 0.05263157894736842,
+        "tier3_file_line": 0
+      },
+      "expected_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "*PocketBase",
+          "func_name": "Start"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "NewServeCommand"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase",
+          "receiver": "pb.RootCmd",
+          "func_name": "Execute"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/cmd",
+          "func_name": "RunE"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "Serve"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "NewRouter"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "bindRecordAuthApi"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "recordAuthWithOAuth2"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*BaseApp",
+          "func_name": "OnRecordAuthWithOAuth2Request"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "one"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "oauth2Submit"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/core",
+          "receiver": "*BaseApp",
+          "func_name": "RunInTransaction"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "tx"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "safeFileFromURL"
+        }
+      ],
+      "actual_keys": [
+        {
+          "package_path": "github.com/pocketbase/pocketbase/examples/base",
+          "func_name": "main"
+        },
+        {
+          "package_path": "log",
+          "func_name": "Fatal"
+        },
+        {
+          "package_path": "log",
+          "receiver": "*Logger",
+          "func_name": "output"
+        },
+        {
+          "package_path": "net/http",
+          "receiver": "checkConnErrorWriter",
+          "func_name": "Write"
+        },
+        {
+          "package_path": "github.com/dop251/goja",
+          "func_name": "AssertFunction$1$1"
+        },
+        {
+          "package_path": "github.com/dop251/goja",
+          "func_name": "wrapReflectFunc$1"
+        },
+        {
+          "package_path": "reflect",
+          "receiver": "Value",
+          "func_name": "Call"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "oauth2Submit$1$1"
+        },
+        {
+          "package_path": "github.com/pocketbase/pocketbase/apis",
+          "func_name": "safeFileFromURL"
+        }
+      ]
+    }
+  ]
+}
