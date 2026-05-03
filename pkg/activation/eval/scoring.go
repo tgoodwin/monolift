@@ -20,15 +20,18 @@ type Scores struct {
 // TraceResult is the deterministic evaluation output for one ground-truth
 // trace.
 type TraceResult struct {
-	ID           string                   `json:"id"`
-	Project      string                   `json:"project"`
-	Target       string                   `json:"target"`
-	Reachable    bool                     `json:"reachable"`
-	Category     activation.MissCategory  `json:"category"`
-	Scores       Scores                   `json:"scores"`
-	FirstBlocker *BlockingEdge            `json:"first_blocker,omitempty"`
-	ExpectedKeys []activation.FunctionKey `json:"expected_keys,omitempty"`
-	ActualKeys   []activation.FunctionKey `json:"actual_keys,omitempty"`
+	ID                 string                   `json:"id"`
+	Project            string                   `json:"project"`
+	Target             string                   `json:"target"`
+	Reachable          bool                     `json:"reachable"`
+	Category           activation.MissCategory  `json:"category"`
+	Scores             Scores                   `json:"scores"`
+	FirstBlocker       *BlockingEdge            `json:"first_blocker,omitempty"`
+	ExpectedKeys       []activation.FunctionKey `json:"expected_keys,omitempty"`
+	ActualKeys         []activation.FunctionKey `json:"actual_keys,omitempty"`
+	PartialSteps       int                      `json:"partial_steps,omitempty"`
+	TotalExpectedSteps int                      `json:"total_expected_steps,omitempty"`
+	GapReason          string                   `json:"gap_reason,omitempty"`
 }
 
 // BlockingEdge records the first expected edge the RTA baseline cannot
@@ -109,7 +112,12 @@ func ClassifyMiss(reachable bool, analyzerCategory activation.MissCategory, trac
 
 func rtaRepresents(kind activation.EdgeKind) bool {
 	switch kind {
-	case activation.DirectCall, activation.ConcreteMethodCall, activation.InterfaceDispatch:
+	case activation.DirectCall,
+		activation.ConcreteMethodCall,
+		activation.InterfaceDispatch,
+		activation.StructFieldFuncValue,
+		activation.StructLiteralFieldAssignment,
+		activation.GoroutineLaunch:
 		return true
 	default:
 		return false

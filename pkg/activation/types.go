@@ -25,6 +25,7 @@ type Config struct {
 	Context    context.Context `json:"-"`
 	BuildFlags []string
 	Env        []string
+	Augment    AugmentMode
 }
 
 // Program is the loaded package/type/SSA state used by the analyzer.
@@ -81,6 +82,7 @@ type Result struct {
 	Target      *Node         `json:"target,omitempty"`
 	Entrypoints []*Node       `json:"entrypoints,omitempty"`
 	Path        *Path         `json:"path,omitempty"`
+	PartialPath *PartialPath  `json:"partial_path,omitempty"`
 	Diagnostics []Diagnostic  `json:"diagnostics,omitempty"`
 	Timings     []PhaseTiming `json:"timings,omitempty"`
 	Stats       GraphStats    `json:"stats"`

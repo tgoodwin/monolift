@@ -33,6 +33,7 @@ func run(args []string) int {
 		evalJSON      string
 		evalMD        string
 		deterministic bool
+		augmentations string
 	)
 	flags := flag.NewFlagSet("activation-path", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
@@ -49,11 +50,17 @@ func run(args []string) int {
 	flags.StringVar(&evalJSON, "eval-json", "", "write evaluation JSON to this path")
 	flags.StringVar(&evalMD, "eval-md", "", "write evaluation Markdown report to this path")
 	flags.BoolVar(&deterministic, "deterministic", false, "redact nondeterministic feasibility timing/memory fields")
+	flags.StringVar(&augmentations, "augmentations", string(activation.ModeAll), "augmentation mode: rta, structfield, predicates, goroutine, all")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
+	augmentMode, err := activation.ParseAugmentMode(augmentations)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
 	if evalMode {
-		return runEval(timeout, evalTraces, evalManifest, evalRoot, evalProjects, evalJSON, evalMD, deterministic)
+		return runEval(timeout, evalTraces, evalManifest, evalRoot, evalProjects, evalJSON, evalMD, deterministic, augmentMode)
 	}
 	patterns := splitPatterns(packagesFlag)
 	if target == "" {
@@ -74,6 +81,7 @@ func run(args []string) int {
 		Format:   format,
 		Verbose:  verbose,
 		Timeout:  timeout,
+		Augment:  augmentMode,
 	})
 	result, err := analyzer.Analyze(ctx)
 	if format == "json" {
@@ -98,7 +106,7 @@ func run(args []string) int {
 	return 0
 }
 
-func runEval(timeout time.Duration, tracesDir, manifestPath, evaluationRoot, projects, jsonPath, mdPath string, deterministic bool) int {
+func runEval(timeout time.Duration, tracesDir, manifestPath, evaluationRoot, projects, jsonPath, mdPath string, deterministic bool, augmentMode activation.AugmentMode) int {
 	projectList := activationeval.ParseProjectList(projects)
 	projectCount := len(projectList)
 	if projectCount == 0 {
@@ -113,6 +121,7 @@ func runEval(timeout time.Duration, tracesDir, manifestPath, evaluationRoot, pro
 		Projects:       projectList,
 		Timeout:        timeout,
 		Deterministic:  deterministic,
+		Augment:        augmentMode,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

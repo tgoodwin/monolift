@@ -23,6 +23,7 @@ type Options struct {
 	Projects       []string
 	Timeout        time.Duration
 	Deterministic  bool
+	Augment        activation.AugmentMode
 }
 
 // Run evaluates the selected corpus and returns aggregate results.
@@ -80,6 +81,7 @@ func runProject(ctx context.Context, cases []Case, opts Options) ([]TraceResult,
 		Timeout:  opts.Timeout,
 		Context:  ctx,
 		Env:      env,
+		Augment:  opts.Augment,
 	}
 	program, err := cfg.LoadProgram()
 	if err != nil {
@@ -107,6 +109,11 @@ func runProject(ctx context.Context, cases []Case, opts Options) ([]TraceResult,
 		finalizeFeasibility(&feasibility, start, opts)
 		return failedProjectResults(cases, activation.MissTargetUnreachable, nil), feasibility
 	}
+	if err := activation.Augment(graph, program, opts.Augment); err != nil {
+		feasibility.Error = err.Error()
+		finalizeFeasibility(&feasibility, start, opts)
+		return failedProjectResults(cases, activation.MissTargetUnreachable, nil), feasibility
+	}
 	feasibility.Completed = true
 	finalizeFeasibility(&feasibility, start, opts)
 
@@ -119,6 +126,7 @@ func runProject(ctx context.Context, cases []Case, opts Options) ([]TraceResult,
 
 func runTrace(c Case, cfg activation.Config, program *activation.Program, graph *activation.Graph, entrypoints []*ssa.Function) TraceResult {
 	expected, _ := TraceFunctionKeys(c.Trace, c.Target)
+	expectedSteps, _ := TraceExpectedSteps(c.Trace, c.Target)
 	traceResult := TraceResult{
 		ID:           c.Trace.ID,
 		Project:      c.Trace.Project,
@@ -130,12 +138,22 @@ func runTrace(c Case, cfg activation.Config, program *activation.Program, graph 
 		traceResult.Category = activation.MissTargetNotFound
 		traceResult.FirstBlocker = FirstUnsupportedEdge(c.Trace)
 		traceResult.Scores.Tier1Reachable, traceResult.Scores.Tier1Score = ScoreTier1(false)
+		attachPartial(&traceResult, &activation.PartialPath{Gap: activation.Gap{
+			AfterStep:    0,
+			ExpectedEdge: "",
+			Reason:       activation.GapTargetNotLoaded,
+		}}, len(expectedSteps))
 		return traceResult
 	}
 	targetFn, err := cfg.ResolveTarget(program, file, line)
 	if err != nil {
 		traceResult.Category, traceResult.FirstBlocker = ClassifyMiss(false, activation.MissTargetNotFound, c.Trace)
 		traceResult.Scores.Tier1Reachable, traceResult.Scores.Tier1Score = ScoreTier1(false)
+		partial := activation.FindPartialPath(graph, expectedSteps)
+		if partial != nil {
+			partial.Gap.Reason = activation.GapTargetNotLoaded
+		}
+		attachPartial(&traceResult, partial, len(expectedSteps))
 		return traceResult
 	}
 	path, found := activation.ShortestPath(graph, entrypoints, targetFn)
@@ -148,8 +166,20 @@ func runTrace(c Case, cfg activation.Config, program *activation.Program, graph 
 		traceResult.Category = activation.MissNone
 	} else {
 		traceResult.Category, traceResult.FirstBlocker = ClassifyMiss(false, activation.MissTargetUnreachable, c.Trace)
+		attachPartial(&traceResult, activation.FindPartialPath(graph, expectedSteps), len(expectedSteps))
 	}
 	return traceResult
+}
+
+func attachPartial(result *TraceResult, partial *activation.PartialPath, total int) {
+	if result == nil || partial == nil {
+		return
+	}
+	if partial.Prefix != nil {
+		result.PartialSteps = len(partial.Prefix.Steps)
+	}
+	result.TotalExpectedSteps = total
+	result.GapReason = partial.Gap.Reason
 }
 
 // TargetLocation returns an absolute source file path and line for a trace's
@@ -423,6 +453,9 @@ func WriteMarkdown(path string, result EvaluationResult) error {
 		}
 		fmt.Fprintf(&b, "### %s\n\n", trace.ID)
 		fmt.Fprintf(&b, "- Category: `%s`\n", trace.Category)
+		if trace.GapReason != "" {
+			fmt.Fprintf(&b, "- Partial path: resolved %d/%d steps, gap: `%s`\n", trace.PartialSteps, trace.TotalExpectedSteps, trace.GapReason)
+		}
 		if trace.FirstBlocker != nil {
 			fmt.Fprintf(&b, "- First blocker: step %d `%s` (%s)\n", trace.FirstBlocker.Step, trace.FirstBlocker.RawType, trace.FirstBlocker.Kind)
 			fmt.Fprintf(&b, "- Pattern: from `%s` to `%s`, func `%s`\n", trace.FirstBlocker.From, trace.FirstBlocker.To, trace.FirstBlocker.Func)

@@ -24,6 +24,26 @@ func TraceFunctionKeys(trace Trace, target Target) ([]activation.FunctionKey, er
 	return keys, nil
 }
 
+// TraceExpectedSteps converts JSON trace steps into activation-level expected
+// path steps for partial-path diagnostics.
+func TraceExpectedSteps(trace Trace, target Target) ([]activation.ExpectedStep, error) {
+	steps := make([]activation.ExpectedStep, 0, len(trace.Steps))
+	for _, step := range trace.Steps {
+		key, err := TraceStepFunctionKey(step, target)
+		if err != nil {
+			return nil, fmt.Errorf("%s step %d: %w", trace.ID, step.Step, err)
+		}
+		mapping := step.CanonicalEdgeKind()
+		steps = append(steps, activation.ExpectedStep{
+			Step:     step.Step,
+			Key:      key,
+			EdgeKind: mapping.Kind,
+			RawEdge:  step.EdgeType,
+		})
+	}
+	return steps, nil
+}
+
 // TraceStepFunctionKey normalizes a JSON trace step into
 // (package_path, receiver, func_name).
 func TraceStepFunctionKey(step TraceStep, target Target) (activation.FunctionKey, error) {

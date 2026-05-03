@@ -1,7 +1,7 @@
 # SPRINT-0036 — Activation-path augmentation: struct-field tracking + framework predicates
 
-**Status:** planned
-**Executor:** TBD
+**Status:** complete (target not met)
+**Executor:** Codex
 **Predecessor:** SPRINT-0035 (RTA baseline: 49/72 reachable, 22 blocked by `StructFieldFuncValue`)
 
 ## Intent
@@ -26,11 +26,11 @@ Miss breakdown: 22 `StructFieldFuncValue`, 1 `Unsupported` (caddy/M-4 init-popul
 
 ## Goals
 
-- [ ] **G1** Unblock ≥18 of the 22 `StructFieldFuncValue`-blocked traces.
-- [ ] **G2** Add goroutine-launch edges to improve path precision on already-reachable traces.
-- [ ] **G3** Emit partial paths with labeled gaps on still-missed traces.
-- [ ] **G4** Measure each augmentation incrementally against the SPRINT-0035 baseline.
-- [ ] **G5** Identify the next wall after struct-field dispatch is resolved.
+- [x] **G1** Unblock ≥18 of the 22 `StructFieldFuncValue`-blocked traces. **Not met:** final full-trace resolution was 0/22.
+- [x] **G2** Add goroutine-launch edges to improve path precision on already-reachable traces. **Implemented:** no aggregate Tier 2 movement in this corpus run.
+- [x] **G3** Emit partial paths with labeled gaps on still-missed traces.
+- [x] **G4** Measure each augmentation incrementally against the SPRINT-0035 baseline.
+- [x] **G5** Identify the next wall after struct-field dispatch is resolved.
 
 ## Scope boundaries
 
@@ -86,32 +86,32 @@ pkg/activation/
 
 Wire up mode selection and graph mutation API before any augmentation work begins.
 
-- [ ] **0.1** Add `AugmentMode` type in `pkg/activation/augment.go` with values `ModeRTAOnly`, `ModeStructField`, `ModePredicates`, `ModeGoroutine`, `ModeAll`.
-- [ ] **0.2** Add `Augment(graph *Graph, program *Program, mode AugmentMode) error` that dispatches to sub-passes based on mode.
-- [ ] **0.3** Add `Graph.AddEdge(from, to int, kind EdgeKind, pos Position, desc string) *Edge` — the single mutation point for augmentation passes. Deduplicates by `(from, to, kind)` key. Returns existing edge if duplicate.
-- [ ] **0.4** Add `Graph.AddNode(key FunctionKey, fn *ssa.Function) *Node` — for functions not in the RTA graph (e.g., stored but never directly called). Deduplicates by `*ssa.Function` pointer.
-- [ ] **0.5** Add `--augmentations` flag to `cmd/activation-path/` accepting `rta`, `structfield`, `predicates`, `goroutine`, `all`. Default: `all`.
-- [ ] **0.6** Wire evaluator plumbing in `eval/runner.go` so `runProject` accepts the augmentation mode and calls `Augment()` after `BuildRTAGraph()`.
-- [ ] **0.7** Smoke test: run the evaluator in `ModeRTAOnly` and verify it reproduces the SPRINT-0035 baseline of 49/72. Save as `docs/research/runs/SPRINT-0036-phase0-rta-only.json`.
+- [x] **0.1** Add `AugmentMode` type in `pkg/activation/augment.go` with values `ModeRTAOnly`, `ModeStructField`, `ModePredicates`, `ModeGoroutine`, `ModeAll`.
+- [x] **0.2** Add `Augment(graph *Graph, program *Program, mode AugmentMode) error` that dispatches to sub-passes based on mode.
+- [x] **0.3** Add `Graph.AddEdge(from, to int, kind EdgeKind, pos Position, desc string) *Edge` — the single mutation point for augmentation passes. Deduplicates by `(from, to, kind)` key. Returns existing edge if duplicate.
+- [x] **0.4** Add `Graph.AddNode(key FunctionKey, fn *ssa.Function) *Node` — for functions not in the RTA graph (e.g., stored but never directly called). Deduplicates by `*ssa.Function` pointer.
+- [x] **0.5** Add `--augmentations` flag to `cmd/activation-path/` accepting `rta`, `structfield`, `predicates`, `goroutine`, `all`. Default: `all`.
+- [x] **0.6** Wire evaluator plumbing in `eval/runner.go` so `runProject` accepts the augmentation mode and calls `Augment()` after `BuildRTAGraph()`.
+- [x] **0.7** Smoke test: run the evaluator in `ModeRTAOnly` and verify it reproduces the SPRINT-0035 baseline of 49/72. Save as `docs/research/runs/SPRINT-0036-phase0-rta-only.json`.
 
 ### Phase 1 — Generic struct-field function-value tracking
 
 The SSA pass that finds function values stored into struct fields and connects them to invocation sites.
 
-- [ ] **1.1** Implement **write-side scan** in `pkg/activation/structfield.go`: iterate all instructions in all loaded SSA functions (not just RTA-reachable — stores happen in init/setup code that RTA may not visit). For each `*ssa.FieldAddr` whose result flows into a `*ssa.Store` where the stored value has a function type — record `(structType, fieldIndex, fieldName) → []storedFunc`. Use a stable field key containing package path, named struct type, field index, field name, and function signature.
-- [ ] **1.2** Normalize stored callable values through `*ssa.MakeInterface`, `*ssa.ChangeType`, `*ssa.Convert`, and other transparent SSA wrappers before resolving to the underlying `*ssa.Function`.
-- [ ] **1.3** Handle `*ssa.MakeClosure` on the write side: target the closure's `Fn` field. If the closure wraps a bound method, target the method, not the wrapper.
-- [ ] **1.4** Add a **narrow wrapper-return recognizer**: for stored values that are calls to wrapper functions (like `WrapCommandFuncForCobra(cmdRun)`), check if the wrapper is a single-return function whose return value is a `MakeClosure` that immediately delegates to a captured parameter. If so, track the original argument (`cmdRun`) as the stored function. Scope: single-return, immediate-delegate only — not a general closure-capture pass.
-- [ ] **1.5** Handle struct-literal field assignment: scan `*ssa.Alloc` + `FieldAddr` + `Store` sequences for `Config{Action: runWeb}` patterns. Tag edges as `StructLiteralFieldAssignment` to distinguish from direct field assignment in reporting.
-- [ ] **1.6** Implement **read-side scan**: for each `*ssa.FieldAddr` whose result flows into a `*ssa.UnOp` (load) whose result is the callee of a `*ssa.Call` — record the calling function and `(structType, fieldIndex)`.
-- [ ] **1.7** **Connect writes to reads**: for each `(structType, fieldIndex)` that appears in both maps, add a `StructFieldFuncValue` edge from the read-side calling function to each stored function. Type-filter: stored function's signature must be assignable to the field's function type.
-- [ ] **1.8** Fixture tests in `pkg/activation/testdata/structfield/`:
+- [x] **1.1** Implement **write-side scan** in `pkg/activation/structfield.go`: iterate all instructions in all loaded SSA functions (not just RTA-reachable — stores happen in init/setup code that RTA may not visit). For each `*ssa.FieldAddr` whose result flows into a `*ssa.Store` where the stored value has a function type — record `(structType, fieldIndex, fieldName) → []storedFunc`. Use a stable field key containing package path, named struct type, field index, field name, and function signature.
+- [x] **1.2** Normalize stored callable values through `*ssa.MakeInterface`, `*ssa.ChangeType`, `*ssa.Convert`, and other transparent SSA wrappers before resolving to the underlying `*ssa.Function`.
+- [x] **1.3** Handle `*ssa.MakeClosure` on the write side: target the closure's `Fn` field. If the closure wraps a bound method, target the method, not the wrapper.
+- [x] **1.4** Add a **narrow wrapper-return recognizer**: for stored values that are calls to wrapper functions (like `WrapCommandFuncForCobra(cmdRun)`), check if the wrapper is a single-return function whose return value is a `MakeClosure` that immediately delegates to a captured parameter. If so, track the original argument (`cmdRun`) as the stored function. Scope: single-return, immediate-delegate only — not a general closure-capture pass.
+- [x] **1.5** Handle struct-literal field assignment: scan `*ssa.Alloc` + `FieldAddr` + `Store` sequences for `Config{Action: runWeb}` patterns. Tag edges as `StructLiteralFieldAssignment` to distinguish from direct field assignment in reporting.
+- [x] **1.6** Implement **read-side scan**: for each `*ssa.FieldAddr` whose result flows into a `*ssa.UnOp` (load) whose result is the callee of a `*ssa.Call` — record the calling function and `(structType, fieldIndex)`.
+- [x] **1.7** **Connect writes to reads**: for each `(structType, fieldIndex)` that appears in both maps, add a `StructFieldFuncValue` edge from the read-side calling function to each stored function. Type-filter: stored function's signature must be assignable to the field's function type.
+- [x] **1.8** Fixture tests in `pkg/activation/testdata/structfield/`:
   - `direct/` — function stored into `handler.Run`, then loaded and called
   - `literal/` — struct literal `Handler{Run: myFunc}`
   - `methodvalue/` — `handler.Run = obj.Method` (bound method value)
   - `wrapper/` — `handler.Run = wrap(innerFunc)` where wrap returns a delegating closure
-- [ ] **1.9** Update `rtaRepresents()` in `eval/scoring.go` to accept `StructFieldFuncValue` and `StructLiteralFieldAssignment`.
-- [ ] **1.10** **Delta evaluation**: run all 72 traces with `ModeStructField`. Save to `docs/research/runs/SPRINT-0036-phase1-structfield.json`. Report which of the 22 blocked traces are now reachable.
+- [x] **1.9** Update `rtaRepresents()` in `eval/scoring.go` to accept `StructFieldFuncValue` and `StructLiteralFieldAssignment`.
+- [x] **1.10** **Delta evaluation**: run all 72 traces with `ModeStructField`. Save to `docs/research/runs/SPRINT-0036-phase1-structfield.json`. Report which of the 22 blocked traces are now reachable.
 
 **Adaptive checkpoint**: If ≥18 of 22 traces are now reachable, Phase 2 predicates can be simplified (just the table definition, minimal lookup). If <5, predicates are the critical path — prioritize accordingly.
 
@@ -119,7 +119,7 @@ The SSA pass that finds function values stored into struct fields and connects t
 
 When the generic pass finds stores but can't find the framework's internal read-site, predicates bridge the gap.
 
-- [ ] **2.1** Define `FrameworkPredicate` type in `pkg/activation/predicates.go`:
+- [x] **2.1** Define `FrameworkPredicate` type in `pkg/activation/predicates.go`:
   ```go
   type FrameworkPredicate struct {
       ImportPath  string // e.g., "github.com/spf13/cobra"
@@ -128,37 +128,37 @@ When the generic pass finds stores but can't find the framework's internal read-
       DispatchFn  string // e.g., "(*Command).execute"
   }
   ```
-- [ ] **2.2** Implement predicate matching: after the struct-field pass, for each `(structType, fieldIndex) → functions` mapping, check if any registered predicate matches by type name and field name (match by SSA type identity, not string). If so, find or create a node for the predicate's dispatch function, add `StructFieldFuncValue` edges from that dispatch node to each stored function.
-- [ ] **2.3** Dispatch-function lookup: search graph nodes by `FunctionKey{PackagePath, Receiver, FuncName}`. If not found, scan `program.SSAPackages` for the function. If still not found, fall back to generic read-side edges only and log a diagnostic.
-- [ ] **2.4** Add cobra predicates:
+- [x] **2.2** Implement predicate matching: after the struct-field pass, for each `(structType, fieldIndex) → functions` mapping, check if any registered predicate matches by type name and field name (match by SSA type identity, not string). If so, find or create a node for the predicate's dispatch function, add `StructFieldFuncValue` edges from that dispatch node to each stored function.
+- [x] **2.3** Dispatch-function lookup: search graph nodes by `FunctionKey{PackagePath, Receiver, FuncName}`. If not found, scan `program.SSAPackages` for the function. If still not found, fall back to generic read-side edges only and log a diagnostic.
+- [x] **2.4** Add cobra predicates:
   - `spf13/cobra.Command.RunE` → dispatched from `(*Command).execute`
   - `spf13/cobra.Command.Run` → dispatched from `(*Command).execute`
-- [ ] **2.5** Add urfave/cli v3 predicates:
+- [x] **2.5** Add urfave/cli v3 predicates:
   - `urfave/cli/v3.Command.Action` → dispatched from `(*Command).Run`
   - `urfave/cli/v3.App.Action` → dispatched from `(*App).RunContext`
-- [ ] **2.6** Scan remaining miss details — if additional framework fields appear as blockers, add predicates. Only add rows with corpus evidence.
-- [ ] **2.7** Fixture test: mock framework struct with `Handler func()` field and a registered predicate. Verify predicate creates the correct edge.
-- [ ] **2.8** **Focused evaluation**: run caddy, gitea, and mattermost only with `ModePredicates`. Save to `docs/research/runs/SPRINT-0036-phase2-predicates-focused.json`. This catches predicate bugs fast on the three projects that matter.
-- [ ] **2.9** **Full evaluation**: run all 72 traces with `ModePredicates`. Save to `docs/research/runs/SPRINT-0036-phase2-predicates.json`. Report which of the original 22 blocked traces remain blocked.
+- [x] **2.6** Scan remaining miss details — if additional framework fields appear as blockers, add predicates. Only add rows with corpus evidence.
+- [x] **2.7** Fixture test: mock framework struct with `Handler func()` field and a registered predicate. Verify predicate creates the correct edge.
+- [x] **2.8** **Focused evaluation**: run caddy, gitea, and mattermost only with `ModePredicates`. Save to `docs/research/runs/SPRINT-0036-phase2-predicates-focused.json`. This catches predicate bugs fast on the three projects that matter.
+- [x] **2.9** **Full evaluation**: run all 72 traces with `ModePredicates`. Save to `docs/research/runs/SPRINT-0036-phase2-predicates.json`. Report which of the original 22 blocked traces remain blocked.
 
 ### Phase 3 — Goroutine-launch edges
 
 29 goroutine-launch edges in the corpus. Cheap, independently valuable for path precision.
 
-- [ ] **3.1** Implement `AugmentGoroutine(graph *Graph, program *Program)` in `pkg/activation/goroutine.go`: iterate all instructions in reachable functions. For each `*ssa.Go`, add a `GoroutineLaunch` edge from the containing function to the goroutine body.
-- [ ] **3.2** Handle `go obj.Method()`: resolve to the concrete method, not a wrapper.
-- [ ] **3.3** Handle `go func() { ... }()`: target the anonymous function body.
-- [ ] **3.4** Handle `go namedFunc()`: direct static callee.
-- [ ] **3.5** Deduplicate: check for existing `(from, to, GoroutineLaunch)` before adding.
-- [ ] **3.6** Update `rtaRepresents()` to accept `GoroutineLaunch`.
-- [ ] **3.7** Fixture tests in `pkg/activation/testdata/goroutine/`: `direct/`, `method/`, `closure/`. Verify edge kind, target, and source position.
-- [ ] **3.8** **Cumulative evaluation**: run all 72 traces with `ModeAll`. Save to `docs/research/runs/SPRINT-0036-phase3-goroutine.json`. Report Tier 1 and Tier 2 delta separately — goroutine edges may not move Tier 1 but should improve Tier 2.
+- [x] **3.1** Implement `AugmentGoroutine(graph *Graph, program *Program)` in `pkg/activation/goroutine.go`: iterate all instructions in reachable functions. For each `*ssa.Go`, add a `GoroutineLaunch` edge from the containing function to the goroutine body.
+- [x] **3.2** Handle `go obj.Method()`: resolve to the concrete method, not a wrapper.
+- [x] **3.3** Handle `go func() { ... }()`: target the anonymous function body.
+- [x] **3.4** Handle `go namedFunc()`: direct static callee.
+- [x] **3.5** Deduplicate: check for existing `(from, to, GoroutineLaunch)` before adding.
+- [x] **3.6** Update `rtaRepresents()` to accept `GoroutineLaunch`.
+- [x] **3.7** Fixture tests in `pkg/activation/testdata/goroutine/`: `direct/`, `method/`, `closure/`. Verify edge kind, target, and source position.
+- [x] **3.8** **Cumulative evaluation**: run all 72 traces with `ModeAll`. Save to `docs/research/runs/SPRINT-0036-phase3-goroutine.json`. Report Tier 1 and Tier 2 delta separately — goroutine edges may not move Tier 1 but should improve Tier 2.
 
 ### Phase 4 — Partial-path support
 
 When the path search fails, report how far it got with a labeled gap.
 
-- [ ] **4.1** Define types in `pkg/activation/partial.go`:
+- [x] **4.1** Define types in `pkg/activation/partial.go`:
   ```go
   type Gap struct {
       AfterStep    int       // last resolved step index in the trace
@@ -170,28 +170,54 @@ When the path search fails, report how far it got with a labeled gap.
       Gap    Gap
   }
   ```
-- [ ] **4.2** Define gap reason labels: `struct-field-not-resolved`, `framework-predicate-not-registered`, `closure-capture-deferred`, `channel-flow-deferred`, `http-registration-deferred`, `reflection-deferred`, `string-keyed-registry-deferred`, `cross-process-deferred`, `target-not-loaded`, `unknown-unreachable`.
-- [ ] **4.3** Implement `FindPartialPath(graph, trace)`: walk the trace's expected steps, check if the graph has an edge from the current node to the next expected function. Stop at the first gap. Return the prefix and the gap info. Use fuzzy `FunctionKey` matching.
-- [ ] **4.4** Add `PartialPath *PartialPath` field to `Result`. When `ShortestPath` returns `found=false`, attempt `FindPartialPath` (only in eval context where trace is available).
-- [ ] **4.5** Update `eval/scoring.go:TraceResult` with `PartialSteps`, `TotalExpectedSteps`, `GapReason`.
-- [ ] **4.6** Update `WriteMarkdown()` to show partial-path stats per miss: `resolved X/Y steps, gap: <reason>`.
-- [ ] **4.7** Verify caddy/M-4 emits a `string-keyed-registry-deferred` gap, not a generic miss.
-- [ ] **4.8** Fixture test: program where path goes `main → A → B → [gap] → C`. Verify partial path is `main → A → B` with correct gap.
+- [x] **4.2** Define gap reason labels: `struct-field-not-resolved`, `framework-predicate-not-registered`, `closure-capture-deferred`, `channel-flow-deferred`, `http-registration-deferred`, `reflection-deferred`, `string-keyed-registry-deferred`, `cross-process-deferred`, `target-not-loaded`, `unknown-unreachable`.
+- [x] **4.3** Implement `FindPartialPath(graph, trace)`: walk the trace's expected steps, check if the graph has an edge from the current node to the next expected function. Stop at the first gap. Return the prefix and the gap info. Use fuzzy `FunctionKey` matching.
+- [x] **4.4** Add `PartialPath *PartialPath` field to `Result`. When `ShortestPath` returns `found=false`, attempt `FindPartialPath` (only in eval context where trace is available).
+- [x] **4.5** Update `eval/scoring.go:TraceResult` with `PartialSteps`, `TotalExpectedSteps`, `GapReason`.
+- [x] **4.6** Update `WriteMarkdown()` to show partial-path stats per miss: `resolved X/Y steps, gap: <reason>`.
+- [x] **4.7** Verify caddy/M-4 emits a `string-keyed-registry-deferred` gap, not a generic miss.
+- [x] **4.8** Fixture test: program where path goes `main → A → B → [gap] → C`. Verify partial path is `main → A → B` with correct gap.
 
 ### Phase 5 — Final evaluation and closeout
 
-- [ ] **5.1** Run full evaluation with `ModeAll` against all 72 traces. Save to `docs/research/runs/SPRINT-0036-final.json`.
-- [ ] **5.2** Verify determinism: run full evaluation twice and diff JSON.
-- [ ] **5.3** Write `docs/research/runs/SPRINT-0036-augmentation-report.md` with:
+- [x] **5.1** Run full evaluation with `ModeAll` against all 72 traces. Save to `docs/research/runs/SPRINT-0036-final.json`.
+- [x] **5.2** Verify determinism: run full evaluation twice and diff JSON.
+- [x] **5.3** Write `docs/research/runs/SPRINT-0036-augmentation-report.md` with:
   - Phase-over-phase Tier 1 progression (baseline → +struct-field → +predicates → +goroutine)
   - Per-project Tier 1/Tier 2 tables
   - Resolution table for the 22 SPRINT-0035 `StructFieldFuncValue` blockers (resolved / still-blocked / partial-gap)
   - Partial-path statistics on still-missed traces
   - Remaining blocker edge types ranked by trace count
   - Note on mattermost/M-4 (target-not-found, not a graph issue)
-- [ ] **5.4** Run `go vet ./pkg/activation/...` and the import-guard test.
-- [ ] **5.5** Run `go test ./pkg/activation/... ./cmd/activation-path/...`.
-- [ ] **5.6** Update this sprint file with final numbers and recommendation for the next sprint.
+- [x] **5.4** Run `go vet ./pkg/activation/...` and the import-guard test.
+- [x] **5.5** Run `go test ./pkg/activation/... ./cmd/activation-path/...`.
+- [x] **5.6** Update this sprint file with final numbers and recommendation for the next sprint.
+
+## Final Outcome
+
+Final evaluation artifact: `docs/research/runs/SPRINT-0036-final.json`.
+
+| Run | Reachable | Rate | Mean T2 Exact | Mean T2 Fuzzy |
+|---|---:|---:|---:|---:|
+| SPRINT-0035 baseline | 49/72 | 68.1% | 0.173 | 0.199 |
+| Phase 1 struct-field | 49/72 | 68.1% | 0.173 | 0.199 |
+| Phase 2 predicates | 49/72 | 68.1% | 0.173 | 0.199 |
+| Phase 3 goroutine | 49/72 | 68.1% | 0.173 | 0.199 |
+| Final | 49/72 | 68.1% | 0.173 | 0.199 |
+
+The generic struct-field pass, cobra/urfave predicates, and goroutine edges are implemented and covered by fixtures. Predicate edges do resolve first-hop command dispatch, verified separately with Caddy `cmdRun`, but the full trace targets remain blocked by later dispatch classes and trace path-shape mismatch.
+
+Remaining first blockers in the final run:
+
+| Edge kind | Count |
+|---|---:|
+| `HTTPHandlerRegistration` | 5 |
+| `Unsupported` | 4 |
+| `CallbackRegistration` | 2 |
+| `ClosureCapture` | 2 |
+| `ChannelFlow` | 1 |
+
+Recommendation for the next sprint: prioritize HTTP handler registration and closure-capture modeling before more framework predicates. Mattermost has the largest remaining concentration in HTTP handler wrappers, while Caddy/Gitea expose closure callback and keyed function-map patterns. Channel-flow should follow for Mattermost queue/worker loops, especially receive-loop plus type-switch dispatch.
 
 ## Sequencing
 

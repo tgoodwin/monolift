@@ -113,6 +113,17 @@ func (a *Analyzer) Analyze(ctx context.Context) (*Result, error) {
 		result.Diagnostics = append(result.Diagnostics, Diagnostic{Severity: "error", Phase: "rta", Message: err.Error()})
 		return result, err
 	}
+	_, err = timePhase(result, "augment", func() (struct{}, error) {
+		return struct{}{}, Augment(graph, program, cfg.Augment)
+	})
+	if err := checkContext(ctx, result); err != nil {
+		return result, err
+	}
+	if err != nil {
+		result.Category = MissTargetUnreachable
+		result.Diagnostics = append(result.Diagnostics, Diagnostic{Severity: "error", Phase: "augment", Message: err.Error()})
+		return result, err
+	}
 	result.Stats = GraphStats{Nodes: len(graph.Nodes), Edges: len(graph.Edges)}
 	if graphTarget := graph.nodeByFunction(target.function()); graphTarget != nil {
 		result.Target = graphTarget

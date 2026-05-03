@@ -52,13 +52,13 @@ func TestFirstUnsupportedEdge(t *testing.T) {
 		{Step: 0, EdgeType: "entrypoint"},
 		{Step: 1, EdgeType: "direct-function-call"},
 		{Step: 2, EdgeType: "function-value-in-struct-field", To: "cmd/root.go:20", Func: strPtr("run")},
-		{Step: 3, EdgeType: "goroutine-launch"},
+		{Step: 3, EdgeType: "channel-send-receive"},
 	}}
 	blocker := FirstUnsupportedEdge(trace)
 	if blocker == nil {
 		t.Fatal("blocker is nil")
 	}
-	if blocker.Step != 2 || blocker.Kind != activation.StructFieldFuncValue {
+	if blocker.Step != 3 || blocker.Kind != activation.ChannelFlow {
 		t.Fatalf("blocker = %+v", blocker)
 	}
 }
@@ -66,13 +66,13 @@ func TestFirstUnsupportedEdge(t *testing.T) {
 func TestClassifyMiss(t *testing.T) {
 	trace := Trace{Steps: []TraceStep{
 		{Step: 0, EdgeType: "entrypoint"},
-		{Step: 1, EdgeType: "goroutine-launch"},
+		{Step: 1, EdgeType: "channel-send-receive"},
 	}}
 	category, blocker := ClassifyMiss(false, activation.MissTargetUnreachable, trace)
 	if category != activation.MissUnsupportedEdgeKind {
 		t.Fatalf("category = %s", category)
 	}
-	if blocker == nil || blocker.Kind != activation.GoroutineLaunch {
+	if blocker == nil || blocker.Kind != activation.ChannelFlow {
 		t.Fatalf("blocker = %+v", blocker)
 	}
 	category, blocker = ClassifyMiss(false, activation.MissTimeout, trace)
