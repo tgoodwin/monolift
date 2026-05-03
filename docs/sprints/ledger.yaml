@@ -183,3 +183,9 @@ sprints:
     executor: gpt-5.5-xhigh
     created: "2026-04-29T00:38:58+00:00"
     updated: "2026-04-29T05:06:59+00:00"
+  - id: SPRINT-0034
+    title: "Research: lift-utility candidate corpus across 6 projects"
+    status: in-progress
+    executor: opus+gpt-5.5+gemini
+    created: "2026-05-03T03:53:13+00:00"
+    updated: "2026-05-03T03:53:13+00:00"
