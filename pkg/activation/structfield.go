@@ -114,11 +114,14 @@ func connectStructFieldReads(graph *Graph, index *StructFieldIndex) {
 		reads := index.Reads[key]
 		stores := index.Stores[key]
 		for _, read := range reads {
-			from := graph.AddNode(FunctionKeyForSSA(read.Caller), read.Caller)
+			from := graph.nodeByFunction(read.Caller)
 			if from == nil {
 				continue
 			}
 			for _, stored := range stores {
+				if hasGenericContext(stored.Func) {
+					continue
+				}
 				if !storedAssignableToField(stored, read.FieldType) {
 					continue
 				}

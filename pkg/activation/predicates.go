@@ -73,6 +73,9 @@ func ApplyPredicates(graph *Graph, program *Program, index *StructFieldIndex, pr
 				continue
 			}
 			for _, stored := range index.Stores[key] {
+				if hasGenericContext(stored.Func) {
+					continue
+				}
 				if !types.Identical(stored.StructType, predicateType) {
 					continue
 				}

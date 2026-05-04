@@ -33,6 +33,9 @@ func AugmentGoroutine(graph *Graph, program *Program) error {
 				if target == nil {
 					continue
 				}
+				if hasGenericContext(target) {
+					continue
+				}
 				to := graph.AddNode(FunctionKeyForSSA(target), target)
 				if to == nil {
 					continue

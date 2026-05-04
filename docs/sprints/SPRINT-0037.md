@@ -1,6 +1,6 @@
 # SPRINT-0037 — Fix RTA-augmentation dead-end nodes + re-evaluate
 
-**Status:** planned
+**Status:** done
 **Executor:** TBD
 **Predecessor:** SPRINT-0036 (augmentation passes implemented, 49/72 reachable unchanged due to dead-end problem)
 
@@ -14,11 +14,11 @@ The augmentation edges are correct — they just lead into unexplored territory.
 
 ## Goals
 
-- [ ] **G1** Eliminate dead-end nodes: every function added by augmentation must have its transitive callees explored.
-- [ ] **G2** Preserve `--augmentations rta` as the SPRINT-0035 baseline (49/72).
-- [ ] **G3** Re-evaluate all 72 traces with augmentation + callee exploration.
-- [ ] **G4** Achieve ≥60/72 reachable (83%+). Some traces will hit secondary blockers (HTTP registration, closure capture, channel flow).
-- [ ] **G5** Identify and rank the new wall — classify what blocks remaining misses.
+- [x] **G1** Eliminate dead-end nodes: every function added by augmentation must have its transitive callees explored.
+- [x] **G2** Preserve `--augmentations rta` as the SPRINT-0035 baseline (49/72).
+- [x] **G3** Re-evaluate all 72 traces with augmentation + callee exploration.
+- [x] **G4** Achieve ≥60/72 reachable (83%+). Some traces will hit secondary blockers (HTTP registration, closure capture, channel flow).
+- [x] **G5** Identify and rank the new wall — classify what blocks remaining misses.
 
 ## Scope boundaries
 
@@ -50,27 +50,27 @@ Why not manual SSA body walking: RTA handles interface dispatch correctly — ma
 
 Confirm the dead-end behavior before writing any code. This is the diagnostic baseline.
 
-- [ ] **0.1** Run `activation-path --target cmd/commandfuncs.go:172 --augmentations all` against caddy. Confirm path reaches `cmdRun` (6 steps).
-- [ ] **0.2** Count outgoing edges from `cmdRun` under `--augmentations all`. Confirm it has only 1 (goroutine launch to `watchConfigFile`).
-- [ ] **0.3** Run `activation-path --target caddy.go:115 --augmentations all`. Confirm `caddy.Load` is `target-unreachable` despite being present elsewhere in the RTA graph.
-- [ ] **0.4** Save the reproduction evidence in the eventual SPRINT-0037 report.
+- [x] **0.1** Run `activation-path --target cmd/commandfuncs.go:172 --augmentations all` against caddy. Confirm path reaches `cmdRun` (6 steps).
+- [x] **0.2** Count outgoing edges from `cmdRun` under `--augmentations all`. Confirm it has only 1 (goroutine launch to `watchConfigFile`).
+- [x] **0.3** Run `activation-path --target caddy.go:115 --augmentations all`. Confirm `caddy.Load` is `target-unreachable` despite being present elsewhere in the RTA graph.
+- [x] **0.4** Save the reproduction evidence in the eventual SPRINT-0037 report.
 
 ### Phase 1 — Graph diffing and callee exploration
 
-- [ ] **1.1** Add `Graph.FunctionSet() map[*ssa.Function]bool` — snapshots all SSA functions currently in the graph.
-- [ ] **1.2** Add `Graph.NewFunctionsSince(before map[*ssa.Function]bool) []*ssa.Function` — returns functions added since the snapshot, sorted deterministically by `FunctionKey`.
-- [ ] **1.3** Implement `ExploreCallees(graph *Graph, program *Program, roots []*ssa.Function) error` in `pkg/activation/explore.go`:
+- [x] **1.1** Add `Graph.FunctionSet() map[*ssa.Function]bool` — snapshots all SSA functions currently in the graph.
+- [x] **1.2** Add `Graph.NewFunctionsSince(before map[*ssa.Function]bool) []*ssa.Function` — returns functions added since the snapshot, sorted deterministically by `FunctionKey`.
+- [x] **1.3** Implement `ExploreCallees(graph *Graph, program *Program, roots []*ssa.Function) error` in `pkg/activation/explore.go`:
   1. If `roots` is empty, return nil (convergence reached).
   2. Call `rta.Analyze(roots, true)` to get a call graph rooted at the new functions.
   3. For each node/edge in the RTA result, call `graph.AddNode()` / `graph.AddEdge()` with edge classification via `classifyRTAEdge()`.
   4. Preserve source positions and edge descriptions from the re-rooted call graph.
-- [ ] **1.4** Export `classifyRTAEdge` and `positionFor` (or extract into shared helpers) so `explore.go` can use them.
-- [ ] **1.5** Unit test: build a program with `main → A` (RTA-reachable) and `B → C` (not RTA-reachable). Build RTA graph from `main`. Verify `C` is absent. Call `ExploreCallees([B])`. Verify `B → C` edge now exists.
-- [ ] **1.6** Unit test: program where `B` calls through an interface implemented by `D`. Verify `ExploreCallees([B])` recovers the interface dispatch edge `B → D.Method`.
+- [x] **1.4** Export `classifyRTAEdge` and `positionFor` (or extract into shared helpers) so `explore.go` can use them.
+- [x] **1.5** Unit test: build a program with `main → A` (RTA-reachable) and `B → C` (not RTA-reachable). Build RTA graph from `main`. Verify `C` is absent. Call `ExploreCallees([B])`. Verify `B → C` edge now exists.
+- [x] **1.6** Unit test: program where `B` calls through an interface implemented by `D`. Verify `ExploreCallees([B])` recovers the interface dispatch edge `B → D.Method`.
 
 ### Phase 2 — Iterative augment-explore loop
 
-- [ ] **2.1** Modify `Augment()` in `augment.go` to implement the iterative loop:
+- [x] **2.1** Modify `Augment()` in `augment.go` to implement the iterative loop:
   ```
   snapshot = graph.FunctionSet()
   run augmentation passes (struct-field, predicates, goroutine)
@@ -81,45 +81,45 @@ Confirm the dead-end behavior before writing any code. This is the diagnostic ba
       run augmentation passes again
       newFuncs = graph.NewFunctionsSince(snapshot)
   ```
-- [ ] **2.2** Add max-iteration cap (10 rounds) with a diagnostic warning if hit.
-- [ ] **2.3** Log iteration count per `Augment()` call for convergence diagnostics.
-- [ ] **2.4** Ensure `ModeRTAOnly` bypasses the loop entirely — returns after initial RTA, no augmentation, no exploration.
-- [ ] **2.5** Ensure per-mode semantics are correct: `ModeStructField` runs struct-field + exploration loop. `ModePredicates` runs struct-field + predicates + exploration loop. `ModeAll` runs all passes + exploration loop.
-- [ ] **2.6** Verify idempotency: run `Augment` twice on the same graph. Node and edge counts must be identical.
+- [x] **2.2** Add max-iteration cap (10 rounds) with a diagnostic warning if hit.
+- [x] **2.3** Log iteration count per `Augment()` call for convergence diagnostics.
+- [x] **2.4** Ensure `ModeRTAOnly` bypasses the loop entirely — returns after initial RTA, no augmentation, no exploration.
+- [x] **2.5** Ensure per-mode semantics are correct: `ModeStructField` runs struct-field + exploration loop. `ModePredicates` runs struct-field + predicates + exploration loop. `ModeAll` runs all passes + exploration loop.
+- [x] **2.6** Verify idempotency: run `Augment` twice on the same graph. Node and edge counts must be identical.
 
 ### Phase 3 — Smoke tests
 
 Gate on targeted probes before the full evaluation.
 
-- [ ] **3.1** Caddy: run `--target cmd/commandfuncs.go:172 --augmentations all`. Confirm `cmdRun` has outgoing edges to its direct callees.
-- [ ] **3.2** Caddy: run `--target caddy.go:115 --augmentations all`. This was `target-unreachable`. After the fix, it should find a path through `cmdRun → caddy.Load`. **If still unreachable, debug before proceeding.**
-- [ ] **3.3** Caddy: run traces M-1, M-2, M-3, M-5, M-7 and record which move past the old `cmdRun` dead end.
-- [ ] **3.4** Mattermost: run traces M-3, M-5, M-6, M-11, M-13, M-15 and record which move past `serverCmdF`.
-- [ ] **3.5** Gitea: run traces M-13, M-16 and record whether downstream handler bodies are explored.
+- [x] **3.1** Caddy: run `--target cmd/commandfuncs.go:172 --augmentations all`. Confirm `cmdRun` has outgoing edges to its direct callees.
+- [x] **3.2** Caddy: run `--target caddy.go:115 --augmentations all`. This was `target-unreachable`. After the fix, it should find a path through `cmdRun → caddy.Load`. **If still unreachable, debug before proceeding.**
+- [x] **3.3** Caddy: run traces M-1, M-2, M-3, M-5, M-7 and record which move past the old `cmdRun` dead end.
+- [x] **3.4** Mattermost: run traces M-3, M-5, M-6, M-11, M-13, M-15 and record which move past `serverCmdF`.
+- [x] **3.5** Gitea: run traces M-13, M-16 and record whether downstream handler bodies are explored.
 
 ### Phase 4 — Full evaluation
 
-- [ ] **4.1** Verify RTA-only mode still reproduces 49/72 (SPRINT-0035 baseline gate).
-- [ ] **4.2** Run full 72-trace evaluation with `--augmentations all`. Save to `docs/research/runs/SPRINT-0037-full.json`.
-- [ ] **4.3** Verify determinism: run evaluation twice, diff JSONs.
-- [ ] **4.4** Compare against SPRINT-0035 baseline (49/72) and SPRINT-0036 final (49/72). Report:
+- [x] **4.1** Verify RTA-only mode still reproduces 49/72 (SPRINT-0035 baseline gate).
+- [x] **4.2** Run full 72-trace evaluation with `--augmentations all`. Save to `docs/research/runs/SPRINT-0037-full.json`.
+- [x] **4.3** Verify determinism: run evaluation twice, diff JSONs.
+- [x] **4.4** Compare against SPRINT-0035 baseline (49/72) and SPRINT-0036 final (49/72). Report:
   - Corpus-level: reachable count, rate, mean Tier 2 exact/fuzzy
   - Per-project: reachable count and rate
   - Delta table: which of the 22 struct-field-blocked traces are now reachable vs. still blocked
   - Status of the 8 SPRINT-0036 `target-unreachable` cases
-- [ ] **4.5** Verify no regression: all 49 previously-reachable traces must still be reachable.
-- [ ] **4.6** Spot-check 3–5 newly-reachable paths for plausibility (correct command-dispatch → handler → target chain).
+- [x] **4.5** Verify no regression: all 49 previously-reachable traces must still be reachable.
+- [x] **4.6** Spot-check 3–5 newly-reachable paths for plausibility (correct command-dispatch → handler → target chain).
 
 ### Phase 5 — New-wall analysis
 
-- [ ] **5.1** For every still-blocked trace, classify the first blocker edge type. Produce a ranked table: HTTP registration, closure capture, channel flow, unsupported patterns, target-unreachable with no identified blocker.
-- [ ] **5.2** Record partial-path depth for still-blocked traces — how far did we get? This shows whether the fix extended paths even for traces that remain blocked.
-- [ ] **5.3** Check for Tier 2 regressions on previously-reachable traces (broader RTA roots causing wrong-path selection).
-- [ ] **5.4** Rank remaining blocker classes by (a) trace count, (b) implementation feasibility, (c) cross-project impact. This is the next sprint's priority list.
+- [x] **5.1** For every still-blocked trace, classify the first blocker edge type. Produce a ranked table: HTTP registration, closure capture, channel flow, unsupported patterns, target-unreachable with no identified blocker.
+- [x] **5.2** Record partial-path depth for still-blocked traces — how far did we get? This shows whether the fix extended paths even for traces that remain blocked.
+- [x] **5.3** Check for Tier 2 regressions on previously-reachable traces (broader RTA roots causing wrong-path selection).
+- [x] **5.4** Rank remaining blocker classes by (a) trace count, (b) implementation feasibility, (c) cross-project impact. This is the next sprint's priority list.
 
 ### Phase 6 — Closeout
 
-- [ ] **6.1** Write `docs/research/runs/SPRINT-0037-report.md` with:
+- [x] **6.1** Write `docs/research/runs/SPRINT-0037-report.md` with:
   - Fix summary (re-rooted RTA from augmentation roots, iterative convergence)
   - Before/after corpus metrics
   - Per-project comparison table
@@ -128,10 +128,10 @@ Gate on targeted probes before the full evaluation.
   - New-wall blocker ranking
   - Convergence statistics (rounds per project)
   - Recommendation for next sprint
-- [ ] **6.2** Update `docs/research/activation-paths/README.md` sprint history with SPRINT-0037 summary.
-- [ ] **6.3** Run `go vet ./pkg/activation/...` — clean.
-- [ ] **6.4** Run `go test ./pkg/activation/... ./cmd/activation-path/...` — all pass.
-- [ ] **6.5** Verify import guard: `pkg/activation/` has zero imports from `pkg/compiler/entrypath/`.
+- [x] **6.2** Update `docs/research/activation-paths/README.md` sprint history with SPRINT-0037 summary.
+- [x] **6.3** Run `go vet ./pkg/activation/...` — clean.
+- [x] **6.4** Run `go test ./pkg/activation/... ./cmd/activation-path/...` — all pass.
+- [x] **6.5** Verify import guard: `pkg/activation/` has zero imports from `pkg/compiler/entrypath/`.
 
 ## Sequencing
 

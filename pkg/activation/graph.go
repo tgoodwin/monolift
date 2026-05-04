@@ -1,6 +1,10 @@
 package activation
 
-import "golang.org/x/tools/go/ssa"
+import (
+	"sort"
+
+	"golang.org/x/tools/go/ssa"
+)
 
 // AddEdge inserts an edge into the graph unless an edge with the same
 // (from, to, kind) tuple already exists.
@@ -70,4 +74,43 @@ func positionForSSA(fn *ssa.Function) Position {
 	}
 	place := fn.Prog.Fset.Position(fn.Pos())
 	return Position{File: place.Filename, Line: place.Line, Column: place.Column}
+}
+
+// FunctionSet snapshots the SSA functions currently present in the graph.
+func (g *Graph) FunctionSet() map[*ssa.Function]bool {
+	out := map[*ssa.Function]bool{}
+	if g == nil {
+		return out
+	}
+	for _, node := range g.Nodes {
+		if node != nil && node.Func != nil {
+			out[node.Func] = true
+		}
+	}
+	return out
+}
+
+// NewFunctionsSince returns functions added after the supplied snapshot.
+func (g *Graph) NewFunctionsSince(before map[*ssa.Function]bool) []*ssa.Function {
+	if g == nil {
+		return nil
+	}
+	seen := map[*ssa.Function]bool{}
+	var out []*ssa.Function
+	for _, node := range g.Nodes {
+		if node == nil || node.Func == nil || before[node.Func] || seen[node.Func] {
+			continue
+		}
+		seen[node.Func] = true
+		out = append(out, node.Func)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ki := FunctionKeyForSSA(out[i]).String()
+		kj := FunctionKeyForSSA(out[j]).String()
+		if ki != kj {
+			return ki < kj
+		}
+		return out[i].String() < out[j].String()
+	})
+	return out
 }

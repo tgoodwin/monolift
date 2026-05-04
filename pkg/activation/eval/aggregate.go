@@ -17,15 +17,17 @@ type EvaluationResult struct {
 
 // Feasibility records per-codebase runtime feasibility diagnostics.
 type Feasibility struct {
-	Project        string `json:"project"`
-	PackagePattern string `json:"package_pattern"`
-	WorkDir        string `json:"work_dir"`
-	SHA            string `json:"sha"`
-	Completed      bool   `json:"completed"`
-	TimedOut       bool   `json:"timed_out"`
-	Error          string `json:"error,omitempty"`
-	WallTimeMS     int64  `json:"wall_time_ms,omitempty"`
-	HeapAllocBytes uint64 `json:"heap_alloc_bytes,omitempty"`
+	Project           string `json:"project"`
+	PackagePattern    string `json:"package_pattern"`
+	WorkDir           string `json:"work_dir"`
+	SHA               string `json:"sha"`
+	Completed         bool   `json:"completed"`
+	TimedOut          bool   `json:"timed_out"`
+	Error             string `json:"error,omitempty"`
+	AugmentIterations int    `json:"augment_iterations,omitempty"`
+	AugmentLimitHit   bool   `json:"augment_limit_hit,omitempty"`
+	WallTimeMS        int64  `json:"wall_time_ms,omitempty"`
+	HeapAllocBytes    uint64 `json:"heap_alloc_bytes,omitempty"`
 }
 
 // CorpusSummary aggregates all trace results.

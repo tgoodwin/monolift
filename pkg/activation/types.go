@@ -38,10 +38,13 @@ type Program struct {
 
 // Graph is a deterministic call graph projection used for path search.
 type Graph struct {
-	Nodes []*Node         `json:"nodes"`
-	Edges []*Edge         `json:"edges"`
-	Out   map[int][]*Edge `json:"-"`
-	In    map[int][]*Edge `json:"-"`
+	Nodes              []*Node         `json:"nodes"`
+	Edges              []*Edge         `json:"edges"`
+	Out                map[int][]*Edge `json:"-"`
+	In                 map[int][]*Edge `json:"-"`
+	AugmentIterations  int             `json:"-"`
+	AugmentLimitHit    bool            `json:"-"`
+	AugmentDiagnostics []Diagnostic    `json:"-"`
 }
 
 // Node identifies one SSA function in the activation graph.

@@ -2,7 +2,6 @@ package activation
 
 import (
 	"fmt"
-	"sort"
 
 	gocallgraph "golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/callgraph/rta"
@@ -27,15 +26,7 @@ func convertCallGraph(program *Program, cg *gocallgraph.Graph) *Graph {
 	if cg == nil {
 		return &Graph{Out: map[int][]*Edge{}, In: map[int][]*Edge{}}
 	}
-	funcs := make([]*ssa.Function, 0, len(cg.Nodes))
-	for fn := range cg.Nodes {
-		if fn != nil {
-			funcs = append(funcs, fn)
-		}
-	}
-	sort.Slice(funcs, func(i, j int) bool {
-		return FunctionKeyForSSA(funcs[i]).String() < FunctionKeyForSSA(funcs[j]).String()
-	})
+	funcs := callGraphFunctions(cg)
 
 	graph := &Graph{
 		Nodes: make([]*Node, 0, len(funcs)),
@@ -49,15 +40,7 @@ func convertCallGraph(program *Program, cg *gocallgraph.Graph) *Graph {
 		nodeByFunc[fn] = node
 	}
 
-	var cgEdges []*gocallgraph.Edge
-	for _, fn := range funcs {
-		cgNode := cg.Nodes[fn]
-		cgEdges = append(cgEdges, cgNode.Out...)
-	}
-	sort.Slice(cgEdges, func(i, j int) bool {
-		return callGraphEdgeLess(cgEdges[i], cgEdges[j], program)
-	})
-	for _, cgEdge := range cgEdges {
+	for _, cgEdge := range callGraphEdges(cg, funcs, program) {
 		from := nodeByFunc[cgEdge.Caller.Func]
 		to := nodeByFunc[cgEdge.Callee.Func]
 		if from == nil || to == nil {

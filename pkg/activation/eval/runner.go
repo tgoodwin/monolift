@@ -114,6 +114,8 @@ func runProject(ctx context.Context, cases []Case, opts Options) ([]TraceResult,
 		finalizeFeasibility(&feasibility, start, opts)
 		return failedProjectResults(cases, activation.MissTargetUnreachable, nil), feasibility
 	}
+	feasibility.AugmentIterations = graph.AugmentIterations
+	feasibility.AugmentLimitHit = graph.AugmentLimitHit
 	feasibility.Completed = true
 	finalizeFeasibility(&feasibility, start, opts)
 

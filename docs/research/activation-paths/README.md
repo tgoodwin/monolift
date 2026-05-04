@@ -95,6 +95,17 @@ Added struct-field function-value tracking (SSA `FieldAddr`+`Store`/`Load` scan)
 - [`SPRINT-0036-augmentation-report.md`](../runs/SPRINT-0036-augmentation-report.md)
 - [`SPRINT-0036-final.json`](../runs/SPRINT-0036-final.json)
 
+### SPRINT-0037: Re-rooted RTA after augmentation (done)
+
+Fixed the RTA-augmentation ordering bug by iterating augmentation with re-rooted RTA exploration from newly added functions only. Augmentation-discovered command handlers now have their transitive callees explored, so dead-end nodes such as caddy `cmdRun` are no longer terminal.
+
+**Result:** 69/72 reachable (95.8%), up from 49/72. Caddy improved from 0/6 to 6/6 and Mattermost from 0/15 to 14/15. RTA-only mode still reproduces the 49/72 SPRINT-0035 baseline, and all 49 previously reachable traces remain reachable. All projects converged in 2-3 exploration rounds.
+
+Remaining misses are now small and concrete: gitea callback registration, gitea map-indexed function-value dispatch, and mattermost/M-4 target package loading.
+
+- [`SPRINT-0037-report.md`](../runs/SPRINT-0037-report.md)
+- [`SPRINT-0037-full.json`](../runs/SPRINT-0037-full.json)
+
 ## Key finding: RTA-augmentation ordering
 
 **Discovered during SPRINT-0036 investigation.** This is the central architectural issue for the next sprint.
