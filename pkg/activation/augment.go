@@ -95,7 +95,19 @@ func runAugmentationPasses(graph *Graph, program *Program, mode AugmentMode) err
 		if err := ApplyPredicates(graph, program, index, DefaultFrameworkPredicates()); err != nil {
 			return err
 		}
-		return AugmentGoroutine(graph, program)
+		if err := AugmentGoroutine(graph, program); err != nil {
+			return err
+		}
+		if err := AugmentPackageVars(graph, program); err != nil {
+			return err
+		}
+		if err := AugmentFuncArgs(graph, program); err != nil {
+			return err
+		}
+		if err := AugmentMapFuncValues(graph, program); err != nil {
+			return err
+		}
+		return AugmentInterfaceFields(graph, program)
 	case ModeStructField:
 		_, err := AugmentStructField(graph, program)
 		return err

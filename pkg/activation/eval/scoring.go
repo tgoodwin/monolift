@@ -117,6 +117,9 @@ func rtaRepresents(kind activation.EdgeKind) bool {
 		activation.InterfaceDispatch,
 		activation.StructFieldFuncValue,
 		activation.StructLiteralFieldAssignment,
+		activation.PackageVarFuncValue,
+		activation.CallbackRegistration,
+		activation.MapFuncValue,
 		activation.GoroutineLaunch:
 		return true
 	default:

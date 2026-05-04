@@ -106,6 +106,14 @@ Remaining misses are now small and concrete: gitea callback registration, gitea 
 - [`SPRINT-0037-report.md`](../runs/SPRINT-0037-report.md)
 - [`SPRINT-0037-full.json`](../runs/SPRINT-0037-full.json)
 
+### SPRINT-0038: Callback arguments + map-keyed dispatch (done)
+
+Closed the two remaining Gitea algorithm gaps by adding augmentation passes for package-level function/interface variables, function values passed as callback arguments, map-keyed function registries, and the embedded-interface field propagation needed by Gitea's password hash factory.
+
+**Result:** 71/72 reachable (98.6%), up from 69/72. Gitea is now 18/18; `gitea/M-13` resolves through `queue.CreateSimpleQueue` callback registration and package-level `sender_service.Send`, and `gitea/M-16` resolves through `availableHasherFactories` to `NewArgon2Hasher` and then to `(*Argon2Hasher).HashWithSaltBytes`. The only remaining corpus miss is `mattermost/M-4`, still categorized as target-not-found.
+
+- [`SPRINT-0038-final.json`](../runs/SPRINT-0038-final.json)
+
 ## Key finding: RTA-augmentation ordering
 
 **Discovered during SPRINT-0036 investigation.** This is the central architectural issue for the next sprint.
@@ -149,8 +157,6 @@ This fix would likely unblock most of the 22 `StructFieldFuncValue` traces, sinc
 
 ## Next steps
 
-1. **Fix RTA-augmentation ordering** — re-run RTA from augmentation-discovered roots (the key finding above). This is the single highest-leverage change.
-2. **Re-evaluate** — measure how many of the 22 traces actually unblock once the dead-end problem is fixed. The remaining blockers will reveal the true next wall.
-3. **HTTP handler registration** — 5 traces blocked after struct-field is resolved. Pattern: `mux.Handle("/path", handler)` → framework invokes `handler.ServeHTTP`.
-4. **Closure capture** — 2 traces blocked. Caddy middleware chains, mattermost worker structs.
-5. **Channel flow** — 1 trace blocked. Mattermost queue dispatch pattern.
+1. **Mattermost/M-4 target loading** — the remaining corpus miss is target-not-found rather than an unresolved activation edge.
+2. **Path quality** — Tier 1 reachability is effectively saturated; remaining work should focus on shorter or more trace-faithful paths.
+3. **Taxonomy cleanup** — fold the new package-var and map-dispatch edge kinds into the written normalized taxonomy.

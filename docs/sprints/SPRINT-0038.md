@@ -1,6 +1,6 @@
 # SPRINT-0038 — Close remaining gitea gaps: callback arguments + map-keyed dispatch
 
-**Status:** planned
+**Status:** done
 **Executor:** TBD
 **Predecessor:** SPRINT-0037 (69/72 reachable, 95.8%)
 
@@ -46,38 +46,38 @@ The analyzer needs: track function values stored into maps via assignment/store,
 
 Package-level variables holding function/interface values are a simpler version of struct-field tracking. Gitea/M-13 needs this for `var sender sender_service.Sender`.
 
-- [ ] **0.1** Implement `AugmentPackageVars(graph *Graph, program *Program)` in `pkg/activation/pkgvar.go`. Scan all `init` functions and package-level `*ssa.Store` instructions for stores to `*ssa.Global` where the stored value has a function or interface type. Record `global → []*ssa.Function` mappings.
-- [ ] **0.2** Scan for loads from the same globals followed by calls (method calls on the loaded interface value, or direct calls if it's a function type). Add edges from the calling function to each stored concrete function/implementation.
-- [ ] **0.3** Fixture test: package-level `var handler func()` set in `init()`, called from `main()`. Verify edge is found.
-- [ ] **0.4** Update `rtaRepresents()` to accept `CallbackRegistration` edge kind (used for this pattern).
+- [x] **0.1** Implement `AugmentPackageVars(graph *Graph, program *Program)` in `pkg/activation/pkgvar.go`. Scan all `init` functions and package-level `*ssa.Store` instructions for stores to `*ssa.Global` where the stored value has a function or interface type. Record `global → []*ssa.Function` mappings.
+- [x] **0.2** Scan for loads from the same globals followed by calls (method calls on the loaded interface value, or direct calls if it's a function type). Add edges from the calling function to each stored concrete function/implementation.
+- [x] **0.3** Fixture test: package-level `var handler func()` set in `init()`, called from `main()`. Verify edge is found.
+- [x] **0.4** Update `rtaRepresents()` to accept `CallbackRegistration` edge kind (used for this pattern).
 
 ### Phase 1 — Function-value-as-argument tracking
 
 When a function value is passed as an argument to a callee, and the callee stores or invokes it. Gitea/M-13 needs this for `queue.CreateSimpleQueue(ctx, "mail", handlerFunc)`.
 
-- [ ] **1.1** Implement `AugmentFuncArgs(graph *Graph, program *Program)` in `pkg/activation/funcarg.go`. Scan for `*ssa.Call` instructions where one of the arguments has a function type (is a `*ssa.Function`, `*ssa.MakeClosure`, or has `func` type). For each such call, check if the callee stores the argument into a struct field or invokes it. If so, add an edge from the callee (or a function that later invokes the stored value) to the argument function.
-- [ ] **1.2** Simpler alternative if 1.1 is too complex: scan for function-typed arguments passed to any call, and add a `CallbackRegistration` edge from the callee to the passed function. This over-approximates but is sufficient for queue-handler patterns.
-- [ ] **1.3** Fixture test: `registerHandler(myFunc)` where `registerHandler` stores and later invokes the function. Verify edge is found.
+- [x] **1.1** Implement `AugmentFuncArgs(graph *Graph, program *Program)` in `pkg/activation/funcarg.go`. Scan for `*ssa.Call` instructions where one of the arguments has a function type (is a `*ssa.Function`, `*ssa.MakeClosure`, or has `func` type). For each such call, check if the callee stores the argument into a struct field or invokes it. If so, add an edge from the callee (or a function that later invokes the stored value) to the argument function.
+- [x] **1.2** Simpler alternative if 1.1 is too complex: scan for function-typed arguments passed to any call, and add a `CallbackRegistration` edge from the callee to the passed function. This over-approximates but is sufficient for queue-handler patterns. (Superseded by 1.1.)
+- [x] **1.3** Fixture test: `registerHandler(myFunc)` where `registerHandler` stores and later invokes the function. Verify edge is found.
 
 ### Phase 2 — Map-keyed function-value tracking
 
 Function values stored in maps and dispatched by key lookup. Gitea/M-16 needs this for `availableHasherFactories`.
 
-- [ ] **2.1** Implement `AugmentMapFuncValues(graph *Graph, program *Program)` in `pkg/activation/mapfunc.go`. Scan for `*ssa.MapUpdate` instructions where the value operand has a function type. Record `(mapType) → []*ssa.Function` mappings.
-- [ ] **2.2** Scan for `*ssa.Lookup` on the same map type followed by a `*ssa.Call` where the looked-up value is the callee. Add edges from the calling function to each function stored in that map.
-- [ ] **2.3** Handle the `Register` wrapper pattern: when the stored value is a closure created inside `Register[T]()` that wraps the `newFn` parameter, trace through the closure to the original argument passed to `Register`/`MustRegister`.
-- [ ] **2.4** Fixture test: `registry["key"] = myFunc` then `f := registry["key"]; f()`. Verify edge is found.
-- [ ] **2.5** Update `rtaRepresents()` to accept any new edge kinds used for map dispatch.
+- [x] **2.1** Implement `AugmentMapFuncValues(graph *Graph, program *Program)` in `pkg/activation/mapfunc.go`. Scan for `*ssa.MapUpdate` instructions where the value operand has a function type. Record `(mapType) → []*ssa.Function` mappings.
+- [x] **2.2** Scan for `*ssa.Lookup` on the same map type followed by a `*ssa.Call` where the looked-up value is the callee. Add edges from the calling function to each function stored in that map.
+- [x] **2.3** Handle the `Register` wrapper pattern: when the stored value is a closure created inside `Register[T]()` that wraps the `newFn` parameter, trace through the closure to the original argument passed to `Register`/`MustRegister`.
+- [x] **2.4** Fixture test: `registry["key"] = myFunc` then `f := registry["key"]; f()`. Verify edge is found.
+- [x] **2.5** Update `rtaRepresents()` to accept any new edge kinds used for map dispatch.
 
 ### Phase 3 — Wire into augmentation loop + evaluate
 
-- [ ] **3.1** Add the new passes to `Augment()` in `augment.go`, called within the iterative convergence loop so newly-explored code feeds back into discovery.
-- [ ] **3.2** Run evaluation on gitea only. Verify M-13 and M-16 are now reachable.
-- [ ] **3.3** Run full 72-trace evaluation with all augmentations. Save to `docs/research/runs/SPRINT-0038-final.json`. Target: 71/72 (mattermost/M-4 remains target-not-found).
-- [ ] **3.4** Verify no regressions: all 69 previously-reachable traces must stay reachable.
-- [ ] **3.5** Verify determinism: run twice, diff JSONs.
-- [ ] **3.6** Run `go test ./pkg/activation/...` — all pass.
-- [ ] **3.7** Update `docs/research/activation-paths/README.md` with SPRINT-0038 summary.
+- [x] **3.1** Add the new passes to `Augment()` in `augment.go`, called within the iterative convergence loop so newly-explored code feeds back into discovery.
+- [x] **3.2** Run evaluation on gitea only. Verify M-13 and M-16 are now reachable.
+- [x] **3.3** Run full 72-trace evaluation with all augmentations. Save to `docs/research/runs/SPRINT-0038-final.json`. Target: 71/72 (mattermost/M-4 remains target-not-found).
+- [x] **3.4** Verify no regressions: all 69 previously-reachable traces must stay reachable.
+- [x] **3.5** Verify determinism: run twice, diff JSONs.
+- [x] **3.6** Run `go test ./pkg/activation/...` — all pass.
+- [x] **3.7** Update `docs/research/activation-paths/README.md` with SPRINT-0038 summary.
 
 ## Acceptance criteria
 

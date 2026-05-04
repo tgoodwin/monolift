@@ -14,6 +14,7 @@ docs/research/runs/*.json
 !docs/research/runs/SPRINT-0028-mattermost-oracle.json
 !docs/research/runs/SPRINT-0035-rta-baseline.json
 !docs/research/runs/SPRINT-0037-full.json
+!docs/research/runs/SPRINT-0038-final.json
 
 # Local external target checkouts; evaluation/MANIFEST.yaml is tracked.
 evaluation/*/

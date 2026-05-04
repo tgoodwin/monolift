@@ -10,6 +10,8 @@ const (
 	DirectCall                   EdgeKind = "DirectCall"
 	ConcreteMethodCall           EdgeKind = "ConcreteMethodCall"
 	StructFieldFuncValue         EdgeKind = "StructFieldFuncValue"
+	PackageVarFuncValue          EdgeKind = "PackageVarFuncValue"
+	MapFuncValue                 EdgeKind = "MapFuncValue"
 	InterfaceDispatch            EdgeKind = "InterfaceDispatch"
 	GoroutineLaunch              EdgeKind = "GoroutineLaunch"
 	HTTPHandlerRegistration      EdgeKind = "HTTPHandlerRegistration"
@@ -89,6 +91,12 @@ var exactTraceEdgeKinds = map[string]EdgeKind{
 	"function-value-parameter-invocation":                    CallbackRegistration,
 	"function-value-argument-call":                           CallbackRegistration,
 	"function-value-as-argument-stored-in-struct-field":      StructFieldFuncValue,
+	"call-through-package-level-function-variable":           PackageVarFuncValue,
+	"package-level-function-variable-call":                   PackageVarFuncValue,
+	"package-level-var-dispatch":                             PackageVarFuncValue,
+	"map-indexed-function-value-call":                        MapFuncValue,
+	"map-keyed-function-value-call":                          MapFuncValue,
+	"function-value-in-map":                                  MapFuncValue,
 }
 
 // CanonicalizeTraceEdgeKind maps edge_type strings from the SPRINT-0034 JSON
@@ -112,6 +120,10 @@ func CanonicalizeTraceEdgeKind(raw string) EdgeKindMapping {
 		return EdgeKindMapping{Raw: raw, Kind: StructLiteralFieldAssignment}
 	case strings.Contains(cleaned, "struct-field") || strings.Contains(cleaned, "function-field"):
 		return EdgeKindMapping{Raw: raw, Kind: StructFieldFuncValue}
+	case strings.Contains(cleaned, "package-level") || strings.Contains(cleaned, "global-variable"):
+		return EdgeKindMapping{Raw: raw, Kind: PackageVarFuncValue}
+	case strings.Contains(cleaned, "map-indexed") || strings.Contains(cleaned, "map-keyed") || strings.Contains(cleaned, "registry"):
+		return EdgeKindMapping{Raw: raw, Kind: MapFuncValue}
 	case strings.Contains(cleaned, "channel") || strings.Contains(cleaned, "queue"):
 		return EdgeKindMapping{Raw: raw, Kind: ChannelFlow}
 	case strings.Contains(cleaned, "goroutine"):
