@@ -52,9 +52,14 @@ glance" block; readers who want the implementation can keep going.
   the paper's commitment to refusing lifts the compiler cannot
   distribute reliably is kept, and made concrete through a named set of
   refusal codes.
-- [**Recovering activation paths**](entrypath-bridge.md) —
-  why the compiler needs an activation graph between application roots
-  and region roots before it can choose a distribution cut point.
+- [**Recovering activation paths**](activation-paths.md) —
+  how the compiler recovers the path from `main()` to a lifted
+  function, so it knows where to place the network boundary.
+  Designed empirically: 72 ground-truth traces across 6 codebases
+  guided incremental algorithm development to 71/72 coverage.
+- [**Prior approach: bridge search**](entrypath-bridge.md) —
+  the earlier bridge-based strategy that preceded the corpus-driven
+  algorithm. Retained for historical context.
 - [**What's changing after the initial workshop paper**](v1-to-v2.md) —
   the contract renegotiation, traced on a single function that was
   refused under v1 and is admitted under v2.
