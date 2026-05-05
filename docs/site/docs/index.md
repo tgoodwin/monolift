@@ -57,9 +57,6 @@ glance" block; readers who want the implementation can keep going.
   function, so it knows where to place the network boundary.
   Designed empirically: 72 ground-truth traces across 6 codebases
   guided incremental algorithm development to 71/72 coverage.
-- [**Prior approach: bridge search**](entrypath-bridge.md) —
-  the earlier bridge-based strategy that preceded the corpus-driven
-  algorithm. Retained for historical context.
 - [**What's changing after the initial workshop paper**](v1-to-v2.md) —
   the contract renegotiation, traced on a single function that was
   refused under v1 and is admitted under v2.

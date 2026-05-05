@@ -42,7 +42,7 @@ compiler.
 - **`pkg/compiler/entrypath/`** — bounded activation-path discovery for
   lifted regions. Builds callgraph touchpoints, bridge owners,
   activation-handoff evidence, and a scoped function-reference index.
-  See [Recovering activation paths](entrypath-bridge.md).
+  See [Recovering activation paths](activation-paths.md).
 - **`pkg/compiler/embeds/`** — embedded template assets referenced by
   artifact emission.
 
