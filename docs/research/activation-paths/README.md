@@ -114,6 +114,16 @@ Closed the two remaining Gitea algorithm gaps by adding augmentation passes for 
 
 - [`SPRINT-0038-final.json`](../runs/SPRINT-0038-final.json)
 
+### SPRINT-0039: Cut-placement analysis (done)
+
+Scored every activation-path node as a candidate network boundary across the 72-trace corpus, using six dimensions: extraction surface, boundary data, state reconstruction, callbacks, error semantics, and edge alignment. The analysis includes 71 full per-trace cut tables plus the accepted `mattermost/M-4` gap note, six project summaries, a master recommendation table, corpus statistics, and open-question answers.
+
+**Result:** Deep cuts dominate: 65/71 reachable recommendations are at depth `>= 0.75`, and the median recommended depth is the region root. Boundary data is the decisive gate; strong edges are useful evidence only after proxy-required and infeasible values are handled.
+
+- [`analyses/`](analyses/)
+- [`analyses/recommended-cuts.md`](analyses/recommended-cuts.md)
+- [`cut-placement-synthesis.md`](cut-placement-synthesis.md)
+
 ## Key finding: RTA-augmentation ordering
 
 **Discovered during SPRINT-0036 investigation.** This is the central architectural issue for the next sprint.
