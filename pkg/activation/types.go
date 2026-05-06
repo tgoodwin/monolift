@@ -85,6 +85,7 @@ type Result struct {
 	Target      *Node         `json:"target,omitempty"`
 	Entrypoints []*Node       `json:"entrypoints,omitempty"`
 	Path        *Path         `json:"path,omitempty"`
+	Cut         *CutResult    `json:"cut,omitempty"`
 	PartialPath *PartialPath  `json:"partial_path,omitempty"`
 	Diagnostics []Diagnostic  `json:"diagnostics,omitempty"`
 	Timings     []PhaseTiming `json:"timings,omitempty"`
