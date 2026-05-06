@@ -9,6 +9,51 @@ reader's entry point and tells the story that no single ADR can.
 
 ---
 
+## 2026-05-05 — Cut-placement analyzer: where the network boundary goes
+
+SPRINT-0039 established the research question — given an activation path from
+`main()` to a lift target, where should the compiler introduce the network
+boundary? — and answered it empirically across 72 traces from 6 codebases.
+Six scoring dimensions (extraction surface area, boundary-data complexity,
+state reconstruction cost, callback frequency, error semantics, edge-type
+alignment) and a decision-tree ranking emerged from the data. The strongest
+finding: deep cuts dominate (mean recommended depth 0.924, median 1.0).
+
+SPRINT-0040 implemented the analyzer (`AnalyzeCut` in `pkg/activation/`).
+Corpus-driven iteration surfaced three design corrections that would not have
+been visible from the research alone:
+
+- **Surface area must rank first among soft dimensions.** The initial
+  implementation ranked callbacks first, causing shallow bootstrap functions
+  (stateless, zero callbacks, VeryLarge surface) to beat deep service
+  functions. The corpus showed this immediately — PocketBase picked
+  `log.Fatal` at step 1 for all 11 traces.
+
+- **Receivers are state, not boundary data.** Classifying receiver types
+  as boundary data hard-gated most Mattermost candidates as infeasible
+  (the `*App` struct contains mutexes and func fields). But the receiver
+  is reconstructed on the remote side, not serialized across the wire.
+  Excluding it from boundary-data classification and handling it under
+  state reconstruction eliminated the false rejections.
+
+- **Stdlib and framework internals are not lift candidates.** The
+  activation path traverses functions from `fmt`, `net/http`, `protobuf`,
+  and other dependencies that have simple boundary data but are never the
+  code a developer wants to extract. Filtering to the project's Go module
+  eliminated these false positives.
+
+The evaluation taxonomy revealed four categories of divergence between the
+automated analyzer and human judgment: step-numbering misalignment (13 cases,
+innocuous — same function, different path structure), known-type refinements
+needed (18 cases, fixable with type-walker overrides), proxy preference
+design questions (6 cases, whether to accept HTTP streaming proxies for
+middleware targets), and legitimate algorithmic differences (18 cases, the
+analyzer optimizes a different dimension than the human reviewer prioritized).
+
+**Primary artifacts:** [`cut-placement-brief.md`](research/activation-paths/cut-placement-brief.md) · [`cut-placement-synthesis.md`](research/activation-paths/cut-placement-synthesis.md) · [`cut-placement-evaluation.md`](research/activation-paths/cut-placement-evaluation.md) · `pkg/activation/cut.go` · `docs/sprints/SPRINT-0039.md` · `docs/sprints/SPRINT-0040.md`
+
+---
+
 ## 2026-04-22 — Classifier-test performance + callgraph reuse
 
 SPRINT-0010-CLASSIFIER-PERF landed the two test-memory fixes deferred from SPRINT-0009 (`shape.test` at 12 GB RSS; `extract.test` OOM on the PocketBase corpus lane) and built the verification substrate that unblocks every future perf-sensitive change.
