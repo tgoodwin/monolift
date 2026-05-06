@@ -53,7 +53,7 @@ Three corpus-driven corrections reshaped the algorithm during iteration:
 71 reachable traces across 6 codebases (mattermost/M-4 skipped as a
 structural target-loading gap).
 
-| Project | Traces | Exact | Step-name match | Other acceptable | Disagreements | Mean |Δ| |
+| Project | Traces | Exact | Step-name match | Other acceptable | Disagreements | Mean step distance |
 |---|---|---|---|---|---|---|
 | Caddy | 6 | 1 | 2 | 3 | 0 | 5.2 |
 | Miniflux | 12 | 7 | 4 | 1 | 0 | 0.8 |
