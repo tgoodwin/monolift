@@ -47,7 +47,7 @@ Primary artifacts:
 
 - Weighting: use gates and a decision tree, not a scalar score.
 - Composite cuts: useful in roughly 10-15 traces, especially queue handler + service leaf and hook method + concrete continuation pairs.
-- Feasibility model: hard-gate function values/runtime handles; soft-score streams, writers, and channels as proxy-required.
+- Feasibility model: hard-gate function values/runtime handles. Streaming types (ResponseWriter, io.Writer) at the cut point are a signal to cut deeper, not a proxy-required classification — the monolith is the gateway and handles HTTP lifecycle (ADR-0028). FeasibleWithProxy retired as a category.
 - Path-local vs. graph-global: no duplicate region roots appear in this corpus, but queue families show why later graph-global merging is needed.
 - Liftability integration: ADR-0018 properties align well; `boundary.no-streaming-values` and `contract.error-last` should feed cut placement directly.
 

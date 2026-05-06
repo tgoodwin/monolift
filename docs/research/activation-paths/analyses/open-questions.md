@@ -35,18 +35,27 @@ Hard gates:
 - Mutexes, wait groups, process managers, cancellation functions, and runtime lifecycle handles.
 - Function factories where the returned function is the boundary value.
 
-Soft proxy scores:
+Cut-deeper signals (formerly "soft proxy scores", retired by ADR-0028):
 
-- `http.ResponseWriter`, response recorders, and request bodies.
-- `io.Reader`/`io.Writer`, archive streams, filesystem handles, multipart streams.
-- Channels and queue runtime objects when the channel itself, not just the payload, crosses.
+- `http.ResponseWriter`, response recorders, and request bodies — the monolith
+  is the gateway and handles HTTP lifecycle. These at the cut point mean the
+  cut is too shallow.
+- `io.Reader`/`io.Writer`, archive streams, filesystem handles, multipart
+  streams — a transport-selection question (buffer vs. streaming RPC), not a
+  cut-placement question. Covered by ADR-0018 `boundary.no-streaming-values`.
+- Channels and queue runtime objects — do not appear at deep cuts in practice.
+  The channel edge is above the cut (dispatch mechanism); the function below
+  receives the payload as a regular parameter.
 
 Ordinary scoring inputs:
 
 - `context.Context`, primitives, strings, byte slices, exported/domain structs, slices/maps of serializable values.
 - DB, Git, HTTP, mailer, S3, filesystem, and indexer clients that can be reconstructed from config.
 
-The proposed compiler model is two-tiered: first apply hard gates and proxy classification, then score remaining candidates. Proxy-required candidates should remain selectable only when the target shape is inherently streaming or middleware-based.
+The compiler model is: apply hard gates, then score remaining candidates.
+The former FeasibleWithProxy category is retired (ADR-0028) — streaming types
+at the cut point are treated as a signal to cut deeper rather than as a
+separate feasibility class.
 
 ## Path-Local vs. Graph-Global
 

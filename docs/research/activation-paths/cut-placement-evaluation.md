@@ -118,7 +118,7 @@ Representative cases:
 walking, known-type overrides for `*sql.DB`, `*http.Client`, etc.) would
 resolve most of these. This is the clearest improvement target.
 
-### Proxy preference (6 cases: 4 acceptable, 2 disagreements)
+### Proxy preference (6 cases: 4 acceptable, 2 disagreements) — resolved by ADR-0028
 
 The ground truth recommends a FeasibleWithProxy cut (typically an HTTP
 middleware function carrying `http.ResponseWriter`), but the analyzer
@@ -133,13 +133,12 @@ prefers an ordinary Feasible candidate at a shallower point.
 | pocketbase/M-7 | `send` (feasible) | `send` (proxy, -5) | Classified as proxy |
 | pocketbase/M-9 | `safeFileFromURL` (feasible) | `safeFileFromURL` (proxy, -8) | Classified as proxy |
 
-**Implication:** This is a design question, not a bug. The research
-identified the "HTTP/Request Shell Escape" archetype — when the lift
-target is inherently HTTP middleware, accepting a streaming proxy is
-the right engineering choice. The analyzer currently prefers ordinary
-feasibility, which avoids proxy complexity but misses the intended
-cut. A future refinement could allow proxy-required candidates to win
-when the target function itself is in the HTTP handler chain.
+**Resolution (ADR-0028):** The monolith is the gateway — it handles
+HTTP lifecycle, and only the cut-point function's parameters/returns
+cross the network. FeasibleWithProxy is retired as a category. Streaming
+types at the cut point are a signal to cut deeper. These 6 traces are
+reclassified as cases where the developer would target the domain
+function below the middleware, not the middleware itself.
 
 ### Algorithm chose a different nearby function (18 cases, all acceptable)
 
@@ -171,20 +170,25 @@ different dimension than the human reviewer prioritized.
 
 ## Design questions surfaced
 
-1. **Should the analyzer accept proxy-required cuts for HTTP middleware
-   targets?** The current policy prefers ordinary feasibility. The
-   research says both are valid — the "HTTP Shell Escape" archetype
-   exists because sometimes the proxy is worth accepting.
+1. **FeasibleWithProxy is retired (ADR-0028).** The monolith serves as
+   the gateway after lifting — clients still hit the original API surface,
+   and only the cut-point function's parameters/returns cross the network.
+   Streaming types at the cut point (`http.ResponseWriter`, `io.Writer`)
+   are a signal to cut deeper, not to add a proxy. The three-way
+   classification collapses to Feasible / Infeasible. The 6 proxy-preference
+   traces are reclassified as cases where the developer would target the
+   domain function below the middleware, not the middleware itself.
 
 2. **Should anonymous closures and compiler-generated functions be
    candidate cut points?** The SSA representation includes them, and
    they sometimes score well, but they are not functions a developer
-   would recognize as lift targets.
+   would recognize as lift targets. Possibly addressable via a sourcemap
+   approach that presents the decision in terms of the original source.
 
 3. **How should the corpus harness handle step-numbering misalignment?**
    Matching by function name rather than step index would reclassify
    13 acceptable divergences as exact matches, bringing the total to
-   29/71 exact.
+   29/71 exact. The current delta-reporting approach is adequate for now.
 
 ## Iteration history
 
