@@ -35,24 +35,25 @@ func bad(callback func()) {}
 	}
 }
 
-func TestAnalyzeCutClassifiesProxyRequiredBoundaryData(t *testing.T) {
+func TestAnalyzeCutRejectsResponseWriterAsInfeasible(t *testing.T) {
 	cut := analyzeSyntheticCut(t, `
 package main
 
 import "net/http"
 
 func entry() {}
-func proxy(w http.ResponseWriter) {}
+func handler(w http.ResponseWriter) {}
 `, []syntheticStep{
 		{name: "entry"},
-		{name: "proxy", edge: HTTPHandlerRegistration},
+		{name: "handler", edge: HTTPHandlerRegistration},
 	})
 
-	if cut.Recommended == nil {
-		t.Fatal("Recommended = nil, want proxy candidate")
+	if cut.Recommended != nil {
+		t.Fatalf("expected no recommendation (ResponseWriter means cut too shallow per ADR-0028), got %+v", cut.Recommended)
 	}
-	if cut.Recommended.BoundaryData != ProxyRequired || cut.Recommended.Feasibility != FeasibleWithProxy {
-		t.Fatalf("recommended = %+v, want proxy-required feasible-with-proxy", cut.Recommended)
+	candidate := candidateByStep(t, cut.Candidates, 1)
+	if candidate.Feasibility != Infeasible {
+		t.Fatalf("feasibility = %s, want Infeasible (ADR-0028)", candidate.Feasibility)
 	}
 }
 
@@ -301,7 +302,7 @@ func entry() {}
 func target(s Stream) {}
 `,
 			function:     "target",
-			wantBoundary: ProxyRequired,
+			wantBoundary: BoundaryInfeasible, // streaming interface at cut point per ADR-0028
 		},
 		{
 			name: "pointer receiver with sync field",

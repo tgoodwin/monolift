@@ -1,12 +1,14 @@
 package activation
 
-// CutFeasibility classifies whether a candidate boundary can be implemented
-// directly, with a proxy, or not at all.
+// CutFeasibility classifies whether a candidate boundary can be implemented.
+// FeasibleWithProxy is retained for backward compatibility but no longer
+// produced by the analyzer (ADR-0028: streaming types at the cut point are
+// Infeasible, signaling "cut deeper").
 type CutFeasibility string
 
 const (
 	Feasible          CutFeasibility = "Feasible"
-	FeasibleWithProxy CutFeasibility = "FeasibleWithProxy"
+	FeasibleWithProxy CutFeasibility = "FeasibleWithProxy" // retained for JSON compat; not produced
 	Infeasible        CutFeasibility = "Infeasible"
 )
 

@@ -101,10 +101,8 @@ func buildCutCandidates(path *Path, cut *CutResult) []CutCandidate {
 		boundary, boundaryReasons := classifyBoundaryData(node.Func)
 		callbacks := classifyCallbacks(node.Func, nodesAboveCut(path, stepIndex))
 		feasibility := Feasible
-		if boundary == BoundaryInfeasible {
+		if boundary == BoundaryInfeasible || boundary == ProxyRequired {
 			feasibility = Infeasible
-		} else if boundary == ProxyRequired {
-			feasibility = FeasibleWithProxy
 		}
 		if feasibility != Infeasible && !isProjectPackage(node.Package, projectModule) {
 			feasibility = Infeasible
@@ -187,14 +185,6 @@ func betterCutCandidate(a, b CutCandidate) bool {
 		}
 		return cutTieBreak(a, b)
 	}
-	if a.Feasibility != b.Feasibility {
-		if a.Feasibility == Feasible && b.Feasibility == FeasibleWithProxy {
-			return !ordinaryMateriallyWorseOnCallbacksOrState(a, b)
-		}
-		if a.Feasibility == FeasibleWithProxy && b.Feasibility == Feasible {
-			return ordinaryMateriallyWorseOnCallbacksOrState(b, a)
-		}
-	}
 	// Surface area ranks first among soft dimensions. The corpus shows mean
 	// recommended depth 0.924 — deep cuts dominate. Without this priority,
 	// shallow bootstrap functions (stateless, zero callbacks, VeryLarge surface)
@@ -219,17 +209,6 @@ func betterCutCandidate(a, b CutCandidate) bool {
 		return a.Feasibility == Feasible
 	}
 	return cutTieBreak(a, b)
-}
-
-func ordinaryMateriallyWorseOnCallbacksOrState(ordinary, proxy CutCandidate) bool {
-	if callbackRank(ordinary.Callbacks) > callbackRank(proxy.Callbacks) {
-		return true
-	}
-	if callbackRank(ordinary.Callbacks) == callbackRank(proxy.Callbacks) &&
-		stateRankForSort(ordinary.State) > stateRankForSort(proxy.State) {
-		return true
-	}
-	return false
 }
 
 func cutTieBreak(a, b CutCandidate) bool {
@@ -292,10 +271,7 @@ func decisiveDifference(best, other CutCandidate) string {
 		return "competitor failed the boundary-data hard gate"
 	}
 	if best.Feasibility != other.Feasibility {
-		if best.Feasibility == Feasible {
-			return "ordinary feasibility was preferred over proxy-required boundary data"
-		}
-		return "proxy-required boundary won because callbacks or state were materially better"
+		return "feasible candidate was preferred over infeasible"
 	}
 	if surfaceRank(best.Surface) != surfaceRank(other.Surface) {
 		return fmt.Sprintf("surface %s beat %s", best.Surface, other.Surface)

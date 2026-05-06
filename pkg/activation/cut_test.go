@@ -215,35 +215,6 @@ func TestCutRankingDecisionDimensions(t *testing.T) {
 			}(),
 		},
 		{
-			name: "ordinary feasible beats comparable proxy",
-			winner: func() CutCandidate {
-				c := base("ordinary")
-				c.Surface = VeryLarge
-				c.EdgeAlign = Anti
-				return c
-			}(),
-			loser: func() CutCandidate {
-				c := base("proxy")
-				c.Feasibility = FeasibleWithProxy
-				c.BoundaryData = ProxyRequired
-				return c
-			}(),
-		},
-		{
-			name: "proxy wins when ordinary callbacks are materially worse",
-			winner: func() CutCandidate {
-				c := base("proxy")
-				c.Feasibility = FeasibleWithProxy
-				c.BoundaryData = ProxyRequired
-				return c
-			}(),
-			loser: func() CutCandidate {
-				c := base("ordinary")
-				c.Callbacks = Low
-				return c
-			}(),
-		},
-		{
 			name: "deeper step wins exact tie",
 			winner: func() CutCandidate {
 				c := base("deep")

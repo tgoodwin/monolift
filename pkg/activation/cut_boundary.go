@@ -93,7 +93,7 @@ func classifyBoundaryType(typ types.Type, seen map[types.Type]bool) (BoundaryDat
 	case *types.Signature:
 		return BoundaryInfeasible, "function value cannot cross a network boundary"
 	case *types.Chan:
-		return ProxyRequired, "channel requires a synchronization proxy"
+		return BoundaryInfeasible, "channel at cut point means cut is too shallow (ADR-0028)"
 	case *types.Pointer:
 		if class, reason, ok := knownBoundaryType(t.Elem()); ok {
 			return class, reason
@@ -154,6 +154,10 @@ func classifyBoundaryStruct(strct *types.Struct, seen map[types.Type]bool) (Boun
 	reasons := make([]string, 0, strct.NumFields())
 	for i := 0; i < strct.NumFields(); i++ {
 		field := strct.Field(i)
+		if isSyncPrimitive(field.Type()) {
+			reasons = append(reasons, fmt.Sprintf("%s=skip (sync primitive, zero-initializable on remote side)", field.Name()))
+			continue
+		}
 		class, reason := classifyBoundaryType(field.Type(), seen)
 		if !field.Exported() && !field.Embedded() && class == Trivial {
 			class = Serializable
@@ -196,8 +200,8 @@ func classifyBoundaryInterface(iface *types.Interface, seen map[types.Type]bool)
 			continue
 		}
 		if proxyLikeInterfaceMethod(method.Name(), signature) {
-			worst = worseBoundaryClass(worst, ProxyRequired)
-			reasons = append(reasons, fmt.Sprintf("%s=%s", method.Name(), ProxyRequired))
+			worst = worseBoundaryClass(worst, BoundaryInfeasible)
+			reasons = append(reasons, fmt.Sprintf("%s=%s (streaming method per ADR-0028)", method.Name(), BoundaryInfeasible))
 			continue
 		}
 		class := classifyBoundaryMethodSignature(signature, seen)
@@ -265,14 +269,14 @@ func knownBoundaryType(typ types.Type) (BoundaryDataClass, string, bool) {
 		}
 	case "io":
 		if name == "Reader" || name == "Writer" || name == "ReadCloser" || name == "WriteCloser" {
-			return ProxyRequired, "streaming IO requires a proxy", true
+			return BoundaryInfeasible, "streaming IO at cut point means cut is too shallow (ADR-0028)", true
 		}
 	case "net/http":
 		switch name {
 		case "ResponseWriter":
-			return ProxyRequired, "http.ResponseWriter requires a proxy", true
+			return BoundaryInfeasible, "http.ResponseWriter at cut point means cut is too shallow (ADR-0028)", true
 		case "Request":
-			return ProxyRequired, "http.Request carries live request state", true
+			return Serializable, "http.Request can be serialized for RPC", true
 		case "Client":
 			return Reconstructible, "HTTP client can be reconstructed from config", true
 		}
@@ -293,7 +297,7 @@ func knownBoundaryType(typ types.Type) (BoundaryDataClass, string, bool) {
 		case "Process":
 			return BoundaryInfeasible, "process handle cannot cross a network boundary", true
 		case "File":
-			return ProxyRequired, "file handle requires an IO proxy", true
+			return BoundaryInfeasible, "file handle at cut point means cut is too shallow (ADR-0028)", true
 		}
 	case "sync":
 		switch name {
@@ -306,10 +310,31 @@ func knownBoundaryType(typ types.Type) (BoundaryDataClass, string, bool) {
 		}
 	}
 
+	if frameworkContextType(pkgPath, name) {
+		return Reconstructible, "framework context can be reconstructed from request data", true
+	}
 	if pointer && configBackedTypeName(name) {
 		return Reconstructible, "config-backed service type can be reconstructed", true
 	}
 	return "", "", false
+}
+
+func frameworkContextType(pkgPath, name string) bool {
+	switch {
+	case pkgPath == "github.com/labstack/echo/v4" && name == "Context":
+		return true
+	case pkgPath == "github.com/labstack/echo" && name == "Context":
+		return true
+	case strings.HasSuffix(pkgPath, "/context") && (name == "Context" || name == "APIContext" || name == "PrivateContext" || name == "ResponseWriter"):
+		return true
+	case strings.HasSuffix(pkgPath, "/request") && name == "CTX":
+		return true
+	case pkgPath == "github.com/spf13/cobra" && name == "Command":
+		return true
+	case strings.HasSuffix(pkgPath, "/core") && (name == "App" || name == "RequestEvent" || name == "Record"):
+		return true
+	}
+	return false
 }
 
 func tupleValueLabel(prefix string, index int, value *types.Var) string {
@@ -384,3 +409,4 @@ func configBackedTypeName(name string) bool {
 	}
 	return false
 }
+

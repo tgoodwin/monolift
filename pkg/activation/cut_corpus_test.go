@@ -363,7 +363,7 @@ func parseFeasibilityClass(t *testing.T, cell string) activation.CutFeasibility 
 	case "feasible":
 		return activation.Feasible
 	case "feasible-with-proxy":
-		return activation.FeasibleWithProxy
+		return activation.Feasible // ADR-0028: FeasibleWithProxy retired, treat as Feasible
 	case "infeasible", "-":
 		return activation.Infeasible
 	default:
