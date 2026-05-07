@@ -98,7 +98,7 @@ This sprint creates new templates in `pkg/codegen/`, reusing `emit.FieldSpec` fo
 
 - [ ] Implement `RenderServer(plan *Plan) (map[string][]byte, error)` in `pkg/codegen/server.go` using Go templates.
 - [ ] Server template produces a standalone `main.go`: config-driven state reconstruction at startup (reconstruction registry entries for each `ReconstructedParam`), HTTP handler at `POST /invoke` (JSON decode → call cut-point function → JSON encode), `GET /healthz`, configurable listen address via `MONOLIFT_HTTP_ADDR`.
-- [ ] Generated server imports the cut-point function's package directly — no function body copying. The generated `go.mod` must live in the same module or use a replace directive for `internal/` packages.
+- [ ] Generated server imports the cut-point function's package directly — no function body copying. Generated code lives under the source module root so `internal/` imports resolve naturally. No `go.mod` replace directives.
 - [ ] Apply `go/format.Source()` and import sorting to all generated output. Verify with `go vet`.
 - [ ] Golden-file test: render server for miniflux `RefreshFeed`, compare against `pkg/codegen/testdata/miniflux_refreshfeed_server.go.golden`.
 
@@ -107,7 +107,7 @@ This sprint creates new templates in `pkg/codegen/`, reusing `emit.FieldSpec` fo
 - [ ] Implement `RenderClient(plan *Plan) (map[string][]byte, error)` in `pkg/codegen/client.go`.
 - [ ] Client stub template: function matching the cut-point signature, POSTs boundary params as JSON to `MONOLIFT_<SERVICE>_ENDPOINT` (default `http://127.0.0.1:8081/invoke`), decodes response. Gated by `MONOLIFT_LIFT_<SERVICE>=on` env var. Fail-open by default: on remote failure, call the original local function. Fail-closed available via `MONOLIFT_LIFT_FAILMODE=closed`.
 - [ ] Client stub `package` declaration matches the original function's package. Generated file lives in the same package directory.
-- [ ] Callsite patching: locate the incoming cut-edge call expression from `activation.Edge.Position`, verify it resolves to the selected callee, rewrite the AST to call the generated stub function instead. Only patch when `--write-monolith-stub` is set. Verify patched file builds.
+- [ ] Callsite patching using `github.com/dave/dst`: locate the incoming cut-edge call expression from `activation.Edge.Position`, verify it resolves to the selected callee, rewrite the decorated syntax tree to call the generated stub function instead. `dst` preserves comments and formatting around the patched call. Only patch when `--write-monolith-stub` is set. Verify patched file builds.
 - [ ] Golden-file test for client stub. Unit test for callsite patching on a synthetic fixture.
 
 ### Phase 5: Artifact writing and integration test
@@ -146,13 +146,13 @@ Phase 0 must complete first (the Plan type is the contract). Phase 1 wires the p
 
 ## Risks
 
-1. **`internal/` import constraint.** Generated server must import `miniflux.app/v2/internal/storage` and `miniflux.app/v2/internal/locale`. The generated binary must live in the same module or use a `go.mod` replace directive. *Mitigation:* require generated code to live under the source module root for internal-package lifts.
+1. **`internal/` import constraint.** Generated server must import `miniflux.app/v2/internal/storage` and `miniflux.app/v2/internal/locale`. *Mitigation:* generated code must live under the source module root — no `go.mod` replace hacking. The output directory must be within the module tree so `internal/` imports resolve naturally.
 
 2. **Return-type serialization.** `*locale.LocalizedErrorWrapper` embeds an `error` interface. The generated server must decide what to serialize. *Mitigation:* Phase 1 serializes error string + message; fidelity improvements follow.
 
 3. **Liftability false blocking.** The existing `report.Root.Admission` may refuse functions that are actually liftable as HTTP/JSON. *Mitigation:* generator-admission layer separates liftability from HTTP/JSON admissibility, records both.
 
-4. **Callsite rewrite safety.** AST rewriting that preserves surrounding comments and formatting is fragile. *Mitigation:* patch only the single selected call expression; verify the patched file builds; golden-file test the rewrite.
+4. **Callsite rewrite safety.** Standard `go/ast` rewriting does not preserve comments or formatting reliably. *Mitigation:* use `github.com/dave/dst` (Decorated Syntax Tree) which maintains comment and whitespace association across AST mutations. Patch only the single selected call expression; verify the patched file builds; golden-file test the rewrite.
 
 5. **State-reconstruction portability.** If reconstruction is keyed on miniflux-specific config APIs (`config.Opts.DatabaseURL()`), it won't transfer to other codebases. *Mitigation:* key on Go type identity and generic patterns (`DATABASE_URL` env var), not application-specific config helpers.
 
