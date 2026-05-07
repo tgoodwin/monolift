@@ -14,8 +14,8 @@ func TestBuildPlanSanitizeHTMLFixture(t *testing.T) {
 	if plan.CutPoint.FuncName != "SanitizeHTML" {
 		t.Fatalf("func = %s", plan.CutPoint.FuncName)
 	}
-	if len(plan.BoundaryParams) != len(fixture.Contract.RequestFields) {
-		t.Fatalf("boundary param count = %d, want %d", len(plan.BoundaryParams), len(fixture.Contract.RequestFields))
+	if len(plan.BoundaryParams) != 3 {
+		t.Fatalf("boundary param count = %d, want 3", len(plan.BoundaryParams))
 	}
 	assertParam(t, plan.BoundaryParams[0], "baseURL", "base_url", "string")
 	assertParam(t, plan.BoundaryParams[1], "rawHTML", "input", "string")
@@ -37,8 +37,8 @@ func TestBuildPlanRefreshFeedFixture(t *testing.T) {
 	if plan.CutPoint.FuncName != "RefreshFeed" {
 		t.Fatalf("func = %s", plan.CutPoint.FuncName)
 	}
-	if len(plan.BoundaryParams) != len(fixture.Contract.RequestFields) {
-		t.Fatalf("boundary param count = %d, want %d", len(plan.BoundaryParams), len(fixture.Contract.RequestFields))
+	if len(plan.BoundaryParams) != 3 {
+		t.Fatalf("boundary param count = %d, want 3", len(plan.BoundaryParams))
 	}
 	if len(plan.ReconstructedParams) != 1 {
 		t.Fatalf("reconstructed params = %d, want 1", len(plan.ReconstructedParams))
