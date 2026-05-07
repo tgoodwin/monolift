@@ -1,0 +1,79 @@
+package handler
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"miniflux.app/v2/internal/locale"
+	"miniflux.app/v2/internal/storage"
+	"net/http"
+	"os"
+	"time"
+)
+
+type monoliftInvokeRequest struct {
+	UserID       int64 `json:"user_id"`
+	FeedID       int64 `json:"feed_id"`
+	ForceRefresh bool  `json:"force_refresh"`
+}
+
+type monoliftInvokeResponse struct {
+	Error *monoliftLocalizedError `json:"error,omitempty"`
+}
+
+type monoliftLocalizedError struct {
+	Error   string `json:"error,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func RefreshFeed_monolift(store *storage.Storage, userID int64, feedID int64, forceRefresh bool) *locale.LocalizedErrorWrapper {
+	if os.Getenv("MONOLIFT_LIFT_REFRESHFEED") != "on" {
+		return RefreshFeed(store, userID, feedID, forceRefresh)
+	}
+	result, err := monoliftRemoteRefreshFeed(store, userID, feedID, forceRefresh)
+	if err != nil {
+		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
+			return nil
+		}
+		return RefreshFeed(store, userID, feedID, forceRefresh)
+	}
+	return result
+}
+
+func monoliftRemoteRefreshFeed(store *storage.Storage, userID int64, feedID int64, forceRefresh bool) (*locale.LocalizedErrorWrapper, error) {
+	endpoint := os.Getenv("MONOLIFT_REFRESHFEED_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "http://127.0.0.1:8081/invoke"
+	}
+	payload := monoliftInvokeRequest{UserID: userID, FeedID: feedID, ForceRefresh: forceRefresh}
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(payload); err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoint, &body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.New(resp.Status)
+	}
+	var decoded monoliftInvokeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return nil, err
+	}
+	if decoded.Error != nil {
+		message := decoded.Error.Message
+		if message == "" {
+			message = decoded.Error.Error
+		}
+		return locale.NewLocalizedErrorWrapper(errors.New(decoded.Error.Error), message), nil
+	}
+	return nil, nil
+}
