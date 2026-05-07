@@ -28,8 +28,15 @@ type Fixture struct {
 	Cut      activation.CutResult
 }
 
+func SanitizeHTMLFixtureWithSource(repoRoot, moduleRoot string) Fixture {
+	return sanitizeHTMLFixture(moduleRoot)
+}
+
 func SanitizeHTMLFixture(repoRoot string) Fixture {
-	moduleRoot := filepath.Join(repoRoot, "evaluation", "miniflux")
+	return sanitizeHTMLFixture(filepath.Join(repoRoot, "evaluation", "miniflux"))
+}
+
+func sanitizeHTMLFixture(moduleRoot string) Fixture {
 	targetFile := filepath.Join(moduleRoot, "internal", "reader", "sanitizer", "sanitizer.go")
 	contract := MVPContract{
 		Name:         "SanitizeHTML",
@@ -57,8 +64,15 @@ func SanitizeHTMLFixture(repoRoot string) Fixture {
 	}
 }
 
+func RefreshFeedFixtureWithSource(repoRoot, moduleRoot string) Fixture {
+	return refreshFeedFixture(moduleRoot)
+}
+
 func RefreshFeedFixture(repoRoot string) Fixture {
-	moduleRoot := filepath.Join(repoRoot, "evaluation", "miniflux")
+	return refreshFeedFixture(filepath.Join(repoRoot, "evaluation", "miniflux"))
+}
+
+func refreshFeedFixture(moduleRoot string) Fixture {
 	targetFile := filepath.Join(moduleRoot, "internal", "reader", "handler", "handler.go")
 	contract := MVPContract{
 		Name:         "RefreshFeed",

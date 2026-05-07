@@ -16,13 +16,9 @@ import (
 
 func TestSanitizeHTMLFullPipeline(t *testing.T) {
 	root := repoRoot(t)
-	source := filepath.Join(root, "evaluation", "miniflux")
+	source := copySourceToTemp(t, filepath.Join(root, "evaluation", "miniflux"))
 	target := filepath.Join(source, "internal", "reader", "sanitizer", "sanitizer.go") + ":217"
-	output, err := os.MkdirTemp(source, ".monolift-sanitizehtml-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(output) })
+	output := filepath.Join(source, ".monolift-sanitizehtml")
 
 	opts := LiftOptions{
 		Source:      source,
@@ -65,7 +61,6 @@ func TestSanitizeHTMLFullPipeline(t *testing.T) {
 		t.Fatal(err)
 	}
 	applyLiftOptions(plan, opts)
-	t.Cleanup(func() { _ = os.Remove(plan.ClientPath) })
 	plan.Admission = AdmitPlan(plan, cutAdmission)
 	if !plan.Admission.Accepted {
 		t.Fatalf("plan admission refused: %s", plan.Admission.Error())
@@ -95,18 +90,15 @@ func TestSanitizeHTMLFullPipeline(t *testing.T) {
 }
 
 func TestSanitizeHTMLNetworkRoundTrip(t *testing.T) {
-	fixture := SanitizeHTMLFixture(repoRoot(t))
+	root := repoRoot(t)
+	sourceCopy := copySourceToTemp(t, filepath.Join(root, "evaluation", "miniflux"))
+	fixture := SanitizeHTMLFixtureWithSource(root, sourceCopy)
 	plan, err := BuildPlan(fixture.Report, fixture.Cut)
 	if err != nil {
 		t.Fatal(err)
 	}
-	output, err := os.MkdirTemp(plan.SourceModuleRoot, ".monolift-sanitizehtml-network-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(output) })
+	output := filepath.Join(sourceCopy, ".monolift-sanitizehtml-network")
 	applyLiftOptions(plan, LiftOptions{Output: output, ServiceName: "sanitizehtml"})
-	t.Cleanup(func() { _ = os.Remove(plan.ClientPath) })
 	plan.Admission = AdmissionVerdict{Accepted: true, Reasons: []string{"network test"}}
 
 	serverFiles, err := RenderServer(plan)
@@ -228,18 +220,15 @@ func (a pipeAddr) String() string { return string(a) }
 }
 
 func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
-	fixture := RefreshFeedFixture(repoRoot(t))
+	root := repoRoot(t)
+	sourceCopy := copySourceToTemp(t, filepath.Join(root, "evaluation", "miniflux"))
+	fixture := RefreshFeedFixtureWithSource(root, sourceCopy)
 	plan, err := BuildPlan(fixture.Report, fixture.Cut)
 	if err != nil {
 		t.Fatal(err)
 	}
-	output, err := os.MkdirTemp(plan.SourceModuleRoot, ".monolift-refreshfeed-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(output) })
+	output := filepath.Join(sourceCopy, ".monolift-refreshfeed")
 	applyLiftOptions(plan, LiftOptions{Output: output, ServiceName: "refreshfeed"})
-	t.Cleanup(func() { _ = os.Remove(plan.ClientPath) })
 	plan.Admission = AdmissionVerdict{Accepted: true, Reasons: []string{"refreshfeed codegen test"}}
 
 	serverFiles, err := RenderServer(plan)
@@ -278,39 +267,36 @@ func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
 
 func TestLiftCommandSmokeDeterministic(t *testing.T) {
 	root := repoRoot(t)
-	source := filepath.Join(root, "evaluation", "miniflux")
+	origSource := filepath.Join(root, "evaluation", "miniflux")
 	tests := []struct {
-		name      string
-		target    string
-		service   string
-		clientDir string
+		name    string
+		relTarget string
+		service string
+		relClientDir string
 	}{
 		{
-			name:      "sanitizehtml",
-			target:    filepath.Join(source, "internal", "reader", "sanitizer", "sanitizer.go") + ":217",
-			service:   "smoke-sanitizehtml",
-			clientDir: filepath.Join(source, "internal", "reader", "sanitizer"),
+			name:         "sanitizehtml",
+			relTarget:    "internal/reader/sanitizer/sanitizer.go:217",
+			service:      "smoke-sanitizehtml",
+			relClientDir: "internal/reader/sanitizer",
 		},
 		{
-			name:      "refreshfeed",
-			target:    filepath.Join(source, "internal", "reader", "handler", "handler.go") + ":207",
-			service:   "smoke-refreshfeed",
-			clientDir: filepath.Join(source, "internal", "reader", "handler"),
+			name:         "refreshfeed",
+			relTarget:    "internal/reader/handler/handler.go:207",
+			service:      "smoke-refreshfeed",
+			relClientDir: "internal/reader/handler",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, err := os.MkdirTemp(source, ".monolift-smoke-"+tt.name+"-")
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = os.RemoveAll(output) })
-			clientPath := filepath.Join(tt.clientDir, "monolift_lift_"+envServiceName(sanitizeServiceName(tt.service))+".go")
-			t.Cleanup(func() { _ = os.Remove(clientPath) })
+			source := copySourceToTemp(t, origSource)
+			output := filepath.Join(source, ".monolift-smoke-"+tt.name)
 
+			clientDir := filepath.Join(source, tt.relClientDir)
+			clientPath := filepath.Join(clientDir, "monolift_lift_"+envServiceName(sanitizeServiceName(tt.service))+".go")
 			opts := LiftOptions{
 				Source:      source,
-				Target:      tt.target,
+				Target:      filepath.Join(source, tt.relTarget),
 				Output:      output,
 				ServiceName: tt.service,
 			}
@@ -392,4 +378,14 @@ func runGo(t *testing.T, dir string, args ...string) {
 	if err != nil {
 		t.Fatalf("go %v failed in %s: %v\n%s", args, dir, err, out)
 	}
+}
+
+func copySourceToTemp(t *testing.T, source string) string {
+	t.Helper()
+	tmp := t.TempDir()
+	cmd := exec.Command("cp", "-a", source+"/.", tmp)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("failed to copy %s to %s: %v\n%s", source, tmp, err, out)
+	}
+	return tmp
 }
