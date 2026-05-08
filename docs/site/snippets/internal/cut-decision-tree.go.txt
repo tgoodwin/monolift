@@ -1,0 +1,32 @@
+func betterCutCandidate(a, b CutCandidate) bool {
+	if a.Feasibility == Infeasible || b.Feasibility == Infeasible {
+		if a.Feasibility != b.Feasibility {
+			return b.Feasibility == Infeasible
+		}
+		return cutTieBreak(a, b)
+	}
+	// Surface area ranks first among soft dimensions. The corpus shows mean
+	// recommended depth 0.924 — deep cuts dominate. Without this priority,
+	// shallow bootstrap functions (stateless, zero callbacks, VeryLarge surface)
+	// beat deep service functions on callbacks/state despite extracting the
+	// entire application.
+	if rankA, rankB := surfaceRank(a.Surface), surfaceRank(b.Surface); rankA != rankB {
+		return rankA < rankB
+	}
+	if rankA, rankB := callbackRank(a.Callbacks), callbackRank(b.Callbacks); rankA != rankB {
+		return rankA < rankB
+	}
+	if rankA, rankB := stateRankForSort(a.State), stateRankForSort(b.State); rankA != rankB {
+		return rankA < rankB
+	}
+	if rankA, rankB := errorSemRank(a.ErrorSem), errorSemRank(b.ErrorSem); rankA != rankB {
+		return rankA < rankB
+	}
+	if rankA, rankB := edgeAlignRank(a.EdgeAlign), edgeAlignRank(b.EdgeAlign); rankA != rankB {
+		return rankA < rankB
+	}
+	if a.Feasibility != b.Feasibility {
+		return a.Feasibility == Feasible
+	}
+	return cutTieBreak(a, b)
+}

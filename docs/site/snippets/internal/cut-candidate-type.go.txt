@@ -1,0 +1,14 @@
+type CutCandidate struct {
+	Step         int               `json:"step"`
+	NodeKey      FunctionKey       `json:"node_key"`
+	NodeName     string            `json:"node_name"`
+	IncomingEdge EdgeKind          `json:"incoming_edge"`
+	Feasibility  CutFeasibility    `json:"feasibility"`
+	BoundaryData BoundaryDataClass `json:"boundary_data"`
+	Callbacks    CallbackClass     `json:"callbacks"`
+	State        StateClass        `json:"state"`
+	Surface      SurfaceClass      `json:"surface"`
+	ErrorSem     ErrorSemClass     `json:"error_sem"`
+	EdgeAlign    EdgeAlignClass    `json:"edge_align"`
+	Reason       string            `json:"reason"`
+}

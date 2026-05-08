@@ -1,0 +1,4 @@
+// SanitizeHTML takes raw HTML input and removes any disallowed tags
+// and attributes.
+func SanitizeHTML(baseURL, rawHTML string,
+    sanitizerOptions *SanitizerOptions) string {

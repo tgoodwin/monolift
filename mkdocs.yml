@@ -63,6 +63,7 @@ nav:
   - Pattern matching on stateful code: state-class-inference.md
   - Making the compiler opinionated: refusal-diagnostics.md
   - Recovering activation paths: activation-paths.md
+  - Placing the cut: cut-placement.md
   - What's changing after the initial workshop paper: v1-to-v2.md
   - Finding your way around the code: reading-guide.md
   - Evaluation targets: evaluation-targets.md

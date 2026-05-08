@@ -21,11 +21,11 @@ monoliths](evaluation-targets.md) made clear that several of those
 simplifying assumptions do not hold in practice — almost every
 function worth lifting sat outside one of them.
 
-**What this site explains.** Each of the four main pages takes one of
-those simplifying assumptions, shows the design pressure that broke
-it, and shows the compiler code that now handles the revised case —
-paired with an excerpt from one of the open-source Go monoliths the
-compiler is being developed against.
+**What this site explains.** Each of the main pages takes one of those
+simplifying assumptions or open design questions, shows the design
+pressure that shaped the answer, and shows the compiler code that now
+handles it — paired with an excerpt from one of the open-source Go
+monoliths the compiler is being developed against.
 
 ## How to read this site
 
@@ -57,6 +57,10 @@ glance" block; readers who want the implementation can keep going.
   function, so it knows where to place the network boundary.
   Designed empirically: 72 ground-truth traces across 6 codebases
   guided incremental algorithm development to 71/72 coverage.
+- [**Placing the cut**](cut-placement.md) — how the compiler
+  decides where on the activation path to insert the network boundary.
+  The lift target and the cut point are not always the same function;
+  a decision tree over six dimensions picks the best candidate.
 - [**What's changing after the initial workshop paper**](v1-to-v2.md) —
   the contract renegotiation, traced on a single function that was
   refused under v1 and is admitted under v2.
