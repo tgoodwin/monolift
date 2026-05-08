@@ -158,7 +158,7 @@ func runActivation(ctx context.Context, opts LiftOptions) (*activation.Result, e
 		Dir:      opts.Source,
 		Packages: []string{"./..."},
 		Target:   opts.Target,
-		Timeout:  120 * time.Second,
+		Timeout:  10 * time.Minute,
 		Augment:  activation.ModeAll,
 	})
 	result, err := analyzer.Analyze(ctx)
