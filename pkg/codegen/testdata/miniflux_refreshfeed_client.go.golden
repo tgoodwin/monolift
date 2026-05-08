@@ -26,16 +26,16 @@ type monoliftLocalizedError struct {
 	Message string `json:"message,omitempty"`
 }
 
-func RefreshFeed_monolift(store *storage.Storage, userID int64, feedID int64, forceRefresh bool) *locale.LocalizedErrorWrapper {
+func RefreshFeed(store *storage.Storage, userID int64, feedID int64, forceRefresh bool) *locale.LocalizedErrorWrapper {
 	if os.Getenv("MONOLIFT_LIFT_REFRESHFEED") != "on" {
-		return RefreshFeed(store, userID, feedID, forceRefresh)
+		return monoliftOriginalRefreshFeed(store, userID, feedID, forceRefresh)
 	}
 	result, err := monoliftRemoteRefreshFeed(store, userID, feedID, forceRefresh)
 	if err != nil {
 		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
 			return nil
 		}
-		return RefreshFeed(store, userID, feedID, forceRefresh)
+		return monoliftOriginalRefreshFeed(store, userID, feedID, forceRefresh)
 	}
 	return result
 }

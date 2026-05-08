@@ -77,9 +77,6 @@ func exportedFieldName(name string) string {
 	return strings.Join(parts, "")
 }
 
-func stubFuncName(plan *Plan) string {
-	return plan.CutPoint.FuncName + "_monolift"
-}
 
 func zeroValue(goType string) string {
 	switch goType {

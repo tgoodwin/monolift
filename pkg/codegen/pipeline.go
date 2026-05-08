@@ -18,75 +18,120 @@ type LiftOptions struct {
 	Trace             string
 	Output            string
 	ServiceName       string
+	Deploy            DeployOptions
 	WriteMonolithStub bool
 }
 
+type LiftResult struct {
+	ActivationResult *activation.Result
+	Report           reportv2.Report
+	Cut              activation.CutResult
+	Plan             *Plan
+	Manifest         *Manifest
+	PatchedFile      string
+}
+
 func RunLift(ctx context.Context, opts LiftOptions) error {
+	_, err := RunLiftWithResult(ctx, opts)
+	return err
+}
+
+func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if opts.Source == "" {
-		return errors.New("codegen: source is required")
+		return nil, errors.New("codegen: source is required")
 	}
 	if opts.Target == "" {
-		return errors.New("codegen: target is required")
+		return nil, errors.New("codegen: target is required")
 	}
 	result, err := runActivation(ctx, opts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cut, err := activation.AnalyzeCut(result, nil)
 	if err != nil {
-		return fmt.Errorf("analyze cut: %w", err)
+		return nil, fmt.Errorf("analyze cut: %w", err)
 	}
 	report, err := buildExtractionReport(opts, cut)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cutAdmission := AdmitCut(report, *cut)
 	if !cutAdmission.Accepted {
-		return errors.New(cutAdmission.Error())
+		return nil, errors.New(cutAdmission.Error())
 	}
 	plan, err := BuildPlan(report, *cut)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := attachIncomingCall(plan, result.Path, cut.Recommended.Step); err != nil {
-		return err
+		return nil, err
 	}
 	applyLiftOptions(plan, opts)
 	plan.Admission = AdmitPlan(plan, cutAdmission)
 	if !plan.Admission.Accepted {
-		return errors.New(plan.Admission.Error())
+		return nil, errors.New(plan.Admission.Error())
 	}
 	serverFiles, err := RenderServer(plan)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	clientFiles, err := RenderClient(plan)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	var patchedFile string
+	dockerFiles, err := RenderDockerfiles(plan)
+	if err != nil {
+		return nil, err
+	}
+	kubernetesFiles, err := RenderKubernetes(plan)
+	if err != nil {
+		return nil, err
+	}
 	artifacts := append(artifactsFromRendered("server", serverFiles), artifactsFromRendered("client_stub", clientFiles)...)
+	artifacts = append(artifacts,
+		Artifact{Path: plan.ExtractedDockerfilePath, Kind: "dockerfile_extracted", Content: dockerFiles[plan.ExtractedDockerfilePath]},
+		Artifact{Path: plan.HostDockerfilePath, Kind: "dockerfile_host", Content: dockerFiles[plan.HostDockerfilePath]},
+		Artifact{Path: plan.ExtractedDeploymentPath, Kind: "k8s_deployment_extracted", Content: kubernetesFiles[plan.ExtractedDeploymentPath]},
+		Artifact{Path: plan.ExtractedServicePath, Kind: "k8s_service_extracted", Content: kubernetesFiles[plan.ExtractedServicePath]},
+		Artifact{Path: plan.HostDeploymentPath, Kind: "k8s_deployment_host", Content: kubernetesFiles[plan.HostDeploymentPath]},
+		Artifact{Path: plan.HostServicePath, Kind: "k8s_service_host", Content: kubernetesFiles[plan.HostServicePath]},
+	)
+	var patchedFile string
+	var manifest *Manifest
 	if opts.WriteMonolithStub {
-		entries, err := writeArtifactFiles(plan, artifacts)
+		nonStubArtifacts := filterArtifacts(artifacts, "client_stub")
+		entries, err := writeArtifactFiles(plan, nonStubArtifacts)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		patchedFile, err = PatchCallsite(plan)
+		stubContent := clientFiles[plan.ClientPath]
+		patchedFile, err = PatchCutFunction(plan, stubContent)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if _, err := writeManifest(plan, entries, patchedFile); err != nil {
-			return err
+		entries = append(entries, ManifestEntry{Path: plan.ClientPath, Kind: "client_stub"})
+		manifest, err = writeManifest(plan, entries, patchedFile)
+		if err != nil {
+			return nil, err
 		}
-		return nil
+	} else {
+		nonStubArtifacts := filterArtifacts(artifacts, "client_stub")
+		manifest, err = WriteArtifacts(plan, nonStubArtifacts, patchedFile)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if _, err := WriteArtifacts(plan, artifacts, patchedFile); err != nil {
-		return err
-	}
-	return nil
+	return &LiftResult{
+		ActivationResult: result,
+		Report:           report,
+		Cut:              *cut,
+		Plan:             plan,
+		Manifest:         manifest,
+		PatchedFile:      patchedFile,
+	}, nil
 }
 
 func attachIncomingCall(plan *Plan, path *activation.Path, step int) error {
@@ -184,4 +229,55 @@ func applyLiftOptions(plan *Plan, opts LiftOptions) {
 	plan.ServerPath = filepath.Join(plan.OutputDir, "cmd", plan.ServiceName, "main.go")
 	plan.ClientPath = filepath.Join(plan.CutPoint.PackageDir, "monolift_lift_"+plan.EnvServiceName+".go")
 	plan.ManifestPath = filepath.Join(plan.OutputDir, ManifestName)
+	applyDeployDefaults(plan, opts.Deploy)
+}
+
+func applyDeployDefaults(plan *Plan, opts DeployOptions) {
+	deploy := opts
+	if deploy.HostServiceName == "" {
+		deploy.HostServiceName = sanitizeServiceName(plan.ServiceName + "-host")
+	} else {
+		deploy.HostServiceName = sanitizeServiceName(deploy.HostServiceName)
+	}
+	if deploy.ExtractedServiceName == "" {
+		deploy.ExtractedServiceName = sanitizeServiceName(plan.ServiceName)
+	} else {
+		deploy.ExtractedServiceName = sanitizeServiceName(deploy.ExtractedServiceName)
+	}
+	if deploy.HostImage == "" {
+		deploy.HostImage = deploy.HostServiceName + ":latest"
+	}
+	if deploy.ExtractedImage == "" {
+		deploy.ExtractedImage = deploy.ExtractedServiceName + ":latest"
+	}
+	if deploy.HostPort == 0 {
+		deploy.HostPort = 8080
+	}
+	if deploy.ExtractedPort == 0 {
+		deploy.ExtractedPort = 8081
+	}
+	if deploy.HostReadinessPath == "" {
+		deploy.HostReadinessPath = "/healthz"
+	}
+	if deploy.HostBuildPackage == "" {
+		deploy.HostBuildPackage = "."
+	}
+	if deploy.HostBinaryName == "" {
+		deploy.HostBinaryName = deploy.HostServiceName
+	}
+	if deploy.HostRuntimeImage == "" {
+		deploy.HostRuntimeImage = "gcr.io/distroless/static-debian12"
+	}
+	if deploy.ImagePullPolicy == "" {
+		deploy.ImagePullPolicy = "IfNotPresent"
+	}
+	plan.Deploy = deploy
+
+	manifestDir := filepath.Join(plan.OutputDir, "manifests")
+	plan.HostDockerfilePath = filepath.Join(plan.OutputDir, "Dockerfile.host-"+plan.Deploy.HostServiceName)
+	plan.ExtractedDockerfilePath = filepath.Join(plan.OutputDir, "Dockerfile.extracted-"+plan.Deploy.ExtractedServiceName)
+	plan.HostDeploymentPath = filepath.Join(manifestDir, plan.Deploy.HostServiceName+"-deployment.yaml")
+	plan.HostServicePath = filepath.Join(manifestDir, plan.Deploy.HostServiceName+"-service.yaml")
+	plan.ExtractedDeploymentPath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-deployment.yaml")
+	plan.ExtractedServicePath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-service.yaml")
 }

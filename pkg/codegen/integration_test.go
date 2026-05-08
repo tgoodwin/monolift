@@ -3,6 +3,7 @@ package codegen
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -73,13 +74,75 @@ func TestSanitizeHTMLFullPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifacts := append(artifactsFromRendered("server", serverFiles), artifactsFromRendered("client_stub", clientFiles)...)
-	if _, err := WriteArtifacts(plan, artifacts, ""); err != nil {
+	dockerFiles, err := RenderDockerfiles(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kubernetesFiles, err := RenderKubernetes(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifacts := artifactsFromRendered("server", serverFiles)
+	artifacts = append(artifacts,
+		Artifact{Path: plan.ExtractedDockerfilePath, Kind: "dockerfile_extracted", Content: dockerFiles[plan.ExtractedDockerfilePath]},
+		Artifact{Path: plan.HostDockerfilePath, Kind: "dockerfile_host", Content: dockerFiles[plan.HostDockerfilePath]},
+		Artifact{Path: plan.ExtractedDeploymentPath, Kind: "k8s_deployment_extracted", Content: kubernetesFiles[plan.ExtractedDeploymentPath]},
+		Artifact{Path: plan.ExtractedServicePath, Kind: "k8s_service_extracted", Content: kubernetesFiles[plan.ExtractedServicePath]},
+		Artifact{Path: plan.HostDeploymentPath, Kind: "k8s_deployment_host", Content: kubernetesFiles[plan.HostDeploymentPath]},
+		Artifact{Path: plan.HostServicePath, Kind: "k8s_service_host", Content: kubernetesFiles[plan.HostServicePath]},
+	)
+	entries, err := writeArtifactFiles(plan, artifacts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stubContent := clientFiles[plan.ClientPath]
+	patchedFile, err := PatchCutFunction(plan, stubContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries = append(entries, ManifestEntry{Path: plan.ClientPath, Kind: "client_stub"})
+	manifest, err := writeManifest(plan, entries, patchedFile)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if stat, err := os.Stat(plan.ManifestPath); err != nil || stat.Size() == 0 {
 		t.Fatalf("manifest not written or empty: stat=%+v err=%v", stat, err)
 	}
+	for _, path := range []string{
+		plan.ServerPath,
+		plan.ClientPath,
+		plan.ExtractedDockerfilePath,
+		plan.HostDockerfilePath,
+		plan.ExtractedDeploymentPath,
+		plan.ExtractedServicePath,
+		plan.HostDeploymentPath,
+		plan.HostServicePath,
+	} {
+		if stat, err := os.Stat(path); err != nil || stat.Size() == 0 {
+			t.Fatalf("artifact not written or empty: path=%s stat=%+v err=%v", path, stat, err)
+		}
+	}
+	data, err := os.ReadFile(plan.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded Manifest
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Deploy.EndpointURL == "" || decoded.Deploy.EnvVarPrefix != "MONOLIFT_LIFT_SANITIZEHTML" {
+		t.Fatalf("manifest deploy metadata = %+v", decoded.Deploy)
+	}
+	assertManifestKinds(t, manifest.Artifacts, []string{
+		"server",
+		"client_stub",
+		"dockerfile_extracted",
+		"dockerfile_host",
+		"k8s_deployment_extracted",
+		"k8s_service_extracted",
+		"k8s_deployment_host",
+		"k8s_service_host",
+	})
 
 	serverPkg := "./cmd/" + plan.ServiceName
 	runGo(t, plan.OutputDir, "build", serverPkg)
@@ -87,6 +150,19 @@ func TestSanitizeHTMLFullPipeline(t *testing.T) {
 	clientPkg := plan.CutPoint.PackagePath
 	runGo(t, plan.SourceModuleRoot, "build", clientPkg)
 	runGo(t, plan.SourceModuleRoot, "vet", clientPkg)
+}
+
+func assertManifestKinds(t *testing.T, entries []ManifestEntry, kinds []string) {
+	t.Helper()
+	seen := map[string]bool{}
+	for _, entry := range entries {
+		seen[entry.Kind] = true
+	}
+	for _, kind := range kinds {
+		if !seen[kind] {
+			t.Fatalf("manifest missing artifact kind %s: %+v", kind, entries)
+		}
+	}
 }
 
 func TestSanitizeHTMLNetworkRoundTrip(t *testing.T) {
@@ -109,112 +185,75 @@ func TestSanitizeHTMLNetworkRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifacts := append(artifactsFromRendered("server", serverFiles), artifactsFromRendered("client_stub", clientFiles)...)
-	if _, err := WriteArtifacts(plan, artifacts, ""); err != nil {
+	serverArtifacts := artifactsFromRendered("server", serverFiles)
+	if _, err := writeArtifactFiles(plan, serverArtifacts); err != nil {
+		t.Fatal(err)
+	}
+	stubContent := clientFiles[plan.ClientPath]
+	if _, err := PatchCutFunction(plan, stubContent); err != nil {
 		t.Fatal(err)
 	}
 	writeTestFile(t, filepath.Join(filepath.Dir(plan.ServerPath), "network_roundtrip_test.go"), `package main
 
 import (
-	"context"
-	"net"
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 
 	"miniflux.app/v2/internal/reader/sanitizer"
 )
 
 func TestSanitizeHTMLNetworkRoundTrip(t *testing.T) {
+	options := &sanitizer.SanitizerOptions{OpenLinksInNewTab: true}
+	input := "<p>Hello</p><script>alert(1)</script><a href=\"/next\">next</a>"
+	want := sanitizer.SanitizeHTML("http://example.org/base/", input, options)
+	if want == "" {
+		t.Fatal("local SanitizeHTML returned empty output")
+	}
+
 	state, err := initState()
 	if err != nil {
 		t.Fatal(err)
 	}
-	listener := newPipeListener("monolift.test")
-	transport := &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			client, server := net.Pipe()
-			select {
-			case listener.conns <- server:
-				return client, nil
-			case <-listener.done:
-				_ = client.Close()
-				_ = server.Close()
-				return nil, net.ErrClosed
-			case <-ctx.Done():
-				_ = client.Close()
-				_ = server.Close()
-				return nil, ctx.Err()
-			}
-		},
-	}
-	previousTransport := http.DefaultTransport
-	http.DefaultTransport = transport
-	defer func() {
-		http.DefaultTransport = previousTransport
-		transport.CloseIdleConnections()
-	}()
-	server := &httptest.Server{
-		Listener: listener,
-		Config:   &http.Server{Handler: NewHandler(state)},
-	}
-	server.Start()
+	server := httptest.NewServer(NewHandler(state))
 	defer server.Close()
-	t.Setenv("MONOLIFT_LIFT_SANITIZEHTML", "on")
-	t.Setenv("MONOLIFT_LIFT_FAILMODE", "closed")
-	t.Setenv("MONOLIFT_SANITIZEHTML_ENDPOINT", server.URL+"/invoke")
 
-	options := &sanitizer.SanitizerOptions{OpenLinksInNewTab: true}
-	input := "<p>Hello</p><script>alert(1)</script><a href=\"/next\">next</a>"
-	got := sanitizer.SanitizeHTML_monolift("http://example.org/base/", input, options)
-	want := sanitizer.SanitizeHTML("http://example.org/base/", input, options)
-	if got != want {
-		t.Fatalf("remote SanitizeHTML = %q, want %q", got, want)
+	payload, _ := json.Marshal(map[string]any{
+		"base_url": "http://example.org/base/",
+		"input": input,
+		"sanitizer_options": options,
+	})
+	resp, err := http.Post(server.URL+"/invoke", "application/json", bytes.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got == "" {
-		t.Fatal("remote SanitizeHTML returned empty output")
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("POST /invoke status = %d", resp.StatusCode)
 	}
-}
-
-type pipeListener struct {
-	conns chan net.Conn
-	done  chan struct{}
-	once  sync.Once
-	addr  pipeAddr
-}
-
-func newPipeListener(addr string) *pipeListener {
-	return &pipeListener{
-		conns: make(chan net.Conn),
-		done:  make(chan struct{}),
-		addr:  pipeAddr(addr),
+	var result struct { Result string `+"`json:\"result\"`"+` }
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatal(err)
 	}
-}
+	if result.Result != want {
+		t.Fatalf("POST /invoke result = %q, want %q", result.Result, want)
+	}
 
-func (l *pipeListener) Accept() (net.Conn, error) {
-	select {
-	case conn := <-l.conns:
-		return conn, nil
-	case <-l.done:
-		return nil, net.ErrClosed
+	callsResp, err := http.Get(server.URL+"/calls")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer callsResp.Body.Close()
+	var calls callsResponse
+	if err := json.NewDecoder(callsResp.Body).Decode(&calls); err != nil {
+		t.Fatal(err)
+	}
+	if calls.Count < 1 {
+		t.Fatalf("/calls count = %d, want >= 1", calls.Count)
 	}
 }
-
-func (l *pipeListener) Close() error {
-	l.once.Do(func() { close(l.done) })
-	return nil
-}
-
-func (l *pipeListener) Addr() net.Addr {
-	return l.addr
-}
-
-type pipeAddr string
-
-func (a pipeAddr) Network() string { return "tcp" }
-
-func (a pipeAddr) String() string { return string(a) }
 `)
 	runGo(t, filepath.Dir(plan.ServerPath), "test", "-run=TestSanitizeHTMLNetworkRoundTrip", "-count=1", ".")
 }
@@ -239,8 +278,12 @@ func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifacts := append(artifactsFromRendered("server", serverFiles), artifactsFromRendered("client_stub", clientFiles)...)
-	if _, err := WriteArtifacts(plan, artifacts, ""); err != nil {
+	serverArtifacts := artifactsFromRendered("server", serverFiles)
+	if _, err := writeArtifactFiles(plan, serverArtifacts); err != nil {
+		t.Fatal(err)
+	}
+	stubContent := clientFiles[plan.ClientPath]
+	if _, err := PatchCutFunction(plan, stubContent); err != nil {
 		t.Fatal(err)
 	}
 	serverSource, err := os.ReadFile(plan.ServerPath)
@@ -250,11 +293,13 @@ func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
 	for _, want := range []string{
 		`sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
 		"storage.NewStorage(storeDB)",
-		"Store *storage.Storage",
 	} {
 		if !strings.Contains(string(serverSource), want) {
 			t.Fatalf("generated RefreshFeed server missing %q:\n%s", want, serverSource)
 		}
+	}
+	if !strings.Contains(string(serverSource), "Store") || !strings.Contains(string(serverSource), "*storage.Storage") {
+		t.Fatalf("generated RefreshFeed server missing Store *storage.Storage field:\n%s", serverSource)
 	}
 
 	serverPkg := "./cmd/" + plan.ServiceName
@@ -269,9 +314,9 @@ func TestLiftCommandSmokeDeterministic(t *testing.T) {
 	root := repoRoot(t)
 	origSource := filepath.Join(root, "evaluation", "miniflux")
 	tests := []struct {
-		name    string
-		relTarget string
-		service string
+		name         string
+		relTarget    string
+		service      string
 		relClientDir string
 	}{
 		{
@@ -292,8 +337,6 @@ func TestLiftCommandSmokeDeterministic(t *testing.T) {
 			source := copySourceToTemp(t, origSource)
 			output := filepath.Join(source, ".monolift-smoke-"+tt.name)
 
-			clientDir := filepath.Join(source, tt.relClientDir)
-			clientPath := filepath.Join(clientDir, "monolift_lift_"+envServiceName(sanitizeServiceName(tt.service))+".go")
 			opts := LiftOptions{
 				Source:      source,
 				Target:      filepath.Join(source, tt.relTarget),
@@ -301,9 +344,9 @@ func TestLiftCommandSmokeDeterministic(t *testing.T) {
 				ServiceName: tt.service,
 			}
 			runLiftForSmoke(t, opts)
-			first := snapshotGeneratedFiles(t, output, clientPath)
+			first := snapshotGeneratedFiles(t, output)
 			runLiftForSmoke(t, opts)
-			second := snapshotGeneratedFiles(t, output, clientPath)
+			second := snapshotGeneratedFiles(t, output)
 			if len(first) == 0 {
 				t.Fatal("no generated files captured")
 			}

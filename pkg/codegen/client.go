@@ -39,6 +39,7 @@ type clientView struct {
 	ResultType        string
 	ResultZero        string
 	StubName          string
+	OriginalFuncName  string
 	EndpointEnv       string
 	EnabledEnv        string
 	DefaultEndpoint   string
@@ -115,7 +116,8 @@ func clientTemplateView(plan *Plan) clientView {
 		PrimitiveResult:   hasResult && !localized,
 		ResultType:        resultType,
 		ResultZero:        resultZero,
-		StubName:          stubFuncName(plan),
+		StubName:          plan.CutPoint.FuncName,
+		OriginalFuncName:  renamedOriginalFunc(plan),
 		EndpointEnv:       "MONOLIFT_" + plan.EnvServiceName + "_ENDPOINT",
 		EnabledEnv:        "MONOLIFT_LIFT_" + plan.EnvServiceName,
 		DefaultEndpoint:   "http://127.0.0.1:8081/invoke",
@@ -190,14 +192,14 @@ type monoliftLocalizedError struct {
 
 func {{ .StubName }}({{ .ParamList }}) {{ .ResultType }} {
 	if os.Getenv("{{ .EnabledEnv }}") != "on" {
-		return {{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
 	}
 	result, err := monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
 	if err != nil {
 		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
 			return {{ .ResultZero }}
 		}
-		return {{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
 	}
 	return result
 }

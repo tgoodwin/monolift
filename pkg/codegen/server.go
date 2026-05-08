@@ -55,6 +55,7 @@ func serverTemplateView(plan *Plan) serverView {
 		{Path: "log"},
 		{Path: "net/http"},
 		{Path: "os"},
+		{Path: "sync"},
 		{Path: plan.CutPoint.PackagePath},
 	}
 	var requestFields []fieldView
@@ -186,14 +187,68 @@ type localizedError struct {
 	Message string ` + "`json:\"message,omitempty\"`" + `
 }
 
+type invocationRecord struct {
+	ID     uint64         ` + "`json:\"id\"`" + `
+	Params invokeRequest  ` + "`json:\"params\"`" + `
+	Result invokeResponse ` + "`json:\"result\"`" + `
+}
+
+type invocationRecorder struct {
+	mu      sync.Mutex
+	count   uint64
+	records []invocationRecord
+}
+
+const invocationHistoryLimit = 100
+
+func newInvocationRecorder() *invocationRecorder {
+	return &invocationRecorder{records: make([]invocationRecord, 0, invocationHistoryLimit)}
+}
+
+func (r *invocationRecorder) record(params invokeRequest, result invokeResponse) uint64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.count++
+	id := r.count
+	r.records = append(r.records, invocationRecord{ID: id, Params: params, Result: result})
+	if len(r.records) > invocationHistoryLimit {
+		copy(r.records, r.records[len(r.records)-invocationHistoryLimit:])
+		r.records = r.records[:invocationHistoryLimit]
+	}
+	return id
+}
+
+func (r *invocationRecorder) countSnapshot() uint64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.count
+}
+
+func (r *invocationRecorder) recordsSnapshot() []invocationRecord {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	records := make([]invocationRecord, len(r.records))
+	copy(records, r.records)
+	return records
+}
+
+type callsResponse struct {
+	Count uint64 ` + "`json:\"count\"`" + `
+}
+
+type invocationsResponse struct {
+	Records []invocationRecord ` + "`json:\"records\"`" + `
+}
+
 type serverState struct {
+	invocations *invocationRecorder
 {{- range .StateFields }}
 	{{ .Name }} {{ .Type }}
 {{- end }}
 }
 
 func initState() (*serverState, error) {
-	state := &serverState{}
+	state := &serverState{invocations: newInvocationRecorder()}
 {{- range .StateInitLines }}
 	{{ . }}
 {{- end }}
@@ -201,10 +256,36 @@ func initState() (*serverState, error) {
 }
 
 func NewHandler(state *serverState) http.Handler {
+	if state == nil {
+		state = &serverState{}
+	}
+	if state.invocations == nil {
+		state.invocations = newInvocationRecorder()
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("/calls", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(callsResponse{Count: state.invocations.countSnapshot()}); err != nil {
+			log.Printf("encode calls response: %v", err)
+		}
+	})
+	mux.HandleFunc("/invocations", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(invocationsResponse{Records: state.invocations.recordsSnapshot()}); err != nil {
+			log.Printf("encode invocations response: %v", err)
+		}
 	})
 	mux.HandleFunc("/invoke", invokeHandler(state))
 	return mux
@@ -239,6 +320,8 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 		{{ .CutPackageAlias }}.{{ .GeneratedFunction }}({{ .CallArgs }})
 		resp := invokeResponse{}
 {{- end }}
+		invocationID := state.invocations.record(req, resp)
+		log.Printf("LIFT_INVOKE service={{ .Plan.ServiceName }} invocation_id=%d", invocationID)
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Printf("encode response: %v", err)
