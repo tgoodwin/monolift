@@ -1,4 +1,19 @@
-# Placing the cut point
+# Drawing the network boundary
+
+## Research question and result
+
+The workshop paper described calls becoming remote invocations, but it
+left an important placement question under-specified: once the compiler
+knows which region the developer wants to lift, where along the
+activation path should the program actually split? The **lift target**
+and the **cut point** are not always the same function.
+
+Monolift treats every function on the activation path as a candidate cut
+point and ranks those candidates by ordered tie-breakers: boundary data,
+surface area, callbacks, receiver-state reconstruction, error semantics,
+and alignment with existing component boundaries. On the pinned corpus,
+the analyzer matches 71 of 72 reviewed cut recommendations; the same
+enterprise-package build issue accounts for the remaining miss.
 
 ## Why the lift target is not always the cut point
 
@@ -162,9 +177,9 @@ alignment), and the extra surface area is small.
 
 ## Where the cut point diverges from the lift target
 
-In about a third of the 72 ground-truth traces, the recommended cut
-point is not the lift target itself but a function above it on the
-path. This happens for predictable reasons:
+In about a third of the 72 reviewed traces, the recommended cut point is
+not the lift target itself but a function above it on the path. This
+happens for predictable reasons:
 
 - **The lift target's signature is harder to serialize.** A function
   deep in the call chain might take a framework context, a logger, and
@@ -231,9 +246,9 @@ values cross the network.
 
 This is the model described in the original paper, but its consequences
 for cut placement were not obvious until the corpus evaluation surfaced
-them. Six traces initially diverged from the ground truth because the
-analyzer preferred a shallow cut with an `http.ResponseWriter` in its
-signature. But `http.ResponseWriter` is the monolith's HTTP lifecycle
+them. Six traces initially diverged from the reference answers because
+the analyzer preferred a shallow cut with an `http.ResponseWriter` in
+its signature. But `http.ResponseWriter` is the monolith's HTTP lifecycle
 handle — it should never reach the boundary. If it appears in a
 candidate's parameters, the cut is too shallow. The fix is not to proxy
 the writer across the network; it is to cut deeper, below the HTTP
@@ -247,12 +262,12 @@ should look further down the path.
 
 ## Evaluation
 
-The cut-placement analyzer was validated against the same 72-trace
-ground truth used for activation-path recovery: a reviewed reference
-dataset of hand-identified cuts. For each trace, three independent
-agents had already identified the recommended cut by hand, recording the
-function name, step index, boundary data class, state class, and
-feasibility. The analyzer's output was compared against this table.
+The cut-placement analyzer was validated against the same 72 reviewed
+traces used for activation-path recovery. For each trace, three
+independent agents had already identified the recommended cut by hand,
+recording the function name, step index, boundary data class, state
+class, and feasibility. The analyzer's output was compared against this
+table.
 
 | Project | Traces | Correct | |
 |---|---:|---:|---|
@@ -276,7 +291,7 @@ rather than reporting an opaque composite score.
 **Designed from data.** The six dimensions and their priority ordering
 were not chosen from theory. They were synthesized from 72 hand-traced
 cut recommendations across six real codebases. The ordering was chosen
-to match the ground truth, not to satisfy an abstract principle.
+to match the reviewed traces, not to satisfy an abstract principle.
 
 **Refuse, don't approximate.** When a function's boundary data includes
 something that cannot cross a network — a channel, a mutex, a function

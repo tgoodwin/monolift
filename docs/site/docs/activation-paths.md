@@ -1,5 +1,23 @@
 # Recovering activation paths
 
+## Research question and result
+
+The workshop prototype assumed the developer could identify the calls to
+rewrite near `main()`. Real Go monoliths do not make that path so direct:
+the lifted region may be reached through framework dispatch, callback
+registration, queue handlers, or function values stored in registries.
+The compiler therefore needs to recover the **activation path**: the
+static control-flow path from a program entrypoint to the lifted region's
+root function.
+
+The research question is whether there is a static graph that is small
+enough to analyze but rich enough to connect entrypoints to lifted region
+roots across real codebases. Monolift's answer augments a standard
+type-aware call graph with value-flow edges and iterative exploration.
+On the pinned corpus, it recovers 71 of 72 reviewed paths; the remaining
+miss is an enterprise-package build issue, not a known analysis
+limitation.
+
 ## Why the compiler needs this
 
 Monolift takes a developer-annotated region of code and extracts it into
@@ -8,10 +26,9 @@ The compiler still has to decide where the network boundary goes, and
 that decision requires understanding how the application reaches the
 annotated code in the first place.
 
-The path from `main()` to the lifted region's root function is the
-**activation path**. It shows how control flows from program startup,
-through framework and application machinery, to the code being
-extracted.
+The activation path supplies that evidence. It shows how control flows
+from program startup, through framework and application machinery, to
+the code being extracted.
 Without it, the compiler is choosing a network boundary without the
 evidence needed to decide where that boundary belongs.
 
@@ -24,12 +41,6 @@ asynchronously, a factory function looked up from a registry by name.
 These are all static, deterministic patterns in the source code — the
 information is there — but a standard call graph only sees direct
 function calls and misses the rest.
-
-The research question is:
-
-> What is the smallest static graph that still connects program
-> entrypoints to lifted region roots, and which compiler algorithm can
-> recover that graph across real codebases?
 
 ## How we designed the algorithm
 
@@ -230,7 +241,7 @@ all of them without project-specific logic.
 
 ## Design principles
 
-**Design from data, not theory.** The 72 ground-truth traces were the
+**Design from data, not theory.** The 72 reviewed traces were the
 specification. Every analysis pass was justified by measured coverage
 improvement, not by abstract completeness arguments.
 
