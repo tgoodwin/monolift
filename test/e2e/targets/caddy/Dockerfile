@@ -10,6 +10,7 @@ FROM alpine:3.20
 RUN adduser -D -H caddy
 COPY --from=build /out/caddy /usr/bin/caddy
 COPY test/e2e/targets/caddy/static/ /srv/static/
+RUN chmod -R a+rX /srv/static
 USER caddy
 EXPOSE 8080
 CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

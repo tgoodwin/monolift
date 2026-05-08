@@ -79,6 +79,9 @@ const hostDockerfileTemplate = `FROM golang:{{ .GoVersion }} AS builder
 WORKDIR /src
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/{{ .Plan.Deploy.HostBinaryName }} {{ .Plan.Deploy.HostBuildPackage }}
+{{- range .Plan.Deploy.HostAssetCopies }}
+RUN chmod -R a+rX /src/{{ .From }}
+{{- end }}
 
 FROM {{ .Plan.Deploy.HostRuntimeImage }}
 {{- range .Plan.Deploy.HostRuntimeSetup }}

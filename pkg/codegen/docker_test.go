@@ -92,4 +92,19 @@ func TestRenderDockerfilesIncludesExpectedDirectives(t *testing.T) {
 			t.Fatalf("host Dockerfile missing %q:\n%s", want, host)
 		}
 	}
+
+	plan.Deploy.HostAssetCopies = []AssetCopy{{From: "static", To: "/srv/static"}}
+	files, err = RenderDockerfiles(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	host = string(files[plan.HostDockerfilePath])
+	for _, want := range []string{
+		"RUN chmod -R a+rX /src/static",
+		"COPY --from=builder /src/static /srv/static",
+	} {
+		if !strings.Contains(host, want) {
+			t.Fatalf("host Dockerfile with assets missing %q:\n%s", want, host)
+		}
+	}
 }
