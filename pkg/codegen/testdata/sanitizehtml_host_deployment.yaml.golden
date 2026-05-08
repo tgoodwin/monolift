@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniflux
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniflux
+  template:
+    metadata:
+      labels:
+        app: miniflux
+    spec:
+      containers:
+        - name: host
+          image: monolift-e2e/miniflux-host:e2e
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            periodSeconds: 2
+          env:
+            - name: MONOLIFT_LIFT_SANITIZEHTML
+              value: "on"
+            - name: MONOLIFT_LIFT_FAILMODE
+              value: "closed"
+            - name: MONOLIFT_SANITIZEHTML_ENDPOINT
+              value: "http://monolift-extracted-sanitizehtml:8081/invoke"
+            - name: DATABASE_URL
+              value: "postgres://miniflux@postgres/miniflux?sslmode=disable"
+            - name: RUN_MIGRATIONS
+              value: "1"

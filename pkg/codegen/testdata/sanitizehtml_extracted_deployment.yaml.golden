@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monolift-extracted-sanitizehtml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monolift-extracted-sanitizehtml
+  template:
+    metadata:
+      labels:
+        app: monolift-extracted-sanitizehtml
+    spec:
+      containers:
+        - name: extracted
+          image: monolift-e2e/extracted-sanitizehtml:e2e
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            periodSeconds: 2
