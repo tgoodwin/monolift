@@ -83,3 +83,40 @@ func TestWriteArtifactsRejectsPathsOutsideModuleRoot(t *testing.T) {
 		t.Fatal("WriteArtifacts error = nil, want outside-root error")
 	}
 }
+
+func TestWriteArtifactsDoesNotHeaderDeployArtifacts(t *testing.T) {
+	root := t.TempDir()
+	plan := &Plan{
+		SourceModuleRoot: root,
+		ServiceName:      "svc",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/app/p",
+			FuncName:    "Work",
+		},
+		ManifestPath: filepath.Join(root, ManifestName),
+	}
+	dockerfile := filepath.Join(root, "monolift_gen", "svc", "Dockerfile.host-svc")
+	yamlPath := filepath.Join(root, "monolift_gen", "svc", "manifests", "svc-deployment.yaml")
+	artifacts := []Artifact{
+		{Path: dockerfile, Kind: "dockerfile_host", Content: []byte("FROM scratch\n")},
+		{Path: yamlPath, Kind: "k8s_deployment_host", Content: []byte("apiVersion: apps/v1\n")},
+	}
+	if _, err := WriteArtifacts(plan, artifacts, ""); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range []struct {
+		path string
+		want string
+	}{
+		{path: dockerfile, want: "FROM scratch\n"},
+		{path: yamlPath, want: "apiVersion: apps/v1\n"},
+	} {
+		data, err := os.ReadFile(item.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != item.want {
+			t.Fatalf("%s content = %q, want %q", item.path, data, item.want)
+		}
+	}
+}

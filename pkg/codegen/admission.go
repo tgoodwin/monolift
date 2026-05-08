@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/tgoodwin/monolift/pkg/activation"
@@ -57,6 +58,22 @@ func AdmitPlan(plan *Plan, base AdmissionVerdict) AdmissionVerdict {
 	if len(plan.Results) > 1 {
 		verdict = refused(verdict, "unsupported_result_shape", "multiple return values are not supported by the MVP HTTP/JSON generator", "")
 	}
+	for _, path := range deployArtifactPaths(plan) {
+		if path == "" {
+			continue
+		}
+		if err := validateGeneratedPath(plan, path); err != nil {
+			verdict = refused(verdict, "generated_path_outside_module", err.Error(), path)
+		}
+	}
+	for _, name := range []string{plan.Deploy.HostServiceName, plan.Deploy.ExtractedServiceName} {
+		if name == "" {
+			continue
+		}
+		if !isDNS1123Label(name) {
+			verdict = refused(verdict, "invalid_kubernetes_name", "Kubernetes resource name must be a DNS-1123 label", name)
+		}
+	}
 	if len(verdict.Refusals) == 0 {
 		verdict.Accepted = true
 		if len(verdict.Reasons) == 0 {
@@ -64,6 +81,26 @@ func AdmitPlan(plan *Plan, base AdmissionVerdict) AdmissionVerdict {
 		}
 	}
 	return verdict
+}
+
+func deployArtifactPaths(plan *Plan) []string {
+	if plan == nil {
+		return nil
+	}
+	return []string{
+		plan.HostDockerfilePath,
+		plan.ExtractedDockerfilePath,
+		plan.HostDeploymentPath,
+		plan.HostServicePath,
+		plan.ExtractedDeploymentPath,
+		plan.ExtractedServicePath,
+	}
+}
+
+var dns1123LabelPattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+
+func isDNS1123Label(name string) bool {
+	return len(name) <= 63 && dns1123LabelPattern.MatchString(name)
 }
 
 func refused(verdict AdmissionVerdict, code, message, typ string) AdmissionVerdict {

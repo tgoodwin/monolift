@@ -21,6 +21,16 @@ func WriteArtifacts(plan *Plan, artifacts []Artifact, patchedFile string) (*Mani
 	return writeManifest(plan, entries, patchedFile)
 }
 
+func filterArtifacts(artifacts []Artifact, excludeKind string) []Artifact {
+	out := make([]Artifact, 0, len(artifacts))
+	for _, a := range artifacts {
+		if a.Kind != excludeKind {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func writeArtifactFiles(plan *Plan, artifacts []Artifact) ([]ManifestEntry, error) {
 	sort.Slice(artifacts, func(i, j int) bool {
 		return artifacts[i].Path < artifacts[j].Path
@@ -60,6 +70,7 @@ func writeManifest(plan *Plan, entries []ManifestEntry, patchedFile string) (*Ma
 		StubPath:    plan.ClientPath,
 		PatchedFile: patchedFile,
 		Artifacts:   append([]ManifestEntry(nil), entries...),
+		Deploy:      manifestDeploy(plan),
 		Admission:   plan.Admission,
 	}
 	data, err := json.MarshalIndent(manifest, "", "  ")
@@ -71,6 +82,25 @@ func writeManifest(plan *Plan, entries []ManifestEntry, patchedFile string) (*Ma
 		return nil, err
 	}
 	return &manifest, nil
+}
+
+func manifestDeploy(plan *Plan) ManifestDeploy {
+	envName := plan.EnvServiceName
+	return ManifestDeploy{
+		HostResourceName:       plan.Deploy.HostServiceName,
+		ExtractedResourceName:  plan.Deploy.ExtractedServiceName,
+		HostImage:              plan.Deploy.HostImage,
+		ExtractedImage:         plan.Deploy.ExtractedImage,
+		HostPort:               plan.Deploy.HostPort,
+		ExtractedPort:          plan.Deploy.ExtractedPort,
+		EnvServiceName:         envName,
+		EnvVarPrefix:           "MONOLIFT_LIFT_" + envName,
+		EndpointEnv:            "MONOLIFT_" + envName + "_ENDPOINT",
+		EndpointURL:            fmt.Sprintf("http://%s:%d/invoke", plan.Deploy.ExtractedServiceName, plan.Deploy.ExtractedPort),
+		HostReadinessPath:      plan.Deploy.HostReadinessPath,
+		ExtractedReadinessPath: "/healthz",
+		ImagePullPolicy:        plan.Deploy.ImagePullPolicy,
+	}
 }
 
 func artifactsFromRendered(kind string, files map[string][]byte) []Artifact {

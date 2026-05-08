@@ -214,6 +214,8 @@ func sanitizeServiceName(name string) string {
 }
 
 func envServiceName(name string) string {
+	name = strings.TrimPrefix(name, "monolift-extracted-")
+	name = strings.TrimPrefix(name, "monolift-")
 	name = strings.ToUpper(serviceNamePattern.ReplaceAllString(name, "_"))
 	name = strings.ReplaceAll(name, "-", "_")
 	name = strings.Trim(name, "_")

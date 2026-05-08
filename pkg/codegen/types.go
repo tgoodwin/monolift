@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GeneratorVersion = "SPRINT-0041"
+	GeneratorVersion = "SPRINT-0042"
 	ManifestName     = "monolift_lift_manifest.json"
 )
 
@@ -30,7 +30,55 @@ type Plan struct {
 	ClientPath   string
 	ManifestPath string
 
+	Deploy                  DeployOptions
+	HostDockerfilePath      string
+	ExtractedDockerfilePath string
+	HostDeploymentPath      string
+	HostServicePath         string
+	ExtractedDeploymentPath string
+	ExtractedServicePath    string
+
 	Admission AdmissionVerdict
+}
+
+type DeployOptions struct {
+	HostImage            string
+	ExtractedImage       string
+	HostServiceName      string
+	ExtractedServiceName string
+	HostPort             int
+	ExtractedPort        int
+	HostReadinessPath    string
+	HostBuildPackage     string
+	HostBinaryName       string
+	HostRuntimeImage     string
+	HostRuntimeSetup     []string
+	HostArgs             []string
+	HostEnvVars          []EnvVar
+	HostAssetCopies      []AssetCopy
+	HostVolumeMounts     []VolumeMount
+	HostConfigMapVolumes []ConfigMapVolume
+	ImagePullPolicy      string
+}
+
+type EnvVar struct {
+	Name  string
+	Value string
+}
+
+type AssetCopy struct {
+	From string
+	To   string
+}
+
+type VolumeMount struct {
+	Name      string
+	MountPath string
+}
+
+type ConfigMapVolume struct {
+	Name          string
+	ConfigMapName string
 }
 
 type CutPoint struct {
@@ -124,6 +172,7 @@ type Manifest struct {
 	StubPath         string           `json:"stub_path,omitempty"`
 	PatchedFile      string           `json:"patched_file,omitempty"`
 	Artifacts        []ManifestEntry  `json:"artifacts"`
+	Deploy           ManifestDeploy   `json:"deploy"`
 	Admission        AdmissionVerdict `json:"admission"`
 }
 
@@ -138,6 +187,22 @@ type ManifestCut struct {
 type ManifestEntry struct {
 	Path string `json:"path"`
 	Kind string `json:"kind"`
+}
+
+type ManifestDeploy struct {
+	HostResourceName       string `json:"host_resource_name,omitempty"`
+	ExtractedResourceName  string `json:"extracted_resource_name,omitempty"`
+	HostImage              string `json:"host_image,omitempty"`
+	ExtractedImage         string `json:"extracted_image,omitempty"`
+	HostPort               int    `json:"host_port,omitempty"`
+	ExtractedPort          int    `json:"extracted_port,omitempty"`
+	EnvServiceName         string `json:"env_service_name,omitempty"`
+	EnvVarPrefix           string `json:"env_var_prefix,omitempty"`
+	EndpointEnv            string `json:"endpoint_env,omitempty"`
+	EndpointURL            string `json:"endpoint_url,omitempty"`
+	HostReadinessPath      string `json:"host_readiness_path,omitempty"`
+	ExtractedReadinessPath string `json:"extracted_readiness_path,omitempty"`
+	ImagePullPolicy        string `json:"image_pull_policy,omitempty"`
 }
 
 type AdmissionVerdict struct {

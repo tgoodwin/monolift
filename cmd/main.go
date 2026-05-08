@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -73,6 +74,14 @@ type liftOptions struct {
 	trace             string
 	output            string
 	serviceName       string
+	hostImage         string
+	extractedImage    string
+	hostServiceName   string
+	hostBuildPackage  string
+	hostBinaryName    string
+	hostPort          int
+	hostReadinessPath string
+	hostEnv           []string
 	writeMonolithStub bool
 	timeout           time.Duration
 }
@@ -98,12 +107,26 @@ func liftCmd() *cobra.Command {
 				ctx, cancel = context.WithTimeout(ctx, opts.timeout)
 				defer cancel()
 			}
+			hostEnvVars, err := parseHostEnv(opts.hostEnv)
+			if err != nil {
+				return err
+			}
 			return codegen.RunLift(ctx, codegen.LiftOptions{
-				Source:            opts.source,
-				Target:            opts.target,
-				Trace:             opts.trace,
-				Output:            opts.output,
-				ServiceName:       opts.serviceName,
+				Source:      opts.source,
+				Target:      opts.target,
+				Trace:       opts.trace,
+				Output:      opts.output,
+				ServiceName: opts.serviceName,
+				Deploy: codegen.DeployOptions{
+					HostImage:         opts.hostImage,
+					ExtractedImage:    opts.extractedImage,
+					HostServiceName:   opts.hostServiceName,
+					HostBuildPackage:  opts.hostBuildPackage,
+					HostBinaryName:    opts.hostBinaryName,
+					HostPort:          opts.hostPort,
+					HostReadinessPath: opts.hostReadinessPath,
+					HostEnvVars:       hostEnvVars,
+				},
 				WriteMonolithStub: opts.writeMonolithStub,
 			})
 		},
@@ -113,9 +136,30 @@ func liftCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.trace, "trace", "", "optional activation trace JSON to pin the path")
 	cmd.Flags().StringVar(&opts.output, "output", "", "directory for generated files")
 	cmd.Flags().StringVar(&opts.serviceName, "service-name", "", "generated service name")
+	cmd.Flags().StringVar(&opts.hostImage, "host-image", "", "container image for the patched host")
+	cmd.Flags().StringVar(&opts.extractedImage, "extracted-image", "", "container image for the extracted service")
+	cmd.Flags().StringVar(&opts.hostServiceName, "host-service-name", "", "Kubernetes service name for the patched host")
+	cmd.Flags().StringVar(&opts.hostBuildPackage, "host-build-package", "", "Go package to build for the patched host Dockerfile")
+	cmd.Flags().StringVar(&opts.hostBinaryName, "host-binary-name", "", "binary name for the patched host Dockerfile")
+	cmd.Flags().IntVar(&opts.hostPort, "host-port", 0, "container port for the patched host")
+	cmd.Flags().StringVar(&opts.hostReadinessPath, "host-readiness-path", "", "readiness probe path for the patched host")
+	cmd.Flags().StringArrayVar(&opts.hostEnv, "host-env", nil, "host environment variable in KEY=VALUE form; repeatable")
 	cmd.Flags().BoolVar(&opts.writeMonolithStub, "write-monolith-stub", false, "patch the monolith callsite to use the generated stub")
 	cmd.Flags().DurationVar(&opts.timeout, "timeout", 120*time.Second, "activation-path analysis timeout")
 	return cmd
+}
+
+func parseHostEnv(raw []string) ([]codegen.EnvVar, error) {
+	env := make([]codegen.EnvVar, 0, len(raw))
+	for _, item := range raw {
+		name, value, ok := strings.Cut(item, "=")
+		name = strings.TrimSpace(name)
+		if !ok || name == "" {
+			return nil, fmt.Errorf("--host-env must be KEY=VALUE, got %q", item)
+		}
+		env = append(env, codegen.EnvVar{Name: name, Value: value})
+	}
+	return env, nil
 }
 
 func main() {
