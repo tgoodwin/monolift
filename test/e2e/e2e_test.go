@@ -18,8 +18,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/tgoodwin/monolift/pkg/codegen"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 	"github.com/tgoodwin/monolift/test/e2e/harness"
+	activation_caddy_cleanpath "github.com/tgoodwin/monolift/test/e2e/targets/activation_caddy_cleanpath"
+	activation_gitea_pathescapesegments "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_pathescapesegments"
+	activation_miniflux_sanitizehtml "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_sanitizehtml"
 	"github.com/tgoodwin/monolift/test/e2e/targets/caddy"
 	"github.com/tgoodwin/monolift/test/e2e/targets/gitea"
 	"github.com/tgoodwin/monolift/test/e2e/targets/listmonk"
@@ -40,10 +44,13 @@ func TestE2E(t *testing.T) {
 	cluster := harness.NewCluster()
 	targets := []harness.TargetCase{
 		caddy.Target(),
+		activation_caddy_cleanpath.Target(),
 		pocketbase.Target(),
 		miniflux.Target(),
+		activation_miniflux_sanitizehtml.Target(),
 		listmonk.Target(),
 		gitea.Target(),
+		activation_gitea_pathescapesegments.Target(),
 		mattermost.Target(),
 	}
 	targets = append(targets, pragma.Targets()...)
@@ -64,7 +71,11 @@ func updateGoldenRequested() bool {
 
 func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harness.TargetCase) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	perTargetTimeout := 10 * time.Minute
+	if target.ActivationLift != nil {
+		perTargetTimeout = 20 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), perTargetTimeout)
 	defer cancel()
 
 	if err := cluster.Ensure(ctx); err != nil {
@@ -120,6 +131,9 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	compileResult, err := (harness.Compiler{OutputDir: compileDir}).Run(ctx, target)
 	if err != nil {
 		t.Fatalf("%v", harness.FormatCompileFailure(target, compileResult, err))
+	}
+	if err := applyActivationCompileResult(&target, compileResult); err != nil {
+		t.Fatalf("%v", harness.StageError(4, target.Name, harness.KindCompiler, "activation artifact wiring failed: %v", err))
 	}
 
 	if err := assertVerdict(target, compileResult); err != nil {
@@ -199,6 +213,91 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	}
 }
 
+func applyActivationCompileResult(target *harness.TargetCase, compileResult harness.CompileResult) error {
+	if target.ActivationLift == nil {
+		return nil
+	}
+	if compileResult.Activation == nil || compileResult.Activation.Manifest == nil || compileResult.Activation.Plan == nil {
+		return fmt.Errorf("missing activation lift result")
+	}
+	plan := compileResult.Activation.Plan
+	manifest := compileResult.Activation.Manifest
+	if target.ActivationLift.ExpectedEnvVarPrefix != "" && manifest.Deploy.EnvVarPrefix != target.ActivationLift.ExpectedEnvVarPrefix {
+		return fmt.Errorf("manifest env prefix=%q want %q", manifest.Deploy.EnvVarPrefix, target.ActivationLift.ExpectedEnvVarPrefix)
+	}
+	contextRoot, err := filepath.Rel(compileResult.ArtifactsDir, compileResult.SourceRoot)
+	if err != nil {
+		return err
+	}
+	hostDockerfile, err := relArtifactPath(compileResult.ArtifactsDir, artifactPath(manifest, "dockerfile_host", plan.HostDockerfilePath))
+	if err != nil {
+		return err
+	}
+	hostDeployment, err := relArtifactPath(compileResult.ArtifactsDir, artifactPath(manifest, "k8s_deployment_host", plan.HostDeploymentPath))
+	if err != nil {
+		return err
+	}
+	hostService, err := relArtifactPath(compileResult.ArtifactsDir, artifactPath(manifest, "k8s_service_host", plan.HostServicePath))
+	if err != nil {
+		return err
+	}
+	extractedDockerfile, err := relArtifactPath(compileResult.ArtifactsDir, artifactPath(manifest, "dockerfile_extracted", plan.ExtractedDockerfilePath))
+	if err != nil {
+		return err
+	}
+	extractedDeployment, err := relArtifactPath(compileResult.ArtifactsDir, artifactPath(manifest, "k8s_deployment_extracted", plan.ExtractedDeploymentPath))
+	if err != nil {
+		return err
+	}
+	extractedService, err := relArtifactPath(compileResult.ArtifactsDir, artifactPath(manifest, "k8s_service_extracted", plan.ExtractedServicePath))
+	if err != nil {
+		return err
+	}
+	target.LiftedHostBuild = &harness.HostBuildSpec{
+		Dockerfile:     hostDockerfile,
+		ContextRoot:    contextRoot,
+		ImageTag:       manifest.Deploy.HostImage,
+		ServiceName:    manifest.Deploy.HostResourceName,
+		DeploymentYAML: hostDeployment,
+		ServiceYAML:    hostService,
+	}
+	target.LiftedExtractedServices = []harness.ExtractedServiceSpec{{
+		Name:           manifest.Deploy.ExtractedResourceName,
+		Dockerfile:     extractedDockerfile,
+		ContextRoot:    contextRoot,
+		ImageTag:       manifest.Deploy.ExtractedImage,
+		DeploymentYAML: extractedDeployment,
+		ServiceYAML:    extractedService,
+		ReadinessPath:  "/healthz",
+	}}
+	return nil
+}
+
+func artifactPath(manifest *codegen.Manifest, kind, fallback string) string {
+	if manifest != nil {
+		for _, entry := range manifest.Artifacts {
+			if entry.Kind == kind {
+				return entry.Path
+			}
+		}
+	}
+	return fallback
+}
+
+func relArtifactPath(root, path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("missing artifact path")
+	}
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return "", err
+	}
+	if rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
+		return "", fmt.Errorf("artifact path %s is outside artifacts dir %s", path, root)
+	}
+	return rel, nil
+}
+
 func baselineManifestPhases(target harness.TargetCase) [][]string {
 	if len(target.BaselineManifestPhases) > 0 {
 		return target.BaselineManifestPhases
@@ -271,7 +370,7 @@ func assertExtractedServicesDormantRuntime(ctx context.Context, target harness.T
 		if err != nil {
 			return err
 		}
-		got, err := postInvoke(ctx, service.pf.URL, invokePayload(service.symbol))
+		got, err := postInvoke(ctx, service.pf.URL, invokePayload(target, service.symbol))
 		if err != nil {
 			return err
 		}
@@ -283,7 +382,7 @@ func assertExtractedServicesDormantRuntime(ctx context.Context, target harness.T
 			return fmt.Errorf("%s direct /invoke /calls delta=%d want 1", service.spec.Name, after-before)
 		}
 		if target.Oracle != nil {
-			want, err := target.Oracle.Invoke(oracleArgs(service.symbol, invokePayload(service.symbol)))
+			want, err := target.Oracle.Invoke(oracleArgs(service.symbol, invokePayload(target, service.symbol)))
 			if err != nil {
 				return err
 			}
@@ -348,7 +447,7 @@ func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, lif
 		}
 	}
 	for _, service := range services {
-		if err := assertExtractedInvocations(ctx, service.pf.URL, service.symbol, invocationPaths(workload.Paths()), target.Oracle, oracles); err != nil {
+		if err := assertExtractedInvocations(ctx, target, service.pf.URL, service.symbol, invocationPaths(workload.Paths()), target.Oracle, oracles); err != nil {
 			return harness.Transcript{}, err
 		}
 	}
@@ -363,7 +462,7 @@ func startExtractedPortForwards(ctx context.Context, target harness.TargetCase, 
 			stopExtractedPortForwards(services)
 			return nil, err
 		}
-		services = append(services, extractedRuntime{spec: spec, symbol: symbolForService(spec.Name), pf: pf})
+		services = append(services, extractedRuntime{spec: spec, symbol: symbolForService(target, spec.Name), pf: pf})
 	}
 	return services, nil
 }
@@ -382,7 +481,7 @@ func startOraclePortForwards(ctx context.Context, target harness.TargetCase, lif
 			stopOraclePortForwards(oracles)
 			return nil, err
 		}
-		oracles[symbolForService(spec.Name)] = oracleRuntime{spec: spec, symbol: symbolForService(spec.Name), pf: pf}
+		oracles[symbolForService(target, spec.Name)] = oracleRuntime{spec: spec, symbol: symbolForService(target, spec.Name), pf: pf}
 	}
 	return oracles, nil
 }
@@ -424,19 +523,20 @@ func readCalls(ctx context.Context, serviceURL string) (int64, error) {
 }
 
 type invocationRecord struct {
-	ID                  int64  `json:"id"`
-	InvocationID        string `json:"invocation_id"`
-	P                   string `json:"p"`
-	CollapseSlashes     bool   `json:"collapse_slashes"`
-	M                   string `json:"m"`
-	Result              string `json:"result"`
-	Content             string `json:"content"`
-	DefaultReadingSpeed int    `json:"default_reading_speed"`
-	CjkReadingSpeed     int    `json:"cjk_reading_speed"`
-	ReadingTime         int    `json:"reading_time"`
+	ID                  int64          `json:"id"`
+	InvocationID        string         `json:"invocation_id"`
+	Params              map[string]any `json:"params"`
+	P                   string         `json:"p"`
+	CollapseSlashes     bool           `json:"collapse_slashes"`
+	M                   string         `json:"m"`
+	Result              any            `json:"result"`
+	Content             string         `json:"content"`
+	DefaultReadingSpeed int            `json:"default_reading_speed"`
+	CjkReadingSpeed     int            `json:"cjk_reading_speed"`
+	ReadingTime         int            `json:"reading_time"`
 }
 
-func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, expectedPaths []string, oracle harness.SymbolInvoker, oraclePods map[string]oracleRuntime) error {
+func assertExtractedInvocations(ctx context.Context, target harness.TargetCase, serviceURL, symbol string, expectedPaths []string, oracle harness.SymbolInvoker, oraclePods map[string]oracleRuntime) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serviceURL+"/invocations", nil)
 	if err != nil {
 		return err
@@ -459,7 +559,13 @@ func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, 
 		for _, path := range expectedPaths {
 			found := false
 			for _, record := range out.Records {
-				if record.P == path {
+				p := record.P
+				if p == "" {
+					if v, ok := record.Params["p"]; ok {
+						p, _ = v.(string)
+					}
+				}
+				if p == path {
 					found = true
 					break
 				}
@@ -472,7 +578,13 @@ func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, 
 	if symbol == "sanitizemethod" {
 		foundGET := false
 		for _, record := range out.Records {
-			if record.M == http.MethodGet {
+			m := record.M
+			if m == "" {
+				if v, ok := record.Params["m"]; ok {
+					m, _ = v.(string)
+				}
+			}
+			if m == http.MethodGet {
 				foundGET = true
 				break
 			}
@@ -487,8 +599,8 @@ func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, 
 		}
 	}
 	for _, record := range out.Records {
-		payload := invocationPayload(symbol, record)
-		want := invocationResult(symbol, record)
+		payload := invocationPayload(target, symbol, record)
+		want := invocationResult(target, symbol, record)
 		var got any
 		var err error
 		if oraclePod, ok := oraclePods[symbol]; ok {
@@ -504,24 +616,6 @@ func assertExtractedInvocations(ctx context.Context, serviceURL, symbol string, 
 		}
 	}
 	return nil
-}
-
-func invocationPayload(symbol string, record invocationRecord) map[string]any {
-	switch symbol {
-	case "sanitizemethod":
-		return map[string]any{"m": record.M}
-	case "estimatereadingtime":
-		return map[string]any{"content": record.Content, "default_reading_speed": record.DefaultReadingSpeed, "cjk_reading_speed": record.CjkReadingSpeed}
-	default:
-		return map[string]any{"p": record.P, "collapse_slashes": record.CollapseSlashes}
-	}
-}
-
-func invocationResult(symbol string, record invocationRecord) any {
-	if symbol == "estimatereadingtime" {
-		return record.ReadingTime
-	}
-	return record.Result
 }
 
 func assertExtractedServiceLogs(ctx context.Context, target harness.TargetCase, ns string, expected []string) error {
@@ -612,6 +706,9 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 }
 
 func assertFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
+	if target.ActivationLift != nil {
+		return assertActivationFailModesForService(ctx, deployer, target, ns, service)
+	}
 	if target.Name == "miniflux" {
 		return assertMinifluxFailModesForService(ctx, deployer, target, ns, service)
 	}
@@ -635,7 +732,7 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 		return err
 	}
 	wantClosed := http.StatusNotFound
-	if symbolForService(service.Name) == "sanitizemethod" {
+	if symbolForService(target, service.Name) == "sanitizemethod" {
 		wantClosed = http.StatusOK
 	}
 	if closedStep.Status != wantClosed {
@@ -671,6 +768,64 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 		return fmt.Errorf("%s fail-open status=%d want 200", service.Name, openStep.Status)
 	}
 	return scaleExtractedService(ctx, deployer, ns, service, 1)
+}
+
+func assertActivationFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
+	if err := setLiftedEnv(ctx, target, ns, "closed"); err != nil {
+		return err
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
+		return err
+	}
+	closedPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
+	if err != nil {
+		return err
+	}
+	if err := target.Workload.Setup(ctx, closedPF.URL); err != nil {
+		closedPF.Stop()
+		return err
+	}
+	closedStep, err := firstWorkloadStep(ctx, target, closedPF.URL)
+	closedPF.Stop()
+	if err != nil {
+		return err
+	}
+	if closedStep.Status >= 500 {
+		return fmt.Errorf("%s fail-closed status=%d want non-5xx sentinel response", service.Name, closedStep.Status)
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 1); err != nil {
+		return err
+	}
+	if err := assertRestoredServiceCalls(ctx, target, ns, service); err != nil {
+		return err
+	}
+
+	if err := setLiftedEnv(ctx, target, ns, "open"); err != nil {
+		return err
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
+		return err
+	}
+	openPF, err := harness.StartPortForward(ctx, target.Name, ns, liftedHostService(target), target.ServicePort)
+	if err != nil {
+		return err
+	}
+	if err := target.Workload.Setup(ctx, openPF.URL); err != nil {
+		openPF.Stop()
+		return err
+	}
+	openStep, err := firstWorkloadStep(ctx, target, openPF.URL)
+	openPF.Stop()
+	if err != nil {
+		return err
+	}
+	if openStep.Status >= 500 {
+		return fmt.Errorf("%s fail-open status=%d want local fallback non-5xx response", service.Name, openStep.Status)
+	}
+	if err := scaleExtractedService(ctx, deployer, ns, service, 1); err != nil {
+		return err
+	}
+	return assertRestoredServiceCalls(ctx, target, ns, service)
 }
 
 func assertMinifluxFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
@@ -766,27 +921,39 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 		return err
 	}
 	defer servicePF.Stop()
-	before, err := readCalls(ctx, servicePF.URL)
-	if err != nil {
-		return err
-	}
-	if target.Name == "miniflux" {
-		if _, err := firstWorkloadStep(ctx, target, caddyPF.URL); err != nil {
+
+	// Retry a few times to allow k8s endpoint propagation after scale-up.
+	var lastDelta int64
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			time.Sleep(3 * time.Second)
+			if err := target.Workload.Setup(ctx, caddyPF.URL); err != nil {
+				return err
+			}
+		}
+		before, err := readCalls(ctx, servicePF.URL)
+		if err != nil {
 			return err
 		}
-	} else {
-		if _, err := workloadStep(ctx, target, caddyPF.URL, "/headers"); err != nil {
+		if target.Name == "miniflux" || target.ActivationLift != nil {
+			if _, err := firstWorkloadStep(ctx, target, caddyPF.URL); err != nil {
+				return err
+			}
+		} else {
+			if _, err := workloadStep(ctx, target, caddyPF.URL, "/headers"); err != nil {
+				return err
+			}
+		}
+		after, err := readCalls(ctx, servicePF.URL)
+		if err != nil {
 			return err
 		}
+		lastDelta = after - before
+		if lastDelta >= 1 {
+			return nil
+		}
 	}
-	after, err := readCalls(ctx, servicePF.URL)
-	if err != nil {
-		return err
-	}
-	if after-before < 1 {
-		return fmt.Errorf("%s restored /calls delta=%d want >=1", service.Name, after-before)
-	}
-	return nil
+	return fmt.Errorf("%s restored /calls delta=%d want >=1", service.Name, lastDelta)
 }
 
 func setLiftedEnv(ctx context.Context, target harness.TargetCase, ns, failMode string) error {
@@ -808,6 +975,9 @@ func liftedHostService(target harness.TargetCase) string {
 }
 
 func liftedEnvOffArgs(target harness.TargetCase) []string {
+	if target.ActivationLift != nil {
+		return []string{activationEnvPrefix(target) + "-"}
+	}
 	switch target.Name {
 	case "miniflux":
 		return []string{"MONOLIFT_LIFT_ESTIMATEREADINGTIME-"}
@@ -817,6 +987,15 @@ func liftedEnvOffArgs(target harness.TargetCase) []string {
 }
 
 func liftedEnvOnArgs(target harness.TargetCase, failMode string) []string {
+	if target.ActivationLift != nil {
+		serviceName := target.LiftedExtractedServices[0].Name
+		prefix := activationEnvPrefix(target)
+		return []string{
+			prefix + "=on",
+			"MONOLIFT_LIFT_FAILMODE=" + failMode,
+			activationEndpointEnv(prefix) + "=http://" + serviceName + ":8081/invoke",
+		}
+	}
 	switch target.Name {
 	case "miniflux":
 		return []string{
@@ -833,6 +1012,22 @@ func liftedEnvOnArgs(target harness.TargetCase, failMode string) []string {
 			"MONOLIFT_LIFT_SANITIZEMETHOD_ENDPOINT=http://monolift-extracted-sanitizemethod:8081/invoke",
 		}
 	}
+}
+
+func activationEnvPrefix(target harness.TargetCase) string {
+	if target.ActivationLift != nil && target.ActivationLift.ExpectedEnvVarPrefix != "" {
+		return target.ActivationLift.ExpectedEnvVarPrefix
+	}
+	symbol := "LIFTED"
+	if len(target.LiftedExtractedServices) > 0 {
+		symbol = strings.ToUpper(symbolForService(target, target.LiftedExtractedServices[0].Name))
+	}
+	return "MONOLIFT_LIFT_" + symbol
+}
+
+func activationEndpointEnv(prefix string) string {
+	env := strings.TrimPrefix(prefix, "MONOLIFT_LIFT_")
+	return "MONOLIFT_" + env + "_ENDPOINT"
 }
 
 func scaleExtractedService(ctx context.Context, deployer harness.Deployer, ns string, service harness.ExtractedServiceSpec, replicas int) error {
@@ -876,7 +1071,13 @@ func postInvoke(ctx context.Context, serviceURL string, payload map[string]any) 
 	return out["result"], nil
 }
 
-func invokePayload(symbol string) map[string]any {
+func invokePayload(target harness.TargetCase, symbol string) map[string]any {
+	if payload, ok := target.InvokePayloads[symbol]; ok {
+		return clonePayload(payload)
+	}
+	if target.ActivationLift != nil && len(target.ActivationLift.DirectInvocationProbePayload) > 0 {
+		return clonePayload(target.ActivationLift.DirectInvocationProbePayload)
+	}
 	switch symbol {
 	case "sanitizemethod":
 		return map[string]any{"m": http.MethodGet}
@@ -885,6 +1086,46 @@ func invokePayload(symbol string) map[string]any {
 	default:
 		return map[string]any{"p": "/static/hello.txt", "collapse_slashes": true}
 	}
+}
+
+func invocationPayload(target harness.TargetCase, symbol string, record invocationRecord) map[string]any {
+	if len(record.Params) > 0 {
+		return clonePayload(record.Params)
+	}
+	switch symbol {
+	case "sanitizemethod":
+		return map[string]any{"m": record.M}
+	case "estimatereadingtime":
+		return map[string]any{"content": record.Content, "default_reading_speed": record.DefaultReadingSpeed, "cjk_reading_speed": record.CjkReadingSpeed}
+	default:
+		return map[string]any{"p": record.P, "collapse_slashes": record.CollapseSlashes}
+	}
+}
+
+func invocationResult(target harness.TargetCase, symbol string, record invocationRecord) any {
+	if resultMap, ok := record.Result.(map[string]any); ok {
+		if value, nested := resultMap["result"]; nested {
+			return value
+		}
+		if len(resultMap) == 1 {
+			for _, value := range resultMap {
+				return value
+			}
+		}
+		return resultMap
+	}
+	if symbol == "estimatereadingtime" {
+		return record.ReadingTime
+	}
+	return record.Result
+}
+
+func clonePayload(payload map[string]any) map[string]any {
+	out := make(map[string]any, len(payload))
+	for key, value := range payload {
+		out[key] = value
+	}
+	return out
 }
 
 func oracleArgs(symbol string, payload map[string]any) map[string]any {
@@ -896,12 +1137,21 @@ func oracleArgs(symbol string, payload map[string]any) map[string]any {
 	return args
 }
 
-func symbolForService(name string) string {
+func symbolForService(target harness.TargetCase, name string) string {
+	if symbol, ok := target.ServiceSymbols[name]; ok {
+		return symbol
+	}
 	if strings.Contains(name, "sanitizemethod") {
 		return "sanitizemethod"
 	}
 	if strings.Contains(name, "estimatereadingtime") {
 		return "estimatereadingtime"
+	}
+	if target.ActivationLift != nil {
+		name = strings.TrimPrefix(name, "monolift-extracted-")
+		name = strings.TrimPrefix(name, "monolift-oracle-")
+		name = strings.TrimPrefix(name, "monolift-")
+		return strings.ReplaceAll(name, "-", "")
 	}
 	return "cleanpath"
 }
@@ -1015,7 +1265,9 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 		paths = append(paths, manifest)
 	}
 	spec := *target.LiftedHostBuild
-	paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
+	if target.ActivationLift == nil {
+		paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
+	}
 	for _, service := range target.LiftedExtractedServices {
 		paths = append(paths,
 			filepath.Join(artifactsDir, service.DeploymentYAML),
@@ -1027,6 +1279,9 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 			filepath.Join(artifactsDir, service.DeploymentYAML),
 			filepath.Join(artifactsDir, service.ServiceYAML),
 		)
+	}
+	if target.ActivationLift != nil {
+		paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
 	}
 	return paths
 }
