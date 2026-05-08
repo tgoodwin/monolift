@@ -1,6 +1,10 @@
 package harness
 
-import "time"
+import (
+	"time"
+
+	"github.com/tgoodwin/monolift/pkg/codegen"
+)
 
 type TargetCase struct {
 	Name                    string
@@ -30,14 +34,25 @@ type TargetCase struct {
 	LiftedHostBuild         *HostBuildSpec
 	LiftedExtractedServices []ExtractedServiceSpec
 	LiftedOracleServices    []ExtractedServiceSpec
+	ActivationLift          *ActivationLiftSpec
 	GoldenReport            string
 	EntryPathProbePackage   string
 	EntryPathProbeRoots     []string
 	Workload                WorkloadExecutor
 	Oracle                  SymbolInvoker
 	Invariants              []Invariant
+	ServiceSymbols          map[string]string
+	InvokePayloads          map[string]map[string]any
 	ServiceName             string
 	ServicePort             int
+}
+
+type ActivationLiftSpec struct {
+	Target                       string
+	ServiceName                  string
+	Deploy                       codegen.DeployOptions
+	ExpectedEnvVarPrefix         string
+	DirectInvocationProbePayload map[string]any
 }
 
 type SymbolInvoker interface {
