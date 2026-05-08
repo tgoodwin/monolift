@@ -18,7 +18,7 @@ under
 preserve / revise / retire discipline). Every refusal is now a named
 code (`MLV2_*`), each code is bound to one or more rule IDs from the
 v2 contract, and each diagnostic carries a source location and a
-remediation hint the developer can paste into the code. A single
+remediation hint that explains the expected code change. A single
 translation step lowers internal compiler diagnostics to a stable
 external report, so new refusal reasons land as table entries rather
 than as switch statements scattered across the compiler. The stance
@@ -30,13 +30,13 @@ pointing at a fix.
 
 Monolift refuses more than it lifts, and refusals are the contract with
 the developer: every refusal is a named code (`MLV2_*`), every code maps
-to a rule ID, every diagnostic carries a span and a copy-pasteable
+to a rule ID, and every diagnostic carries a span and an actionable
 remediation hint. The design pressure is that real-world handlers do not
 fit a single template — some are bound to stateful receivers, some
 mutate embedded database-client fields during startup, some take
 framework-specific argument shapes — so the diagnostic pipeline needs
 to translate many kinds of compiler-internal refusals into one stable
-reportv2 shape without leaking internal structure.
+reportv2 record without leaking internal structure.
 
 ## Extract → classify → translate → verdict
 
@@ -49,17 +49,18 @@ flowchart LR
     R --> V["verdict<br/>(accept / accept-with-warnings / refused)"]
 ```
 
-`Translate` is the narrow waist. Every `MLV2_*` code has a `codeSpecs`
-entry naming its default rule IDs and a remediation builder; a diagnostic
-without a matching spec raises `UnknownCodeError` rather than silently
-passing through. Spans are re-resolved against `ModuleRoot` so reportv2
-paths are portable across machines.
+`Translate` is the single conversion point between compiler-internal
+diagnostics and the public report schema. Every `MLV2_*` code has a
+`codeSpecs` entry naming its default rule IDs and a remediation builder;
+a diagnostic without a matching spec raises `UnknownCodeError` rather
+than silently passing through. Spans are re-resolved against `ModuleRoot`
+so reportv2 paths are portable across machines.
 
 ## Monolift's translator, paired with a handler that exercises it
 
-The Monolift side is `diagnostics.Translate` — the per-diagnostic lookup
-and shape rewrite. The Miniflux side is `currentUserHandler`, a method
-handler that pulls the user ID from the request context, calls into
+The Monolift side is `diagnostics.Translate`: the per-diagnostic lookup
+and conversion to reportv2. The Miniflux side is `currentUserHandler`, a
+method handler that pulls the user ID from the request context, calls into
 `*storage.Storage`, and writes a JSON response. Under the v2 classifier
 this is `ctx-request-response` shape with `external` state via `h.store`;
 the diagnostics pipeline is what surfaces any policy or state conflicts

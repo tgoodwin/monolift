@@ -1,12 +1,27 @@
-# Placing the cut
+# Drawing the network boundary
+
+## Research question and result
+
+The workshop paper described calls becoming remote invocations, but it
+left an important placement question under-specified: once the compiler
+knows which region the developer wants to lift, where along the
+activation path should the program actually split? The **lift target**
+and the **cut point** are not always the same function.
+
+Monolift treats every function on the activation path as a candidate cut
+point and ranks those candidates by ordered tie-breakers: boundary data,
+surface area, callbacks, receiver-state reconstruction, error semantics,
+and alignment with existing component boundaries. On the pinned corpus,
+the analyzer matches 71 of 72 reviewed cut recommendations; the same
+enterprise-package build issue accounts for the remaining miss.
 
 ## Why the lift target is not always the cut point
 
-A developer points Monolift at a function and says: run this somewhere
-else. That function is the **lift target** — the thing they want
-extracted. But Monolift does not necessarily place the network boundary
-at the lift target itself. It places the boundary at the **cut point**,
-which may be a different function higher up the activation path.
+A developer points Monolift at a region of code and says: run this
+somewhere else. This is the **lift target**, the region the developer
+wants extracted. But Monolift does not necessarily place the network
+boundary at the lift target itself. It places the boundary at the **cut
+point**, which may be at a point higher up the activation path.
 
 The distinction matters because the cut point is where the program
 splits in two. Everything above the cut stays in the monolith.
@@ -25,7 +40,7 @@ which one is the best place to insert the network boundary?
 
 Every function on the activation path is a candidate. The compiler
 evaluates each one along six dimensions, all derived from the
-function's type signature and position on the path:
+function's type signature and position on the activation path:
 
 **Can the data cross a network?** The function's parameters and return
 values will become a serialized request and response. Strings, integers,
@@ -33,7 +48,7 @@ and structs of exported fields are straightforward. A `*sql.DB` cannot
 be serialized, but it can be *reconstructed* on the remote side from a
 connection string — the compiler knows this and treats it differently.
 A `func()` parameter or an `http.ResponseWriter` cannot be
-reconstructed at all. Those are hard stops.
+reconstructed at all. Those make the candidate infeasible.
 
 **Does the function call back into code above the cut?** If the
 function takes a callback that invokes logic in the monolith, the
@@ -49,32 +64,35 @@ receiver holds a shared mutable cache or a mutex-protected map — that
 state cannot be replicated remotely, and the cut is a poor choice.
 
 **How much of the application moves?** A cut near `main()` extracts
-nearly the entire program — which defeats the purpose. A cut near the
+nearly the entire program, which defeats the purpose. A cut near the
 bottom of the path extracts a small, focused piece. The compiler
 measures this as **surface area**: what fraction of the activation path
 ends up on the remote side.
 
 **Can errors be reported?** If the function returns an `error`, the
-client stub can report remote failures naturally. If it returns a
-`bool`, the stub needs a wrapper. If it has no failure path at all,
-there is no clean way to surface a network error to the caller.
+client stub can report remote failures naturally. If it has no failure
+path at all, there is no clean way to surface a network error to the
+caller.
 
-**Does the edge align with a natural boundary?** Some edges on the
-activation path are already boundary-like: an interface dispatch, an
-HTTP handler registration, a callback handoff. Cutting at one of those
-edges feels natural — the code was already written as if the callee
-were a replaceable component. A direct function call within the same
-package is the opposite: cutting there introduces a boundary where none
-existed.
+**Does the edge align with a natural boundary?** A natural boundary is
+a conceptual boundary between application components: the point where
+one part of the program already hands control to another through a
+contract. Some edges on the activation path already have that shape:
+an interface dispatch, an HTTP handler registration, or a callback
+handoff. Cutting at one of those edges is less disruptive because the
+code was already written as if the callee were a replaceable component.
+A direct function call within the same package is the opposite: cutting
+there introduces a component boundary where none existed.
 
 ## The decision tree
 
 The compiler does not collapse these six dimensions into a single
-score. Instead it uses a **lexicographic comparison** — a strict
-priority ordering where the first dimension that differs between two
-candidates decides the winner. This makes the decision transparent and
-auditable: the compiler can always say *which* dimension was decisive
-and why.
+score. Instead, it compares candidates with ordered tie-breakers. It
+starts with the highest-priority dimension; if two candidates are equal
+there, it moves to the next dimension, and so on. The first dimension
+that differs decides the winner. This makes the decision transparent
+and auditable: the compiler can always say *which* dimension was
+decisive and why.
 
 The priority order is:
 
@@ -97,16 +115,16 @@ The priority order is:
 6. Edge alignment           does the edge look like a natural boundary?
                             Strong > Weak > Anti
 
-7. Tiebreaker               deeper step wins; then alphabetical
+7. Final tiebreaker         deeper step wins; then function name for determinism
 ```
 
-Surface area ranks first among the soft dimensions because without it,
-shallow bootstrap functions win on every other metric. A function at
-step 2 of a 13-step path might be stateless with zero callbacks — but
-extracting it means extracting the entire application. The corpus
-confirmed this: across 72 ground-truth traces, the mean recommended cut
-depth was 0.92 (where 1.0 means the very last step). Deep cuts
-dominate.
+Surface area ranks first among the ranking dimensions because, without
+it, shallow startup functions near `main()` win on every other metric. A
+function at step 2 of a 13-step path might be stateless with zero
+callbacks, but extracting it means extracting the entire application.
+The corpus confirmed this: across the 72 reviewed traces, the mean
+recommended cut depth was 0.92 (where 1.0 means the very last step). In
+practice, the recommended cuts are usually close to the lift target.
 
 ## A concrete example
 
@@ -130,7 +148,7 @@ at the bottom. The lift target and the cut point are the same function.
 All parameters are strings or a simple struct — **trivially
 serializable**. The function is stateless, has no callbacks, returns a
 string. Every dimension is ideal. The compiler places the cut here
-without hesitation.
+without adding an intermediate boundary.
 </div>
 
 <div markdown="1">
@@ -159,9 +177,9 @@ alignment), and the extra surface area is small.
 
 ## Where the cut point diverges from the lift target
 
-In about a third of the 72 ground-truth traces, the recommended cut
-point is not the lift target itself but a function above it on the
-path. This happens for predictable reasons:
+In about a third of the 72 reviewed traces, the recommended cut point is
+not the lift target itself but a function above it on the path. This
+happens for predictable reasons:
 
 - **The lift target's signature is harder to serialize.** A function
   deep in the call chain might take a framework context, a logger, and
@@ -178,7 +196,7 @@ path. This happens for predictable reasons:
   lift target is reached by a direct call within the same package, but
   the function above it is dispatched through an interface or retrieved
   from a handler registry, the higher cut aligns with an existing
-  architectural seam.
+  component boundary.
 
 The compiler evaluates all candidates and reports why it chose the one
 it did. Every rejected candidate gets a reason: "ranked below
@@ -187,10 +205,10 @@ boundary-data hard gate: function-value parameter."
 
 ## Monolift's comparator, paired with the data it classifies
 
-The Monolift side is `betterCutCandidate` — the lexicographic
-comparator that implements the priority ordering. Each candidate
-carries its classifications as fields, not as a collapsed score, so
-the decisive dimension is always recoverable.
+The Monolift side is `betterCutCandidate` — the comparator that applies
+the priority order above. Each candidate carries its classifications as
+fields, not as a collapsed score, so the decisive dimension is always
+recoverable.
 
 <div class="code-pair" markdown="1">
 
@@ -210,9 +228,9 @@ the decisive dimension is always recoverable.
 ```
 
 Each field on `CutCandidate` is one of the six classification
-dimensions. `Feasibility` is the hard gate — if `Infeasible`, the
-candidate is rejected before ranking begins. The remaining five fields
-are compared in the priority order shown in the comparator.
+dimensions. `Feasibility` is the non-negotiable gate: if `Infeasible`,
+the candidate is rejected before ranking begins. The remaining five
+fields are compared in the priority order shown in the comparator.
 </div>
 
 </div>
@@ -228,9 +246,9 @@ values cross the network.
 
 This is the model described in the original paper, but its consequences
 for cut placement were not obvious until the corpus evaluation surfaced
-them. Six traces initially diverged from the ground truth because the
-analyzer preferred a shallow cut with an `http.ResponseWriter` in its
-signature. But `http.ResponseWriter` is the monolith's HTTP lifecycle
+them. Six traces initially diverged from the reference answers because
+the analyzer preferred a shallow cut with an `http.ResponseWriter` in
+its signature. But `http.ResponseWriter` is the monolith's HTTP lifecycle
 handle — it should never reach the boundary. If it appears in a
 candidate's parameters, the cut is too shallow. The fix is not to proxy
 the writer across the network; it is to cut deeper, below the HTTP
@@ -244,12 +262,12 @@ should look further down the path.
 
 ## Evaluation
 
-The cut-placement analyzer was validated against the same 72-trace
-ground truth used for activation-path recovery. For each trace, three
+The cut-placement analyzer was validated against the same 72 reviewed
+traces used for activation-path recovery. For each trace, three
 independent agents had already identified the recommended cut by hand,
 recording the function name, step index, boundary data class, state
-class, and feasibility. The analyzer's output was compared against
-this table.
+class, and feasibility. The analyzer's output was compared against this
+table.
 
 | Project | Traces | Correct | |
 |---|---:|---:|---|
@@ -263,16 +281,17 @@ this table.
 
 ## Design principles
 
-**Lexicographic, not numeric.** The decision tree does not assign
-weights to dimensions and add them up. It compares dimensions in strict
-priority order. This makes the decision auditable: the compiler can
-always name the single dimension that was decisive, rather than
-reporting an opaque composite score.
+**Ordered tie-breakers, not numeric weights.** The decision tree does
+not assign weights to dimensions and add them up. It compares dimensions
+in strict priority order: if two candidates tie on the first dimension,
+the next dimension decides, and so on. This makes the decision auditable:
+the compiler can always name the single dimension that was decisive,
+rather than reporting an opaque composite score.
 
 **Designed from data.** The six dimensions and their priority ordering
 were not chosen from theory. They were synthesized from 72 hand-traced
 cut recommendations across six real codebases. The ordering was chosen
-to match the ground truth, not to satisfy an abstract principle.
+to match the reviewed traces, not to satisfy an abstract principle.
 
 **Refuse, don't approximate.** When a function's boundary data includes
 something that cannot cross a network — a channel, a mutex, a function

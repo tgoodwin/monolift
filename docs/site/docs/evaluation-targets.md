@@ -9,6 +9,16 @@ list is pinned in [`evaluation/MANIFEST.yaml`](https://github.com/tgoodwin/monol
 with a commit SHA per target; the table below is the reader-facing
 summary.
 
+When the site refers to the **corpus**, it is usually referring to one
+of three nested datasets:
+
+- **6 pinned codebases** used as the source material.
+- **88 candidate lift regions** selected from those codebases as
+  plausible remote-execution targets.
+- **72 reviewed traces** where the activation path and recommended cut
+  point were identified by independent agents and synthesized into a
+  reference answer.
+
 | Project | Repository | Go LOC | What it is |
 |---|---|---:|---|
 | **Caddy** | [caddyserver/caddy](https://github.com/caddyserver/caddy) | 93.5k | Extensible open-source web server with automatic HTTPS. |
