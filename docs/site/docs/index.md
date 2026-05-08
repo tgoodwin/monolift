@@ -12,7 +12,7 @@ Monolift compiler is not in the loop, and distribution decisions can
 be expressed as policies the runtime evaluates per call.
 
 **What the initial prototype actually did.** The prototype that shipped
-alongside the paper was developed against a contrived toy demo and
+alongside the paper was developed against a small synthetic demo and
 implemented a deliberately narrow slice of the vision: one annotation
 surface (interfaces), one function signature (functions that looked
 like HTTP handlers), one state model (stateless functions), and one
@@ -23,7 +23,7 @@ function worth lifting sat outside one of them.
 
 **What this site explains.** Each of the main pages takes one of those
 simplifying assumptions or open design questions, shows the design
-pressure that shaped the answer, and shows the compiler code that now
+pressure that motivated the answer, and shows the compiler code that now
 handles it — paired with an excerpt from one of the open-source Go
 monoliths the compiler is being developed against.
 
@@ -36,7 +36,8 @@ not hold up on real-world Go monoliths, and tags it as *preserve*,
 close-up: the compiler code that realizes the revised claim, paired
 with an excerpt from the real-world project that forced the revision.
 Readers who want the delta from the paper can stop after each "At a
-glance" block; readers who want the implementation can keep going.
+glance" block; readers who want the implementation details can keep
+going.
 
 ## Sections
 
@@ -54,10 +55,10 @@ glance" block; readers who want the implementation can keep going.
   refusal codes.
 - [**Recovering activation paths**](activation-paths.md) —
   how the compiler recovers the path from `main()` to a lifted
-  function, so it knows where to place the network boundary.
+  region, so it knows where to place the network boundary.
   Designed empirically: 72 ground-truth traces across 6 codebases
   guided incremental algorithm development to 71/72 coverage.
-- [**Placing the cut**](cut-placement.md) — how the compiler
+- [**Placing the network boundary**](cut-placement.md) — how the compiler
   decides where on the activation path to insert the network boundary.
   The lift target and the cut point are not always the same function;
   a decision tree over six dimensions picks the best candidate.

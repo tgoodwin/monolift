@@ -5,14 +5,14 @@
 The paper's working model was concrete and deliberately simple:
 annotate an interface, wire the lift together in `main`, assume the
 lifted function is stateless, and assume it looks like an HTTP handler.
-Each of those commitments paid for itself on the demo application —
-and each broke, at least partially, when the design met real production
-codebases. The annotation surface was too narrow; wiring the lift in
-`main` missed the places where the function was actually dispatched
-from; most interesting functions held state the model could not
+Each of those commitments was useful for the demo application, but each
+failed at least partially when the design met real production codebases.
+The annotation surface was too narrow; wiring the lift in `main` missed
+the places where the function was actually dispatched from; most
+interesting functions held state the model could not
 classify.
 
-v2 is a principled revision of that model, not a greenfield redesign.
+v2 is a principled revision of that model, not a replacement architecture.
 Each paper commitment was audited and tagged as **preserve**,
 **revise**, or **retire** under
 [ADR-0009](https://github.com/tgoodwin/monolift/blob/main/docs/decisions/0009-plos-claims-preserve-revise-retire.md):
@@ -66,8 +66,8 @@ The Monolift side is `validatePragma` — the per-surface key schema that
 is the v2 contract's enforcement point. It is how `state`, `transport`,
 `mode`, and `dispatch` stop being free-text fields and start being
 validated enums. The Miniflux side is the same `currentUserHandler`
-refused under v1 and admitted under v2: the contract change, not the
-handler, is what moved.
+refused under v1 and admitted under v2: the handler did not change; the
+compiler contract did.
 
 <div class="code-pair" markdown="1">
 
@@ -93,8 +93,8 @@ handler, is what moved.
 ## Why we did this
 
 v1's handler-only contract could not express most of the corpus without
-per-target special-casing; v2 trades a narrower lexicon of pragma keys
-for a property-driven admission contract and a wider set of downstream
+per-target special-casing. v2 uses a more precise lexicon of pragma keys,
+a property-driven admission contract, and a wider set of downstream
 transport choices. See
 [ADR-0002](https://github.com/tgoodwin/monolift/blob/main/docs/decisions/0002-renegotiate-contract-v2.md)
 for the v1 → v2 renegotiation,

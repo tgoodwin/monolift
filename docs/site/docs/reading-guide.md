@@ -18,9 +18,9 @@ compiler.
   the lifted root, its call graph, captured freevars, store sites, sync
   witnesses, channel-loop evidence, and raw refusal reasons. Produces
   `LoadedModule` values that downstream passes consume.
-- **`pkg/compiler/passes/`** — orchestration seam: each semantic pass
+- **`pkg/compiler/passes/`** — pass orchestration: each semantic pass
   registers through a common interface so `extract.Analyze` stays the
-  single orchestration point.
+  single coordination point.
 - **`pkg/compiler/liftability/`** — liftability-property detectors and
   the property-to-refusal admission gate. Emits the ADR-0018 property
   facts that downstream passes consume. See

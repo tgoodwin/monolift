@@ -2,16 +2,18 @@
 
 ## Why the compiler needs this
 
-Monolift takes a developer-annotated function and extracts it into a
-remote service. But the annotation says *what* to lift, not *where* to
-cut. The compiler still has to decide where the network boundary goes —
-and that decision requires understanding how the application reaches the
+Monolift takes a developer-annotated region of code and extracts it into
+a remote service. The annotation says *what* to lift, not *where* to cut.
+The compiler still has to decide where the network boundary goes, and
+that decision requires understanding how the application reaches the
 annotated code in the first place.
 
-The path from `main()` to the lifted function is the **activation
-path**. It shows how control flows from program startup, through
-framework and application machinery, to the code being extracted.
-Without it, the compiler is placing a network incision blind.
+The path from `main()` to the lifted region's root function is the
+**activation path**. It shows how control flows from program startup,
+through framework and application machinery, to the code being
+extracted.
+Without it, the compiler is choosing a network boundary without the
+evidence needed to decide where that boundary belongs.
 
 In a simple program the activation path might be a straight line of
 function calls. In practice it almost never is. Real Go monoliths wire
@@ -25,9 +27,9 @@ function calls and misses the rest.
 
 The research question is:
 
-> What is the smallest static graph whose edges connect binary
-> entrypoints to lifted region roots, and what compiler algorithm
-> generalizes across codebases to produce it?
+> What is the smallest static graph that still connects program
+> entrypoints to lifted region roots, and which compiler algorithm can
+> recover that graph across real codebases?
 
 ## How we designed the algorithm
 
@@ -50,7 +52,7 @@ For 72 of those candidates, we had three agents independently trace
 the static path from `main()` to the target function — labeling each
 step with the *kind of resolution* a compiler would need to follow it.
 The agents cross-critiqued each other's traces, and a synthesis pass
-produced one canonical trace per candidate.
+produced one reviewed reference trace per candidate.
 
 The traces are structured: each step has a source location, a target
 location, and a label describing what kind of connection it is. The
@@ -60,9 +62,9 @@ calls). Others require the compiler to track a value stored in a data
 structure and later invoked, or to recognize that a goroutine launch
 creates a new thread of control.
 
-These 72 traces became the algorithm's **ground truth** — a test
-harness that tells us, for any version of the algorithm, exactly which
-paths it finds and where it gets stuck.
+These 72 reviewed traces became the algorithm's **ground truth**: the
+reference dataset that tells us, for any version of the algorithm,
+which paths it finds and where it gets stuck.
 
 ### Step 3: Build the algorithm to match the data
 
@@ -75,9 +77,9 @@ time. After each addition, we re-ran the full evaluation:
 
 - **Value-flow tracking**: we added passes that follow function values
   stored in struct fields, package variables, map registries, and
-  callback arguments. This created the right edges — but the functions
-  on the other side were *dead ends* in the graph, because the call
-  graph had never explored their bodies.
+  callback arguments. This created the right edges, but the functions
+  on the other side were still unexplored nodes: the call graph had not
+  analyzed their bodies yet.
 
 - **Iterative exploration**: the key insight. After augmentation
   discovers new functions, re-run the call graph analysis from those
@@ -105,7 +107,7 @@ time. After each addition, we re-ran the full evaluation:
                                  │
                         ┌────────▼────────┐
                         │ + iterative     │  69/72 (96%)
-                        │   exploration   │  the dead-end fix
+                        │   exploration   │  explores discovered functions
                         └────────┬────────┘
                                  │
                         ┌────────▼────────┐
@@ -117,8 +119,8 @@ time. After each addition, we re-ran the full evaluation:
 
 The coverage report after each step told us exactly which paths were
 newly found, which remained blocked, and what kind of edge was the
-blocker. This made prioritization mechanical: fix the pattern that
-blocks the most paths, re-measure, repeat.
+blocker. This made prioritization mechanical: implement support for the
+pattern that blocks the most paths, re-measure, repeat.
 
 ## What the algorithm does
 
@@ -146,7 +148,8 @@ Re-run the call graph from those functions as additional roots, merging
 the results back. Repeat augmentation and exploration until no new
 functions appear.
 
-**4. Find the shortest path.** BFS from all entrypoints to the target.
+**4. Find the shortest path.** Run breadth-first search (BFS) from all
+entrypoints to the target.
 
 ## A concrete example
 
@@ -184,8 +187,8 @@ The standard call graph handles most of this path. The one gap is the
 second step: `cmdRun` is stored in cobra's `RunE` field at
 initialization time and invoked later by cobra's command dispatcher.
 Without the value-flow pass, the compiler sees `main → cmd.Main →
-cobra.Execute` and then loses the thread. With it, the full path is
-recovered.
+cobra.Execute` but cannot connect that dispatcher to `cmdRun`. With the
+value-flow pass, the full path is recovered.
 
 ## What the algorithm cannot resolve
 

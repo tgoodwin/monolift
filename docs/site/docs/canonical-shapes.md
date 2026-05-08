@@ -25,8 +25,9 @@ properties such as `boundary.no-streaming-values`, effect properties
 such as `effects.no-param-heap-mutation`, lifecycle properties such
 as `lifecycle.execution-profile`, and contract properties such as
 `contract.error-last`. Canonical shapes survive, but in the narrower
-role ADR-0006 always needed downstream: transport selection and adapter
-derivation after admission has already been decided.
+role ADR-0006 always needed downstream: they are named signature and
+framework patterns used for transport selection and adapter derivation
+after admission has already been decided.
 
 This page covers **Layer 1** of the current architecture: the shared
 property vocabulary and the admission gate. The next page builds on
@@ -35,19 +36,19 @@ facts rather than inventing a second vocabulary.
 
 ## The design pressure, in one paragraph
 
-Most of the Go monoliths Monolift's evaluation corpus pins — Caddy,
-Gitea, Mattermost, Miniflux, Pocketbase, Listmonk — hand-roll their own
-request dispatch, and the hand-rolling shows up in signatures. Caddy's
+Most of the Go monoliths in Monolift's pinned evaluation corpus - Caddy,
+Gitea, Mattermost, Miniflux, Pocketbase, Listmonk - define custom
+request dispatch, and that design shows up in signatures. Caddy's
 middleware takes three arguments, not two. Gitea wraps
 `*context.Context` instead of `*http.Request`. Miniflux's domain
 handlers often carry no HTTP types at all. But the deeper problem is
 not that there are too many handler shapes to list; it is that handler
-shape was the wrong admission question. A region is liftable because
+shape was the wrong criterion for admission. A region is liftable because
 its boundary can cross a network, its body does not mutate caller-owned
 memory through aliases, its lifecycle can be hosted remotely, and its
 contract has vocabulary for remote failure. Transport-specific facts
 such as `transport.handler-boundary` still matter, but they are
-selector signals, not the gate.
+selection evidence, not the admission rule.
 
 ## The layered classifier
 
@@ -58,7 +59,7 @@ flowchart TD
     C --> D{"any gate property<br/>violated?"}
     D -- yes --> R["refused<br/>stable MLV2_* code"]
     D -- no --> L["liftable region"]
-    L --> S["transport selector signals<br/>canonical shapes"]
+    L --> S["transport selection evidence<br/>canonical shapes"]
     S --> T["root.shape + defaultTransport<br/>adapter derivation"]
 ```
 
@@ -70,7 +71,8 @@ can refuse the lift when violated: for example,
 after the region is admitted: for example, `transport.handler-boundary`
 recognizes `net/http` and Caddy-style handler boundaries. **Advisory**
 properties enrich reports without creating a new refusal path on their
-own. The heuristic-containment rule in ADR-0018 is the guardrail:
+own. ADR-0018 also contains heuristic evidence: evidence that is useful
+but not strong enough to prove a property. The containment rule is that
 sound detectors may gate; heuristic evidence defaults to `Unknown` or
 advisory rather than creating false refusals.
 

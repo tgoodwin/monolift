@@ -4,8 +4,8 @@
 
 In the paper, every lift was assumed to be **stateless**. A lifted
 function was expected to read no captured variables, mutate no shared
-memory, and hold no references to long-lived resources; anything
-stateful was simply out of scope. That assumption kept the prototype's
+memory, and hold no references to long-lived resources; stateful code
+was outside the prototype contract. That assumption kept the prototype's
 semantics clean but ruled out most real production Go, where functions
 routinely close over configuration, protect shared caches with locks or
 atomics, talk to durable clients such as databases and message queues,
@@ -18,13 +18,15 @@ v2 **revises** the stateless rule
 under
 [ADR-0009](https://github.com/tgoodwin/monolift/blob/main/docs/decisions/0009-plos-claims-preserve-revise-retire.md)'s
 preserve / revise / retire discipline). The compiler now treats
-stateful regions as archetype candidates defined over the liftability
-properties from the previous page. An archetype matches when its
-required property subset is satisfied by the region's property-fact
-set; when several archetypes match, ADR-0022 requires the compiler to
-preserve the full candidate set, choose a primary by region-relative
-subsumption or utility-tier fallback, emit composites only when the
-component transforms are compatible, and report the alternatives.
+stateful regions as **archetype candidates**: named transform models
+whose preconditions are expressed as liftability properties. An
+archetype matches when its required property subset is satisfied by the
+region's property-fact set; when several archetypes match, ADR-0022
+requires the compiler to preserve the full candidate set, choose a
+primary by region-relative subsumption (one candidate's required
+properties strictly contain another's) or utility-tier fallback, emit
+composites only when the component transforms are compatible, and report
+the alternatives.
 
 This page covers **Layers 2 and 3** of the current architecture. Layer
 2 is archetype matching: `serialized-actor`, `keyed-partitioned-state`,
@@ -36,13 +38,13 @@ remains downstream.
 ## The design pressure, in one paragraph
 
 A lifted function's captured state decides whether calling it remotely
-is sound. The corpus offers a menu: Caddy's reverse-proxy handler owns
-a mutex-protected `connections` map keyed by connection object;
-Pocketbase's `BaseApp` reaches multiple embedded database clients;
-Mattermost's websocket hub combines per-user connection indexing,
-broadcast fanout, and per-connection send queues. No single scalar
-"stateful" verdict classifies all of these. Monolift's answer is now
-layered: first, the liftability pass produces facts such as
+is sound. The corpus contains several distinct state patterns: Caddy's
+reverse-proxy handler owns a mutex-protected `connections` map keyed by
+connection object; Pocketbase's `BaseApp` reaches multiple embedded
+database clients; Mattermost's websocket hub combines per-user
+connection indexing, broadcast fanout, and per-connection send queues.
+No single "stateful" label classifies all of these. Monolift's answer is
+now layered: first, the liftability pass produces facts such as
 `effects.no-global-writes`, `effects.no-param-escape`,
 `state.mutex-encloses-store-invariant`, and
 `state.keyed-access-invariant`; then the archetype catalog matches
@@ -66,8 +68,9 @@ flowchart TD
     M --> R
 ```
 
-The connective tissue is concrete in code. A `serialized-actor`
-candidate is not a free-form label; its required set includes
+The connection between the layers is concrete in code. A
+`serialized-actor` candidate is not a free-form label; its required set
+includes
 `effects.no-param-heap-mutation`, `effects.no-param-escape`,
 `effects.no-global-writes`, `state.mutex-encloses-store-invariant`, and
 `state.receiver-owned-state`. A `keyed-partitioned-state` candidate
@@ -111,16 +114,17 @@ plus region.
 
 ## Monolift's candidate machinery, paired with the examples
 
-The Monolift side is the ADR-0022 vertical slice now present in
+The Monolift side is the ADR-0022 implementation slice now present in
 `pkg/compiler/stateclass/`: construct candidates from satisfied
 property subsets, reduce them by subsumption, select a primary, and
-convert the result into report fields that distinguish candidate
-existence, static emittability, and runtime selection eligibility. The
-Caddy side is the mutex-protected `connections` map that produces an
-`alternative_set` today. The Mattermost side is intentionally described
-in prose here because ADR-0022 has accepted the composite contract, but
-the current implementation slice has not yet migrated all three
-Mattermost component archetypes into first-class required-property sets.
+convert the result into report fields. Those fields distinguish three
+questions: whether a candidate exists, whether the compiler can emit it
+statically, and whether the runtime may choose it. The Caddy side is the
+mutex-protected `connections` map that produces an `alternative_set`
+today. The Mattermost side is intentionally described in prose here
+because ADR-0022 has accepted the composite contract, but the current
+implementation slice has not yet migrated all three Mattermost component
+archetypes into first-class required-property sets.
 
 <div class="code-pair" markdown="1">
 
@@ -168,10 +172,10 @@ Mattermost component archetypes into first-class required-property sets.
 
 The bounded state taxonomy from ADR-0016 is still the starting point,
 but ADR-0022 prevents the taxonomy from pretending the region space is
-a partition. Real regions can satisfy more than one transform lens at
+a partition. Real regions can satisfy more than one transform model at
 the same time. Candidate-set classification preserves that fact for
 reports and future runtime selection, while subsumption keeps primary
-selection auditable instead of encoding a global archetype ladder. See
+selection auditable instead of encoding a global archetype ranking. See
 [ADR-0017](https://github.com/tgoodwin/monolift/blob/main/docs/decisions/0017-classifier-reasons-about-liftability.md)
 for the layered architecture note,
 [ADR-0018](https://github.com/tgoodwin/monolift/blob/main/docs/decisions/0018-liftability-property-taxonomy.md)
