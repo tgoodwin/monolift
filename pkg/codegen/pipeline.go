@@ -155,11 +155,12 @@ func attachIncomingCall(plan *Plan, path *activation.Path, step int) error {
 
 func runActivation(ctx context.Context, opts LiftOptions) (*activation.Result, error) {
 	analyzer := activation.NewAnalyzer(activation.Config{
-		Dir:      opts.Source,
-		Packages: []string{"./..."},
-		Target:   opts.Target,
-		Timeout:  10 * time.Minute,
-		Augment:  activation.ModeAll,
+		Dir:           opts.Source,
+		Packages:      []string{"./..."},
+		Target:        opts.Target,
+		Timeout:       10 * time.Minute,
+		Augment:       activation.ModeAll,
+		ScopePackages: true,
 	})
 	result, err := analyzer.Analyze(ctx)
 	if err != nil {

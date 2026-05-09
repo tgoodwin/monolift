@@ -79,6 +79,7 @@ type liftOptions struct {
 	hostServiceName   string
 	hostBuildPackage  string
 	hostBinaryName    string
+	hostBuildCommand  string
 	hostPort          int
 	hostReadinessPath string
 	hostEnv           []string
@@ -123,6 +124,7 @@ func liftCmd() *cobra.Command {
 					HostServiceName:   opts.hostServiceName,
 					HostBuildPackage:  opts.hostBuildPackage,
 					HostBinaryName:    opts.hostBinaryName,
+					HostBuildCommand:  opts.hostBuildCommand,
 					HostPort:          opts.hostPort,
 					HostReadinessPath: opts.hostReadinessPath,
 					HostEnvVars:       hostEnvVars,
@@ -141,6 +143,7 @@ func liftCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.hostServiceName, "host-service-name", "", "Kubernetes service name for the patched host")
 	cmd.Flags().StringVar(&opts.hostBuildPackage, "host-build-package", "", "Go package to build for the patched host Dockerfile")
 	cmd.Flags().StringVar(&opts.hostBinaryName, "host-binary-name", "", "binary name for the patched host Dockerfile")
+	cmd.Flags().StringVar(&opts.hostBuildCommand, "host-build-command", "", "custom RUN command for the host Dockerfile build stage (replaces default go build)")
 	cmd.Flags().IntVar(&opts.hostPort, "host-port", 0, "container port for the patched host")
 	cmd.Flags().StringVar(&opts.hostReadinessPath, "host-readiness-path", "", "readiness probe path for the patched host")
 	cmd.Flags().StringArrayVar(&opts.hostEnv, "host-env", nil, "host environment variable in KEY=VALUE form; repeatable")

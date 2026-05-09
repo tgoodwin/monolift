@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GeneratorVersion = "SPRINT-0042"
+	GeneratorVersion = "SPRINT-0043"
 	ManifestName     = "monolift_lift_manifest.json"
 )
 
@@ -51,6 +51,7 @@ type DeployOptions struct {
 	HostReadinessPath    string
 	HostBuildPackage     string
 	HostBinaryName       string
+	HostBuildCommand     string
 	HostRuntimeImage     string
 	HostRuntimeSetup     []string
 	HostArgs             []string
@@ -58,6 +59,8 @@ type DeployOptions struct {
 	HostAssetCopies      []AssetCopy
 	HostVolumeMounts     []VolumeMount
 	HostConfigMapVolumes []ConfigMapVolume
+	HostEmptyDirVolumes  []string
+	HostRunAsUser        int64
 	ImagePullPolicy      string
 }
 

@@ -108,3 +108,29 @@ func TestRenderDockerfilesIncludesExpectedDirectives(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderDockerfilesHostBuildCommand(t *testing.T) {
+	plan := sanitizeHTMLDeployPlan(t)
+
+	host, err := RenderDockerfiles(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultHost := string(host[plan.HostDockerfilePath])
+	if !strings.Contains(defaultHost, "go build -mod=mod") {
+		t.Fatalf("default host Dockerfile should use go build:\n%s", defaultHost)
+	}
+
+	plan.Deploy.HostBuildCommand = "make build && stuffbin -a stuff -o /out/myapp ./myapp"
+	host, err = RenderDockerfiles(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	customHost := string(host[plan.HostDockerfilePath])
+	if strings.Contains(customHost, "go build -mod=mod") {
+		t.Fatalf("custom build command should replace go build:\n%s", customHost)
+	}
+	if !strings.Contains(customHost, "make build && stuffbin -a stuff -o /out/myapp ./myapp") {
+		t.Fatalf("custom build command not found in Dockerfile:\n%s", customHost)
+	}
+}

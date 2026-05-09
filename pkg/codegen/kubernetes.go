@@ -121,6 +121,11 @@ spec:
       labels:
         app: {{ .Plan.Deploy.HostServiceName }}
     spec:
+{{- if .Plan.Deploy.HostRunAsUser }}
+      securityContext:
+        runAsUser: {{ .Plan.Deploy.HostRunAsUser }}
+        runAsGroup: {{ .Plan.Deploy.HostRunAsUser }}
+{{- end }}
       containers:
         - name: host
           image: {{ .Plan.Deploy.HostImage }}
@@ -151,12 +156,16 @@ spec:
               mountPath: {{ .MountPath }}
 {{- end }}
 {{- end }}
-{{- if .Plan.Deploy.HostConfigMapVolumes }}
+{{- if or .Plan.Deploy.HostConfigMapVolumes .Plan.Deploy.HostEmptyDirVolumes }}
       volumes:
 {{- range .Plan.Deploy.HostConfigMapVolumes }}
         - name: {{ .Name }}
           configMap:
             name: {{ .ConfigMapName }}
+{{- end }}
+{{- range .Plan.Deploy.HostEmptyDirVolumes }}
+        - name: {{ . }}
+          emptyDir: {}
 {{- end }}
 {{- end }}
 `

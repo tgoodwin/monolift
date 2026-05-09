@@ -65,6 +65,8 @@ func goModVersion(moduleRoot string) string {
 const extractedDockerfileTemplate = `FROM golang:{{ .GoVersion }} AS builder
 
 WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -mod=mod -o /out/{{ .Plan.ServiceName }} ./cmd/{{ .Plan.ServiceName }}
 
@@ -77,8 +79,14 @@ ENTRYPOINT ["/{{ .Plan.ServiceName }}"]
 const hostDockerfileTemplate = `FROM golang:{{ .GoVersion }} AS builder
 
 WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
+{{- if .Plan.Deploy.HostBuildCommand }}
+RUN {{ .Plan.Deploy.HostBuildCommand }}
+{{- else }}
 RUN CGO_ENABLED=0 go build -mod=mod -o /out/{{ .Plan.Deploy.HostBinaryName }} {{ .Plan.Deploy.HostBuildPackage }}
+{{- end }}
 {{- range .Plan.Deploy.HostAssetCopies }}
 RUN chmod -R a+rX /src/{{ .From }}
 {{- end }}

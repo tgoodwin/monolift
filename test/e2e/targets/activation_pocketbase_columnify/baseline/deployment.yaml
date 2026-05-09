@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pocketbase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pocketbase
+  template:
+    metadata:
+      labels:
+        app: pocketbase
+    spec:
+      containers:
+        - name: pocketbase
+          image: ghcr.io/pocketbase/pocketbase:0.25.9
+          ports:
+            - name: http
+              containerPort: 8090
+          command: ["/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb_data"]
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8090
+            periodSeconds: 2
+          volumeMounts:
+            - name: pb-data
+              mountPath: /pb_data
+      volumes:
+        - name: pb-data
+          emptyDir: {}

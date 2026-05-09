@@ -16,16 +16,17 @@ type Analyzer struct {
 
 // Config describes one activation-path analysis run.
 type Config struct {
-	Dir        string
-	Packages   []string
-	Target     string
-	Format     string
-	Verbose    bool
-	Timeout    time.Duration
-	Context    context.Context `json:"-"`
-	BuildFlags []string
-	Env        []string
-	Augment    AugmentMode
+	Dir           string
+	Packages      []string
+	Target        string
+	Format        string
+	Verbose       bool
+	Timeout       time.Duration
+	Context       context.Context `json:"-"`
+	BuildFlags    []string
+	Env           []string
+	Augment       AugmentMode
+	ScopePackages bool
 }
 
 // Program is the loaded package/type/SSA state used by the analyzer.

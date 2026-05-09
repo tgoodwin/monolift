@@ -32,8 +32,9 @@ func run(args []string) int {
 		evalProjects  string
 		evalJSON      string
 		evalMD        string
-		deterministic bool
-		augmentations string
+		deterministic     bool
+		augmentations     string
+		reverseImportScope bool
 	)
 	flags := flag.NewFlagSet("activation-path", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
@@ -51,6 +52,7 @@ func run(args []string) int {
 	flags.StringVar(&evalMD, "eval-md", "", "write evaluation Markdown report to this path")
 	flags.BoolVar(&deterministic, "deterministic", false, "redact nondeterministic feasibility timing/memory fields")
 	flags.StringVar(&augmentations, "augmentations", string(activation.ModeAll), "augmentation mode: rta, structfield, predicates, goroutine, all")
+	flags.BoolVar(&reverseImportScope, "reverse-import-scope", false, "pre-filter packages to transitive importers of the target before type-checking")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -75,13 +77,14 @@ func run(args []string) int {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	analyzer := activation.NewAnalyzer(activation.Config{
-		Dir:      ".",
-		Packages: patterns,
-		Target:   target,
-		Format:   format,
-		Verbose:  verbose,
-		Timeout:  timeout,
-		Augment:  augmentMode,
+		Dir:           ".",
+		Packages:      patterns,
+		Target:        target,
+		Format:        format,
+		Verbose:       verbose,
+		Timeout:       timeout,
+		Augment:       augmentMode,
+		ScopePackages: reverseImportScope,
 	})
 	result, err := analyzer.Analyze(ctx)
 	if format == "json" {

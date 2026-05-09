@@ -37,6 +37,32 @@ func (a *Analyzer) Analyze(ctx context.Context) (*Result, error) {
 		return result, err
 	}
 
+	if cfg.ScopePackages && cfg.Target != "" {
+		_, err := timePhase(result, "scope", func() (struct{}, error) {
+			targetFile, _, parseErr := ParseTarget(cfg.Target)
+			if parseErr != nil {
+				return struct{}{}, nil
+			}
+			scoped, scopeErr := ReverseImportScope(cfg.Dir, targetFile, cfg.Env)
+			if scopeErr != nil {
+				result.Diagnostics = append(result.Diagnostics, Diagnostic{
+					Severity: "warning", Phase: "scope",
+					Message: "reverse-import scoping failed, falling back to original patterns: " + scopeErr.Error(),
+				})
+				return struct{}{}, nil
+			}
+			result.Diagnostics = append(result.Diagnostics, Diagnostic{
+				Severity: "info", Phase: "scope",
+				Message: fmt.Sprintf("scoped from %v to %d packages", cfg.Packages, len(scoped)),
+			})
+			cfg.Packages = scoped
+			return struct{}{}, nil
+		})
+		if err != nil {
+			return result, err
+		}
+	}
+
 	program, err := timePhase(result, "load", func() (*Program, error) {
 		return cfg.LoadProgram()
 	})

@@ -100,6 +100,11 @@ func (c Compiler) runActivationLift(ctx context.Context, target TargetCase, outp
 	}
 
 	spec := target.ActivationLift
+	if len(spec.GoWorkModules) > 0 {
+		if err := writeGoWork(copiedRoot, spec.GoWorkModules); err != nil {
+			return CompileResult{ArtifactsDir: outputDir, ExitCode: -1, SourceRoot: copiedRoot}, err
+		}
+	}
 	liftTarget, err := activationTargetInCopy(spec.Target, copiedRoot)
 	if err != nil {
 		return CompileResult{ArtifactsDir: outputDir, ExitCode: -1, SourceRoot: copiedRoot}, err
@@ -284,7 +289,7 @@ func activationOracleDockerfile(goVersion, commandName string) string {
 
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/oracle ./cmd/%s
+RUN CGO_ENABLED=0 go build -mod=mod -o /out/oracle ./cmd/%s
 
 FROM gcr.io/distroless/static-debian12
 COPY --from=builder /out/oracle /oracle
@@ -353,6 +358,10 @@ func activationOracleMain(targetName, serviceName string) (string, bool) {
 		return giteaPathEscapeSegmentsOracleMain, true
 	case targetName == "activation-listmonk-sanitizeuri" && serviceName == "monolift-oracle-sanitizeuri":
 		return listmonkSanitizeURIOracleMain, true
+	case targetName == "activation-pocketbase-columnify" && serviceName == "monolift-oracle-columnify":
+		return pocketbaseColumnifyOracleMain, true
+	case targetName == "activation-mattermost-publiclinkhash" && serviceName == "monolift-oracle-publiclinkhash":
+		return mattermostPublicLinkHashOracleMain, true
 	default:
 		return "", false
 	}
@@ -601,6 +610,130 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 }
 `
 
+const pocketbaseColumnifyOracleMain = `package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/pocketbase/pocketbase/tools/inflector"
+)
+
+type invokeRequest struct {
+	Str string ` + "`json:\"str\"`" + `
+}
+
+type invokeResponse struct {
+	Result string ` + "`json:\"result\"`" + `
+}
+
+func main() {
+	addr := os.Getenv("MONOLIFT_HTTP_ADDR")
+	if addr == "" {
+		addr = ":8081"
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/invoke", handleInvoke)
+	mux.HandleFunc("/healthz", handleHealthz)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+func handleInvoke(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	defer r.Body.Close()
+	var in invokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, invokeResponse{
+		Result: inflector.Columnify(in.Str),
+	})
+}
+
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		log.Printf("write json: %v", err)
+	}
+}
+`
+
+const mattermostPublicLinkHashOracleMain = `package main
+
+import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+)
+
+type invokeRequest struct {
+	FileID string ` + "`json:\"file_id\"`" + `
+	Salt   string ` + "`json:\"salt\"`" + `
+}
+
+type invokeResponse struct {
+	Result string ` + "`json:\"result\"`" + `
+}
+
+func main() {
+	addr := os.Getenv("MONOLIFT_HTTP_ADDR")
+	if addr == "" {
+		addr = ":8081"
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/invoke", handleInvoke)
+	mux.HandleFunc("/healthz", handleHealthz)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+func handleInvoke(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	defer r.Body.Close()
+	var in invokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	hash := sha256.New()
+	hash.Write([]byte(in.Salt))
+	hash.Write([]byte(in.FileID))
+	writeJSON(w, http.StatusOK, invokeResponse{
+		Result: base64.RawURLEncoding.EncodeToString(hash.Sum(nil)),
+	})
+}
+
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		log.Printf("write json: %v", err)
+	}
+}
+`
+
 func FormatCompileFailure(target TargetCase, result CompileResult, err error) error {
 	got := "missing"
 	if result.Report != nil {
@@ -617,4 +750,15 @@ func FormatCompileFailure(target TargetCase, result CompileResult, err error) er
 		TailLines(result.RawStderr, 20),
 		err,
 	)
+}
+
+func writeGoWork(root string, modules []string) error {
+	goVersion := goModVersionForContext(root)
+	var buf strings.Builder
+	buf.WriteString("go " + goVersion + "\n\nuse (\n")
+	for _, m := range modules {
+		buf.WriteString("\t" + m + "\n")
+	}
+	buf.WriteString(")\n")
+	return os.WriteFile(filepath.Join(root, "go.work"), []byte(buf.String()), 0o644)
 }

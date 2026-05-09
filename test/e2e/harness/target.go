@@ -53,6 +53,7 @@ type ActivationLiftSpec struct {
 	Deploy                       codegen.DeployOptions
 	ExpectedEnvVarPrefix         string
 	DirectInvocationProbePayload map[string]any
+	GoWorkModules                []string
 }
 
 type SymbolInvoker interface {
