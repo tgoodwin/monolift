@@ -18,7 +18,10 @@ func Target() harness.TargetCase {
 		},
 		BaselineReadyTimeout: 5 * time.Minute,
 		LiftedReadyTimeout:   8 * time.Minute,
+		Dockerfile:           "test/e2e/targets/activation_pocketbase_columnify/Dockerfile",
+		ContextDir:           ".",
 		SourceDirs:           []string{"evaluation/pocketbase"},
+		ImageTag:             "monolift-e2e/pocketbase:e2e",
 		ActivationLift: &harness.ActivationLiftSpec{
 			Target:               "tools/inflector/inflector.go:24",
 			ServiceName:          "monolift-extracted-columnify",
@@ -33,9 +36,10 @@ func Target() harness.TargetCase {
 				ExtractedServiceName: "monolift-extracted-columnify",
 				HostPort:             8090,
 				HostReadinessPath:    "/api/health",
-				HostBuildPackage:     ".",
+				HostBuildPackage:     "./examples/base",
 				HostBinaryName:       "pocketbase",
-				HostArgs:             []string{"/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb_data"},
+				HostRuntimeImage:     "alpine:3.20",
+				HostArgs:             []string{"/bin/sh", "-c", "/pocketbase superuser upsert admin@example.com Monolift123! --dir=/pb_data && exec /pocketbase serve --http=0.0.0.0:8090 --dir=/pb_data"},
 				HostVolumeMounts: []codegen.VolumeMount{
 					{Name: "pb-data", MountPath: "/pb_data"},
 				},
@@ -59,7 +63,7 @@ func Target() harness.TargetCase {
 			"columnify": {"str": "Hello World! @#$"},
 		},
 		Workload:    Workload{},
-		Invariants:  []harness.Invariant{{Path: healthPath, Status: true, Body: true}},
+		Invariants:  []harness.Invariant{{Path: collectionsPath, Status: true, Headers: []string{"Content-Type"}, Body: true}},
 		ServiceName: "pocketbase",
 		ServicePort: 8090,
 	}

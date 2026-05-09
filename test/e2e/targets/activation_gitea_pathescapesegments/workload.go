@@ -20,6 +20,7 @@ const (
 	giteaPassword = "Monolift123!"
 	giteaRepo     = "path-escape-demo"
 	repoFilePath  = "/" + giteaUsername + "/" + giteaRepo + "/src/branch/main/README.md"
+	repoGoGetPath = "/" + giteaUsername + "/" + giteaRepo + "?go-get=1"
 )
 
 type Workload struct{}
@@ -44,7 +45,7 @@ func (Workload) Setup(ctx context.Context, host string) error {
 }
 
 func (Workload) Action(ctx context.Context, host string) (harness.Transcript, error) {
-	step, err := Workload{}.Request(ctx, host, repoFilePath)
+	step, err := Workload{}.Request(ctx, host, repoGoGetPath)
 	if err != nil {
 		return harness.Transcript{}, err
 	}
@@ -52,7 +53,7 @@ func (Workload) Action(ctx context.Context, host string) (harness.Transcript, er
 }
 
 func (Workload) Paths() []string {
-	return []string{repoFilePath}
+	return []string{repoGoGetPath}
 }
 
 func (Workload) Request(ctx context.Context, host, path string) (harness.Step, error) {
@@ -149,6 +150,32 @@ func (c giteaClient) ensureUser(ctx context.Context) error {
 }
 
 func (c giteaClient) ensureRepo(ctx context.Context) error {
+	if err := c.createRepo(ctx); err == nil {
+		return nil
+	} else if !isRepoExistsStatus(err) {
+		return err
+	}
+	if err := c.deleteRepo(ctx); err != nil {
+		return err
+	}
+	return c.createRepo(ctx)
+}
+
+type repoStatusError struct {
+	status int
+	body   string
+}
+
+func (e repoStatusError) Error() string {
+	return fmt.Sprintf("POST /api/v1/user/repos status=%d body=%s", e.status, e.body)
+}
+
+func isRepoExistsStatus(err error) bool {
+	statusErr, ok := err.(repoStatusError)
+	return ok && (statusErr.status == http.StatusConflict || statusErr.status == http.StatusUnprocessableEntity)
+}
+
+func (c giteaClient) createRepo(ctx context.Context) error {
 	payload := map[string]any{
 		"name":           giteaRepo,
 		"auto_init":      true,
@@ -164,11 +191,22 @@ func (c giteaClient) ensureRepo(ctx context.Context) error {
 		return err
 	}
 	switch resp.StatusCode {
-	case http.StatusCreated, http.StatusConflict, http.StatusUnprocessableEntity:
+	case http.StatusCreated:
 		return nil
 	default:
-		return fmt.Errorf("POST /api/v1/user/repos status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return repoStatusError{status: resp.StatusCode, body: strings.TrimSpace(string(body))}
 	}
+}
+
+func (c giteaClient) deleteRepo(ctx context.Context) error {
+	resp, body, err := c.do(ctx, http.MethodDelete, "/api/v1/repos/"+giteaUsername+"/"+giteaRepo, nil, true)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	return fmt.Errorf("DELETE /api/v1/repos/%s/%s status=%d body=%s", giteaUsername, giteaRepo, resp.StatusCode, strings.TrimSpace(string(body)))
 }
 
 func (c giteaClient) do(ctx context.Context, method, path string, body io.Reader, basicAuth bool, contentType ...string) (*http.Response, []byte, error) {

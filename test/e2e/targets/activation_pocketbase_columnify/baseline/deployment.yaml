@@ -14,11 +14,15 @@ spec:
     spec:
       containers:
         - name: pocketbase
-          image: ghcr.io/pocketbase/pocketbase:0.25.9
+          image: monolift-e2e/pocketbase:e2e
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8090
-          command: ["/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb_data"]
+          command:
+            - /bin/sh
+            - -c
+            - /pocketbase superuser upsert admin@example.com Monolift123! --dir=/pb_data && exec /pocketbase serve --http=0.0.0.0:8090 --dir=/pb_data
           readinessProbe:
             httpGet:
               path: /api/health

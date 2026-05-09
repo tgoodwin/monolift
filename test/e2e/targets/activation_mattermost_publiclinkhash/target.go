@@ -7,6 +7,8 @@ import (
 	"github.com/tgoodwin/monolift/test/e2e/harness"
 )
 
+const publicLinkSalt = "monolift-test-public-link-salt-0001"
+
 func Target() harness.TargetCase {
 	return harness.TargetCase{
 		Name:            "activation-mattermost-publiclinkhash",
@@ -30,10 +32,10 @@ func Target() harness.TargetCase {
 		ActivationLift: &harness.ActivationLiftSpec{
 			Target:               "channels/app/file.go:588",
 			ServiceName:          "monolift-extracted-publiclinkhash",
-			ExpectedEnvVarPrefix: "MONOLIFT_LIFT_GENERATEPUBLICHASH",
+			ExpectedEnvVarPrefix: "MONOLIFT_LIFT_PUBLICLINKHASH",
 			DirectInvocationProbePayload: map[string]any{
 				"file_id": "test-file-001",
-				"salt":    "monolift-test-salt",
+				"salt":    publicLinkSalt,
 			},
 			Deploy: codegen.DeployOptions{
 				HostImage:            "monolift-e2e/mattermost-publiclinkhash-host:e2e",
@@ -44,13 +46,20 @@ func Target() harness.TargetCase {
 				HostReadinessPath:    "/api/v4/system/ping",
 				HostBuildPackage:     "./cmd/mattermost",
 				HostBinaryName:       "mattermost",
+				HostAssetCopies: []codegen.AssetCopy{
+					{From: "i18n", To: "/i18n"},
+					{From: "templates", To: "/templates"},
+					{From: "fonts", To: "/fonts"},
+					{From: "config", To: "/config"},
+				},
 				HostEnvVars: []codegen.EnvVar{
 					{Name: "MM_SQLSETTINGS_DATASOURCE", Value: "postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable"},
 					{Name: "MM_SQLSETTINGS_DRIVERNAME", Value: "postgres"},
 					{Name: "MM_SERVICESETTINGS_LISTENADDRESS", Value: ":8065"},
 					{Name: "MM_SERVICESETTINGS_SITEURL", Value: "http://localhost:8065"},
 					{Name: "MM_TEAMSETTINGS_ENABLEOPENSERVER", Value: "true"},
-					{Name: "MM_FILESETTINGS_PUBLICLINKSALT", Value: "monolift-test-salt"},
+					{Name: "MM_FILESETTINGS_ENABLEPUBLICLINK", Value: "true"},
+					{Name: "MM_FILESETTINGS_PUBLICLINKSALT", Value: publicLinkSalt},
 				},
 			},
 			GoWorkModules: []string{".", "./public"},
@@ -71,11 +80,11 @@ func Target() harness.TargetCase {
 		InvokePayloads: map[string]map[string]any{
 			"generatepublichash": {
 				"file_id": "test-file-001",
-				"salt":    "monolift-test-salt",
+				"salt":    publicLinkSalt,
 			},
 		},
 		Workload:    Workload{},
-		Invariants:  []harness.Invariant{{Path: pingPath, Status: true, Body: true}},
+		Invariants:  []harness.Invariant{{Path: fileLinkPath, Status: true, Body: true}},
 		ServiceName: "mattermost",
 		ServicePort: 8065,
 	}

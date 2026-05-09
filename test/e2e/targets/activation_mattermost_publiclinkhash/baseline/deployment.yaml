@@ -35,5 +35,7 @@ spec:
               value: "http://localhost:8065"
             - name: MM_TEAMSETTINGS_ENABLEOPENSERVER
               value: "true"
+            - name: MM_FILESETTINGS_ENABLEPUBLICLINK
+              value: "true"
             - name: MM_FILESETTINGS_PUBLICLINKSALT
-              value: "monolift-test-salt"
+              value: "monolift-test-public-link-salt-0001"

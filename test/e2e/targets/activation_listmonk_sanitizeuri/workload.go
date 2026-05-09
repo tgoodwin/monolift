@@ -86,13 +86,15 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 	body, _ := io.ReadAll(resp.Body)
 
 	location := resp.Header.Get("Location")
+	bodyText := string(body)
 	return harness.Step{
 		Method: http.MethodPost,
 		Path:   loginPath,
 		Status: resp.StatusCode,
 		BodyJSON: map[string]any{
-			"location": location,
-			"body":     string(body),
+			"location":      location,
+			"new_user_form": strings.Contains(bodyText, "New user"),
+			"invalid_email": strings.Contains(bodyText, "Invalid fields: email"),
 		},
 	}, nil
 }

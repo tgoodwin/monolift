@@ -43,9 +43,10 @@ func Target() harness.TargetCase {
 				HostReadinessPath:    "/api/healthz",
 				HostBuildPackage:     ".",
 				HostBinaryName:       "gitea",
-				HostRuntimeImage:     "gitea/gitea:1.22",
-				HostRuntimeSetup:     []string{"rm -f /usr/local/bin/gitea /app/gitea/gitea"},
-				HostArgs:             []string{"/gitea", "web"},
+				HostBuildCommand:     "CGO_ENABLED=0 go generate -tags 'bindata sqlite sqlite_unlock_notify timetzdata' ./modules/options ./modules/public ./modules/templates ./modules/migration && CGO_ENABLED=0 go build -mod=mod -tags 'bindata sqlite sqlite_unlock_notify timetzdata' -o /out/gitea .",
+				HostRuntimeImage:     "gitea/gitea:1.26.1",
+				HostRuntimeSetup:     []string{"sed -i 's#/usr/local/bin/gitea#/gitea#g' /etc/s6/gitea/run"},
+				HostArgs:             []string{"/usr/bin/entrypoint"},
 				HostEnvVars: []codegen.EnvVar{
 					{Name: "GITEA_WORK_DIR", Value: "/app/gitea"},
 					{Name: "GITEA__database__DB_TYPE", Value: "postgres"},
@@ -84,7 +85,7 @@ func Target() harness.TargetCase {
 		},
 		Workload: Workload{},
 		Invariants: []harness.Invariant{
-			{Path: repoFilePath, Status: true, Body: false},
+			{Path: repoGoGetPath, Status: true, Body: false},
 		},
 		ServiceName: "gitea",
 		ServicePort: 3000,

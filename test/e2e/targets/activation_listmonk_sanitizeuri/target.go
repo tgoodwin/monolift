@@ -43,7 +43,7 @@ func Target() harness.TargetCase {
 				HostReadinessPath:    "/admin/login",
 				HostBuildPackage: "./cmd",
 				HostBinaryName:   "listmonk-patched",
-				HostBuildCommand: "CGO_ENABLED=0 go build -mod=mod -o /tmp/listmonk-patched ./cmd && go install github.com/knadh/stuffbin/...@latest && stuffbin -a stuff -in /tmp/listmonk-patched -out /out/listmonk-patched /static/public:/static/public /static/email-templates:/static/email-templates /i18n:/i18n /queries.sql /schema.sql",
+				HostBuildCommand: "mkdir -p /out && CGO_ENABLED=0 go build -mod=mod -o /tmp/listmonk-patched ./cmd && go install github.com/knadh/stuffbin/...@v1.3.0 && stuffbin -a stuff -in /tmp/listmonk-patched -out /out/listmonk-patched config.toml.sample schema.sql queries:/queries permissions.json static/public:/public static/email-templates i18n:/i18n",
 				HostRuntimeImage: "listmonk/listmonk:latest",
 				HostRuntimeSetup: []string{"rm -f /listmonk/listmonk"},
 				HostArgs:         []string{"sh", "-c", "cd /listmonk && /listmonk-patched --install --idempotent --yes --config '' && /listmonk-patched --upgrade --yes --config '' && /listmonk-patched --config ''"},
