@@ -23,6 +23,7 @@ import (
 	"github.com/tgoodwin/monolift/test/e2e/harness"
 	activation_caddy_cleanpath "github.com/tgoodwin/monolift/test/e2e/targets/activation_caddy_cleanpath"
 	activation_gitea_pathescapesegments "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_pathescapesegments"
+	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
 	activation_miniflux_sanitizehtml "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_sanitizehtml"
 	"github.com/tgoodwin/monolift/test/e2e/targets/caddy"
 	"github.com/tgoodwin/monolift/test/e2e/targets/gitea"
@@ -51,6 +52,7 @@ func TestE2E(t *testing.T) {
 		listmonk.Target(),
 		gitea.Target(),
 		activation_gitea_pathescapesegments.Target(),
+		activation_listmonk_sanitizeuri.Target(),
 		mattermost.Target(),
 	}
 	targets = append(targets, pragma.Targets()...)

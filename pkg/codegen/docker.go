@@ -66,7 +66,7 @@ const extractedDockerfileTemplate = `FROM golang:{{ .GoVersion }} AS builder
 
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/{{ .Plan.ServiceName }} ./cmd/{{ .Plan.ServiceName }}
+RUN CGO_ENABLED=0 go build -mod=mod -o /out/{{ .Plan.ServiceName }} ./cmd/{{ .Plan.ServiceName }}
 
 FROM gcr.io/distroless/static-debian12
 COPY --from=builder /out/{{ .Plan.ServiceName }} /{{ .Plan.ServiceName }}
@@ -78,7 +78,7 @@ const hostDockerfileTemplate = `FROM golang:{{ .GoVersion }} AS builder
 
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=mod -o /out/{{ .Plan.Deploy.HostBinaryName }} {{ .Plan.Deploy.HostBuildPackage }}
+RUN CGO_ENABLED=0 go build -mod=mod -o /out/{{ .Plan.Deploy.HostBinaryName }} {{ .Plan.Deploy.HostBuildPackage }}
 {{- range .Plan.Deploy.HostAssetCopies }}
 RUN chmod -R a+rX /src/{{ .From }}
 {{- end }}

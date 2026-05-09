@@ -1,6 +1,6 @@
 # SPRINT-0042: Deployment artifacts & activation-path k8s e2e
 
-**Status:** planned
+**Status:** in progress
 **Predecessors:** SPRINT-0041 (codegen pipeline), ADR-0029 (codegen architecture), existing Kind e2e harness
 
 ## Intent
@@ -162,8 +162,9 @@ Targets are sequenced: miniflux first (shakes out the pipeline), caddy second (m
 - [x] 7A.3: Configure extracted service: name `monolift-extracted-sanitizehtml`, env prefix `SANITIZEHTML`, port 8081
 - [x] 7A.4: Create `workload.go` — exercise the miniflux feed-entry retrieval API path that transitively calls `SanitizeHTML` (feed ingestion with HTML payloads). `Setup` creates a user and subscribes to the RSS feed server; `Action` fetches entries and records sanitized content
 - [x] 7A.5: Create `oracle.go` — `SymbolInvoker` that directly calls `sanitizer.SanitizeHTML(baseURL, rawHTML, opts)` for result comparison
-- [ ] 7A.6: Register in `e2e_test.go`. Run `MONOLIFT_E2E=1 go test -v -run "TestE2E/activation-miniflux-sanitizehtml" ./test/e2e/` until all stages pass
-- [ ] 7A.7: Verify: transcript match, `/calls` delta ≥ 1 per request, `/invocations` oracle match, `LIFT_INVOKE` in logs, env-off produces zero extracted calls, fail-closed returns error sentinel, fail-open falls back to local
+- [x] 7A.6a: Register in `e2e_test.go`
+- [x] 7A.6b: Run `MONOLIFT_E2E=1 go test -v -run "TestE2E/activation-miniflux-sanitizehtml" ./test/e2e/` until all stages pass
+- [x] 7A.7: Verify: transcript match, `/calls` delta ≥ 1 per request, `/invocations` oracle match, `LIFT_INVOKE` in logs, env-off produces zero extracted calls, fail-closed returns error sentinel, fail-open falls back to local
 
 #### 7B: caddy CleanPath
 
@@ -171,7 +172,8 @@ Targets are sequenced: miniflux first (shakes out the pipeline), caddy second (m
 - [x] 7B.2: Configure host build: package `./cmd/caddy`, binary `caddy`, port 8080, Caddyfile mount, static asset copies for existing workload compatibility
 - [x] 7B.3: Reuse existing caddy baseline manifests (caddyfile-configmap, echo-upstream, deployment, service)
 - [x] 7B.4: Reuse or adapt the existing caddy workload pattern. Create `oracle.go` calling `caddyhttp.CleanPath(p, collapseSlashes)` directly
-- [ ] 7B.5: Register in `e2e_test.go` and validate all stages
+- [x] 7B.5a: Register in `e2e_test.go`
+- [x] 7B.5b: Validate all stages
 
 #### 7C: gitea PathEscapeSegments
 
@@ -179,7 +181,8 @@ Targets are sequenced: miniflux first (shakes out the pipeline), caddy second (m
 - [x] 7C.2: Configure host build for gitea. Gitea requires a database; reuse the postgres fixture. Create minimal gitea deployment manifest with env vars for database, `GITEA__security__INSTALL_LOCK=true`
 - [x] 7C.3: Create `workload.go` — exercise gitea web routes that trigger URL path construction (repository browsing, file views). `PathEscapeSegments` is called on every URL that involves repository paths
 - [x] 7C.4: Create `oracle.go` — directly calls `util.PathEscapeSegments(path)` for result comparison
-- [ ] 7C.5: Register in `e2e_test.go` and validate all stages
+- [x] 7C.5a: Register in `e2e_test.go`
+- [ ] 7C.5b: Validate all stages
 - [ ] 7C.6: If gitea activation-path analysis times out (2,875 Go files, 82 callers — see R1), substitute with listmonk `SanitizeURI` (`internal/utils/utils.go:41`, 92 Go files, simpler graph) or gitea `ShellEscape` (13 callers, shorter paths). Document the blocker
 
 ### Phase 8: Verification and closeout
@@ -241,8 +244,8 @@ Phase 1 must complete first — the deploy contract is the data model everything
 - [x] Manifest records every artifact with distinct kinds (`server`, `client_stub`, `dockerfile_extracted`, `dockerfile_host`, `k8s_deployment_extracted`, `k8s_service_extracted`, `k8s_deployment_host`, `k8s_service_host`) and deploy metadata
 - [x] Generated extracted Deployments contain no `MONOLIFT_LIFT_*` env vars
 - [x] Generated host Deployments contain `MONOLIFT_LIFT_<ENV>=on`, `MONOLIFT_LIFT_FAILMODE`, and `MONOLIFT_<ENV>_ENDPOINT` pointing at the extracted service
-- [ ] `activation-miniflux-sanitizehtml` passes all e2e stages in Kind: baseline deploy, lifted deploy, transcript comparison, env-off, fail-mode assertions
-- [ ] `activation-caddy-cleanpath` passes all e2e stages
+- [x] `activation-miniflux-sanitizehtml` passes all e2e stages in Kind: baseline deploy, lifted deploy, transcript comparison, env-off, fail-mode assertions
+- [x] `activation-caddy-cleanpath` passes all e2e stages
 - [ ] A third activation target from gitea (or documented substitute) passes all e2e stages
 - [ ] Three passing targets cover three different projects
 - [ ] Existing v1 e2e rows (caddy, miniflux) still pass or have documented unrelated failures
@@ -252,5 +255,6 @@ Phase 1 must complete first — the deploy contract is the data model everything
 ## Blockers
 
 - 2026-05-07: Resolved 2026-05-08 by using the oracle pod pattern. `test/e2e/targets/activation_miniflux_sanitizehtml/oracle.go` could not directly call `sanitizer.SanitizeHTML` because that symbol is in `miniflux.app/v2/internal/reader/sanitizer`, so the oracle is now generated inside the copied target module under `cmd/monolift-oracle-*`.
-- 2026-05-08: Blocked on 7A.6+ runtime validation. `MONOLIFT_E2E=1 go test -tags e2e -v -run "TestE2E/activation-miniflux-sanitizehtml" -count=1 ./test/e2e/` fails in stage 0 before compile/deploy because Kind cannot talk to Docker: `permission denied while trying to connect to the docker API at unix:///Users/tgoodwin/.docker/run/docker.sock`. Codegen tests and e2e compile-only tests pass with `GOCACHE=/tmp/monolift-go-cache`, but Kind e2e validation requires Docker socket access.
-- 2026-05-08: Blocked on 7C.5 gitea activation validation. The requested e2e command `MONOLIFT_E2E=1 go test -tags e2e -v -run TestE2E/activation-gitea-pathescapesegments -count=1 -timeout=30m ./test/e2e/` fails in stage 0 before compile/deploy with the same Docker socket permission error. A direct analyzer run from `evaluation/gitea` with the default 120s budget, `GOCACHE=/tmp/monolift-go-cache /tmp/monolift-activation-path --packages ./... --target modules/util/url.go:12 --format json`, resolved `PathEscapeSegments` but returned `category: timeout` after RTA ran for ~465s with `context deadline exceeded`, matching R1 for the 2,875-file gitea graph. Timeout was not increased.
+- 2026-05-08: Resolved 2026-05-08 with unsandboxed Docker/Kind access. `GOCACHE=/tmp/monolift-go-cache MONOLIFT_E2E=1 go test -tags e2e -v -run 'TestE2E/activation-miniflux-sanitizehtml' -count=1 -timeout=30m ./test/e2e/` passes end to end. Earlier sandboxed attempts failed in stage 0 before compile/deploy because Kind could not talk to Docker: `permission denied while trying to connect to the docker API at unix:///Users/tgoodwin/.docker/run/docker.sock`.
+- 2026-05-08: Gitea activation analysis doesn't complete — `./...` package load takes ~8 min for 2,875 Go files before path search even starts. Root cause: `runActivation` always loads `./...` (the entire module) even though `PathEscapeSegments` is only imported by 545 files. Fix for a follow-up: reverse-import scoping — pre-filter with `go list` to packages that transitively import the target, load only those (~5x reduction for gitea). Gitea target scaffolding preserved; third e2e target needs a smaller project or the scoping fix.
+- 2026-05-08: Current local recheck: `GOCACHE=/tmp/monolift-go-cache go test ./pkg/codegen/...` passes when run outside the sandbox so the generated `httptest` round trip can bind loopback; the sandboxed run fails with `listen tcp6 [::1]:0: bind: operation not permitted`. `GOCACHE=/tmp/monolift-go-cache go vet ./pkg/codegen/...` passes. `GOCACHE=/tmp/monolift-go-cache go test -tags e2e ./test/e2e -run '^$'` compiles the registered e2e rows. `GOCACHE=/tmp/monolift-go-cache MONOLIFT_E2E=1 go test -tags e2e -v -run 'TestE2E/activation-caddy-cleanpath' -count=1 -timeout=30m ./test/e2e/` passes end to end. `GOCACHE=/tmp/monolift-go-cache go test -tags e2e ./test/e2e/e2ecompile` currently fails in legacy targets before activation coverage: caddy/pocketbase have no parsed root pragma for v1 extraction, and mattermost references missing `.tmp/sprint-0021-a1-go.work`.

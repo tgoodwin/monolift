@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listmonk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: listmonk
+  template:
+    metadata:
+      labels:
+        app: listmonk
+    spec:
+      initContainers:
+        - name: init-db
+          image: postgres:16-alpine
+          command: ["sh", "-c"]
+          args:
+            - |
+              until pg_isready -h postgres -U miniflux; do sleep 1; done
+              PGPASSWORD=miniflux psql -h postgres -U miniflux -d miniflux -c "SELECT 1" 2>/dev/null || true
+          env:
+            - name: PGPASSWORD
+              value: miniflux
+      containers:
+        - name: listmonk
+          image: listmonk/listmonk:latest
+          imagePullPolicy: IfNotPresent
+          args: ["sh", "-c", "./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''"]
+          ports:
+            - containerPort: 9000
+          readinessProbe:
+            httpGet:
+              path: /admin/login
+              port: 9000
+            periodSeconds: 2
+          env:
+            - name: LISTMONK_app__address
+              value: "0.0.0.0:9000"
+            - name: LISTMONK_db__host
+              value: postgres
+            - name: LISTMONK_db__port
+              value: "5432"
+            - name: LISTMONK_db__user
+              value: miniflux
+            - name: LISTMONK_db__password
+              value: miniflux
+            - name: LISTMONK_db__database
+              value: miniflux
+            - name: LISTMONK_db__ssl_mode
+              value: disable
+            - name: LISTMONK_app__admin_username
+              value: admin
+            - name: LISTMONK_app__admin_password
+              value: admin

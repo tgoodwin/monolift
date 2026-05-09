@@ -129,7 +129,7 @@ spec:
             - name: http
               containerPort: {{ .Plan.Deploy.HostPort }}
 {{- if .Plan.Deploy.HostArgs }}
-          args:
+          command:
 {{- range .Plan.Deploy.HostArgs }}
             - {{ yamlQuote . }}
 {{- end }}

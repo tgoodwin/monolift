@@ -41,7 +41,7 @@ func Target() harness.TargetCase {
 				HostReadinessPath:    "/static/hello.txt",
 				HostBuildPackage:     "./cmd/caddy",
 				HostBinaryName:       "caddy",
-				HostArgs:             []string{"run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"},
+				HostArgs:             []string{"/caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"},
 				HostAssetCopies: []codegen.AssetCopy{
 					{From: "static", To: "/srv/static"},
 				},
