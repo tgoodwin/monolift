@@ -175,7 +175,7 @@ func verifyPatchedBuild(plan *Plan, pkg *packages.Package) error {
 	if pkg != nil && pkg.PkgPath != "" && pkg.PkgPath != "command-line-arguments" {
 		target = pkg.PkgPath
 	}
-	cmd := exec.Command("go", "test", "-run=^$", "-count=1", target)
+	cmd := exec.Command("go", "test", "-run=^$", "-count=1", "-exec=true", target)
 	cmd.Dir = dir
 	cmd.Env = withEnvValue(os.Environ(), "GOCACHE", "/tmp/monolift-gocache")
 	out, err := cmd.CombinedOutput()

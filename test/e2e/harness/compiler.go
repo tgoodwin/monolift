@@ -220,7 +220,7 @@ func writeActivationOracleArtifacts(target TargetCase, artifactsDir, sourceRoot 
 	if err != nil {
 		return err
 	}
-	if err := writeActivationFile(dockerfilePath, []byte(activationOracleDockerfile(goModVersionForContext(contextDir), service.Name))); err != nil {
+	if err := writeActivationFile(dockerfilePath, []byte(activationOracleDockerfile(goModVersionForContext(contextDir), goBuildModFlagForContext(contextDir), service.Name))); err != nil {
 		return err
 	}
 	deploymentPath, err := activationArtifactPath(artifactsDir, service.DeploymentYAML)
@@ -284,18 +284,28 @@ func goModVersionForContext(contextDir string) string {
 	return string(match[1])
 }
 
-func activationOracleDockerfile(goVersion, commandName string) string {
+func goBuildModFlagForContext(contextDir string) string {
+	if _, err := os.Stat(filepath.Join(contextDir, "go.work")); err == nil {
+		return ""
+	}
+	return "-mod=mod"
+}
+
+func activationOracleDockerfile(goVersion, buildModFlag, commandName string) string {
+	if buildModFlag != "" {
+		buildModFlag += " "
+	}
 	return fmt.Sprintf(`FROM golang:%s AS builder
 
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 go build -mod=mod -o /out/oracle ./cmd/%s
+RUN CGO_ENABLED=0 go build %s-o /out/oracle ./cmd/%s
 
 FROM gcr.io/distroless/static-debian12
 COPY --from=builder /out/oracle /oracle
 EXPOSE 8081
 ENTRYPOINT ["/oracle"]
-`, goVersion, commandName)
+`, goVersion, buildModFlag, commandName)
 }
 
 func activationOracleDeployment(service ExtractedServiceSpec) string {

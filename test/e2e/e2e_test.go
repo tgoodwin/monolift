@@ -668,6 +668,9 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 	if err := kubectl(ctx, ns, "rollout", "status", "deployment/"+hostDeployment, "--timeout=120s"); err != nil {
 		return err
 	}
+	if err := waitForLiftedHostReady(ctx, target, ns, 120*time.Second); err != nil {
+		return err
+	}
 	envOffPF, err := harness.StartPortForward(ctx, target.Name, ns, hostService, target.ServicePort)
 	if err != nil {
 		return err
@@ -919,9 +922,6 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 		return err
 	}
 	defer caddyPF.Stop()
-	if err := target.Workload.Setup(ctx, caddyPF.URL); err != nil {
-		return err
-	}
 	servicePF, err := harness.StartPortForward(ctx, target.Name, ns, service.Name, 8081)
 	if err != nil {
 		return err
@@ -933,12 +933,12 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 	for attempt := 0; attempt < 5; attempt++ {
 		if attempt > 0 {
 			time.Sleep(3 * time.Second)
-			if err := target.Workload.Setup(ctx, caddyPF.URL); err != nil {
-				return err
-			}
 		}
 		before, err := readCalls(ctx, servicePF.URL)
 		if err != nil {
+			return err
+		}
+		if err := target.Workload.Setup(ctx, caddyPF.URL); err != nil {
 			return err
 		}
 		if target.Name == "miniflux" || target.ActivationLift != nil {
@@ -966,7 +966,73 @@ func setLiftedEnv(ctx context.Context, target harness.TargetCase, ns, failMode s
 	if err := kubectl(ctx, ns, append([]string{"set", "env", "deployment/" + liftedHostDeployment(target)}, liftedEnvOnArgs(target, failMode)...)...); err != nil {
 		return err
 	}
-	return kubectl(ctx, ns, "rollout", "status", "deployment/"+liftedHostDeployment(target), "--timeout=120s")
+	if err := kubectl(ctx, ns, "rollout", "status", "deployment/"+liftedHostDeployment(target), "--timeout=120s"); err != nil {
+		return err
+	}
+	return waitForLiftedHostReady(ctx, target, ns, 120*time.Second)
+}
+
+func waitForLiftedHostReady(ctx context.Context, target harness.TargetCase, ns string, timeout time.Duration) error {
+	deployment := liftedHostDeployment(target)
+	if err := waitForReadyPodForApp(ctx, target, ns, deployment, timeout); err != nil {
+		return err
+	}
+	return waitForServiceEndpoints(ctx, target, ns, liftedHostService(target), timeout)
+}
+
+func waitForReadyPodForApp(ctx context.Context, target harness.TargetCase, ns, app string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var last string
+	jsonpath := `{range .items[*]}{.metadata.name} {.status.phase} {.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}`
+	for {
+		result, err := kubectlResult(ctx, ns, "get", "pods", "-l", "app="+app, "-o", "jsonpath="+jsonpath)
+		if err == nil {
+			for _, line := range strings.Split(strings.TrimSpace(result.Stdout), "\n") {
+				fields := strings.Fields(line)
+				if len(fields) >= 3 && fields[1] == "Running" && fields[len(fields)-1] == "True" {
+					return nil
+				}
+			}
+			last = strings.TrimSpace(result.Stdout)
+			if last == "" {
+				last = "no matching pods"
+			}
+		} else {
+			last = result.Stderr
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("%s app %s has no ready pod after %s: %s", target.Name, app, timeout, last)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
+}
+
+func waitForServiceEndpoints(ctx context.Context, target harness.TargetCase, ns, service string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var last string
+	for {
+		result, err := kubectlResult(ctx, ns, "get", "endpoints", service, "-o", "jsonpath={.subsets[*].addresses[*].ip}")
+		if err == nil && strings.TrimSpace(result.Stdout) != "" {
+			return nil
+		}
+		if err != nil {
+			last = result.Stderr
+		} else {
+			last = "no endpoint addresses"
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("%s service %s endpoints not ready after %s: %s", target.Name, service, timeout, last)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
 }
 
 func liftedHostDeployment(target harness.TargetCase) string {

@@ -14,7 +14,7 @@ func RenderDockerfiles(plan *Plan) (map[string][]byte, error) {
 	if plan == nil {
 		return nil, fmt.Errorf("codegen: nil plan")
 	}
-	view := dockerfileView{Plan: plan, GoVersion: goModVersion(plan.SourceModuleRoot)}
+	view := dockerfileView{Plan: plan, GoVersion: goModVersion(plan.SourceModuleRoot), GoBuildModFlag: goBuildModFlag(plan.SourceModuleRoot)}
 	files := map[string][]byte{}
 	if err := renderDockerfile(files, plan.ExtractedDockerfilePath, extractedDockerfileTemplate, view); err != nil {
 		return nil, err
@@ -26,8 +26,9 @@ func RenderDockerfiles(plan *Plan) (map[string][]byte, error) {
 }
 
 type dockerfileView struct {
-	Plan      *Plan
-	GoVersion string
+	Plan           *Plan
+	GoVersion      string
+	GoBuildModFlag string
 }
 
 func renderDockerfile(files map[string][]byte, path, source string, view dockerfileView) error {
@@ -62,13 +63,22 @@ func goModVersion(moduleRoot string) string {
 	return string(match[1])
 }
 
+func goBuildModFlag(moduleRoot string) string {
+	if moduleRoot != "" {
+		if _, err := os.Stat(filepath.Join(moduleRoot, "go.work")); err == nil {
+			return ""
+		}
+	}
+	return "-mod=mod"
+}
+
 const extractedDockerfileTemplate = `FROM golang:{{ .GoVersion }} AS builder
 
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -mod=mod -o /out/{{ .Plan.ServiceName }} ./cmd/{{ .Plan.ServiceName }}
+RUN CGO_ENABLED=0 go build{{ if .GoBuildModFlag }} {{ .GoBuildModFlag }}{{ end }} -o /out/{{ .Plan.ServiceName }} ./cmd/{{ .Plan.ServiceName }}
 
 FROM gcr.io/distroless/static-debian12
 COPY --from=builder /out/{{ .Plan.ServiceName }} /{{ .Plan.ServiceName }}
@@ -85,7 +95,7 @@ COPY . .
 {{- if .Plan.Deploy.HostBuildCommand }}
 RUN {{ .Plan.Deploy.HostBuildCommand }}
 {{- else }}
-RUN CGO_ENABLED=0 go build -mod=mod -o /out/{{ .Plan.Deploy.HostBinaryName }} {{ .Plan.Deploy.HostBuildPackage }}
+RUN CGO_ENABLED=0 go build{{ if .GoBuildModFlag }} {{ .GoBuildModFlag }}{{ end }} -o /out/{{ .Plan.Deploy.HostBinaryName }} {{ .Plan.Deploy.HostBuildPackage }}
 {{- end }}
 {{- range .Plan.Deploy.HostAssetCopies }}
 RUN chmod -R a+rX /src/{{ .From }}
