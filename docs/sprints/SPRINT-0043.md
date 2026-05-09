@@ -1,6 +1,6 @@
 # SPRINT-0043: Reverse-import scoping & 6-project activation-path coverage
 
-**Status:** planned
+**Status:** focused activation-path e2e coverage passing; combined all-target sweep pending
 **Predecessors:** SPRINT-0042 (deployment artifacts & activation-path k8s e2e)
 
 ## Intent
@@ -105,7 +105,7 @@ Already scaffolded in SPRINT-0042. Now unblocked by Phase 1.
 - [x] 4.2: Verify or fix `workload.go` — exercise gitea repository browsing routes that trigger `PathEscapeSegments` (e.g., `GET /api/v1/repos/search`, `GET /{owner}/{repo}/src/branch/{branch}/{path}`)
 - [x] 4.3: Verify oracle exists and directly calls `util.PathEscapeSegments(path)` for invocation comparison
 - [x] 4.4: Verify the scoped package set is <600 packages and includes the command package for `main.main` — 326 packages
-- [ ] 4.5: Run focused Kind e2e — all stages pass — BLOCKED: stage 8 workload fails (see Blockers)
+- [x] 4.5: Run focused Kind e2e — all stages pass
 - [x] 4.6: Verify activation analysis completes in <2 min with scoping (down from ~8 min) — scope: 2.4s, load: 2.1s
 
 ### Phase 5: Listmonk SanitizeURI
@@ -116,8 +116,8 @@ Scaffolded in SPRINT-0042. Needs `HostBuildCommand` for stuffbin.
 - [x] 5.2: Verify `workload.go` exercises login redirect path that calls `SanitizeURI` (POST `/admin/login` with `next` parameter)
 - [x] 5.3: Verify oracle calls `utils.SanitizeURI(u)` and returns the result
 - [x] 5.4: Verify baseline manifests work (postgres fixture + listmonk deployment/service with install/upgrade startup command)
-- [ ] 5.5: Run focused Kind e2e — all stages pass
-- [ ] 5.6: Verify all e2e assertions (transcript, calls, invocations, env-off, fail-mode)
+- [x] 5.5: Run focused Kind e2e — all stages pass
+- [x] 5.6: Verify all e2e assertions (transcript, calls, invocations, env-off, fail-mode)
 
 ### Phase 6: PocketBase Columnify
 
@@ -127,8 +127,8 @@ New target. PocketBase uses `modernc.org/sqlite` (pure-Go, no CGO). Sequenced be
 - [x] 6.2: Create `workload.go` — exercise a pocketbase API path that calls `inflector.Columnify` (record CRUD or collection schema operations)
 - [x] 6.3: Create `oracle.go` — directly call `inflector.Columnify(str)` for comparison
 - [x] 6.4: Create baseline manifests — pocketbase is self-contained (no external database)
-- [ ] 6.5: Register in `e2e_test.go` and run focused Kind e2e — all stages pass
-- [ ] 6.6: Verify no postgres fixture is used by this target
+- [x] 6.5: Register in `e2e_test.go` and run focused Kind e2e — all stages pass
+- [x] 6.6: Verify no postgres fixture is used by this target
 
 ### Phase 7: Mattermost GeneratePublicLinkHash
 
@@ -141,12 +141,12 @@ The hardest target: 2,153 files, multi-module workspace. Tests scoping at scale.
 - [x] 7.5: Create `oracle.go` — directly call `app.GeneratePublicLinkHash(fileID, salt)` for comparison
 - [x] 7.6: Create baseline deployment/service manifests
 - [x] 7.7: Verify scoped package set is smaller than the unscoped 2,153-file corpus and includes `./cmd/mattermost` — 14 packages
-- [ ] 7.8: Run focused Kind e2e — all stages pass — not yet attempted
+- [x] 7.8: Run focused Kind e2e — all stages pass
 - [x] 7.9: Verify activation analysis completes in <3 min with scoping — scope: 3.6s, load: 3.9s (total ~498s, dominated by augment)
 
 ### Phase 8: Verification and closeout
 
-- [x] 8.1: Re-run miniflux and caddy activation e2e — caddy passes all 10 stages. Miniflux passes stages 1-8, fails stage 9 (see Blockers)
+- [x] 8.1: Re-run miniflux and caddy activation e2e — all stages pass
 - [ ] 8.2: Run all 6 activation targets together: `MONOLIFT_E2E=1 go test -tags e2e -v -run 'TestE2E/activation-' -count=1 -timeout=2h ./test/e2e/`
 - [x] 8.3: Run `go test ./pkg/activation/...` and `go test ./pkg/codegen/...` — all pass
 - [ ] 8.4: Verify every generated manifest lists correct artifact kinds and deploy metadata
@@ -210,9 +210,9 @@ Phase 8 (verification)
 - [ ] Activation-path analysis on gitea completes in <2 min (down from ~8 min)
 - [ ] Activation-path analysis on mattermost completes in <3 min
 - [ ] `HostBuildCommand` override works in Dockerfile rendering (golden test + listmonk e2e)
-- [ ] All 6 activation targets pass focused Kind e2e
+- [x] All 6 activation targets pass focused Kind e2e
 - [ ] All 6 pass together in a single `TestE2E` run with no cross-target interference
-- [ ] Existing miniflux and caddy activation targets still pass (no regressions)
+- [x] Existing miniflux and caddy activation targets still pass (no regressions)
 - [ ] `go test ./pkg/activation/... ./pkg/codegen/...` passes
 - [ ] All generated manifests list correct artifact kinds; all extracted Deployments are dormant
 
@@ -230,22 +230,43 @@ Phase 8 (verification)
 - Fixed oracle Dockerfile template: removed hardcoded `GOARCH=amd64` (same fix applied to codegen templates in SPRINT-0042).
 - Added Dockerfile layer caching: `COPY go.mod go.sum` + `RUN go mod download` before `COPY . .` in both host and extracted templates.
 
-## Blockers
+## Follow-up Findings
 
-### Gitea e2e (stage 8 — workload setup)
+Follow-up on 2026-05-09 resolved the focused Kind e2e blockers without adding ingress or LoadBalancer plumbing. The harness still uses pod-scoped port-forwarding for local ClusterIP services.
 
-Activation analysis, patching, Docker build, and Kind deployment all succeed. The lifted gitea-pathescapesegments target fails at stage 8 because `POST /user/sign_up` returns 404 on the lifted host pod. Root cause: gitea's runtime environment is more complex than miniflux/caddy. Three approaches tried:
+### Resolved Gitea Runtime Bootstrap
 
-1. **Alpine runtime + asset copies**: gitea refuses to run as root (`Gitea is not supposed to be run as root`).
-2. **Alpine + non-root user + `/tmp/gitea` workdir**: binary starts, readiness passes, but `/user/sign_up` returns 404. Sign-up route isn't registered — likely because gitea can't find its templates/options at the expected paths, or the database hasn't been initialized with the correct schema.
-3. **Official `gitea/gitea:1.22` as runtime base**: Same 404. The official image's entrypoint scripts may not run when `command:` is overridden in the k8s manifest.
+Gitea now uses `gitea/gitea:1.26.1` as the runtime image and preserves the official entrypoint behavior while replacing the binary path used by the entrypoint scripts. The workload also repairs the repo if a prior failed run leaves database rows without matching repository files. Focused e2e now passes all stages for `activation-gitea-pathescapesegments`.
 
-The fundamental issue: the `HostRuntimeImage` + `HostArgs` pattern works for apps with simple startup (miniflux, caddy, pocketbase) but gitea needs a more elaborate bootstrap (entrypoint scripts, directory creation, permission setup). A `HostBuildCommand` or `HostEntrypointOverride` that wraps the binary in a shell script may be needed, or a custom Dockerfile that preserves the official image's init but replaces only the binary.
+### Resolved Miniflux Env-Off Readiness
 
-### Miniflux e2e (stage 9 — env-off/fail-mode)
+The e2e harness now waits for a ready pod and endpoints after environment mutations before starting a port-forward. This removes the stage 9 race where port-forwarding could target a pod during rollout before it was ready.
 
-Stages 1-8 pass consistently. Stage 9 fails because after `kubectl set env` removes the `MONOLIFT_LIFT_*` vars and a rollout completes, the new pod sometimes stays in `Pending` state. Port-forward times out after 30s. This happens on a freshly created Kind cluster with no other workloads. Caddy's stage 9 passes on the same cluster, so the issue may be miniflux-specific (heavier pod with postgres dependency, slower scheduling). Not a scoping regression — this test was passing in SPRINT-0042 before any scoping changes.
+### Resolved Listmonk Asset Embedding
 
-### Listmonk, pocketbase, mattermost e2e (not yet attempted)
+Listmonk's host build now creates `/out`, installs `stuffbin`, and embeds the expected config, SQL, query, permission, static, email-template, and i18n assets using repo-relative stuffbin mappings. The workload normalizes response content to avoid asset cache-buster hash churn. Focused e2e now passes all stages for `activation-listmonk-sanitizeuri`.
 
-Scaffolding is complete (target.go, workload.go, oracle mains, baseline manifests). Kind e2e runs have not been attempted yet — blocked on resolving the gitea and miniflux issues first. Mattermost additionally requires `go.work` threading (implemented in harness via `GoWorkModules` field) and has pre-existing compile errors that are resolved when the workspace includes `./public`.
+### Resolved PocketBase Image Pull and Workload Path
+
+PocketBase no longer depends on anonymous pulls from `ghcr.io/pocketbase/pocketbase`. The target builds a local e2e image from `evaluation/pocketbase/examples/base`, seeds a superuser, and exercises the authenticated collections path that calls `Columnify`. Focused e2e now passes all stages for `activation-pocketbase-columnify`, with no postgres fixture.
+
+### Resolved Mattermost Workspace, Runtime Assets, and Activation Path
+
+Mattermost patched-package verification now compile-checks with `go test -exec=true` so package `TestMain` does not try to connect to local Postgres. Docker build templates omit `-mod=mod` when a `go.work` file is present. The lifted host copies Mattermost runtime assets (`i18n`, `templates`, `fonts`, `config`) and enables public links with a valid salt. The workload creates a user/team/channel, uploads a file, attaches it to a post, and calls `GET /api/v4/files/{file_id}/link`, which reaches `GeneratePublicLinkHash`. Focused e2e now passes all stages for `activation-mattermost-publiclinkhash`.
+
+### Verified Focused Runs
+
+- `activation-miniflux-sanitizehtml`
+- `activation-caddy-cleanpath`
+- `activation-gitea-pathescapesegments`
+- `activation-listmonk-sanitizeuri`
+- `activation-pocketbase-columnify`
+- `activation-mattermost-publiclinkhash`
+
+### Remaining Verification
+
+The combined all-target activation sweep is still pending:
+
+```sh
+MONOLIFT_E2E=1 go test -tags e2e -v -run 'TestE2E/activation-' -count=1 -timeout=2h ./test/e2e
+```
