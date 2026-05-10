@@ -26,6 +26,7 @@ import (
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
 	activation_miniflux_sanitizehtml "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_sanitizehtml"
+	activation_miniflux_striptags "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_striptags"
 	activation_pocketbase_columnify "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_columnify"
 	"github.com/tgoodwin/monolift/test/e2e/targets/caddy"
 	"github.com/tgoodwin/monolift/test/e2e/targets/gitea"
@@ -51,6 +52,7 @@ func TestE2E(t *testing.T) {
 		pocketbase.Target(),
 		miniflux.Target(),
 		activation_miniflux_sanitizehtml.Target(),
+		activation_miniflux_striptags.Target(),
 		listmonk.Target(),
 		gitea.Target(),
 		activation_gitea_pathescapesegments.Target(),
