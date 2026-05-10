@@ -24,7 +24,7 @@ func newInterfaceFieldIndex() *interfaceFieldIndex {
 
 // AugmentInterfaceFields connects interface-typed struct field invokes to
 // concrete result types returned by map-indexed factory calls.
-func AugmentInterfaceFields(graph *Graph, program *Program) error {
+func AugmentInterfaceFields(graph *Graph, program *Program, mapIndex *mapFuncIndex) error {
 	if graph == nil {
 		return fmt.Errorf("graph is nil")
 	}
@@ -33,16 +33,18 @@ func AugmentInterfaceFields(graph *Graph, program *Program) error {
 	}
 	program.BuildSSA()
 	index := newInterfaceFieldIndex()
-	results := mapFactoryResultTypes(program)
+	results := mapFactoryResultTypes(program, mapIndex)
 	scanInterfaceFieldStores(program, index, results)
 	connectInterfaceFieldReads(graph, program, index)
 	return nil
 }
 
-func mapFactoryResultTypes(program *Program) map[ssa.Value][]types.Type {
+func mapFactoryResultTypes(program *Program, mapIndex *mapFuncIndex) map[ssa.Value][]types.Type {
 	out := map[ssa.Value][]types.Type{}
-	mapIndex := buildMapFuncIndex(program)
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	if mapIndex == nil {
+		mapIndex = buildMapFuncIndex(program)
+	}
+	for _, fn := range program.Functions() {
 		if fn == nil {
 			continue
 		}
@@ -72,7 +74,7 @@ func mapFactoryResultTypes(program *Program) map[ssa.Value][]types.Type {
 }
 
 func scanInterfaceFieldStores(program *Program, index *interfaceFieldIndex, results map[ssa.Value][]types.Type) {
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		if fn == nil {
 			continue
 		}
@@ -109,7 +111,7 @@ func connectInterfaceFieldReads(graph *Graph, program *Program, index *interface
 	if graph == nil || program == nil || index == nil {
 		return
 	}
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		from := graph.nodeByFunction(fn)
 		if from == nil {
 			continue

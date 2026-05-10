@@ -13,17 +13,33 @@ type callbackParamKey struct {
 	index int
 }
 
+type callbackCallsite struct {
+	Caller *ssa.Function
+	Common *ssa.CallCommon
+}
+
+type callbackCallsiteIndex struct {
+	ByCaller map[*ssa.Function][]callbackCallsite
+}
+
 // AugmentFuncArgs connects reachable callback registration calls to function
 // values passed into parameters that are stored, invoked, or forwarded to a
 // storing/invoking callee.
-func AugmentFuncArgs(graph *Graph, program *Program) error {
+func AugmentFuncArgs(graph *Graph, program *Program, indexes ...*callbackCallsiteIndex) (*callbackCallsiteIndex, error) {
 	if graph == nil {
-		return fmt.Errorf("graph is nil")
+		return nil, fmt.Errorf("graph is nil")
 	}
 	if program == nil {
-		return fmt.Errorf("program is nil")
+		return nil, fmt.Errorf("program is nil")
 	}
 	program.BuildSSA()
+	var callsites *callbackCallsiteIndex
+	if len(indexes) > 0 {
+		callsites = indexes[0]
+	}
+	if callsites == nil {
+		callsites = buildCallbackCallsiteIndex(program)
+	}
 	memo := map[callbackParamKey]bool{}
 	visiting := map[callbackParamKey]bool{}
 
@@ -35,40 +51,59 @@ func AugmentFuncArgs(graph *Graph, program *Program) error {
 		if node == nil || node.Func == nil {
 			continue
 		}
-		for _, block := range node.Func.Blocks {
+		for _, callsite := range callsites.ByCaller[node.Func] {
+			common := callsite.Common
+			if common == nil {
+				continue
+			}
+			callee := common.StaticCallee()
+			for argIndex, arg := range common.Args {
+				if !hasFunctionValueType(arg) {
+					continue
+				}
+				targets := resolveStoredCallables(arg)
+				if len(targets) == 0 {
+					continue
+				}
+				if callee != nil && !parameterMayCallback(callee, argIndex, memo, visiting) {
+					continue
+				}
+				for _, target := range targets {
+					if target.Func == nil || hasGenericContext(target.Func) {
+						continue
+					}
+					to := graph.AddNode(FunctionKeyForSSA(target.Func), target.Func)
+					if to == nil {
+						continue
+					}
+					graph.AddEdge(node.ID, to.ID, CallbackRegistration, positionFor(program, common.Pos()), fmt.Sprintf("callback argument to %s", callDescription(common)))
+				}
+			}
+		}
+	}
+	return callsites, nil
+}
+
+func buildCallbackCallsiteIndex(program *Program) *callbackCallsiteIndex {
+	index := &callbackCallsiteIndex{ByCaller: map[*ssa.Function][]callbackCallsite{}}
+	if program == nil {
+		return index
+	}
+	for _, fn := range program.Functions() {
+		if fn == nil {
+			continue
+		}
+		for _, block := range fn.Blocks {
 			for _, instr := range block.Instrs {
 				call, ok := instr.(ssa.CallInstruction)
 				if !ok || call.Common() == nil {
 					continue
 				}
-				common := call.Common()
-				callee := common.StaticCallee()
-				for argIndex, arg := range common.Args {
-					if !hasFunctionValueType(arg) {
-						continue
-					}
-					targets := resolveStoredCallables(arg)
-					if len(targets) == 0 {
-						continue
-					}
-					if callee != nil && !parameterMayCallback(callee, argIndex, memo, visiting) {
-						continue
-					}
-					for _, target := range targets {
-						if target.Func == nil || hasGenericContext(target.Func) {
-							continue
-						}
-						to := graph.AddNode(FunctionKeyForSSA(target.Func), target.Func)
-						if to == nil {
-							continue
-						}
-						graph.AddEdge(node.ID, to.ID, CallbackRegistration, positionFor(program, common.Pos()), fmt.Sprintf("callback argument to %s", callDescription(common)))
-					}
-				}
+				index.ByCaller[fn] = append(index.ByCaller[fn], callbackCallsite{Caller: fn, Common: call.Common()})
 			}
 		}
 	}
-	return nil
+	return index
 }
 
 func parameterMayCallback(fn *ssa.Function, paramIndex int, memo map[callbackParamKey]bool, visiting map[callbackParamKey]bool) bool {

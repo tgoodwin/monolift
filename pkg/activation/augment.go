@@ -3,6 +3,8 @@ package activation
 import (
 	"fmt"
 	"strings"
+
+	"golang.org/x/tools/go/ssa"
 )
 
 // AugmentMode controls which graph augmentation passes run after RTA.
@@ -32,7 +34,7 @@ func ParseAugmentMode(raw string) (AugmentMode, error) {
 }
 
 // Augment runs the selected graph augmentation passes in deterministic order.
-func Augment(graph *Graph, program *Program, mode AugmentMode) error {
+func Augment(graph *Graph, program *Program, mode AugmentMode, subTimings ...*[]PhaseTiming) error {
 	if graph == nil {
 		return fmt.Errorf("graph is nil")
 	}
@@ -48,9 +50,14 @@ func Augment(graph *Graph, program *Program, mode AugmentMode) error {
 	if mode == ModeRTAOnly {
 		return nil
 	}
+	var timings *[]PhaseTiming
+	if len(subTimings) > 0 {
+		timings = subTimings[0]
+	}
+	state := &augmentState{}
 	for {
 		snapshot := graph.FunctionSet()
-		if err := runAugmentationPasses(graph, program, mode); err != nil {
+		if err := runAugmentationPasses(graph, program, mode, timings, state); err != nil {
 			return err
 		}
 		newFuncs := graph.NewFunctionsSince(snapshot)
@@ -68,8 +75,16 @@ func Augment(graph *Graph, program *Program, mode AugmentMode) error {
 			return nil
 		}
 		graph.AugmentIterations++
-		if err := ExploreCallees(graph, program, newFuncs); err != nil {
+		beforeExplore := graph.FunctionSet()
+		rootsToExplore := unexploredRootsForState(state, newFuncs)
+		_, err := timeSubPhase(timings, "ExploreCallees", func() (struct{}, error) {
+			return struct{}{}, ExploreCallees(graph, program, rootsToExplore)
+		})
+		if err != nil {
 			return err
+		}
+		if state.structFieldIndex != nil {
+			UpdateStructFieldIndex(state.structFieldIndex, append(newFuncs, graph.NewFunctionsSince(beforeExplore)...))
 		}
 	}
 }
@@ -85,41 +100,125 @@ func recordAugmentInfo(graph *Graph, message string) {
 	})
 }
 
-func runAugmentationPasses(graph *Graph, program *Program, mode AugmentMode) error {
+type augmentState struct {
+	structFieldIndex *StructFieldIndex
+	funcArgCallsites *callbackCallsiteIndex
+	exploredRoots    map[*ssa.Function]bool
+}
+
+func runAugmentationPasses(graph *Graph, program *Program, mode AugmentMode, timings *[]PhaseTiming, state *augmentState) error {
 	switch mode {
 	case ModeAll:
-		index, err := AugmentStructField(graph, program)
+		index, err := timeSubPhase(timings, "AugmentStructField", func() (*StructFieldIndex, error) {
+			return AugmentStructField(graph, program, structFieldIndexForState(state))
+		})
 		if err != nil {
 			return err
 		}
-		if err := ApplyPredicates(graph, program, index, DefaultFrameworkPredicates()); err != nil {
+		setStructFieldIndexForState(state, index)
+		_, err = timeSubPhase(timings, "ApplyPredicates", func() (struct{}, error) {
+			return struct{}{}, ApplyPredicates(graph, program, index, DefaultFrameworkPredicates())
+		})
+		if err != nil {
 			return err
 		}
-		if err := AugmentGoroutine(graph, program); err != nil {
+		_, err = timeSubPhase(timings, "AugmentGoroutine", func() (struct{}, error) {
+			return struct{}{}, AugmentGoroutine(graph, program)
+		})
+		if err != nil {
 			return err
 		}
-		if err := AugmentPackageVars(graph, program); err != nil {
+		_, err = timeSubPhase(timings, "AugmentPackageVars", func() (struct{}, error) {
+			return struct{}{}, AugmentPackageVars(graph, program)
+		})
+		if err != nil {
 			return err
 		}
-		if err := AugmentFuncArgs(graph, program); err != nil {
+		funcArgCallsites, err := timeSubPhase(timings, "AugmentFuncArgs", func() (*callbackCallsiteIndex, error) {
+			return AugmentFuncArgs(graph, program, funcArgCallsitesForState(state))
+		})
+		if err != nil {
 			return err
 		}
-		if err := AugmentMapFuncValues(graph, program); err != nil {
+		setFuncArgCallsitesForState(state, funcArgCallsites)
+		mapIndex, err := timeSubPhase(timings, "AugmentMapFuncValues", func() (*mapFuncIndex, error) {
+			return AugmentMapFuncValues(graph, program)
+		})
+		if err != nil {
 			return err
 		}
-		return AugmentInterfaceFields(graph, program)
+		_, err = timeSubPhase(timings, "AugmentInterfaceFields", func() (struct{}, error) {
+			return struct{}{}, AugmentInterfaceFields(graph, program, mapIndex)
+		})
+		return err
 	case ModeStructField:
-		_, err := AugmentStructField(graph, program)
+		_, err := timeSubPhase(timings, "AugmentStructField", func() (*StructFieldIndex, error) {
+			index, err := AugmentStructField(graph, program, structFieldIndexForState(state))
+			setStructFieldIndexForState(state, index)
+			return index, err
+		})
 		return err
 	case ModePredicates:
-		index, err := AugmentStructField(graph, program)
+		index, err := timeSubPhase(timings, "AugmentStructField", func() (*StructFieldIndex, error) {
+			return AugmentStructField(graph, program, structFieldIndexForState(state))
+		})
 		if err != nil {
 			return err
 		}
-		return ApplyPredicates(graph, program, index, DefaultFrameworkPredicates())
+		setStructFieldIndexForState(state, index)
+		_, err = timeSubPhase(timings, "ApplyPredicates", func() (struct{}, error) {
+			return struct{}{}, ApplyPredicates(graph, program, index, DefaultFrameworkPredicates())
+		})
+		return err
 	case ModeGoroutine:
-		return AugmentGoroutine(graph, program)
+		_, err := timeSubPhase(timings, "AugmentGoroutine", func() (struct{}, error) {
+			return struct{}{}, AugmentGoroutine(graph, program)
+		})
+		return err
 	default:
 		return fmt.Errorf("unknown augmentation mode %q", mode)
 	}
+}
+
+func structFieldIndexForState(state *augmentState) *StructFieldIndex {
+	if state == nil {
+		return nil
+	}
+	return state.structFieldIndex
+}
+
+func setStructFieldIndexForState(state *augmentState, index *StructFieldIndex) {
+	if state != nil {
+		state.structFieldIndex = index
+	}
+}
+
+func funcArgCallsitesForState(state *augmentState) *callbackCallsiteIndex {
+	if state == nil {
+		return nil
+	}
+	return state.funcArgCallsites
+}
+
+func setFuncArgCallsitesForState(state *augmentState, index *callbackCallsiteIndex) {
+	if state != nil {
+		state.funcArgCallsites = index
+	}
+}
+
+func unexploredRootsForState(state *augmentState, roots []*ssa.Function) []*ssa.Function {
+	roots = sortedUniqueFunctions(roots)
+	if state == nil {
+		return roots
+	}
+	if state.exploredRoots == nil {
+		state.exploredRoots = map[*ssa.Function]bool{}
+	}
+	for _, root := range roots {
+		if root == nil {
+			continue
+		}
+		state.exploredRoots[root] = true
+	}
+	return roots
 }

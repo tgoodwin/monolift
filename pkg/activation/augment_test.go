@@ -2,6 +2,7 @@ package activation
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"golang.org/x/tools/go/ssa"
@@ -72,6 +73,33 @@ func TestAugmentIsIdempotent(t *testing.T) {
 	}
 	if len(graph.Nodes) != nodes || len(graph.Edges) != edges {
 		t.Fatalf("second Augment changed graph size from %d/%d to %d/%d", nodes, edges, len(graph.Nodes), len(graph.Edges))
+	}
+}
+
+func TestAugmentTwiceKeepsStableGraphAndNoDuplicateEdges(t *testing.T) {
+	graph, program := buildFixtureGraph(t, "pkg/activation/testdata/mapfunc/direct")
+	if err := Augment(graph, program, ModeAll); err != nil {
+		t.Fatal(err)
+	}
+	nodes := len(graph.Nodes)
+	edges := len(graph.Edges)
+	signature := graphEdgeSignature(graph)
+
+	if err := Augment(graph, program, ModeAll); err != nil {
+		t.Fatal(err)
+	}
+	if len(graph.Nodes) != nodes || len(graph.Edges) != edges {
+		t.Fatalf("graph size changed after second augment: nodes %d->%d edges %d->%d", nodes, len(graph.Nodes), edges, len(graph.Edges))
+	}
+	if got := graphEdgeSignature(graph); !reflect.DeepEqual(got, signature) {
+		t.Fatalf("edge signature changed after second augment\n got: %#v\nwant: %#v", got, signature)
+	}
+	seen := map[string]bool{}
+	for _, edge := range graphEdgeSignature(graph) {
+		if seen[edge] {
+			t.Fatalf("duplicate edge after second augment: %s", edge)
+		}
+		seen[edge] = true
 	}
 }
 

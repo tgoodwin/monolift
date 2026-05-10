@@ -28,6 +28,7 @@ func ExploreCallees(graph *Graph, program *Program, roots []*ssa.Function) error
 	}
 	program.BuildSSA()
 	result := rta.Analyze(roots, true)
+	program.invalidateFunctions()
 	mergeCallGraph(graph, program, result.CallGraph)
 	return nil
 }

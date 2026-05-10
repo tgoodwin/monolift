@@ -80,6 +80,19 @@ func (a *Analyzer) Analyze(ctx context.Context) (*Result, error) {
 		return result, err
 	}
 
+	_, err = timePhase(result, "ssa", func() (struct{}, error) {
+		program.BuildSSA()
+		return struct{}{}, nil
+	})
+	if err := checkContext(ctx, result); err != nil {
+		return result, err
+	}
+	if err != nil {
+		result.Category = MissPackageLoadFailure
+		result.Diagnostics = append(result.Diagnostics, Diagnostic{Severity: "error", Phase: "ssa", Message: err.Error()})
+		return result, err
+	}
+
 	target, err := timePhase(result, "resolve-target", func() (*ssaFunction, error) {
 		fn, err := cfg.ResolveTarget(program, file, line)
 		return (*ssaFunction)(fn), err
@@ -139,9 +152,31 @@ func (a *Analyzer) Analyze(ctx context.Context) (*Result, error) {
 		result.Diagnostics = append(result.Diagnostics, Diagnostic{Severity: "error", Phase: "rta", Message: err.Error()})
 		return result, err
 	}
-	_, err = timePhase(result, "augment", func() (struct{}, error) {
-		return struct{}{}, Augment(graph, program, cfg.Augment)
-	})
+	preAugmentNodes := len(graph.Nodes)
+	preAugmentEdges := len(graph.Edges)
+	_, rtaFound := ShortestPath(graph, entrypointFuncs, target.function())
+	if rtaFound && cfg.SkipAugmentWhenRTAReachable {
+		result.SkippedAugment = true
+		result.Diagnostics = append(result.Diagnostics, Diagnostic{
+			Severity: "info",
+			Phase:    "augment",
+			Message:  "target is reachable in RTA graph; skipped augmentation",
+		})
+		_, err = timePhase(result, "augment", func() (struct{}, error) {
+			return struct{}{}, nil
+		})
+		setPhaseMetadata(result, "augment", map[string]any{"skipped": true})
+	} else {
+		_, err = timePhase(result, "augment", func() (struct{}, error) {
+			return struct{}{}, Augment(graph, program, cfg.Augment, &result.SubTimings)
+		})
+	}
+	result.Stats = graphStats(program, graph, preAugmentNodes, preAugmentEdges)
+	augmentMetadata := graphStatsMetadata(result.Stats)
+	if result.SkippedAugment {
+		augmentMetadata["skipped"] = true
+	}
+	setPhaseMetadata(result, "augment", augmentMetadata)
 	if err := checkContext(ctx, result); err != nil {
 		return result, err
 	}
@@ -151,7 +186,6 @@ func (a *Analyzer) Analyze(ctx context.Context) (*Result, error) {
 		return result, err
 	}
 	result.Diagnostics = append(result.Diagnostics, graph.AugmentDiagnostics...)
-	result.Stats = GraphStats{Nodes: len(graph.Nodes), Edges: len(graph.Edges)}
 	if graphTarget := graph.nodeByFunction(target.function()); graphTarget != nil {
 		result.Target = graphTarget
 	}
@@ -243,4 +277,68 @@ func timePhase[T any](result *Result, phase string, fn func() (T, error)) (T, er
 	value, err := fn()
 	result.Timings = append(result.Timings, PhaseTiming{Phase: phase, Duration: time.Since(start)})
 	return value, err
+}
+
+func timeSubPhase[T any](timings *[]PhaseTiming, phase string, fn func() (T, error)) (T, error) {
+	start := time.Now()
+	value, err := fn()
+	if timings != nil {
+		*timings = append(*timings, PhaseTiming{Phase: phase, Duration: time.Since(start)})
+	}
+	return value, err
+}
+
+func setPhaseMetadata(result *Result, phase string, metadata map[string]any) {
+	if result == nil || len(metadata) == 0 {
+		return
+	}
+	for i := len(result.Timings) - 1; i >= 0; i-- {
+		if result.Timings[i].Phase == phase {
+			result.Timings[i].Metadata = metadata
+			return
+		}
+	}
+}
+
+func graphStats(program *Program, graph *Graph, preAugmentNodes, preAugmentEdges int) GraphStats {
+	stats := GraphStats{}
+	if program != nil {
+		stats.SSAFunctions, stats.ScannedInstructions = countSSAFunctionsAndInstructions(program)
+	}
+	if graph != nil {
+		stats.Nodes = len(graph.Nodes)
+		stats.Edges = len(graph.Edges)
+		stats.GraphFunctions = len(graph.Nodes)
+		stats.AddedNodes = len(graph.Nodes) - preAugmentNodes
+		stats.AddedEdges = len(graph.Edges) - preAugmentEdges
+		stats.AugmentIterations = graph.AugmentIterations
+		stats.AugmentLimitHit = graph.AugmentLimitHit
+	}
+	return stats
+}
+
+func graphStatsMetadata(stats GraphStats) map[string]any {
+	return map[string]any{
+		"ssa_functions":        stats.SSAFunctions,
+		"graph_functions":      stats.GraphFunctions,
+		"scanned_instructions": stats.ScannedInstructions,
+		"added_nodes":          stats.AddedNodes,
+		"added_edges":          stats.AddedEdges,
+		"augment_iterations":   stats.AugmentIterations,
+		"augment_limit_hit":    stats.AugmentLimitHit,
+	}
+}
+
+func countSSAFunctionsAndInstructions(program *Program) (int, int) {
+	if program == nil || program.SSAProgram == nil {
+		return 0, 0
+	}
+	funcs := program.Functions()
+	instructions := 0
+	for _, fn := range funcs {
+		for _, block := range fn.Blocks {
+			instructions += len(block.Instrs)
+		}
+	}
+	return len(funcs), instructions
 }

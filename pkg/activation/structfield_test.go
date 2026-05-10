@@ -2,7 +2,11 @@ package activation
 
 import (
 	"path/filepath"
+	"reflect"
+	"sort"
 	"testing"
+
+	"golang.org/x/tools/go/ssa"
 )
 
 func TestStructFieldFixtures(t *testing.T) {
@@ -42,6 +46,45 @@ func TestStructFieldFixtures(t *testing.T) {
 			assertEdge(t, graph, "dispatch", tc.targetFunc, tc.kind)
 		})
 	}
+}
+
+func TestUpdateStructFieldIndexMatchesFullRebuildAcrossThreeIterations(t *testing.T) {
+	program := loadFixtureProgram(t, "pkg/activation/testdata/structfield/wrapper")
+
+	full, err := AugmentStructField(nil, program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	incremental := newStructFieldIndex()
+	for _, chunk := range splitFunctionChunks(program.Functions(), 3) {
+		UpdateStructFieldIndex(incremental, chunk)
+	}
+
+	if got, want := structFieldIndexSignature(incremental), structFieldIndexSignature(full); !reflect.DeepEqual(got, want) {
+		t.Fatalf("incremental index mismatch\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+func splitFunctionChunks(funcs []*ssa.Function, chunks int) [][]*ssa.Function {
+	out := make([][]*ssa.Function, chunks)
+	for i, fn := range funcs {
+		out[i%chunks] = append(out[i%chunks], fn)
+	}
+	return out
+}
+
+func structFieldIndexSignature(index *StructFieldIndex) []string {
+	var sig []string
+	for _, key := range index.sortedKeys() {
+		for _, store := range index.Stores[key] {
+			sig = append(sig, "store:"+key.String()+":"+FunctionKeyForSSA(store.Func).String())
+		}
+		for _, read := range index.Reads[key] {
+			sig = append(sig, "read:"+key.String()+":"+FunctionKeyForSSA(read.Caller).String())
+		}
+	}
+	sort.Strings(sig)
+	return sig
 }
 
 func assertEdge(t *testing.T, graph *Graph, fromFunc, toFunc string, kind EdgeKind) {

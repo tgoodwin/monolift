@@ -43,7 +43,7 @@ func (c Config) ResolveTarget(program *Program, file string, line int) (*ssa.Fun
 	}
 	var matches []*ssa.Function
 	var candidates []TargetCandidate
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		syntax := fn.Syntax()
 		if syntax == nil {
 			continue

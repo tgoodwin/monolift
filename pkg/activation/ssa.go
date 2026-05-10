@@ -23,6 +23,28 @@ func (p *Program) BuildSSA() {
 	p.SSAPackages = pkgs
 }
 
+// Functions returns all SSA functions in deterministic order. The whole-program
+// scan is cached because augmentation passes repeatedly need this list.
+func (p *Program) Functions() []*ssa.Function {
+	if p == nil {
+		return nil
+	}
+	p.BuildSSA()
+	if !p.functionsOK {
+		p.functions = sortedFunctions(p.SSAProgram)
+		p.functionsOK = true
+	}
+	return p.functions
+}
+
+func (p *Program) invalidateFunctions() {
+	if p == nil {
+		return
+	}
+	p.functions = nil
+	p.functionsOK = false
+}
+
 // FunctionKeyForSSA returns the canonical comparison key for an SSA function.
 func FunctionKeyForSSA(fn *ssa.Function) FunctionKey {
 	if fn == nil {

@@ -156,7 +156,7 @@ func findDispatchInGraph(graph *Graph, predicate FrameworkPredicate) *Node {
 
 func findDispatchFunction(program *Program, predicate FrameworkPredicate) *ssa.Function {
 	receiver, funcName := parseDispatchFn(predicate.DispatchFn)
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		key := FunctionKeyForSSA(fn)
 		if key.PackagePath != predicate.ImportPath || key.FuncName != funcName {
 			continue
