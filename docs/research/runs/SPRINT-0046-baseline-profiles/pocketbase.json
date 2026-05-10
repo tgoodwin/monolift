@@ -1,0 +1,182 @@
+{
+  "found": true,
+  "target": {
+    "id": 21786,
+    "key": {
+      "package_path": "github.com/pocketbase/pocketbase/tools/inflector",
+      "func_name": "Columnify"
+    },
+    "name": "github.com/pocketbase/pocketbase/tools/inflector.Columnify",
+    "package": "github.com/pocketbase/pocketbase/tools/inflector",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/pocketbase/tools/inflector/inflector.go",
+      "line": 24,
+      "column": 6
+    }
+  },
+  "path_length": 8,
+  "recommended_cut_step": 7,
+  "recommended_cut_key": "github.com/pocketbase/pocketbase/tools/inflector.Columnify",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 20 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "augmentation exploration converged after 2 iteration(s)",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 469587708
+    },
+    {
+      "phase": "load",
+      "duration": 1254180167
+    },
+    {
+      "phase": "ssa",
+      "duration": 490220459
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 537476166
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 9333
+    },
+    {
+      "phase": "rta",
+      "duration": 4532165833
+    },
+    {
+      "phase": "augment",
+      "duration": 27397852708,
+      "metadata": {
+        "added_edges": 9376,
+        "added_nodes": 562,
+        "augment_iterations": 2,
+        "augment_limit_hit": false,
+        "graph_functions": 34163,
+        "scanned_instructions": 3056224,
+        "ssa_functions": 53771
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 26699875
+    }
+  ],
+  "augment_sub_timings": [
+    {
+      "phase": "AugmentStructField",
+      "duration": 723968750
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 2306375
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 16183166
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 1616373583
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 55323666
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 2775917792
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 3366875333
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 1817925375
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 716478625
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 2454667
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 17119416
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 1591004458
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 54897625
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 2708629709
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 3400747084
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 473834
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 760612125
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 3519959
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 16622625
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 1562146292
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 54676750
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 2718358542
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 3409695750
+    }
+  ],
+  "stats": {
+    "nodes": 34163,
+    "edges": 469311,
+    "ssa_functions": 53771,
+    "graph_functions": 34163,
+    "scanned_instructions": 3056224,
+    "added_nodes": 562,
+    "added_edges": 9376,
+    "augment_iterations": 2,
+    "augment_limit_hit": false
+  }
+}

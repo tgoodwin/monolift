@@ -1,0 +1,89 @@
+{
+  "found": true,
+  "target": {
+    "id": 21786,
+    "key": {
+      "package_path": "github.com/pocketbase/pocketbase/tools/inflector",
+      "func_name": "Columnify"
+    },
+    "name": "github.com/pocketbase/pocketbase/tools/inflector.Columnify",
+    "package": "github.com/pocketbase/pocketbase/tools/inflector",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/pocketbase/tools/inflector/inflector.go",
+      "line": 24,
+      "column": 6
+    }
+  },
+  "path_length": 8,
+  "recommended_cut_step": 7,
+  "recommended_cut_key": "github.com/pocketbase/pocketbase/tools/inflector.Columnify",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 20 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "target is reachable in RTA graph; skipped augmentation",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 427773625
+    },
+    {
+      "phase": "load",
+      "duration": 1150539625
+    },
+    {
+      "phase": "ssa",
+      "duration": 400426458
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 479052375
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 7625
+    },
+    {
+      "phase": "rta",
+      "duration": 4171056833
+    },
+    {
+      "phase": "augment",
+      "duration": 42,
+      "metadata": {
+        "added_edges": 0,
+        "added_nodes": 0,
+        "augment_iterations": 0,
+        "augment_limit_hit": false,
+        "graph_functions": 33601,
+        "scanned_instructions": 3056224,
+        "skipped": true,
+        "ssa_functions": 53771
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 22297292
+    }
+  ],
+  "stats": {
+    "nodes": 33601,
+    "edges": 459935,
+    "ssa_functions": 53771,
+    "graph_functions": 33601,
+    "scanned_instructions": 3056224,
+    "added_nodes": 0,
+    "added_edges": 0,
+    "augment_iterations": 0,
+    "augment_limit_hit": false
+  }
+}

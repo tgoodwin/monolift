@@ -1,0 +1,89 @@
+{
+  "found": true,
+  "target": {
+    "id": 38511,
+    "key": {
+      "package_path": "code.gitea.io/gitea/modules/util",
+      "func_name": "PathEscapeSegments"
+    },
+    "name": "code.gitea.io/gitea/modules/util.PathEscapeSegments",
+    "package": "code.gitea.io/gitea/modules/util",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/gitea/modules/util/url.go",
+      "line": 12,
+      "column": 6
+    }
+  },
+  "path_length": 4,
+  "recommended_cut_step": 3,
+  "recommended_cut_key": "code.gitea.io/gitea/modules/util.PathEscapeSegments",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 326 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "target is reachable in RTA graph; skipped augmentation",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 2159259209
+    },
+    {
+      "phase": "load",
+      "duration": 4215786875
+    },
+    {
+      "phase": "ssa",
+      "duration": 2595013375
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 2061933375
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 10875
+    },
+    {
+      "phase": "rta",
+      "duration": 22641836583
+    },
+    {
+      "phase": "augment",
+      "duration": 375,
+      "metadata": {
+        "added_edges": 0,
+        "added_nodes": 0,
+        "augment_iterations": 0,
+        "augment_limit_hit": false,
+        "graph_functions": 79635,
+        "scanned_instructions": 7097746,
+        "skipped": true,
+        "ssa_functions": 145539
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 33819791
+    }
+  ],
+  "stats": {
+    "nodes": 79635,
+    "edges": 1970910,
+    "ssa_functions": 145539,
+    "graph_functions": 79635,
+    "scanned_instructions": 7097746,
+    "added_nodes": 0,
+    "added_edges": 0,
+    "augment_iterations": 0,
+    "augment_limit_hit": false
+  }
+}

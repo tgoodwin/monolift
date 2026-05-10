@@ -1,0 +1,22 @@
+found: 8 steps
+[0] miniflux.app/v2.main (/Users/tgoodwin/projects/monolift/evaluation/miniflux/main.go:10)
+  --DirectCall--> miniflux.app/v2/internal/cli.Parse (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/cli/cli.go:40)
+  --ConcreteMethodCall--> database/sql.*DB.Close (/usr/local/go/src/database/sql/sql.go:926)
+  --Unsupported--> net/http.ServeHTTP$1 (/usr/local/go/src/net/http/server.go:3831)
+  --InterfaceDispatch--> net/http.HandlerFunc.ServeHTTP (/usr/local/go/src/net/http/server.go:2285)
+  --Unsupported--> importFeedEntryHandler$bound (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/api/entry_handlers.go:331)
+  --ConcreteMethodCall--> miniflux.app/v2/internal/api.*handler.importFeedEntryHandler (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/api/entry_handlers.go:331)
+  --DirectCall--> miniflux.app/v2/internal/reader/sanitizer.SanitizeHTML (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/reader/sanitizer/sanitizer.go:217)
+info[scope]: scoped from [./...] to 42 packages
+info[augment]: map function parameter propagation iterations=2: iter0 functions=14 callsites=22 new_stores=21 new_param_stores=0; iter1 functions=14 callsites=22 new_stores=0 new_param_stores=0
+info[augment]: map function parameter propagation iterations=2: iter0 functions=14 callsites=22 new_stores=21 new_param_stores=0; iter1 functions=14 callsites=22 new_stores=0 new_param_stores=0
+info[augment]: map function parameter propagation iterations=2: iter0 functions=14 callsites=22 new_stores=21 new_param_stores=0; iter1 functions=14 callsites=22 new_stores=0 new_param_stores=0
+info[augment]: augmentation exploration converged after 2 iteration(s)
+time[scope]: 713.163916ms
+time[load]: 996.704542ms
+time[ssa]: 425.764667ms
+time[resolve-target]: 345.670375ms
+time[entrypoints]: 8.125µs
+time[rta]: 2.602361709s
+time[augment]: 8.059092917s
+time[bfs]: 10.487875ms

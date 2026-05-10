@@ -1,0 +1,25 @@
+found: 10 steps
+[0] github.com/mattermost/mattermost/server/v8/cmd/mmctl.main (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/cmd/mmctl/mmctl.go:14)
+  --DirectCall--> github.com/mattermost/mattermost/server/v8/cmd/mmctl/commands.Run (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/cmd/mmctl/commands/root.go:22)
+  --ConcreteMethodCall--> github.com/spf13/cobra.*Command.Execute (/Users/tgoodwin/go/pkg/mod/github.com/spf13/cobra@v1.10.2/command.go:1070)
+  --ConcreteMethodCall--> github.com/spf13/cobra.*Command.ExecuteC (/Users/tgoodwin/go/pkg/mod/github.com/spf13/cobra@v1.10.2/command.go:1084)
+  --ConcreteMethodCall--> github.com/spf13/cobra.*Command.execute (/Users/tgoodwin/go/pkg/mod/github.com/spf13/cobra@v1.10.2/command.go:905)
+  --StructFieldFuncValue--> github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands.serverForWebClientTestsCmdF (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/cmd/mattermost/commands/test.go:73)
+  --DirectCall--> github.com/mattermost/mattermost/server/v8/channels/api4.Init (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/api.go:185)
+  --ConcreteMethodCall--> github.com/mattermost/mattermost/server/v8/channels/api4.*API.InitFile (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/file.go:33)
+  --CallbackRegistration--> github.com/mattermost/mattermost/server/v8/channels/api4.getPublicFile (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/file.go:882)
+  --DirectCall--> github.com/mattermost/mattermost/server/v8/channels/app.GeneratePublicLinkHash (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/app/file.go:588)
+info[scope]: scoped from [./...] to 14 packages
+info[augment]: map function parameter propagation iterations=3: iter0 functions=22 callsites=32 new_stores=23 new_param_stores=8; iter1 functions=4 callsites=4 new_stores=3 new_param_stores=1; iter2 functions=0 callsites=0 new_stores=0 new_param_stores=0
+info[augment]: map function parameter propagation iterations=3: iter0 functions=22 callsites=32 new_stores=23 new_param_stores=8; iter1 functions=4 callsites=4 new_stores=3 new_param_stores=1; iter2 functions=0 callsites=0 new_stores=0 new_param_stores=0
+info[augment]: map function parameter propagation iterations=3: iter0 functions=22 callsites=32 new_stores=23 new_param_stores=8; iter1 functions=4 callsites=4 new_stores=3 new_param_stores=1; iter2 functions=0 callsites=0 new_stores=0 new_param_stores=0
+info[augment]: map function parameter propagation iterations=3: iter0 functions=22 callsites=32 new_stores=23 new_param_stores=8; iter1 functions=4 callsites=4 new_stores=3 new_param_stores=1; iter2 functions=0 callsites=0 new_stores=0 new_param_stores=0
+info[augment]: augmentation exploration converged after 3 iteration(s)
+time[scope]: 1.662890625s
+time[load]: 2.425903333s
+time[ssa]: 852.128917ms
+time[resolve-target]: 2.088806208s
+time[entrypoints]: 8.833µs
+time[rta]: 183.415458ms
+time[augment]: 2m44.126193666s
+time[bfs]: 85.139625ms

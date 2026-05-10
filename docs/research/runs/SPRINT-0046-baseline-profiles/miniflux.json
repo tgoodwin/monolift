@@ -1,0 +1,182 @@
+{
+  "found": true,
+  "target": {
+    "id": 13005,
+    "key": {
+      "package_path": "miniflux.app/v2/internal/reader/sanitizer",
+      "func_name": "SanitizeHTML"
+    },
+    "name": "miniflux.app/v2/internal/reader/sanitizer.SanitizeHTML",
+    "package": "miniflux.app/v2/internal/reader/sanitizer",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/reader/sanitizer/sanitizer.go",
+      "line": 217,
+      "column": 6
+    }
+  },
+  "path_length": 8,
+  "recommended_cut_step": 7,
+  "recommended_cut_key": "miniflux.app/v2/internal/reader/sanitizer.SanitizeHTML",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 42 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "augmentation exploration converged after 2 iteration(s)",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 623930834
+    },
+    {
+      "phase": "load",
+      "duration": 837644041
+    },
+    {
+      "phase": "ssa",
+      "duration": 317201417
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 445847750
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 7625
+    },
+    {
+      "phase": "rta",
+      "duration": 2328569083
+    },
+    {
+      "phase": "augment",
+      "duration": 13764450083,
+      "metadata": {
+        "added_edges": 11967,
+        "added_nodes": 1559,
+        "augment_iterations": 2,
+        "augment_limit_hit": false,
+        "graph_functions": 20967,
+        "scanned_instructions": 2651048,
+        "ssa_functions": 35791
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 15818042
+    }
+  ],
+  "augment_sub_timings": [
+    {
+      "phase": "AugmentStructField",
+      "duration": 442919917
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 16583
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 9941084
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 802773500
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 26077583
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1246597375
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 1721533583
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 765537000
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 478376208
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 36250
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 11416750
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 806368209
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 24600125
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1266206250
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 1673370958
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 173502875
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 459148083
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 18250
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 11382417
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 792297416
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 24290917
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1264379750
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 1759249625
+    }
+  ],
+  "stats": {
+    "nodes": 20967,
+    "edges": 260049,
+    "ssa_functions": 35791,
+    "graph_functions": 20967,
+    "scanned_instructions": 2651048,
+    "added_nodes": 1559,
+    "added_edges": 11967,
+    "augment_iterations": 2,
+    "augment_limit_hit": false
+  }
+}

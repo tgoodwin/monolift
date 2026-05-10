@@ -1,0 +1,276 @@
+{
+  "found": true,
+  "target": {
+    "id": 26914,
+    "key": {
+      "package_path": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+      "func_name": "CleanPath"
+    },
+    "name": "github.com/caddyserver/caddy/v2/modules/caddyhttp.CleanPath",
+    "package": "github.com/caddyserver/caddy/v2/modules/caddyhttp",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/caddy/modules/caddyhttp/caddyhttp.go",
+      "line": 279,
+      "column": 6
+    }
+  },
+  "path_length": 11,
+  "recommended_cut_step": 10,
+  "recommended_cut_key": "github.com/caddyserver/caddy/v2/modules/caddyhttp.CleanPath",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 28 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=20 callsites=62 new_stores=44 new_param_stores=5; iter1 functions=23 callsites=74 new_stores=12 new_param_stores=0; iter2 functions=23 callsites=74 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=20 callsites=62 new_stores=44 new_param_stores=5; iter1 functions=23 callsites=74 new_stores=12 new_param_stores=0; iter2 functions=23 callsites=74 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=20 callsites=62 new_stores=44 new_param_stores=5; iter1 functions=23 callsites=74 new_stores=12 new_param_stores=0; iter2 functions=23 callsites=74 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=20 callsites=62 new_stores=44 new_param_stores=5; iter1 functions=23 callsites=74 new_stores=12 new_param_stores=0; iter2 functions=23 callsites=74 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=20 callsites=62 new_stores=44 new_param_stores=5; iter1 functions=23 callsites=74 new_stores=12 new_param_stores=0; iter2 functions=23 callsites=74 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "augmentation exploration converged after 4 iteration(s)",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 981698667
+    },
+    {
+      "phase": "load",
+      "duration": 1030166792
+    },
+    {
+      "phase": "ssa",
+      "duration": 333944250
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 1027076792
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 18833
+    },
+    {
+      "phase": "rta",
+      "duration": 148646833
+    },
+    {
+      "phase": "augment",
+      "duration": 68793701708,
+      "metadata": {
+        "added_edges": 803363,
+        "added_nodes": 52109,
+        "augment_iterations": 4,
+        "augment_limit_hit": false,
+        "graph_functions": 57939,
+        "scanned_instructions": 2978467,
+        "ssa_functions": 92694
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 124621958
+    }
+  ],
+  "augment_sub_timings": [
+    {
+      "phase": "AugmentStructField",
+      "duration": 1513644209
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 5713000
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 2515000
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 335400041
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 47003417
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1093357083
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 366539542
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 9223153208
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 162668833
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 5301167
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 27857958
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 3129939125
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 53348541
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 3314400916
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 2595944416
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 10756174125
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 174057291
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 5613833
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 32936250
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 3334925375
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 62849792
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 3424665709
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 2845224750
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 2715941125
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 178643250
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 5728209
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 33071792
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 3329839958
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 64728792
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 3544710792
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 3151776709
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 45111375
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 204269708
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 5437917
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 38882500
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 3913350458
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 72925084
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 4516772250
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 3838245500
+    }
+  ],
+  "stats": {
+    "nodes": 57939,
+    "edges": 825464,
+    "ssa_functions": 92694,
+    "graph_functions": 57939,
+    "scanned_instructions": 2978467,
+    "added_nodes": 52109,
+    "added_edges": 803363,
+    "augment_iterations": 4,
+    "augment_limit_hit": false
+  }
+}

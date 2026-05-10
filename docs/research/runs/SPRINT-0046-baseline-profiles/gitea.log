@@ -1,0 +1,15 @@
+found: 4 steps
+[0] code.gitea.io/gitea.main (/Users/tgoodwin/projects/monolift/evaluation/gitea/main.go:39)
+  --DirectCall--> code.gitea.io/gitea/cmd.RunMainApp (/Users/tgoodwin/projects/monolift/evaluation/gitea/cmd/main.go:157)
+  --Unsupported--> code.gitea.io/gitea/modules/setting.InitWorkPathAndCfgProvider$2 (/Users/tgoodwin/projects/monolift/evaluation/gitea/modules/setting/path.go:124)
+  --Unsupported--> code.gitea.io/gitea/modules/util.PathEscapeSegments (/Users/tgoodwin/projects/monolift/evaluation/gitea/modules/util/url.go:12)
+info[scope]: scoped from [./...] to 326 packages
+info[augment]: augmentation exploration converged after 2 iteration(s)
+time[scope]: 2.044276125s
+time[load]: 3.079525584s
+time[ssa]: 1.16290175s
+time[resolve-target]: 2.812733833s
+time[entrypoints]: 88.083µs
+time[rta]: 49.578492625s
+time[augment]: 3m30.409330458s
+time[bfs]: 50.481333ms

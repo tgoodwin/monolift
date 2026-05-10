@@ -1,0 +1,89 @@
+{
+  "found": true,
+  "target": {
+    "id": 7620,
+    "key": {
+      "package_path": "github.com/knadh/listmonk/internal/utils",
+      "func_name": "SanitizeURI"
+    },
+    "name": "github.com/knadh/listmonk/internal/utils.SanitizeURI",
+    "package": "github.com/knadh/listmonk/internal/utils",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/listmonk/internal/utils/utils.go",
+      "line": 41,
+      "column": 6
+    }
+  },
+  "path_length": 11,
+  "recommended_cut_step": 10,
+  "recommended_cut_key": "github.com/knadh/listmonk/internal/utils.SanitizeURI",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 3 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "target is reachable in RTA graph; skipped augmentation",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 1132099833
+    },
+    {
+      "phase": "load",
+      "duration": 551513542
+    },
+    {
+      "phase": "ssa",
+      "duration": 157621208
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 231814959
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 6542
+    },
+    {
+      "phase": "rta",
+      "duration": 1729372166
+    },
+    {
+      "phase": "augment",
+      "duration": 125,
+      "metadata": {
+        "added_edges": 0,
+        "added_nodes": 0,
+        "augment_iterations": 0,
+        "augment_limit_hit": false,
+        "graph_functions": 16513,
+        "scanned_instructions": 1819644,
+        "skipped": true,
+        "ssa_functions": 31287
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 11251709
+    }
+  ],
+  "stats": {
+    "nodes": 16513,
+    "edges": 211281,
+    "ssa_functions": 31287,
+    "graph_functions": 16513,
+    "scanned_instructions": 1819644,
+    "added_nodes": 0,
+    "added_edges": 0,
+    "augment_iterations": 0,
+    "augment_limit_hit": false
+  }
+}

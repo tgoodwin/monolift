@@ -1,0 +1,19 @@
+found: 8 steps
+[0] miniflux.app/v2.main (/Users/tgoodwin/projects/monolift/evaluation/miniflux/main.go:10)
+  --DirectCall--> miniflux.app/v2/internal/cli.Parse (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/cli/cli.go:40)
+  --ConcreteMethodCall--> database/sql.*DB.Close (/usr/local/go/src/database/sql/sql.go:926)
+  --Unsupported--> net/http.ServeHTTP$1 (/usr/local/go/src/net/http/server.go:3831)
+  --InterfaceDispatch--> net/http.HandlerFunc.ServeHTTP (/usr/local/go/src/net/http/server.go:2285)
+  --Unsupported--> importFeedEntryHandler$bound (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/api/entry_handlers.go:331)
+  --ConcreteMethodCall--> miniflux.app/v2/internal/api.*handler.importFeedEntryHandler (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/api/entry_handlers.go:331)
+  --DirectCall--> miniflux.app/v2/internal/reader/sanitizer.SanitizeHTML (/Users/tgoodwin/projects/monolift/evaluation/miniflux/internal/reader/sanitizer/sanitizer.go:217)
+info[scope]: scoped from [./...] to 42 packages
+info[augment]: augmentation exploration converged after 2 iteration(s)
+time[scope]: 623.930834ms
+time[load]: 837.644041ms
+time[ssa]: 317.201417ms
+time[resolve-target]: 445.84775ms
+time[entrypoints]: 7.625µs
+time[rta]: 2.328569083s
+time[augment]: 13.764450083s
+time[bfs]: 15.818042ms

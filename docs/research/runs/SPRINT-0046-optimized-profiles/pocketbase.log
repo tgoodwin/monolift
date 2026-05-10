@@ -1,0 +1,22 @@
+found: 8 steps
+[0] github.com/pocketbase/pocketbase/examples/base.main (/Users/tgoodwin/projects/monolift/evaluation/pocketbase/examples/base/main.go:19)
+  --DirectCall--> log.Fatal (/usr/local/go/src/log/log.go:422)
+  --ConcreteMethodCall--> log.*Logger.output (/usr/local/go/src/log/log.go:201)
+  --InterfaceDispatch--> net/http.checkConnErrorWriter.Write (/usr/local/go/src/net/http/server.go:4036)
+  --Unsupported--> golang.org/x/sync/errgroup.Go$1 (/Users/tgoodwin/go/pkg/mod/golang.org/x/sync@v0.20.0/errgroup/errgroup.go:78)
+  --Unsupported--> Trigger[*github.com/pocketbase/pocketbase/core.RequestEvent]$1 (/Users/tgoodwin/projects/monolift/evaluation/pocketbase/tools/hook/hook.go:167)
+  --Unsupported--> github.com/pocketbase/pocketbase/apis.recordCreate$1 (/Users/tgoodwin/projects/monolift/evaluation/pocketbase/apis/record_crud.go:210)
+  --DirectCall--> github.com/pocketbase/pocketbase/tools/inflector.Columnify (/Users/tgoodwin/projects/monolift/evaluation/pocketbase/tools/inflector/inflector.go:24)
+info[scope]: scoped from [./...] to 20 packages
+info[augment]: map function parameter propagation iterations=3: iter0 functions=30 callsites=396 new_stores=393 new_param_stores=2; iter1 functions=31 callsites=397 new_stores=0 new_param_stores=1; iter2 functions=31 callsites=397 new_stores=0 new_param_stores=0
+info[augment]: map function parameter propagation iterations=3: iter0 functions=30 callsites=396 new_stores=393 new_param_stores=2; iter1 functions=31 callsites=397 new_stores=0 new_param_stores=1; iter2 functions=31 callsites=397 new_stores=0 new_param_stores=0
+info[augment]: map function parameter propagation iterations=3: iter0 functions=30 callsites=396 new_stores=393 new_param_stores=2; iter1 functions=31 callsites=397 new_stores=0 new_param_stores=1; iter2 functions=31 callsites=397 new_stores=0 new_param_stores=0
+info[augment]: augmentation exploration converged after 2 iteration(s)
+time[scope]: 462.7725ms
+time[load]: 1.186134666s
+time[ssa]: 455.120875ms
+time[resolve-target]: 446.888125ms
+time[entrypoints]: 8.166µs
+time[rta]: 4.227444709s
+time[augment]: 12.794874042s
+time[bfs]: 24.4345ms

@@ -1,0 +1,182 @@
+{
+  "found": true,
+  "target": {
+    "id": 7620,
+    "key": {
+      "package_path": "github.com/knadh/listmonk/internal/utils",
+      "func_name": "SanitizeURI"
+    },
+    "name": "github.com/knadh/listmonk/internal/utils.SanitizeURI",
+    "package": "github.com/knadh/listmonk/internal/utils",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/listmonk/internal/utils/utils.go",
+      "line": 41,
+      "column": 6
+    }
+  },
+  "path_length": 9,
+  "recommended_cut_step": 8,
+  "recommended_cut_key": "github.com/knadh/listmonk/internal/utils.SanitizeURI",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 3 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "augmentation exploration converged after 2 iteration(s)",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 510309333
+    },
+    {
+      "phase": "load",
+      "duration": 655608958
+    },
+    {
+      "phase": "ssa",
+      "duration": 188151500
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 255188458
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 15708
+    },
+    {
+      "phase": "rta",
+      "duration": 1782998416
+    },
+    {
+      "phase": "augment",
+      "duration": 11465159541,
+      "metadata": {
+        "added_edges": 7782,
+        "added_nodes": 598,
+        "augment_iterations": 2,
+        "augment_limit_hit": false,
+        "graph_functions": 17111,
+        "scanned_instructions": 1819644,
+        "ssa_functions": 31287
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 11302917
+    }
+  ],
+  "augment_sub_timings": [
+    {
+      "phase": "AugmentStructField",
+      "duration": 416413042
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 14041
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 8644166
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 606048958
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 19310334
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1101401083
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 1480945875
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 847459042
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 401658083
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 27125
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 9290000
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 646801291
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 18466375
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1051380875
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 1395001958
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 526708
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 365427792
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 14750
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 8622042
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 634282916
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 18197083
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1014680750
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 1418044083
+    }
+  ],
+  "stats": {
+    "nodes": 17111,
+    "edges": 219063,
+    "ssa_functions": 31287,
+    "graph_functions": 17111,
+    "scanned_instructions": 1819644,
+    "added_nodes": 598,
+    "added_edges": 7782,
+    "augment_iterations": 2,
+    "augment_limit_hit": false
+  }
+}

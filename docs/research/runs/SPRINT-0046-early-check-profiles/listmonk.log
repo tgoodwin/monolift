@@ -1,0 +1,22 @@
+found: 11 steps
+[0] github.com/knadh/listmonk/cmd.main (/Users/tgoodwin/projects/monolift/evaluation/listmonk/cmd/main.go:193)
+  --DirectCall--> github.com/knadh/listmonk/cmd.initHTTPServer (/Users/tgoodwin/projects/monolift/evaluation/listmonk/cmd/init.go:888)
+  --DirectCall--> github.com/knadh/listmonk/cmd.initHTTPServer$2 (/Users/tgoodwin/projects/monolift/evaluation/listmonk/cmd/init.go:943)
+  --ConcreteMethodCall--> github.com/labstack/echo/v4.*Echo.Start (/Users/tgoodwin/go/pkg/mod/github.com/labstack/echo/v4@v4.13.4/echo.go:677)
+  --ConcreteMethodCall--> net/http.*Server.Serve (/usr/local/go/src/net/http/server.go:3404)
+  --ConcreteMethodCall--> net/http.*conn.serve (/usr/local/go/src/net/http/server.go:1897)
+  --ConcreteMethodCall--> net/http.serverHandler.ServeHTTP (/usr/local/go/src/net/http/server.go:3302)
+  --InterfaceDispatch--> github.com/labstack/echo/v4.*Echo.ServeHTTP (/Users/tgoodwin/go/pkg/mod/github.com/labstack/echo/v4@v4.13.4/echo.go:647)
+  --Unsupported--> LoginPage$bound (/Users/tgoodwin/projects/monolift/evaluation/listmonk/cmd/auth.go:85)
+  --ConcreteMethodCall--> github.com/knadh/listmonk/cmd.*App.LoginPage (/Users/tgoodwin/projects/monolift/evaluation/listmonk/cmd/auth.go:85)
+  --DirectCall--> github.com/knadh/listmonk/internal/utils.SanitizeURI (/Users/tgoodwin/projects/monolift/evaluation/listmonk/internal/utils/utils.go:41)
+info[scope]: scoped from [./...] to 3 packages
+info[augment]: target is reachable in RTA graph; skipped augmentation
+time[scope]: 1.132099833s
+time[load]: 551.513542ms
+time[ssa]: 157.621208ms
+time[resolve-target]: 231.814959ms
+time[entrypoints]: 6.542µs
+time[rta]: 1.729372166s
+time[augment]: 125ns
+time[bfs]: 11.251709ms

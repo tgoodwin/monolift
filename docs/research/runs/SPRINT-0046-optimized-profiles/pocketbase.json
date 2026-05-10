@@ -1,0 +1,200 @@
+{
+  "found": true,
+  "target": {
+    "id": 21786,
+    "key": {
+      "package_path": "github.com/pocketbase/pocketbase/tools/inflector",
+      "func_name": "Columnify"
+    },
+    "name": "github.com/pocketbase/pocketbase/tools/inflector.Columnify",
+    "package": "github.com/pocketbase/pocketbase/tools/inflector",
+    "position": {
+      "file": "/Users/tgoodwin/projects/monolift/evaluation/pocketbase/tools/inflector/inflector.go",
+      "line": 24,
+      "column": 6
+    }
+  },
+  "path_length": 8,
+  "recommended_cut_step": 7,
+  "recommended_cut_key": "github.com/pocketbase/pocketbase/tools/inflector.Columnify",
+  "diagnostics": [
+    {
+      "severity": "info",
+      "phase": "scope",
+      "message": "scoped from [./...] to 20 packages",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=30 callsites=396 new_stores=393 new_param_stores=2; iter1 functions=31 callsites=397 new_stores=0 new_param_stores=1; iter2 functions=31 callsites=397 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=30 callsites=396 new_stores=393 new_param_stores=2; iter1 functions=31 callsites=397 new_stores=0 new_param_stores=1; iter2 functions=31 callsites=397 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "map function parameter propagation iterations=3: iter0 functions=30 callsites=396 new_stores=393 new_param_stores=2; iter1 functions=31 callsites=397 new_stores=0 new_param_stores=1; iter2 functions=31 callsites=397 new_stores=0 new_param_stores=0",
+      "position": {}
+    },
+    {
+      "severity": "info",
+      "phase": "augment",
+      "message": "augmentation exploration converged after 2 iteration(s)",
+      "position": {}
+    }
+  ],
+  "phase_timings": [
+    {
+      "phase": "scope",
+      "duration": 462772500
+    },
+    {
+      "phase": "load",
+      "duration": 1186134666
+    },
+    {
+      "phase": "ssa",
+      "duration": 455120875
+    },
+    {
+      "phase": "resolve-target",
+      "duration": 446888125
+    },
+    {
+      "phase": "entrypoints",
+      "duration": 8166
+    },
+    {
+      "phase": "rta",
+      "duration": 4227444709
+    },
+    {
+      "phase": "augment",
+      "duration": 12794874042,
+      "metadata": {
+        "added_edges": 9376,
+        "added_nodes": 562,
+        "augment_iterations": 2,
+        "augment_limit_hit": false,
+        "graph_functions": 34163,
+        "scanned_instructions": 3056224,
+        "ssa_functions": 53771
+      }
+    },
+    {
+      "phase": "bfs",
+      "duration": 24434500
+    }
+  ],
+  "augment_sub_timings": [
+    {
+      "phase": "AugmentStructField",
+      "duration": 782715750
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 2387125
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 15450542
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 880408167
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 77217334
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1243930375
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 902235084
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 1789484459
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 22745708
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 2259125
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 15710500
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 1202940709
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 42974792
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1312873625
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 907520834
+    },
+    {
+      "phase": "ExploreCallees",
+      "duration": 430250
+    },
+    {
+      "phase": "AugmentStructField",
+      "duration": 23058542
+    },
+    {
+      "phase": "ApplyPredicates",
+      "duration": 2321750
+    },
+    {
+      "phase": "AugmentGoroutine",
+      "duration": 16212917
+    },
+    {
+      "phase": "AugmentPackageVars",
+      "duration": 1231084084
+    },
+    {
+      "phase": "AugmentFuncArgs",
+      "duration": 44023209
+    },
+    {
+      "phase": "AugmentMapFuncValues",
+      "duration": 1359839333
+    },
+    {
+      "phase": "AugmentInterfaceFields",
+      "duration": 907493209
+    }
+  ],
+  "stats": {
+    "nodes": 34163,
+    "edges": 469311,
+    "ssa_functions": 53771,
+    "graph_functions": 34163,
+    "scanned_instructions": 3056224,
+    "added_nodes": 562,
+    "added_edges": 9376,
+    "augment_iterations": 2,
+    "augment_limit_hit": false
+  }
+}

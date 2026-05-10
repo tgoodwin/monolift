@@ -1,0 +1,21 @@
+found: 10 steps
+[0] github.com/mattermost/mattermost/server/v8/cmd/mmctl.main (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/cmd/mmctl/mmctl.go:14)
+  --DirectCall--> github.com/mattermost/mattermost/server/v8/cmd/mmctl/commands.Run (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/cmd/mmctl/commands/root.go:22)
+  --ConcreteMethodCall--> github.com/spf13/cobra.*Command.Execute (/Users/tgoodwin/go/pkg/mod/github.com/spf13/cobra@v1.10.2/command.go:1070)
+  --ConcreteMethodCall--> github.com/spf13/cobra.*Command.ExecuteC (/Users/tgoodwin/go/pkg/mod/github.com/spf13/cobra@v1.10.2/command.go:1084)
+  --ConcreteMethodCall--> github.com/spf13/cobra.*Command.execute (/Users/tgoodwin/go/pkg/mod/github.com/spf13/cobra@v1.10.2/command.go:905)
+  --StructFieldFuncValue--> github.com/mattermost/mattermost/server/v8/cmd/mattermost/commands.serverForWebClientTestsCmdF (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/cmd/mattermost/commands/test.go:73)
+  --DirectCall--> github.com/mattermost/mattermost/server/v8/channels/api4.Init (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/api.go:185)
+  --ConcreteMethodCall--> github.com/mattermost/mattermost/server/v8/channels/api4.*API.InitFile (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/file.go:33)
+  --CallbackRegistration--> github.com/mattermost/mattermost/server/v8/channels/api4.getPublicFile (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/api4/file.go:882)
+  --DirectCall--> github.com/mattermost/mattermost/server/v8/channels/app.GeneratePublicLinkHash (/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/channels/app/file.go:588)
+info[scope]: scoped from [./...] to 14 packages
+info[augment]: augmentation exploration converged after 3 iteration(s)
+time[scope]: 1.781613291s
+time[load]: 2.7090385s
+time[ssa]: 1.203900292s
+time[resolve-target]: 3.1001615s
+time[entrypoints]: 23.875µs
+time[rta]: 308.332042ms
+time[augment]: 7m8.203648042s
+time[bfs]: 85.148667ms

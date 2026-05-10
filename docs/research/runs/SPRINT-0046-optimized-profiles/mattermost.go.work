@@ -1,0 +1,6 @@
+go 1.25.8
+
+use (
+	/Users/tgoodwin/projects/monolift/evaluation/mattermost/server
+	/Users/tgoodwin/projects/monolift/evaluation/mattermost/server/public
+)
