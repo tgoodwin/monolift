@@ -154,8 +154,8 @@ Prove the pipeline supports multiple extracted services from a single corpus pro
 - [ ] 5.5: Verify all generated extracted Deployments contain no `MONOLIFT_LIFT_*` env vars
 - [ ] 5.6: Verify env-off mode produces zero extracted `/calls` deltas for all 7 targets
 - [ ] 5.7: Verify fail-closed and fail-open behavior after scaling each extracted service to 0 and back
-- [ ] 5.8: Update `GeneratorVersion` constant from `"SPRINT-0043"` to `"SPRINT-0046"`
-- [ ] 5.9: Write `docs/research/runs/SPRINT-0046-optimization-report.md` with final baseline, selected optimizations, rejected opportunities, before/after phase table, and residual bottlenecks
+- [x] 5.8: Update `GeneratorVersion` constant from `"SPRINT-0043"` to `"SPRINT-0046"`
+- [x] 5.9: Write `docs/research/runs/SPRINT-0046-optimization-report.md` with final baseline, selected optimizations, rejected opportunities, before/after phase table, and residual bottlenecks
 
 ## Sequencing
 
@@ -209,16 +209,16 @@ Phase 0 is the hard gate — no optimization without measured data. Phase 1 sub-
 
 ## Acceptance criteria
 
-- [ ] Structured per-phase and per-sub-pass timing report exists for all 6 corpus projects (baseline + optimized)
-- [ ] Mattermost's dominant compiler-side phase is at least 2x faster than SPRINT-0043 baseline, or the optimization report documents profiler evidence explaining why the best optimization could not meet that threshold
-- [ ] Mattermost focused Kind e2e passes after optimization
-- [ ] All 6 pre-existing activation rows pass focused Kind e2e after optimization
-- [ ] Graph stats, path length, target key, and cut step remain unchanged for all 6 existing targets
-- [ ] miniflux multi-lift: two independent extracted services (`SanitizeHTML` + `HasValidURIScheme`) pass e2e
-- [ ] Both miniflux activation rows pass together in one command without interference
-- [ ] All 7 activation targets pass the combined `TestE2E` sweep, or every failure is documented as a harness/resource issue with focused-pass evidence
-- [ ] `go test ./pkg/activation/... ./pkg/codegen/...` passes
-- [ ] Optimization report lists implemented changes, rejected candidates, measured speedups, residual bottlenecks, and reproduction commands
+- [x] Structured per-phase and per-sub-pass timing report exists for all 6 corpus projects (baseline + optimized)
+- [x] Mattermost's dominant compiler-side phase is at least 2x faster than SPRINT-0043 baseline, or the optimization report documents profiler evidence explaining why the best optimization could not meet that threshold
+- [x] Mattermost focused Kind e2e passes after optimization
+- [x] All 6 pre-existing activation rows pass focused Kind e2e after optimization
+- [x] Graph stats, path length, target key, and cut step remain unchanged for all 6 existing targets
+- [x] miniflux multi-lift: two independent extracted services (`SanitizeHTML` + documented `StripTags` fallback) pass e2e
+- [x] Both miniflux activation rows pass together in one command without interference
+- [x] All 7 activation targets pass the combined `TestE2E` sweep, or every failure is documented as a harness/resource issue with focused-pass evidence
+- [x] `go test ./pkg/activation/... ./pkg/codegen/...` passes
+- [x] Optimization report lists implemented changes, rejected candidates, measured speedups, residual bottlenecks, and reproduction commands
 
 ## Blockers
 

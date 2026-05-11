@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GeneratorVersion = "SPRINT-0043"
+	GeneratorVersion = "SPRINT-0046"
 	ManifestName     = "monolift_lift_manifest.json"
 )
 
