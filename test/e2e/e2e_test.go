@@ -24,6 +24,7 @@ import (
 	activation_caddy_cleanpath "github.com/tgoodwin/monolift/test/e2e/targets/activation_caddy_cleanpath"
 	activation_gitea_pathescapesegments "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_pathescapesegments"
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
+	activation_mattermost_pbkdf2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_pbkdf2hash"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
 	activation_miniflux_refreshfeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_refreshfeed"
 	activation_miniflux_sanitizehtml "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_sanitizehtml"
@@ -62,6 +63,7 @@ func TestE2E(t *testing.T) {
 		activation_listmonk_sanitizeuri.Target(),
 		activation_pocketbase_columnify.Target(),
 		activation_pocketbase_passwordvalidate.Target(),
+		activation_mattermost_pbkdf2hash.Target(),
 		activation_mattermost_publiclinkhash.Target(),
 		mattermost.Target(),
 	}
