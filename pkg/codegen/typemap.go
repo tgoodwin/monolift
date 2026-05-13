@@ -62,6 +62,9 @@ func classifyCodec(typ types.Type) (activation.BoundaryDataClass, Codec) {
 	if typ == nil {
 		return activation.BoundaryInfeasible, CodecJSON
 	}
+	if isErrorType(typ) {
+		return activation.Serializable, CodecError
+	}
 	if isLocalizedErrorWrapper(typ) {
 		return activation.Serializable, CodecLocalizedErrorWrapper
 	}
@@ -89,6 +92,10 @@ func classifyCodec(typ types.Type) (activation.BoundaryDataClass, Codec) {
 		}
 	}
 	return activation.Serializable, CodecJSON
+}
+
+func isErrorType(typ types.Type) bool {
+	return types.Identical(typ, types.Universe.Lookup("error").Type())
 }
 
 func isStreamingReader(typ types.Type) bool {

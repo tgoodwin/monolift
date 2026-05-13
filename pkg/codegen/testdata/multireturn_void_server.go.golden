@@ -1,25 +1,19 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
-	_ "github.com/lib/pq"
+	"example.com/test/internal/worker"
 	"log"
-	"miniflux.app/v2/internal/reader/handler"
-	"miniflux.app/v2/internal/storage"
 	"net/http"
 	"os"
 	"sync"
 )
 
 type invokeRequest struct {
-	UserID       int64 `json:"user_id"`
-	FeedID       int64 `json:"feed_id"`
-	ForceRefresh bool  `json:"force_refresh"`
+	Input string `json:"input"`
 }
 
 type invokeResponse struct {
-	Error *localizedError `json:"error,omitempty"`
 }
 
 type localizedError struct {
@@ -82,16 +76,10 @@ type invocationsResponse struct {
 
 type serverState struct {
 	invocations *invocationRecorder
-	Store       *storage.Storage
 }
 
 func initState() (*serverState, error) {
 	state := &serverState{invocations: newInvocationRecorder()}
-	storeDB, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		return nil, err
-	}
-	state.Store = storage.NewStorage(storeDB)
 	return state, nil
 }
 
@@ -143,17 +131,10 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		result := handler.MonoliftInvokeRefreshFeed(state.Store, req.UserID, req.FeedID, req.ForceRefresh)
-		var resp invokeResponse
-		if result != nil {
-			var errText string
-			if err := result.Error(); err != nil {
-				errText = err.Error()
-			}
-			resp.Error = &localizedError{Error: errText, Message: result.Translate("en_US")}
-		}
+		worker.MonoliftInvokeProcess(req.Input)
+		resp := invokeResponse{}
 		invocationID := state.invocations.record(req, resp)
-		log.Printf("LIFT_INVOKE service=refreshfeed invocation_id=%d", invocationID)
+		log.Printf("LIFT_INVOKE service=monolift-process invocation_id=%d", invocationID)
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Printf("encode response: %v", err)

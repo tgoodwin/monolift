@@ -159,6 +159,7 @@ type Codec string
 const (
 	CodecPrimitive             Codec = "primitive"
 	CodecJSON                  Codec = "json"
+	CodecError                 Codec = "error"
 	CodecLocalizedErrorWrapper Codec = "localized_error_wrapper"
 	CodecStreamingBytes        Codec = "streaming_bytes"
 )

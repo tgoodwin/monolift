@@ -55,8 +55,12 @@ func AdmitPlan(plan *Plan, base AdmissionVerdict) AdmissionVerdict {
 			verdict = refused(verdict, "missing_reconstructor", "reconstructed parameter has no registered reconstructor", param.GoType)
 		}
 	}
-	if len(plan.Results) > 1 {
-		verdict = refused(verdict, "unsupported_result_shape", "multiple return values are not supported by the MVP HTTP/JSON generator", "")
+	// Multi-return (T, error) is supported. Refuse only if there are more
+	// than two results or if the last result of a multi-return is not error.
+	if len(plan.Results) > 2 {
+		verdict = refused(verdict, "unsupported_result_shape", "more than two return values are not supported by the HTTP/JSON generator", "")
+	} else if len(plan.Results) == 2 && plan.Results[1].Codec != CodecError {
+		verdict = refused(verdict, "unsupported_result_shape", "multi-return must have error as the last result", plan.Results[1].GoType)
 	}
 	for _, path := range deployArtifactPaths(plan) {
 		if path == "" {

@@ -133,18 +133,18 @@ Generate a same-package exported adapter function that the extracted server call
 
 49/71 corpus traces return `(T, error)`. Without this, most receiver targets will be refused by admission.
 
-- [ ] 2D.1: Extend `Plan.Results` to support zero, one, or multiple return values, each with a Go type and codec
-- [ ] 2D.2: Add an `error` result codec that distinguishes transport failure (RPC unreachable) from application `error` return values. Application errors are serialized as `{"error": "message"}` in the response body with HTTP 200. Transport errors trigger fail-open/fail-closed behavior
-- [ ] 2D.3: Update the server template: invoke the adapter, capture all return values, serialize them as a JSON object with named fields matching the function signature positions
-- [ ] 2D.4: Update the client template: deserialize multi-return JSON, reconstruct the Go return values. On transport failure: fail-open calls the renamed original, fail-closed returns zero values for all results
-- [ ] 2D.5: Update fail-open behavior for `(T, error)` returns: on transport failure, call the original function and return its results directly
-- [ ] 2D.6: Update fail-closed behavior for `(T, error)` returns: on transport failure, return `("", fmt.Errorf("monolift: extracted service unavailable"))` or equivalent
-- [ ] 2D.7: Golden-file test: server template with `(string, error)` return
-- [ ] 2D.8: Golden-file test: client stub with `(string, error)` return including fail-open and fail-closed paths
-- [ ] 2D.9: Golden-file test: server template with `bool` single return (no error)
-- [ ] 2D.10: Golden-file test: void function (no return values)
-- [ ] 2D.11: Unit test: round-trip serialization of `(string, error)` where error is nil
-- [ ] 2D.12: Unit test: round-trip serialization of `(string, error)` where error is non-nil
+- [x] 2D.1: Extend `Plan.Results` to support zero, one, or multiple return values, each with a Go type and codec
+- [x] 2D.2: Add an `error` result codec that distinguishes transport failure (RPC unreachable) from application `error` return values. Application errors are serialized as `{"error": "message"}` in the response body with HTTP 200. Transport errors trigger fail-open/fail-closed behavior
+- [x] 2D.3: Update the server template: invoke the adapter, capture all return values, serialize them as a JSON object with named fields matching the function signature positions
+- [x] 2D.4: Update the client template: deserialize multi-return JSON, reconstruct the Go return values. On transport failure: fail-open calls the renamed original, fail-closed returns zero values for all results
+- [x] 2D.5: Update fail-open behavior for `(T, error)` returns: on transport failure, call the original function and return its results directly
+- [x] 2D.6: Update fail-closed behavior for `(T, error)` returns: on transport failure, return `("", fmt.Errorf("monolift: extracted service unavailable"))` or equivalent
+- [x] 2D.7: Golden-file test: server template with `(string, error)` return
+- [x] 2D.8: Golden-file test: client stub with `(string, error)` return including fail-open and fail-closed paths
+- [x] 2D.9: Golden-file test: server template with `bool` single return (no error)
+- [x] 2D.10: Golden-file test: void function (no return values)
+- [x] 2D.11: Unit test: round-trip serialization of `(string, error)` where error is nil
+- [x] 2D.12: Unit test: round-trip serialization of `(string, error)` where error is non-nil
 
 #### 2E: Server template — method invocation
 

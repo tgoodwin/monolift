@@ -85,29 +85,44 @@ func TestRenderServerStreamingBytesGolden(t *testing.T) {
 }
 
 func TestRenderedRefreshFeedServerGoVet(t *testing.T) {
-	fixture := RefreshFeedFixture(repoRoot(t))
+	root := repoRoot(t)
+	sourceCopy := copySourceToTemp(t, filepath.Join(root, "evaluation", "miniflux"))
+	fixture := RefreshFeedFixtureWithSource(root, sourceCopy)
 	plan, err := BuildPlan(fixture.Report, fixture.Cut)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tmp, err := os.MkdirTemp(plan.SourceModuleRoot, ".monolift-vet-")
+	output := filepath.Join(sourceCopy, ".monolift-vet-refreshfeed")
+	applyLiftOptions(plan, LiftOptions{Output: output, ServiceName: "refreshfeed"})
+	plan.Admission = AdmissionVerdict{Accepted: true, Reasons: []string{"vet test"}}
+	serverFiles, err := RenderServer(plan)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmp)
-	plan.OutputDir = tmp
-	plan.ServerPath = filepath.Join(tmp, "cmd", plan.ServiceName, "main.go")
-	plan.ManifestPath = filepath.Join(tmp, ManifestName)
-	files, err := RenderServer(plan)
+	clientFiles, err := RenderClient(plan)
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifacts := artifactsFromRendered("server", files)
-	if _, err := WriteArtifacts(plan, artifacts, ""); err != nil {
+	serverArtifacts := artifactsFromRendered("server", serverFiles)
+	if _, err := writeArtifactFiles(plan, serverArtifacts); err != nil {
 		t.Fatal(err)
+	}
+	stubContent := clientFiles[plan.ClientPath]
+	if _, err := PatchCutFunction(plan, stubContent); err != nil {
+		t.Fatal(err)
+	}
+	// Write adapter after patching so monoliftOriginalRefreshFeed exists.
+	adapterFiles, err := RenderAdapter(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for adapterPath, content := range adapterFiles {
+		if err := os.WriteFile(adapterPath, content, 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	cmd := exec.Command("go", "vet", "./cmd/"+plan.ServiceName)
-	cmd.Dir = tmp
+	cmd.Dir = plan.OutputDir
 	cmd.Env = append(os.Environ(), "GOCACHE=/tmp/monolift-gocache")
 	out, err := cmd.CombinedOutput()
 	if err != nil {

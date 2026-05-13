@@ -25,19 +25,20 @@ func RenderServer(plan *Plan) (map[string][]byte, error) {
 }
 
 type serverView struct {
-	Plan              *Plan
-	Imports           []importSpec
-	RequestFields     []fieldView
-	ResponseField     fieldView
-	StateFields       []fieldView
-	StateInitLines    []string
-	StateCloseLines   []string
-	CallArgs          string
-	HasResult         bool
-	LocalizedResult   bool
-	PrimitiveResult   bool
-	CutPackageAlias   string
-	GeneratedFunction string
+	Plan            *Plan
+	Imports         []importSpec
+	RequestFields   []fieldView
+	ResponseField   fieldView
+	StateFields     []fieldView
+	StateInitLines  []string
+	StateCloseLines []string
+	CallArgs        string
+	HasResult       bool
+	HasErrorResult  bool
+	LocalizedResult bool
+	PrimitiveResult bool
+	CutPackageAlias string
+	AdapterFunc     string
 }
 
 type fieldView struct {
@@ -101,38 +102,47 @@ func serverTemplateView(plan *Plan) serverView {
 			stateCloseLines = append(stateCloseLines, strings.ReplaceAll(param.Reconstructor.CloseSource, "db", strings.ToLower(param.Name)+"DB"))
 		}
 	}
+	// Separate non-error results from error results.
 	response := fieldView{}
-	hasResult := len(plan.Results) > 0
+	hasNonErrorResult := false
+	hasErrorResult := false
 	localized := false
 	primitive := false
-	if hasResult {
-		result := plan.Results[0]
-		response = fieldView{
-			Name:      exportedFieldName(result.Name),
-			JSONName:  result.JSONName,
-			Type:      result.QualifiedGoType,
-			ZeroValue: zeroValue(result.GoType),
+	for _, result := range plan.Results {
+		if result.Codec == CodecError {
+			hasErrorResult = true
+			continue
 		}
-		if result.Codec != CodecLocalizedErrorWrapper && result.TypePackagePath != "" && result.TypePackagePath != plan.CutPoint.PackagePath {
-			imports = append(imports, importSpec{Path: result.TypePackagePath})
+		if !hasNonErrorResult {
+			response = fieldView{
+				Name:      exportedFieldName(result.Name),
+				JSONName:  result.JSONName,
+				Type:      result.QualifiedGoType,
+				ZeroValue: zeroValue(result.GoType),
+			}
+			if result.Codec != CodecLocalizedErrorWrapper && result.TypePackagePath != "" && result.TypePackagePath != plan.CutPoint.PackagePath {
+				imports = append(imports, importSpec{Path: result.TypePackagePath})
+			}
+			localized = result.Codec == CodecLocalizedErrorWrapper
+			primitive = result.Codec != CodecLocalizedErrorWrapper
+			hasNonErrorResult = true
 		}
-		localized = result.Codec == CodecLocalizedErrorWrapper
-		primitive = result.Codec != CodecLocalizedErrorWrapper
 	}
 	return serverView{
-		Plan:              plan,
-		Imports:           uniqueImports(imports),
-		RequestFields:     requestFields,
-		ResponseField:     response,
-		StateFields:       stateFields,
-		StateInitLines:    stateInitLines,
-		StateCloseLines:   stateCloseLines,
-		CallArgs:          strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", "),
-		HasResult:         hasResult,
-		LocalizedResult:   localized,
-		PrimitiveResult:   primitive,
-		CutPackageAlias:   plan.CutPoint.PackageName,
-		GeneratedFunction: plan.CutPoint.FuncName,
+		Plan:            plan,
+		Imports:         uniqueImports(imports),
+		RequestFields:   requestFields,
+		ResponseField:   response,
+		StateFields:     stateFields,
+		StateInitLines:  stateInitLines,
+		StateCloseLines: stateCloseLines,
+		CallArgs:        strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", "),
+		HasResult:       hasNonErrorResult,
+		HasErrorResult:  hasErrorResult,
+		LocalizedResult: localized,
+		PrimitiveResult: primitive,
+		CutPackageAlias: plan.CutPoint.PackageName,
+		AdapterFunc:     adapterFuncName(plan.CutPoint.FuncName),
 	}
 }
 
@@ -186,8 +196,13 @@ type invokeRequest struct {
 type invokeResponse struct {
 {{- if .LocalizedResult }}
 	Error *localizedError ` + "`json:\"error,omitempty\"`" + `
-{{- else if .HasResult }}
+{{- else }}
+{{- if .HasResult }}
 	{{ .ResponseField.Name }} {{ .ResponseField.Type }} ` + "`json:\"{{ .ResponseField.JSONName }}\"`" + `
+{{- end }}
+{{- if .HasErrorResult }}
+	Error string ` + "`json:\"error,omitempty\"`" + `
+{{- end }}
 {{- end }}
 }
 
@@ -313,7 +328,7 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			return
 		}
 {{- if .LocalizedResult }}
-		result := {{ .CutPackageAlias }}.{{ .GeneratedFunction }}({{ .CallArgs }})
+		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
 		var resp invokeResponse
 		if result != nil {
 			var errText string
@@ -322,11 +337,22 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			}
 			resp.Error = &localizedError{Error: errText, Message: result.Translate("en_US")}
 		}
-{{- else if .HasResult }}
-		result := {{ .CutPackageAlias }}.{{ .GeneratedFunction }}({{ .CallArgs }})
+{{- else if .HasErrorResult }}
+{{- if .HasResult }}
+		result, resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
 {{- else }}
-		{{ .CutPackageAlias }}.{{ .GeneratedFunction }}({{ .CallArgs }})
+		resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		resp := invokeResponse{}
+{{- end }}
+		if resultErr != nil {
+			resp.Error = resultErr.Error()
+		}
+{{- else if .HasResult }}
+		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
+{{- else }}
+		{{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
 		resp := invokeResponse{}
 {{- end }}
 		invocationID := state.invocations.record(req, resp)

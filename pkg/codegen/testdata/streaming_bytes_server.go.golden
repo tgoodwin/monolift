@@ -134,7 +134,7 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		result := stream.ProcessStream(req.BaseURL, bytes.NewReader(req.R))
+		result := stream.MonoliftInvokeProcessStream(req.BaseURL, bytes.NewReader(req.R))
 		resp := invokeResponse{Result: result}
 		invocationID := state.invocations.record(req, resp)
 		log.Printf("LIFT_INVOKE service=monolift-processstream invocation_id=%d", invocationID)

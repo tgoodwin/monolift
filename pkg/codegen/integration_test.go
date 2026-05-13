@@ -100,6 +100,16 @@ func TestSanitizeHTMLFullPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Write adapter after patching so monoliftOriginal<Func> exists.
+	adapterFiles, err := RenderAdapter(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for adapterPath, content := range adapterFiles {
+		if err := os.WriteFile(adapterPath, content, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	entries = append(entries, ManifestEntry{Path: plan.ClientPath, Kind: "client_stub"})
 	manifest, err := writeManifest(plan, entries, patchedFile)
 	if err != nil {
@@ -193,6 +203,16 @@ func TestSanitizeHTMLNetworkRoundTrip(t *testing.T) {
 	if _, err := PatchCutFunction(plan, stubContent); err != nil {
 		t.Fatal(err)
 	}
+	// Write adapter after patching so monoliftOriginal<Func> exists.
+	adapterFiles, err := RenderAdapter(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for adapterPath, content := range adapterFiles {
+		if err := os.WriteFile(adapterPath, content, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	writeTestFile(t, filepath.Join(filepath.Dir(plan.ServerPath), "network_roundtrip_test.go"), `package main
 
 import (
@@ -285,6 +305,16 @@ func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
 	stubContent := clientFiles[plan.ClientPath]
 	if _, err := PatchCutFunction(plan, stubContent); err != nil {
 		t.Fatal(err)
+	}
+	// Write adapter after patching so monoliftOriginal<Func> exists.
+	adapterFiles, err := RenderAdapter(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for adapterPath, content := range adapterFiles {
+		if err := os.WriteFile(adapterPath, content, 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	serverSource, err := os.ReadFile(plan.ServerPath)
 	if err != nil {
