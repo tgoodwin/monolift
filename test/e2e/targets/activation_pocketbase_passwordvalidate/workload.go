@@ -24,10 +24,13 @@ const (
 type Workload struct{}
 
 func (Workload) Setup(ctx context.Context, host string) error {
+	base := strings.TrimRight(host, "/")
 	deadline := time.Now().Add(2 * time.Minute)
+
+	// Phase 1: wait for health endpoint.
 	var lastErr error
 	for time.Now().Before(deadline) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(host, "/")+healthPath, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+healthPath, nil)
 		if err != nil {
 			return err
 		}
@@ -35,7 +38,7 @@ func (Workload) Setup(ctx context.Context, host string) error {
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				return nil
+				goto authReady
 			}
 			lastErr = fmt.Errorf("GET %s status=%d", healthPath, resp.StatusCode)
 		} else {
@@ -47,7 +50,27 @@ func (Workload) Setup(ctx context.Context, host string) error {
 		case <-time.After(2 * time.Second):
 		}
 	}
-	return lastErr
+	return fmt.Errorf("health not ready: %w", lastErr)
+
+authReady:
+	// Phase 2: wait for superuser auth to work. After an env-off rollout the
+	// pod restarts with a fresh emptyDir; the entrypoint re-creates the
+	// superuser via "pocketbase superuser upsert" before serving, but
+	// PocketBase may need additional time after the health endpoint is live
+	// before the auth subsystem is fully functional.
+	for time.Now().Before(deadline) {
+		_, err := authTokenOnce(ctx, base)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+	}
+	return fmt.Errorf("auth not ready after health: %w", lastErr)
 }
 
 func (Workload) Action(ctx context.Context, host string) (harness.Transcript, error) {
