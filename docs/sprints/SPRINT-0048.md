@@ -297,7 +297,7 @@ Attempt these after Phase 2 receiver support is proven. Each is independent — 
 
 ### Phase 6: Verification and closeout
 
-- [ ] 6.1: Run `go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...`
+- [x] 6.1: Run `go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...` — all pass (activation 7.7s, codegen 81s, harness 0.4s)
 - [ ] 6.2: Run all 7 original activation targets — confirm no regressions
 - [ ] 6.3: Run all new corpus-trace targets individually — record pass/fail per target
 - [ ] 6.4: Run the best-effort overnight sweep: `scripts/run_activation_corpus_sweep.sh --phases all --timeout-per-trace 25m`
@@ -307,7 +307,7 @@ Attempt these after Phase 2 receiver support is proven. Each is independent — 
 - [ ] 6.8: Verify env-off mode produces zero extracted `/calls` deltas for all passing targets
 - [ ] 6.9: Verify fail-open and fail-closed behavior for each result shape: void, single return, `(T, error)` multi-return
 - [ ] 6.10: For each failing corpus-trace target, document: (a) stage that failed, (b) root cause category (admission, codegen, workload, infra), (c) whether fixable this sprint or deferred
-- [ ] 6.11: Run admission-only sweep for every deferred row and verify each skip has a stable, actionable refusal code
+- [x] 6.11: Run admission-only sweep for every deferred row and verify each skip has a stable, actionable refusal code — 72 traces: 5 pass, 6 admission-skip, 5 timeout-skip, 56 manifest-skip. All refusal codes documented in `.moab/runs/1778647054/admission-sweep/summary.md`
 - [ ] 6.12: Write `docs/research/runs/SPRINT-0048-coverage-report.md` with: trace matrix coverage before/after, per-target results, codegen capability additions, residual blockers, and next-sprint capability backlog (ranked by traces unlocked)
 
 ## Sequencing
