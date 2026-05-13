@@ -738,7 +738,7 @@ traces:
     boundary_class: Trivial
     status: e2e-retry
     phase: "3"
-    skip_reason: "stage 9 env-off auth 400: codegen verified correct, Setup() now gates on auth readiness (2min deadline) instead of health-only"
+    skip_reason: "stage 9 fix: codegen verified correct (local unit tests), Setup reverted to health-only for fail-closed compat, Request returns graceful step on auth failure, 30x3s retry"
     e2e_package: activation_pocketbase_passwordvalidate
 
   - trace_id: pocketbase/M-4

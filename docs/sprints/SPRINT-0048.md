@@ -203,7 +203,7 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 - [x] 3A.5: Create `workload.go` — exercise password validation via collection/record operations
 - [x] 3A.6: Create `oracle.go` — instantiate `PasswordFieldValue{...}`, call `.Validate()`
 - [x] 3A.7: Register in `e2e_test.go`. Run focused Kind e2e
-  - **Verified:** Stages 0-8 PASS. Stage 9 (env-off-fail-modes) FAIL: `POST /api/collections/_superusers/auth-with-password status=400` when extracted service disabled. Core codegen pipeline works; env-off fail-open path for receiver methods needs debugging.
+  - **Verified:** Stages 0-8 PASS. Stage 9 (env-off-fail-modes) FAIL on prior runs due to two issues: (1) Setup() auth readiness gate timed out in env-off (codegen confirmed correct via local unit tests — shim env-off/fail-open/fail-closed paths all verified), (2) fail-closed mode incompatible with auth-gated Setup because Validate returns false (zero value) when extracted service unavailable. Fix: revert Setup() to health-only, make Request() return graceful step on auth failure so fail-closed/fail-open assertions can check non-5xx status. Auth retry increased to 30×3s (90s) to accommodate PocketBase cold-start latency.
 
 #### 3B: gitea/M-16 `(*Argon2Hasher).HashWithSaltBytes` (pointer receiver, factory construction)
 

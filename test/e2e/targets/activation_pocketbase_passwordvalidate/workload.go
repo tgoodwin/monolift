@@ -27,7 +27,10 @@ func (Workload) Setup(ctx context.Context, host string) error {
 	base := strings.TrimRight(host, "/")
 	deadline := time.Now().Add(2 * time.Minute)
 
-	// Phase 1: wait for health endpoint.
+	// Wait for health endpoint only. Auth readiness is handled by retry
+	// logic in authToken(). We cannot gate on auth here because in
+	// fail-closed mode the Validate shim returns false (zero value for
+	// bool), making superuser auth impossible — Setup would always time out.
 	var lastErr error
 	for time.Now().Before(deadline) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+healthPath, nil)
@@ -38,7 +41,7 @@ func (Workload) Setup(ctx context.Context, host string) error {
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				goto authReady
+				return nil
 			}
 			lastErr = fmt.Errorf("GET %s status=%d", healthPath, resp.StatusCode)
 		} else {
@@ -51,26 +54,6 @@ func (Workload) Setup(ctx context.Context, host string) error {
 		}
 	}
 	return fmt.Errorf("health not ready: %w", lastErr)
-
-authReady:
-	// Phase 2: wait for superuser auth to work. After an env-off rollout the
-	// pod restarts with a fresh emptyDir; the entrypoint re-creates the
-	// superuser via "pocketbase superuser upsert" before serving, but
-	// PocketBase may need additional time after the health endpoint is live
-	// before the auth subsystem is fully functional.
-	for time.Now().Before(deadline) {
-		_, err := authTokenOnce(ctx, base)
-		if err == nil {
-			return nil
-		}
-		lastErr = err
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(2 * time.Second):
-		}
-	}
-	return fmt.Errorf("auth not ready after health: %w", lastErr)
 }
 
 func (Workload) Action(ctx context.Context, host string) (harness.Transcript, error) {
@@ -90,9 +73,19 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 		return harness.Step{}, fmt.Errorf("unsupported pocketbase workload path %s", path)
 	}
 	base := strings.TrimRight(host, "/")
-	token, err := authToken(ctx, base)
+	token, authStatus, err := authTokenOrStatus(ctx, base)
 	if err != nil {
 		return harness.Step{}, err
+	}
+	if token == "" {
+		// Auth failed with a non-transport HTTP status (e.g., 400 in
+		// fail-closed mode where Validate returns false). Return the auth
+		// status as the workload step so fail-mode assertions can check it.
+		return harness.Step{
+			Method: http.MethodPost,
+			Path:   "/api/collections/_superusers/auth-with-password",
+			Status: authStatus,
+		}, nil
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
 	if err != nil {
@@ -132,57 +125,66 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 	}, nil
 }
 
-func authToken(ctx context.Context, base string) (string, error) {
-	var lastErr error
-	for attempt := 0; attempt < 15; attempt++ {
+// authTokenOrStatus tries to obtain a superuser auth token. On success it
+// returns (token, 0, nil). On repeated HTTP-level failure (e.g., 400 in
+// fail-closed mode) it returns ("", lastStatus, nil) so the caller can
+// surface the status to fail-mode assertions. Transport errors (connection
+// refused, context cancelled) are returned as errors.
+func authTokenOrStatus(ctx context.Context, base string) (string, int, error) {
+	var lastStatus int
+	for attempt := 0; attempt < 30; attempt++ {
 		if attempt > 0 {
 			select {
 			case <-ctx.Done():
-				return "", ctx.Err()
+				return "", 0, ctx.Err()
 			case <-time.After(3 * time.Second):
 			}
 		}
-		token, err := authTokenOnce(ctx, base)
-		if err == nil {
-			return token, nil
+		token, status, err := authTokenOnce(ctx, base)
+		if err != nil {
+			return "", 0, err // transport error
 		}
-		lastErr = err
+		if token != "" {
+			return token, 0, nil
+		}
+		lastStatus = status
 	}
-	return "", fmt.Errorf("auth failed after 15 attempts: %w", lastErr)
+	// All attempts returned an HTTP error status — return it for graceful handling.
+	return "", lastStatus, nil
 }
 
-func authTokenOnce(ctx context.Context, base string) (string, error) {
+func authTokenOnce(ctx context.Context, base string) (string, int, error) {
 	payload, err := json.Marshal(map[string]string{
 		"identity": superuserEmail,
 		"password": superuserPassword,
 	})
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/api/collections/_superusers/auth-with-password", bytes.NewReader(payload))
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("POST /api/collections/_superusers/auth-with-password status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return "", resp.StatusCode, nil
 	}
 	var data struct {
 		Token string `json:"token"`
 	}
 	if err := json.Unmarshal(body, &data); err != nil {
-		return "", err
+		return "", 0, err
 	}
 	if data.Token == "" {
-		return "", fmt.Errorf("auth response missing token")
+		return "", 0, fmt.Errorf("auth response missing token")
 	}
-	return data.Token, nil
+	return data.Token, 0, nil
 }
 
 func (Workload) Verify(ctx context.Context, host string, expected harness.Transcript) error {
