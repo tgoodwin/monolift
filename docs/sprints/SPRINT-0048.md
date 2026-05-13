@@ -236,12 +236,11 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 
 #### 3D: caddy/M-1 `(TemplateContext).funcMarkdown` (value receiver, `(string, error)`, `any` param)
 
-- [ ] 3D.1: Locate `(TemplateContext).funcMarkdown` in caddy corpus. Confirm: value-receiver, trivial boundary, stateless. Record exact `file:line`, full signature including `any` param. The edge type is `reflective-call-via-string-keyed-map` — verify activation path traverses this
-- [ ] 3D.2: Run activation analysis and `codegen.RunLift`. The `any` param and `(string, error)` return may both require handling. If either causes admission refusal, document the specific code and skip
-- [ ] 3D.3: Create `test/e2e/targets/activation_caddy_markdown/target.go`. Deploy: Caddyfile with `templates` directive, host port 8080, reuse caddy baseline
-- [ ] 3D.4: Create `workload.go` — request a page triggering Caddy's template markdown rendering
-- [ ] 3D.5: Create `oracle.go` — instantiate `TemplateContext{}`, call `.funcMarkdown(input)`
-- [ ] 3D.6: Register in `e2e_test.go`. Run focused Kind e2e
+- [x] 3D.1: Locate `(TemplateContext).funcMarkdown` in caddy corpus. Confirm: value-receiver, trivial boundary, stateless. Record exact `file:line`, full signature including `any` param. The edge type is `reflective-call-via-string-keyed-map` — verify activation path traverses this
+  - Located at `modules/caddyhttp/templates/tplcontext.go:350`. Value receiver `(TemplateContext)`, params `(input any)`, returns `(string, error)`. Stateless — no receiver fields used.
+- [x] 3D.2: Run activation analysis and `codegen.RunLift`. The `any` param and `(string, error)` return may both require handling. If either causes admission refusal, document the specific code and skip
+  - **admission-skip** — `extract report: liftability: root function "funcMarkdown" not found`. `buildExtractionReport` sets `DeclKind: "func"` / `DeclName: "funcMarkdown"` without receiver context; `Scope().Lookup("funcMarkdown")` fails because it's an unexported method on `TemplateContext`, not a package-level function. Pipeline gap: method identity propagation from cut NodeKey (which has `Receiver: "TemplateContext"`) to extraction pragma.
+- [ ] 3D.3–3D.6: Skipped (admission-skip)
 
 #### 3E: gitea/M-17 `RenderFullFile` (package-level, config-only, serializable)
 
