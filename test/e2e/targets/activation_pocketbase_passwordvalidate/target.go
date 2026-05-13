@@ -42,7 +42,11 @@ func Target() harness.TargetCase {
 				HostBuildPackage:     "./examples/base",
 				HostBinaryName:       "pocketbase",
 				HostRuntimeImage:     "alpine:3.20",
-				HostArgs:             []string{"/bin/sh", "-c", "/pocketbase superuser upsert admin@example.com Monolift123! --dir=/pb_data && exec /pocketbase serve --http=0.0.0.0:8090 --dir=/pb_data"},
+				HostArgs: []string{"/bin/sh", "-c", "/pocketbase superuser upsert admin@example.com Monolift123! --dir=/pb_data && exec /pocketbase serve --http=0.0.0.0:8090 --dir=/pb_data"},
+				HostEnvVars: []codegen.EnvVar{
+					{Name: "PB_SUPERUSER_EMAIL", Value: "admin@example.com"},
+					{Name: "PB_SUPERUSER_PASSWORD", Value: "Monolift123!"},
+				},
 				HostVolumeMounts: []codegen.VolumeMount{
 					{Name: "pb-data", MountPath: "/pb_data"},
 				},
