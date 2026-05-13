@@ -30,12 +30,12 @@ traces:
   - trace_id: caddy/M-1
     project: caddy
     function: "(TemplateContext).funcMarkdown"
-    file_line: "modules/caddyhttp/templates/tplcontext.go:FieldNotInCorpus"
+    file_line: "modules/caddyhttp/templates/tplcontext.go:350"
     state_class: Stateless
     boundary_class: Trivial
-    status: manifest-skip
+    status: admission-skip
     phase: "3"
-    skip_reason: ""
+    skip_reason: "liftability: root function 'funcMarkdown' not found — buildExtractionReport DeclKind=func without receiver; unexported method on TemplateContext not resolvable via Scope().Lookup"
     e2e_package: ""
 
   - trace_id: caddy/M-2
