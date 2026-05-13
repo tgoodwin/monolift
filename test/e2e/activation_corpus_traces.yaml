@@ -553,13 +553,13 @@ traces:
   - trace_id: mattermost/M-14
     project: mattermost
     function: "(PBKDF2).Hash"
-    file_line: "server/public/model/password.go:FieldNotInCorpus"
-    state_class: Stateless
+    file_line: "server/channels/app/password/hashers/pbkdf2.go:151"
+    state_class: ConfigOnly
     boundary_class: Trivial
-    status: manifest-skip
+    status: scaffolded
     phase: "3"
     skip_reason: ""
-    e2e_package: ""
+    e2e_package: "activation_mattermost_pbkdf2hash"
 
   - trace_id: mattermost/M-15
     project: mattermost

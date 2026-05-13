@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mattermost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mattermost
+  template:
+    metadata:
+      labels:
+        app: mattermost
+    spec:
+      containers:
+        - name: mattermost
+          image: mattermost/mattermost-enterprise-edition:10.6.1
+          ports:
+            - name: http
+              containerPort: 8065
+          readinessProbe:
+            httpGet:
+              path: /api/v4/system/ping
+              port: 8065
+            periodSeconds: 5
+            initialDelaySeconds: 10
+          env:
+            - name: MM_SQLSETTINGS_DATASOURCE
+              value: "postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable"
+            - name: MM_SQLSETTINGS_DRIVERNAME
+              value: "postgres"
+            - name: MM_SERVICESETTINGS_LISTENADDRESS
+              value: ":8065"
+            - name: MM_SERVICESETTINGS_SITEURL
+              value: "http://localhost:8065"
+            - name: MM_TEAMSETTINGS_ENABLEOPENSERVER
+              value: "true"

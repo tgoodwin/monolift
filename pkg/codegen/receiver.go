@@ -20,7 +20,7 @@ var receiverFactoryRegistry = map[string]receiverFactoryEntry{
 	"code.gitea.io/gitea/modules/auth/password/hash.Argon2Hasher": {
 		FactoryFunc: "NewArgon2Hasher",
 	},
-	"github.com/mattermost/mattermost/server/channels/app/password/hashers.PBKDF2": {
+	"github.com/mattermost/mattermost/server/v8/channels/app/password/hashers.PBKDF2": {
 		FactoryFunc: "DefaultPBKDF2",
 	},
 	"example.com/receivermod/receivertest.FactoryBuilt": {
