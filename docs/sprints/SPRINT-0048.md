@@ -239,8 +239,9 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 - [x] 3D.1: Locate `(TemplateContext).funcMarkdown` in caddy corpus. Confirm: value-receiver, trivial boundary, stateless. Record exact `file:line`, full signature including `any` param. The edge type is `reflective-call-via-string-keyed-map` — verify activation path traverses this
   - Located at `modules/caddyhttp/templates/tplcontext.go:350`. Value receiver `(TemplateContext)`, params `(input any)`, returns `(string, error)`. Stateless — no receiver fields used.
 - [x] 3D.2: Run activation analysis and `codegen.RunLift`. The `any` param and `(string, error)` return may both require handling. If either causes admission refusal, document the specific code and skip
-  - **admission-skip** — `extract report: liftability: root function "funcMarkdown" not found`. `buildExtractionReport` sets `DeclKind: "func"` / `DeclName: "funcMarkdown"` without receiver context; `Scope().Lookup("funcMarkdown")` fails because it's an unexported method on `TemplateContext`, not a package-level function. Pipeline gap: method identity propagation from cut NodeKey (which has `Receiver: "TemplateContext"`) to extraction pragma.
-- [ ] 3D.3–3D.6: Skipped (admission-skip)
+  - Previous blocker (`extract report: liftability: root function "funcMarkdown" not found`) is resolved — `buildExtractionReport` now sets `DeclKind: "method"` / `DeclName: "TemplateContext.funcMarkdown"` with proper receiver context, and `lookupMethodSelection` resolves the unexported method correctly.
+  - **admission-skip** — `receiver_requires_reconstruction: receiver TemplateContext has state class SharedState`. `TemplateContext` struct contains `http.FileSystem`, `*http.Request`, `[]template.FuncMap`, `*Templates`, and `*template.Template` fields — all classified as shared-state types. Although `funcMarkdown` itself does not access any receiver fields (effectively stateless), the struct-level state classifier evaluates the entire type, not per-method field usage. The `any` param and `(string, error)` return are both handled correctly (CodecJSON and CodecError respectively) — the sole blocker is the receiver state class.
+- [ ] ~~3D.3–3D.6~~: Skipped (admission-skip — receiver SharedState)
 
 #### 3E: gitea/M-17 `RenderFullFile` (package-level, config-only, serializable)
 

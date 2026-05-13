@@ -31,11 +31,11 @@ traces:
     project: caddy
     function: "(TemplateContext).funcMarkdown"
     file_line: "modules/caddyhttp/templates/tplcontext.go:350"
-    state_class: Stateless
+    state_class: SharedState
     boundary_class: Trivial
     status: admission-skip
     phase: "3"
-    skip_reason: "liftability: root function 'funcMarkdown' not found — buildExtractionReport DeclKind=func without receiver; unexported method on TemplateContext not resolvable via Scope().Lookup"
+    skip_reason: "receiver_requires_reconstruction: receiver TemplateContext has state class SharedState (http.FileSystem, *http.Request, []template.FuncMap, *Templates, *template.Template fields). funcMarkdown itself is stateless but struct-level state classifier evaluates entire type."
     e2e_package: ""
 
   - trace_id: caddy/M-2
