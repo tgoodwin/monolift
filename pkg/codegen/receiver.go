@@ -59,8 +59,9 @@ func selectReceiverPolicy(named *types.Named, isPointer bool, stateClass activat
 		}, nil
 	}
 
-	// For boundary and zero policies, require Stateless state class.
-	if stateClass != activation.Stateless {
+	// For boundary and zero policies, require Stateless or ConfigOnly state class.
+	// ConfigOnly receivers hold immutable configuration data that is safe to serialize.
+	if stateClass != activation.Stateless && stateClass != activation.ConfigOnly {
 		return nil, fmt.Errorf("receiver_requires_reconstruction: receiver %s has state class %s", goType, stateClass)
 	}
 
@@ -162,6 +163,18 @@ func isFieldTypeSerializable(typ types.Type) bool {
 		}
 		return true
 	case *types.Interface:
+		// The built-in error interface is JSON-serializable (marshals as string or null).
+		if t.NumMethods() == 1 {
+			m := t.Method(0)
+			if m.Name() == "Error" {
+				sig, ok := m.Type().(*types.Signature)
+				if ok && sig.Params().Len() == 0 && sig.Results().Len() == 1 {
+					if basic, ok := sig.Results().At(0).Type().(*types.Basic); ok && basic.Kind() == types.String {
+						return true
+					}
+				}
+			}
+		}
 		return false
 	case *types.Chan:
 		return false

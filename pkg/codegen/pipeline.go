@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/tgoodwin/monolift/pkg/activation"
@@ -246,9 +247,22 @@ func buildExtractionReport(opts LiftOptions, cut *activation.CutResult) (reportv
 	if name == "" {
 		name = "monolift-" + cut.Recommended.NodeKey.FuncName
 	}
+	surface := compiler.SurfaceFunction
+	declName := cut.Recommended.NodeKey.FuncName
+	declKind := "func"
+	if cut.Recommended.NodeKey.Receiver != "" {
+		surface = compiler.SurfaceMethod
+		declKind = "method"
+		recv := cut.Recommended.NodeKey.Receiver
+		if strings.HasPrefix(recv, "*") {
+			declName = "(*" + recv[1:] + ")." + declName
+		} else {
+			declName = recv + "." + declName
+		}
+	}
 	pragma := &compiler.Pragma{
 		Name:    sanitizeServiceName(name),
-		Surface: compiler.SurfaceFunction,
+		Surface: surface,
 		Options: map[string]string{
 			"name":      sanitizeServiceName(name),
 			"mode":      "remote",
@@ -259,8 +273,8 @@ func buildExtractionReport(opts LiftOptions, cut *activation.CutResult) (reportv
 			Line:     line,
 			EndLine:  line,
 		},
-		DeclName:     cut.Recommended.NodeKey.FuncName,
-		DeclKind:     "func",
+		DeclName:     declName,
+		DeclKind:     declKind,
 		DeclIdentity: cut.Recommended.NodeKey.String(),
 	}
 	report, _, err := compiler.Extract([]string{opts.Source}, []*compiler.Pragma{pragma})
