@@ -51,6 +51,14 @@ type clientView struct {
 	DefaultEndpoint      string
 	NeedsErrorsImport    bool
 	StreamingBytesParams []streamingByteParam
+
+	// Receiver support
+	HasReceiver            bool
+	ReceiverDecl           string // e.g. "(t TemplateContext) " or "(h *Argon2Hasher) "
+	ReceiverSelf           string // e.g. "t" or "h" — the receiver variable name
+	ReceiverRequestType    string // qualified type for request field (ReceiverBoundary only)
+	ReceiverBoundaryAssign string // "Receiver: t, " for boundary, empty otherwise
+	CallPrefix             string // "t." for methods, "" for free functions
 }
 
 type streamingByteParam struct {
@@ -140,7 +148,7 @@ func clientTemplateView(plan *Plan) clientView {
 		needsErrors = true // errors.New for reconstructing app errors
 	}
 	hasVoidReturn := !hasNonErrorResult && !hasErrorResult
-	return clientView{
+	view := clientView{
 		Plan:                 plan,
 		Imports:              uniqueImports(imports),
 		RequestFields:        requestFields,
@@ -168,6 +176,29 @@ func clientTemplateView(plan *Plan) clientView {
 		NeedsErrorsImport:    needsErrors,
 		StreamingBytesParams: streamingParams,
 	}
+
+	// Receiver support: generate method stubs when a receiver is present.
+	if plan.ReceiverParam != nil {
+		view.HasReceiver = true
+		baseType := strings.TrimPrefix(plan.ReceiverParam.GoType, "*")
+		receiverVar := strings.ToLower(baseType[:1])
+
+		if plan.ReceiverParam.IsPointer {
+			view.ReceiverDecl = "(" + receiverVar + " *" + baseType + ") "
+		} else {
+			view.ReceiverDecl = "(" + receiverVar + " " + baseType + ") "
+		}
+		view.ReceiverSelf = receiverVar
+
+		view.CallPrefix = receiverVar + "."
+
+		if plan.ReceiverParam.Policy == ReceiverBoundary {
+			view.ReceiverRequestType = baseType
+			view.ReceiverBoundaryAssign = "Receiver: " + receiverVar + ", "
+		}
+	}
+
+	return view
 }
 
 func sortParamsByIndex(params []Param) {
@@ -285,6 +316,9 @@ import (
 )
 
 type monoliftInvokeRequest struct {
+{{- if .ReceiverRequestType }}
+	Receiver {{ .ReceiverRequestType }} ` + "`json:\"receiver\"`" + `
+{{- end }}
 {{- range .RequestFields }}
 	{{ .Name }} {{ .Type }} ` + "`json:\"{{ .JSONName }}\"`" + `
 {{- end }}
@@ -308,31 +342,31 @@ type monoliftLocalizedError struct {
 	Message string ` + "`json:\"message,omitempty\"`" + `
 }
 
-func {{ .StubName }}({{ .ParamList }}){{ if .StubReturnSig }} {{ .StubReturnSig }}{{ end }} {
+func {{ .ReceiverDecl }}{{ .StubName }}({{ .ParamList }}){{ if .StubReturnSig }} {{ .StubReturnSig }}{{ end }} {
 {{- if .HasVoidReturn }}
 	if os.Getenv("{{ .EnabledEnv }}") != "on" {
-		{{ .OriginalFuncName }}({{ .OriginalArgs }})
+		{{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 		return
 	}
-	if err := monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }}); err != nil {
+	if err := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }}); err != nil {
 		if os.Getenv("MONOLIFT_LIFT_FAILMODE") != "closed" {
-			{{ .OriginalFuncName }}({{ .OriginalArgs }})
+			{{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 		}
 	}
 {{- else if .HasErrorResult }}
 	if os.Getenv("{{ .EnabledEnv }}") != "on" {
-		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 	}
 {{- if .HasResult }}
-	result, appErr, transportErr := monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+	result, appErr, transportErr := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
 {{- else }}
-	appErr, transportErr := monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+	appErr, transportErr := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
 {{- end }}
 	if transportErr != nil {
 		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
 			return {{ .FailClosedReturn }}
 		}
-		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 	}
 {{- if .HasResult }}
 	return result, appErr
@@ -341,20 +375,20 @@ func {{ .StubName }}({{ .ParamList }}){{ if .StubReturnSig }} {{ .StubReturnSig 
 {{- end }}
 {{- else }}
 	if os.Getenv("{{ .EnabledEnv }}") != "on" {
-		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 	}
-	result, err := monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+	result, err := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
 	if err != nil {
 		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
 			return {{ .ResultZero }}
 		}
-		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 	}
 	return result
 {{- end }}
 }
 
-func monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamList }}) {{ .RemoteReturnSig }} {
+func {{ .ReceiverDecl }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamList }}) {{ .RemoteReturnSig }} {
 	endpoint := os.Getenv("{{ .EndpointEnv }}")
 	if endpoint == "" {
 		endpoint = "{{ .DefaultEndpoint }}"
@@ -368,7 +402,7 @@ func monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamList }}) {{ .RemoteRet
 		return {{ $.TransportErrZeros }}fmt.Errorf("monolift: streaming param {{ .Name }} exceeds 10MB limit")
 	}
 {{- end }}
-	payload := monoliftInvokeRequest{ {{ .BoundaryArgs }} }
+	payload := monoliftInvokeRequest{ {{ .ReceiverBoundaryAssign }}{{ .BoundaryArgs }} }
 	var body bytes.Buffer
 	if err := json.NewEncoder(&body).Encode(payload); err != nil {
 		return {{ .TransportErrZeros }}err

@@ -157,10 +157,10 @@ Generate a same-package exported adapter function that the extracted server call
 
 #### 2F: Client template — method stub
 
-- [ ] 2F.1: When `ReceiverParam` is present: generate a method stub on the receiver type. The stub serializes `self` + args into the invoke request, POSTs to the extracted service, and on failure calls `self.monoliftOriginal<Method>(args...)`
-- [ ] 2F.2: Preserve the original receiver parameter name and pointer/value semantics
-- [ ] 2F.3: Golden-file test: client stub for value-receiver `ReceiverBoundary` with receiver serialization
-- [ ] 2F.4: Golden-file test: client stub for pointer-receiver `ReceiverFactory` (no receiver serialization — factory on server)
+- [x] 2F.1: When `ReceiverParam` is present: generate a method stub on the receiver type. The stub serializes `self` + args into the invoke request, POSTs to the extracted service, and on failure calls `self.monoliftOriginal<Method>(args...)`
+- [x] 2F.2: Preserve the original receiver parameter name and pointer/value semantics
+- [x] 2F.3: Golden-file test: client stub for value-receiver `ReceiverBoundary` with receiver serialization
+- [x] 2F.4: Golden-file test: client stub for pointer-receiver `ReceiverFactory` (no receiver serialization — factory on server)
 
 #### 2G: Admission — method and multi-return gates
 
