@@ -174,10 +174,10 @@ Generate a same-package exported adapter function that the extracted server call
 
 #### 2H: Context and logger reconstruction
 
-- [ ] 2H.1: Add `context.Context` parameter handling: when a boundary parameter is `context.Context`, reconstruct as `context.Background()` on the server. Do not serialize context across the boundary
-- [ ] 2H.2: Add a no-op logger reconstruction for `mlog.LoggerIFace` and similar logger interfaces: construct a discard logger on the server
-- [ ] 2H.3: Unit test: plan with `context.Context` param produces server-side `context.Background()`
-- [ ] 2H.4: Unit test: plan with `mlog.LoggerIFace` param produces discard logger
+- [x] 2H.1: Add `context.Context` parameter handling: when a boundary parameter is `context.Context`, reconstruct as `context.Background()` on the server. Do not serialize context across the boundary
+- [x] 2H.2: Add a no-op logger reconstruction for `mlog.LoggerIFace` and similar logger interfaces: construct a discard logger on the server
+- [x] 2H.3: Unit test: plan with `context.Context` param produces server-side `context.Background()`
+- [x] 2H.4: Unit test: plan with `mlog.LoggerIFace` param produces discard logger
 
 #### 2I: Integration verification
 

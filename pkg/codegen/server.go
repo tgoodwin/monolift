@@ -193,6 +193,10 @@ func serverReconstructorInit(param ReconstructedParam) []string {
 	field := exportedFieldName(param.Name)
 	dbVar := strings.ToLower(param.Name) + "DB"
 	switch param.Reconstructor.ID {
+	case "context_background":
+		return []string{"state." + field + " = context.Background()"}
+	case "discard_logger":
+		return []string{"state." + field + " = nil"}
 	case "sql_db":
 		return []string{
 			dbVar + `, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
