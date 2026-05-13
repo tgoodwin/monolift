@@ -148,12 +148,12 @@ Generate a same-package exported adapter function that the extracted server call
 
 #### 2E: Server template — method invocation
 
-- [ ] 2E.1: When `ReceiverParam` is present with `ReceiverBoundary` policy: add a receiver field to the invoke request struct with the appropriate JSON tag and Go type. Deserialize it and call `req.Receiver.Method(args...)`
-- [ ] 2E.2: For `ReceiverFactory` policy: call the factory function on the server to construct the receiver, then invoke the method
-- [ ] 2E.3: For `ReceiverZero` policy: construct a zero-value receiver and invoke the method
-- [ ] 2E.4: For pointer receivers: take the address — `(&req.Receiver).Method(args...)` or construct `*T` via factory
-- [ ] 2E.5: Golden-file test: server template with value-receiver `ReceiverBoundary`
-- [ ] 2E.6: Golden-file test: server template with pointer-receiver `ReceiverFactory`
+- [x] 2E.1: When `ReceiverParam` is present with `ReceiverBoundary` policy: add a receiver field to the invoke request struct with the appropriate JSON tag and Go type. Deserialize it and call `req.Receiver.Method(args...)`
+- [x] 2E.2: For `ReceiverFactory` policy: call the factory function on the server to construct the receiver, then invoke the method
+- [x] 2E.3: For `ReceiverZero` policy: construct a zero-value receiver and invoke the method
+- [x] 2E.4: For pointer receivers: take the address — `(&req.Receiver).Method(args...)` or construct `*T` via factory
+- [x] 2E.5: Golden-file test: server template with value-receiver `ReceiverBoundary`
+- [x] 2E.6: Golden-file test: server template with pointer-receiver `ReceiverFactory`
 
 #### 2F: Client template — method stub
 

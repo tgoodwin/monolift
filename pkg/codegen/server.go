@@ -39,6 +39,11 @@ type serverView struct {
 	PrimitiveResult bool
 	CutPackageAlias string
 	AdapterFunc     string
+
+	// Receiver support
+	HasReceiver         bool
+	ReceiverRequestType string // qualified type for invokeRequest field (ReceiverBoundary only)
+	ReceiverConstruct   string // construction statement before adapter call (Factory/Zero-pointer)
 }
 
 type fieldView struct {
@@ -128,7 +133,9 @@ func serverTemplateView(plan *Plan) serverView {
 			hasNonErrorResult = true
 		}
 	}
-	return serverView{
+	baseCallArgs := strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", ")
+
+	view := serverView{
 		Plan:            plan,
 		Imports:         uniqueImports(imports),
 		RequestFields:   requestFields,
@@ -136,7 +143,7 @@ func serverTemplateView(plan *Plan) serverView {
 		StateFields:     stateFields,
 		StateInitLines:  stateInitLines,
 		StateCloseLines: stateCloseLines,
-		CallArgs:        strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", "),
+		CallArgs:        baseCallArgs,
 		HasResult:       hasNonErrorResult,
 		HasErrorResult:  hasErrorResult,
 		LocalizedResult: localized,
@@ -144,6 +151,42 @@ func serverTemplateView(plan *Plan) serverView {
 		CutPackageAlias: plan.CutPoint.PackageName,
 		AdapterFunc:     adapterFuncName(plan.CutPoint.FuncName),
 	}
+
+	// Receiver support: compute request field, construction, and call arg.
+	if plan.ReceiverParam != nil {
+		view.HasReceiver = true
+		baseType := strings.TrimPrefix(plan.ReceiverParam.GoType, "*")
+		qualifiedBase := plan.CutPoint.PackageName + "." + baseType
+
+		var receiverCallArg string
+		switch plan.ReceiverParam.Policy {
+		case ReceiverBoundary:
+			view.ReceiverRequestType = qualifiedBase
+			if plan.ReceiverParam.IsPointer {
+				receiverCallArg = "&req.Receiver"
+			} else {
+				receiverCallArg = "req.Receiver"
+			}
+		case ReceiverFactory:
+			view.ReceiverConstruct = "recv := " + plan.CutPoint.PackageName + "." + plan.ReceiverParam.FactoryFunc + "()"
+			receiverCallArg = "recv"
+		case ReceiverZero:
+			if plan.ReceiverParam.IsPointer {
+				view.ReceiverConstruct = "recv := &" + qualifiedBase + "{}"
+				receiverCallArg = "recv"
+			} else {
+				receiverCallArg = qualifiedBase + "{}"
+			}
+		}
+
+		if view.CallArgs != "" {
+			view.CallArgs = receiverCallArg + ", " + view.CallArgs
+		} else {
+			view.CallArgs = receiverCallArg
+		}
+	}
+
+	return view
 }
 
 func serverReconstructorInit(param ReconstructedParam) []string {
@@ -188,6 +231,9 @@ import (
 )
 
 type invokeRequest struct {
+{{- if .ReceiverRequestType }}
+	Receiver {{ .ReceiverRequestType }} ` + "`json:\"receiver\"`" + `
+{{- end }}
 {{- range .RequestFields }}
 	{{ .Name }} {{ .Type }} ` + "`json:\"{{ .JSONName }}\"`" + `
 {{- end }}
@@ -327,6 +373,9 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+{{- if .ReceiverConstruct }}
+		{{ .ReceiverConstruct }}
+{{- end }}
 {{- if .LocalizedResult }}
 		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
 		var resp invokeResponse
