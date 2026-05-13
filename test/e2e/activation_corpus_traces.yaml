@@ -274,12 +274,12 @@ traces:
   - trace_id: gitea/M-17
     project: gitea
     function: RenderFullFile
-    file_line: "modules/highlight/highlight.go:FieldNotInCorpus"
+    file_line: "modules/highlight/highlight.go:124"
     state_class: Config-only
     boundary_class: Serializable
-    status: manifest-skip
+    status: admission-skip
     phase: "3"
-    skip_reason: ""
+    skip_reason: "Two admission blockers: (1) missing_reconstructor for []byte param — classified as needing reconstruction instead of serializable. (2) unsupported_result_shape — returns ([]template.HTML, string) which is (T, T) multi-return, not (T, error). Pipeline only supports error as last return for multi-return functions."
     e2e_package: ""
 
   - trace_id: gitea/M-19
