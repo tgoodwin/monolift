@@ -195,13 +195,13 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 
 #### 3A: pocketbase/M-3 `PasswordFieldValue.Validate` (safest — value receiver, single `bool` return)
 
-- [ ] 3A.1: Locate `PasswordFieldValue.Validate` in pocketbase corpus. Confirm: value-receiver, trivial boundary, stateless, return type. Record exact `file:line`
-- [ ] 3A.2: Run activation analysis. Confirm path and cut
-- [ ] 3A.3: Run `codegen.RunLift`. Confirm admission accepts with `ReceiverBoundary` policy. If refused, document and skip
-- [ ] 3A.4: Create `test/e2e/targets/activation_pocketbase_passwordvalidate/target.go`. Deploy: PocketBase baseline (host port 8090, `/api/health`, embedded SQLite)
-- [ ] 3A.5: Create `workload.go` — exercise password validation via collection/record operations
-- [ ] 3A.6: Create `oracle.go` — instantiate `PasswordFieldValue{...}`, call `.Validate()`
-- [ ] 3A.7: Register in `e2e_test.go`. Run focused Kind e2e
+- [x] 3A.1: Locate `PasswordFieldValue.Validate` in pocketbase corpus. Confirm: value-receiver, trivial boundary, stateless, return type. Record exact `file:line`
+- [x] 3A.2: Run activation analysis. Confirm path and cut
+- [x] 3A.3: Run `codegen.RunLift`. Confirm admission accepts with `ReceiverBoundary` policy. If refused, document and skip
+- [x] 3A.4: Create `test/e2e/targets/activation_pocketbase_passwordvalidate/target.go`. Deploy: PocketBase baseline (host port 8090, `/api/health`, embedded SQLite)
+- [x] 3A.5: Create `workload.go` — exercise password validation via collection/record operations
+- [x] 3A.6: Create `oracle.go` — instantiate `PasswordFieldValue{...}`, call `.Validate()`
+- [x] 3A.7: Register in `e2e_test.go`. Run focused Kind e2e
 
 #### 3B: gitea/M-16 `(*Argon2Hasher).HashWithSaltBytes` (pointer receiver, factory construction)
 

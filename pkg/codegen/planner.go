@@ -76,7 +76,7 @@ func BuildPlan(report reportv2.Report, cut activation.CutResult) (*Plan, error) 
 		sig = fnSig
 	}
 
-	position := findFunctionPosition(pkg, funcName)
+	position := findFunctionPosition(pkg, funcName, receiver)
 
 	plan := &Plan{
 		SourceModuleRoot: moduleRoot,
@@ -204,7 +204,7 @@ func packageDir(pkg *packages.Package) string {
 	return filepath.Dir(pkg.GoFiles[0])
 }
 
-func findFunctionPosition(pkg *packages.Package, name string) token.Position {
+func findFunctionPosition(pkg *packages.Package, name, receiver string) token.Position {
 	if pkg == nil || pkg.Fset == nil {
 		return token.Position{}
 	}
@@ -214,10 +214,33 @@ func findFunctionPosition(pkg *packages.Package, name string) token.Position {
 			if !ok || fn.Name == nil || fn.Name.Name != name {
 				continue
 			}
+			if receiver != "" {
+				if fn.Recv == nil || len(fn.Recv.List) == 0 {
+					continue
+				}
+				if !matchesReceiverType(fn.Recv.List[0].Type, receiver) {
+					continue
+				}
+			}
 			return pkg.Fset.Position(fn.Pos())
 		}
 	}
 	return token.Position{}
+}
+
+func matchesReceiverType(expr ast.Expr, receiver string) bool {
+	base := strings.TrimPrefix(receiver, "*")
+	switch t := expr.(type) {
+	case *ast.StarExpr:
+		return matchesReceiverType(t.X, base)
+	case *ast.Ident:
+		return t.Name == base
+	case *ast.IndexExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name == base
+		}
+	}
+	return false
 }
 
 func serviceName(report reportv2.Report, funcName string) string {
