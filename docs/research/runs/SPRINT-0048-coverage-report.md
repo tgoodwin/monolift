@@ -43,23 +43,23 @@ SPRINT-0048 expanded activation-path e2e lift coverage from 1 corpus trace (mini
 
 | Target | Status | Stage | Duration | Notes |
 |---|---|---:|---|---|
-| activation-caddy-cleanpath | PASS | 10 | ~3m | Full pipeline verified |
-| activation-gitea-pathescapesegments | PASS | 10 | ~5m | Full pipeline verified |
-| activation-listmonk-sanitizeuri | PASS | 10 | ~4m | Full pipeline verified |
-| activation-mattermost-publiclinkhash | VERIFY | 10 | ~3m | Re-verifying; first run had timeout/resource issue |
-| activation-miniflux-sanitizehtml | PASS | 10 | ~2m | Full pipeline verified |
-| activation-miniflux-striptags | PASS | 10 | ~2m | Full pipeline verified |
-| activation-pocketbase-columnify | PASS | 10 | ~3m | Full pipeline verified |
+| activation-caddy-cleanpath | PASS | 10 | 4.0m | Full pipeline verified (batch + individual) |
+| activation-gitea-pathescapesegments | PASS | 10 | 5.2m | Full pipeline verified |
+| activation-listmonk-sanitizeuri | PASS | 10 | 1.7m | Full pipeline verified |
+| activation-mattermost-publiclinkhash | PASS | 10 | 8.3m | Passes individually (8.3m); batch timeout at 25m is resource accumulation issue |
+| activation-miniflux-sanitizehtml | PASS | 10 | 1.5m | Full pipeline verified |
+| activation-miniflux-striptags | PASS | 10 | 1.7m | Full pipeline verified |
+| activation-pocketbase-columnify | PASS | 10 | 2.4m | Full pipeline verified |
 
 ## Per-Target Results: New Corpus Targets
 
 | Target | Corpus Trace | Status | Stage | Duration | Notes |
 |---|---|---|---:|---|---|
-| activation-miniflux-refreshfeed | miniflux/M-1 | PASS | 4 | 20.9s | Compile+verdict only; `*storage.Storage` blocks deploy |
-| activation-pocketbase-passwordvalidate | pocketbase/M-3 | PASS | 10 | 2.9m | Full pipeline + fail-modes |
-| activation-mattermost-pbkdf2hash | mattermost/M-14 | PASS | 7 | 4.3m | Through deploy; oracle skipped (non-deterministic) |
+| activation-miniflux-refreshfeed | miniflux/M-1 | PASS | 4 | 34s | Compile+verdict only; `*storage.Storage` blocks deploy |
+| activation-pocketbase-passwordvalidate | pocketbase/M-3 | PASS | 10 | 3.1m | Full pipeline + fail-modes |
+| activation-mattermost-pbkdf2hash | mattermost/M-14 | PASS | 7 | 4.9m | Through deploy; oracle skipped (non-deterministic) |
 | activation-gitea-argon2hash | gitea/M-16 | FAIL | 3 | 2.4m | Admission refuses: interface fields in `PasswordHashAlgorithm` |
-| activation-miniflux-parsefeed | miniflux/M-6 | PASS | 7 | 38.4s | Through deploy; streaming-bytes codec |
+| activation-miniflux-parsefeed | miniflux/M-6 | PASS | 7 | 64s | Through deploy; streaming-bytes codec |
 
 ## Codegen Capabilities Added
 
