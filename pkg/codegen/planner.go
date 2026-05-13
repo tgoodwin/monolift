@@ -40,26 +40,55 @@ func BuildPlan(report reportv2.Report, cut activation.CutResult) (*Plan, error) 
 	if err != nil {
 		return nil, err
 	}
-	fn, ok := pkg.Types.Scope().Lookup(funcName).(*types.Func)
-	if !ok || fn == nil {
-		return nil, fmt.Errorf("codegen: function %s not found in %s", funcName, pkgPath)
+
+	receiver := cut.Recommended.NodeKey.Receiver
+	var sig *types.Signature
+
+	// Receiver policy selection: when a receiver is present, look up the
+	// method on the named type instead of the package scope.
+	var receiverParam *ReceiverSpec
+	if receiver != "" {
+		named, isPointer, err := lookupReceiverType(pkg.Types, receiver)
+		if err != nil {
+			return nil, err
+		}
+		_, methodSig, err := lookupMethod(named, isPointer, funcName)
+		if err != nil {
+			return nil, err
+		}
+		sig = methodSig
+
+		stateClass := cut.Recommended.State
+		spec, err := selectReceiverPolicy(named, isPointer, stateClass)
+		if err != nil {
+			return nil, err
+		}
+		receiverParam = spec
+	} else {
+		fn, ok := pkg.Types.Scope().Lookup(funcName).(*types.Func)
+		if !ok || fn == nil {
+			return nil, fmt.Errorf("codegen: function %s not found in %s", funcName, pkgPath)
+		}
+		fnSig, ok := fn.Type().(*types.Signature)
+		if !ok || fnSig == nil {
+			return nil, fmt.Errorf("codegen: %s is not a function signature", funcName)
+		}
+		sig = fnSig
 	}
-	sig, ok := fn.Type().(*types.Signature)
-	if !ok || sig == nil {
-		return nil, fmt.Errorf("codegen: %s is not a function signature", funcName)
-	}
+
 	position := findFunctionPosition(pkg, funcName)
 
 	plan := &Plan{
 		SourceModuleRoot: moduleRoot,
 		SourceModulePath: modulePath(report, pkg),
 		ServiceName:      serviceName(report, funcName),
+		ReceiverParam:    receiverParam,
 		CutPoint: CutPoint{
 			PackagePath: pkgPath,
 			PackageName: pkg.Name,
 			PackageDir:  packageDir(pkg),
 			FuncName:    funcName,
-			Receiver:    cut.Recommended.NodeKey.Receiver,
+			Receiver:    receiver,
 			File:        position.Filename,
 			Line:        position.Line,
 			Column:      position.Column,

@@ -111,13 +111,13 @@ Three receiver strategies, selected automatically by the planner:
 - `receiver_zero`: construct a zero-value receiver on the server (for stateless methods that don't read receiver fields)
 - `receiver_factory`: invoke a known factory function on the server (for types like `Argon2Hasher` and `PBKDF2` with standard constructors)
 
-- [ ] 2B.1: Add `ReceiverParam *ReceiverSpec` to the `Plan` struct in `pkg/codegen/types.go`. Fields: `GoType string`, `IsPointer bool`, `Policy ReceiverPolicy`, `FactoryFunc string` (for `receiver_factory`), `Codec Codec` (for `receiver_boundary`)
-- [ ] 2B.2: Add `ReceiverPolicy` enum: `ReceiverBoundary`, `ReceiverZero`, `ReceiverFactory`
-- [ ] 2B.3: In `BuildPlan()`, when `CutPoint.Receiver` is non-empty: (a) check for a registered factory function in a receiver factory registry, (b) if found, use `receiver_factory`, (c) else if state class is `Stateless` and the type is JSON-serializable, use `receiver_boundary`, (d) else if state class is `Stateless` and fields are all zero-safe, use `receiver_zero`, (e) else refuse with `receiver_requires_reconstruction`
-- [ ] 2B.4: Add receiver factory registry entries for `gitea/M-16` (e.g., `NewArgon2Hasher`) and `mattermost/M-14` (e.g., `DefaultPBKDF2` or zero-value construction with env-driven params)
-- [ ] 2B.5: Unit test: `BuildPlan` on a stateless value-receiver cut with serializable fields produces `ReceiverBoundary` policy
-- [ ] 2B.6: Unit test: `BuildPlan` on a pointer-receiver cut with a registered factory produces `ReceiverFactory` policy with the factory function name
-- [ ] 2B.7: Unit test: `BuildPlan` on a receiver with `*sql.DB` field refuses with `receiver_requires_reconstruction`
+- [x] 2B.1: Add `ReceiverParam *ReceiverSpec` to the `Plan` struct in `pkg/codegen/types.go`. Fields: `GoType string`, `IsPointer bool`, `Policy ReceiverPolicy`, `FactoryFunc string` (for `receiver_factory`), `Codec Codec` (for `receiver_boundary`)
+- [x] 2B.2: Add `ReceiverPolicy` enum: `ReceiverBoundary`, `ReceiverZero`, `ReceiverFactory`
+- [x] 2B.3: In `BuildPlan()`, when `CutPoint.Receiver` is non-empty: (a) check for a registered factory function in a receiver factory registry, (b) if found, use `receiver_factory`, (c) else if state class is `Stateless` and the type is JSON-serializable, use `receiver_boundary`, (d) else if state class is `Stateless` and fields are all zero-safe, use `receiver_zero`, (e) else refuse with `receiver_requires_reconstruction`
+- [x] 2B.4: Add receiver factory registry entries for `gitea/M-16` (e.g., `NewArgon2Hasher`) and `mattermost/M-14` (e.g., `DefaultPBKDF2` or zero-value construction with env-driven params)
+- [x] 2B.5: Unit test: `BuildPlan` on a stateless value-receiver cut with serializable fields produces `ReceiverBoundary` policy
+- [x] 2B.6: Unit test: `BuildPlan` on a pointer-receiver cut with a registered factory produces `ReceiverFactory` policy with the factory function name
+- [x] 2B.7: Unit test: `BuildPlan` on a receiver with `*sql.DB` field refuses with `receiver_requires_reconstruction`
 
 #### 2C: Same-package invocation adapter
 
