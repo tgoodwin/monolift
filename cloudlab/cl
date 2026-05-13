@@ -146,7 +146,7 @@ cmd_extend() {
     local id hours
     id=$(resolve_exp "${1:?usage: cl extend <name|id> [hours]}")
     hours="${2:-16}"
-    $PORTAL_CLI experiment extend --experiment-id "$id" --extend-by "$hours" 2>/dev/null
+    $PORTAL_CLI experiment extend --experiment-id "$id" --extend-by "$hours" >/dev/null 2>&1
     echo "Extended by ${hours}h."
     cmd_status "$id"
 }

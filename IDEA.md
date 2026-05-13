@@ -1,7 +1,0 @@
-Hey this repo is for a project of mine called Monolift which is an early prototype. I wrote a short vision paper and will share the abstract below:
-
-In recent years, the microservice architecture has become the standard technique for building scalable applications, yet it still confronts developers with numerous challenges. Splitting an application into separate pieces can lead to unpredictable performance, and the process of doing so is complex and labor-intensive. Although a variety of solutions exist to simplify distributed application development, their programming abstractions offer poor support for existing applications in need of scaling. In this paper, we propose Monolift, a new technique for developing distributed applications that prioritizes incremental adoption and support for legacy code. Our proposal treats distribution as a compiler pass, allowing users to guide the distribution process with lightweight code-level annotations, and supports dynamic distribution strategies based on performance metrics rather than development-time decisions. We show that our Monolift prototype can automatically synthesize a variety of distributed architectures from the same source code, each having different performance tradeoffs, and that Monolift's dynamic distribution mechanisms outperform static microservice architectures under varying run-time conditions.
-
-The workshop paper is at [research/monolift_PLOS.pdf].
-
-That paper largely captures the idea, but leaves some things unsolved. 
