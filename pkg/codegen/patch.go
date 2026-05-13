@@ -9,9 +9,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
+	"github.com/tgoodwin/monolift/pkg/activation"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -24,12 +26,19 @@ func renamedOriginalFunc(plan *Plan) string {
 // (same-package and cross-package) automatically route through the stub.
 // stubContent is the rendered client stub source produced by RenderClient.
 func PatchCutFunction(plan *Plan, stubContent []byte) (string, error) {
+	return PatchCutFunctionProfile(plan, stubContent, nil)
+}
+
+// PatchCutFunctionProfile is PatchCutFunction with optional subphase timings.
+func PatchCutFunctionProfile(plan *Plan, stubContent []byte, timings *[]activation.PhaseTiming) (string, error) {
 	if plan == nil {
 		return "", errors.New("codegen: nil plan")
 	}
 
 	cutFile := absoluteCutFile(plan)
-	pkg, err := loadCutPackage(plan, cutFile)
+	pkg, err := timePatchPhase(timings, "load-cut-package", func() (*packages.Package, error) {
+		return loadCutPackage(plan, cutFile)
+	})
 	if err != nil {
 		return "", err
 	}
@@ -39,26 +48,40 @@ func PatchCutFunction(plan *Plan, stubContent []byte) (string, error) {
 		return "", fmt.Errorf("read cut file: %w", err)
 	}
 
-	renamed, alreadyRenamed, err := renameFuncDecl(pkg, cutFile, plan)
+	renamedResult, err := timePatchPhase(timings, "rename-func", func() (renameResult, error) {
+		renamed, alreadyRenamed, err := renameFuncDecl(pkg, cutFile, plan)
+		return renameResult{content: renamed, alreadyRenamed: alreadyRenamed}, err
+	})
 	if err != nil {
 		return "", err
 	}
+	renamed := renamedResult.content
+	alreadyRenamed := renamedResult.alreadyRenamed
 
 	if !alreadyRenamed {
-		if err := writeAtomic(cutFile, renamed, 0644); err != nil {
+		_, err := timePatchPhase(timings, "write-patched-file", func() (struct{}, error) {
+			return struct{}{}, writeAtomic(cutFile, renamed, 0644)
+		})
+		if err != nil {
 			return "", err
 		}
 	}
 
 	stubPath := plan.ClientPath
-	if err := writeAtomic(stubPath, stubContent, 0644); err != nil {
+	_, err = timePatchPhase(timings, "write-client-stub", func() (struct{}, error) {
+		return struct{}{}, writeAtomic(stubPath, stubContent, 0644)
+	})
+	if err != nil {
 		if !alreadyRenamed {
 			_ = writeAtomic(cutFile, original, 0644)
 		}
 		return "", err
 	}
 
-	if err := verifyPatchedBuild(plan, pkg); err != nil {
+	_, err = timePatchPhaseAliases(timings, []string{"verify-patched-build", "patched-package-verify"}, func() (struct{}, error) {
+		return struct{}{}, verifyPatchedBuild(plan, pkg)
+	})
+	if err != nil {
 		if !alreadyRenamed {
 			_ = writeAtomic(cutFile, original, 0644)
 		}
@@ -67,6 +90,27 @@ func PatchCutFunction(plan *Plan, stubContent []byte) (string, error) {
 	}
 
 	return cutFile, nil
+}
+
+type renameResult struct {
+	content        []byte
+	alreadyRenamed bool
+}
+
+func timePatchPhase[T any](timings *[]activation.PhaseTiming, phase string, fn func() (T, error)) (T, error) {
+	return timePatchPhaseAliases(timings, []string{phase}, fn)
+}
+
+func timePatchPhaseAliases[T any](timings *[]activation.PhaseTiming, phases []string, fn func() (T, error)) (T, error) {
+	start := time.Now()
+	value, err := fn()
+	if timings != nil {
+		duration := time.Since(start)
+		for _, phase := range phases {
+			*timings = append(*timings, activation.PhaseTiming{Phase: phase, Duration: duration})
+		}
+	}
+	return value, err
 }
 
 func absoluteCutFile(plan *Plan) string {

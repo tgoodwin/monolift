@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/types"
 	"sort"
+	"strings"
 
 	"golang.org/x/tools/go/ssa"
 )
@@ -32,62 +33,101 @@ type mapParamStore struct {
 	Position   Position
 }
 
+type mapParamCallsite struct {
+	Caller *ssa.Function
+	Common *ssa.CallCommon
+}
+
+type mapPropagationIterationStats struct {
+	Iteration        int
+	FunctionsScanned int
+	CallsitesScanned int
+	NewStores        int
+	NewParamStores   int
+}
+
 type mapFuncIndex struct {
-	Stores      map[mapFuncKey][]mapFuncStore
-	ParamStores map[*ssa.Function][]mapParamStore
+	Stores                map[mapFuncKey][]mapFuncStore
+	ParamStores           map[*ssa.Function][]mapParamStore
+	Callsites             map[*ssa.Function][]mapParamCallsite
+	Scanned               map[*ssa.Function]bool
+	PropagationIterations int
+	PropagationLimitHit   bool
+	PropagationStats      []mapPropagationIterationStats
 }
 
 func newMapFuncIndex() *mapFuncIndex {
 	return &mapFuncIndex{
 		Stores:      map[mapFuncKey][]mapFuncStore{},
 		ParamStores: map[*ssa.Function][]mapParamStore{},
+		Callsites:   map[*ssa.Function][]mapParamCallsite{},
+		Scanned:     map[*ssa.Function]bool{},
 	}
 }
 
 // AugmentMapFuncValues connects calls through map-indexed function values to
 // functions stored into compatible maps, including simple registration wrappers.
-func AugmentMapFuncValues(graph *Graph, program *Program) error {
+func AugmentMapFuncValues(graph *Graph, program *Program, indexes ...*mapFuncIndex) (*mapFuncIndex, error) {
 	if graph == nil {
-		return fmt.Errorf("graph is nil")
+		return nil, fmt.Errorf("graph is nil")
 	}
 	if program == nil {
-		return fmt.Errorf("program is nil")
+		return nil, fmt.Errorf("program is nil")
 	}
 	program.BuildSSA()
-	index := buildMapFuncIndex(program)
+	var index *mapFuncIndex
+	if len(indexes) > 0 {
+		index = indexes[0]
+	}
+	if index == nil {
+		index = buildMapFuncIndex(program)
+	}
+	recordMapFuncPropagationDiagnostics(graph, index)
 	connectMapFuncLookups(graph, program, index)
-	return nil
+	return index, nil
 }
 
 func buildMapFuncIndex(program *Program) *mapFuncIndex {
 	index := newMapFuncIndex()
-	scanMapFuncStores(program, index)
+	UpdateMapFuncIndex(index, program.Functions())
 	propagateMapParamStores(program, index)
 	return index
 }
 
-func scanMapFuncStores(program *Program, index *mapFuncIndex) {
-	for _, fn := range sortedFunctions(program.SSAProgram) {
-		if fn == nil {
+func UpdateMapFuncIndex(index *mapFuncIndex, newFuncs []*ssa.Function) {
+	if index == nil {
+		return
+	}
+	for _, fn := range sortedUniqueFunctions(newFuncs) {
+		if fn == nil || index.Scanned[fn] {
 			continue
 		}
-		for _, block := range fn.Blocks {
-			for _, instr := range block.Instrs {
-				update, ok := instr.(*ssa.MapUpdate)
-				if !ok {
-					continue
-				}
-				key, ok := mapFuncKeyForValue(update.Map)
-				if !ok || !hasFunctionValueType(update.Value) {
-					continue
-				}
-				pos := positionFor(program, update.Pos())
-				for _, stored := range resolveStoredCallables(update.Value) {
-					index.addStore(key, mapFuncStore{Func: closureTarget(stored.Func), Position: pos})
-				}
-				if paramIndex, ok := mapStoredParam(fn, update.Value); ok {
-					index.addParamStore(fn, mapParamStore{Key: key, ParamIndex: paramIndex, Position: pos})
-				}
+		index.Scanned[fn] = true
+		scanMapFuncStoresForFunction(fn, index)
+		scanMapFuncCallsitesForFunction(fn, index)
+	}
+}
+
+func scanMapFuncStoresForFunction(fn *ssa.Function, index *mapFuncIndex) {
+	if fn == nil || index == nil {
+		return
+	}
+	for _, block := range fn.Blocks {
+		for _, instr := range block.Instrs {
+			update, ok := instr.(*ssa.MapUpdate)
+			if !ok {
+				continue
+			}
+			key, ok := mapFuncKeyForValue(update.Map)
+			if !ok || !hasFunctionValueType(update.Value) {
+				continue
+			}
+			pos := positionForSSAFunction(fn, update.Pos())
+			for _, stored := range resolveStoredCallables(update.Value) {
+				index.addStore(key, mapFuncStore{Func: closureTarget(stored.Func), Position: pos})
+			}
+			if paramIndex, ok := mapStoredParam(fn, update.Value); ok {
+				index.addParamStore(fn, mapParamStore{Key: key, ParamIndex: paramIndex, Position: pos})
 			}
 		}
 	}
@@ -97,53 +137,139 @@ func propagateMapParamStores(program *Program, index *mapFuncIndex) {
 	if program == nil || index == nil {
 		return
 	}
-	for changed := true; changed; {
-		changed = false
-		for _, caller := range sortedFunctions(program.SSAProgram) {
-			if caller == nil {
-				continue
-			}
-			for _, block := range caller.Blocks {
-				for _, instr := range block.Instrs {
-					call, ok := instr.(ssa.CallInstruction)
-					if !ok || call.Common() == nil {
-						continue
-					}
-					common := call.Common()
-					callee := common.StaticCallee()
-					if callee == nil {
-						continue
-					}
-					for _, paramStore := range append([]mapParamStore(nil), index.ParamStores[callee]...) {
-						if paramStore.ParamIndex < 0 || paramStore.ParamIndex >= len(common.Args) {
-							continue
-						}
-						arg := common.Args[paramStore.ParamIndex]
-						for _, stored := range resolveStoredCallables(arg) {
-							changed = index.addStore(paramStore.Key, mapFuncStore{
-								Func:     closureTarget(stored.Func),
-								Position: positionFor(program, common.Pos()),
-							}) || changed
-						}
-						if callerParam, ok := parameterIndexForValue(caller, arg); ok {
-							changed = index.addParamStore(caller, mapParamStore{
-								Key:        paramStore.Key,
-								ParamIndex: callerParam,
-								Position:   positionFor(program, common.Pos()),
-							}) || changed
-						}
-					}
+	index.PropagationStats = nil
+	index.PropagationIterations = 0
+	index.PropagationLimitHit = false
+	for iteration := 0; ; iteration++ {
+		if iteration >= 20 {
+			index.PropagationLimitHit = true
+			return
+		}
+		stats := mapPropagationIterationStats{Iteration: iteration}
+		changed := false
+		scannedFns := map[*ssa.Function]bool{}
+		facts := initialMapParamFacts(index)
+		for _, fact := range facts {
+			for _, callsite := range index.Callsites[fact.fn] {
+				scannedFns[callsite.Caller] = true
+				stats.CallsitesScanned++
+				newFacts, newStores := propagateMapParamFact(program, index, fact.store, callsite)
+				stats.NewStores += newStores
+				stats.NewParamStores += len(newFacts)
+				if newStores > 0 || len(newFacts) > 0 {
+					changed = true
 				}
 			}
 		}
+		stats.FunctionsScanned = len(scannedFns)
+		index.PropagationStats = append(index.PropagationStats, stats)
+		index.PropagationIterations = iteration + 1
+		if !changed {
+			return
+		}
 	}
+}
+
+type mapParamFact struct {
+	fn    *ssa.Function
+	store mapParamStore
+}
+
+func initialMapParamFacts(index *mapFuncIndex) []mapParamFact {
+	var facts []mapParamFact
+	for fn, stores := range index.ParamStores {
+		for _, store := range stores {
+			facts = append(facts, mapParamFact{fn: fn, store: store})
+		}
+	}
+	sort.Slice(facts, func(i, j int) bool {
+		if FunctionKeyForSSA(facts[i].fn).String() != FunctionKeyForSSA(facts[j].fn).String() {
+			return FunctionKeyForSSA(facts[i].fn).String() < FunctionKeyForSSA(facts[j].fn).String()
+		}
+		if facts[i].store.Key.String() != facts[j].store.Key.String() {
+			return facts[i].store.Key.String() < facts[j].store.Key.String()
+		}
+		return facts[i].store.ParamIndex < facts[j].store.ParamIndex
+	})
+	return facts
+}
+
+func propagateMapParamFact(program *Program, index *mapFuncIndex, paramStore mapParamStore, callsite mapParamCallsite) ([]mapParamFact, int) {
+	if callsite.Common == nil || paramStore.ParamIndex < 0 || paramStore.ParamIndex >= len(callsite.Common.Args) {
+		return nil, 0
+	}
+	arg := callsite.Common.Args[paramStore.ParamIndex]
+	newStores := 0
+	for _, stored := range resolveStoredCallables(arg) {
+		if index.addStore(paramStore.Key, mapFuncStore{
+			Func:     closureTarget(stored.Func),
+			Position: positionFor(program, callsite.Common.Pos()),
+		}) {
+			newStores++
+		}
+	}
+	if callerParam, ok := parameterIndexForValue(callsite.Caller, arg); ok {
+		nextStore := mapParamStore{
+			Key:        paramStore.Key,
+			ParamIndex: callerParam,
+			Position:   positionFor(program, callsite.Common.Pos()),
+		}
+		if index.addParamStore(callsite.Caller, nextStore) {
+			return []mapParamFact{{fn: callsite.Caller, store: nextStore}}, newStores
+		}
+	}
+	return nil, newStores
+}
+
+func scanMapFuncCallsitesForFunction(fn *ssa.Function, index *mapFuncIndex) {
+	if fn == nil || index == nil {
+		return
+	}
+	for _, block := range fn.Blocks {
+		for _, instr := range block.Instrs {
+			call, ok := instr.(ssa.CallInstruction)
+			if !ok || call.Common() == nil {
+				continue
+			}
+			callee := call.Common().StaticCallee()
+			if callee == nil {
+				continue
+			}
+			index.Callsites[callee] = append(index.Callsites[callee], mapParamCallsite{Caller: fn, Common: call.Common()})
+		}
+	}
+}
+
+func recordMapFuncPropagationDiagnostics(graph *Graph, index *mapFuncIndex) {
+	if graph == nil || index == nil {
+		return
+	}
+	if len(index.PropagationStats) > 0 {
+		parts := make([]string, 0, len(index.PropagationStats))
+		for _, stat := range index.PropagationStats {
+			parts = append(parts, fmt.Sprintf("iter%d functions=%d callsites=%d new_stores=%d new_param_stores=%d", stat.Iteration, stat.FunctionsScanned, stat.CallsitesScanned, stat.NewStores, stat.NewParamStores))
+		}
+		graph.AugmentDiagnostics = append(graph.AugmentDiagnostics, Diagnostic{
+			Severity: "info",
+			Phase:    "augment",
+			Message:  fmt.Sprintf("map function parameter propagation iterations=%d: %s", index.PropagationIterations, strings.Join(parts, "; ")),
+		})
+	}
+	if !index.PropagationLimitHit {
+		return
+	}
+	graph.AugmentDiagnostics = append(graph.AugmentDiagnostics, Diagnostic{
+		Severity: "warning",
+		Phase:    "augment",
+		Message:  "map function parameter propagation hit iteration cap 20",
+	})
 }
 
 func connectMapFuncLookups(graph *Graph, program *Program, index *mapFuncIndex) {
 	if graph == nil || program == nil || index == nil {
 		return
 	}
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		from := graph.nodeByFunction(fn)
 		if from == nil {
 			continue

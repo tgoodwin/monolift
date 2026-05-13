@@ -49,31 +49,122 @@ type StructFieldIndex struct {
 	Stores      map[StructFieldKey][]StoredFunction
 	Reads       map[StructFieldKey][]FieldRead
 	Diagnostics []string
+	Scanned     map[*ssa.Function]bool
 }
 
 func newStructFieldIndex() *StructFieldIndex {
 	return &StructFieldIndex{
-		Stores: map[StructFieldKey][]StoredFunction{},
-		Reads:  map[StructFieldKey][]FieldRead{},
+		Stores:  map[StructFieldKey][]StoredFunction{},
+		Reads:   map[StructFieldKey][]FieldRead{},
+		Scanned: map[*ssa.Function]bool{},
 	}
 }
 
 // AugmentStructField scans all loaded SSA functions for function values stored
 // into struct fields. Read-side connection is added by later sprint tasks.
-func AugmentStructField(graph *Graph, program *Program) (*StructFieldIndex, error) {
+func AugmentStructField(graph *Graph, program *Program, indexes ...*StructFieldIndex) (*StructFieldIndex, error) {
 	if program == nil {
 		return nil, fmt.Errorf("program is nil")
 	}
 	program.BuildSSA()
-	index := newStructFieldIndex()
-	scanStructFieldWrites(program, index)
-	scanStructFieldReads(program, index)
+	var index *StructFieldIndex
+	if len(indexes) > 0 {
+		index = indexes[0]
+	}
+	if index == nil {
+		index = newStructFieldIndex()
+		UpdateStructFieldIndex(index, program.Functions())
+	}
 	connectStructFieldReads(graph, index)
 	return index, nil
 }
 
+// UpdateStructFieldIndex incrementally scans functions that were not already
+// included in index.
+func UpdateStructFieldIndex(index *StructFieldIndex, newFuncs []*ssa.Function) {
+	if index == nil {
+		return
+	}
+	for _, fn := range sortedUniqueFunctions(newFuncs) {
+		if fn == nil || index.Scanned[fn] {
+			continue
+		}
+		index.Scanned[fn] = true
+		scanStructFieldWritesForFunction(fn, index)
+		scanStructFieldReadsForFunction(fn, index)
+	}
+}
+
+func scanStructFieldWritesForFunction(fn *ssa.Function, index *StructFieldIndex) {
+	if fn == nil || index == nil {
+		return
+	}
+	for _, block := range fn.Blocks {
+		for _, instr := range block.Instrs {
+			store, ok := instr.(*ssa.Store)
+			if !ok {
+				continue
+			}
+			fieldAddr, ok := store.Addr.(*ssa.FieldAddr)
+			if !ok {
+				continue
+			}
+			key, structType, fieldType, ok := structFieldInfo(fieldAddr)
+			if !ok {
+				continue
+			}
+			for _, stored := range resolveStoredCallables(store.Val) {
+				stored.Key = key
+				stored.Position = positionForSSAFunction(fn, store.Pos())
+				stored.Kind = fieldStoreKind(fieldAddr)
+				stored.Description = fmt.Sprintf("struct field write %s", key.String())
+				stored.StructType = structType
+				stored.FieldType = fieldType
+				stored.ValueType = store.Val.Type()
+				index.addStore(stored)
+			}
+		}
+	}
+}
+
+func scanStructFieldReadsForFunction(fn *ssa.Function, index *StructFieldIndex) {
+	if fn == nil || index == nil {
+		return
+	}
+	for _, block := range fn.Blocks {
+		for _, instr := range block.Instrs {
+			call, ok := instr.(*ssa.Call)
+			if !ok || call.Common() == nil || call.Common().IsInvoke() {
+				continue
+			}
+			fieldAddr, ok := loadedFieldAddr(call.Common().Value)
+			if !ok {
+				continue
+			}
+			key, _, fieldType, ok := structFieldInfo(fieldAddr)
+			if !ok {
+				continue
+			}
+			index.addRead(FieldRead{
+				Key:       key,
+				Caller:    fn,
+				Position:  positionForSSAFunction(fn, call.Common().Pos()),
+				FieldType: fieldType,
+			})
+		}
+	}
+}
+
+func positionForSSAFunction(fn *ssa.Function, pos token.Pos) Position {
+	if fn == nil || fn.Prog == nil || fn.Prog.Fset == nil || !pos.IsValid() {
+		return Position{}
+	}
+	place := fn.Prog.Fset.Position(pos)
+	return Position{File: place.Filename, Line: place.Line, Column: place.Column}
+}
+
 func scanStructFieldWrites(program *Program, index *StructFieldIndex) {
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		if fn == nil {
 			continue
 		}
@@ -93,7 +184,7 @@ func scanStructFieldWrites(program *Program, index *StructFieldIndex) {
 				}
 				for _, stored := range resolveStoredCallables(store.Val) {
 					stored.Key = key
-					stored.Position = positionFor(program, store.Pos())
+					stored.Position = positionForSSAFunction(fn, store.Pos())
 					stored.Kind = fieldStoreKind(fieldAddr)
 					stored.Description = fmt.Sprintf("struct field write %s", key.String())
 					stored.StructType = structType
@@ -177,7 +268,7 @@ func storedAssignableToField(stored StoredFunction, fieldType types.Type) bool {
 }
 
 func scanStructFieldReads(program *Program, index *StructFieldIndex) {
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		if fn == nil {
 			continue
 		}
@@ -198,7 +289,7 @@ func scanStructFieldReads(program *Program, index *StructFieldIndex) {
 				index.addRead(FieldRead{
 					Key:       key,
 					Caller:    fn,
-					Position:  positionFor(program, call.Common().Pos()),
+					Position:  positionForSSAFunction(fn, call.Common().Pos()),
 					FieldType: fieldType,
 				})
 			}

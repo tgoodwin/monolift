@@ -41,7 +41,7 @@ func AugmentPackageVars(graph *Graph, program *Program) error {
 }
 
 func scanPackageVarWrites(program *Program, index *packageVarIndex) {
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		if fn == nil {
 			continue
 		}
@@ -79,7 +79,7 @@ func connectPackageVarReads(graph *Graph, program *Program, index *packageVarInd
 	if graph == nil || program == nil || index == nil {
 		return
 	}
-	for _, fn := range sortedFunctions(program.SSAProgram) {
+	for _, fn := range program.Functions() {
 		from := graph.nodeByFunction(fn)
 		if from == nil {
 			continue

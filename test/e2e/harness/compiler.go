@@ -362,6 +362,8 @@ func activationOracleMain(targetName, serviceName string) (string, bool) {
 	switch {
 	case targetName == "activation-miniflux-sanitizehtml" && serviceName == "monolift-oracle-sanitizehtml":
 		return minifluxSanitizeHTMLOracleMain, true
+	case targetName == "activation-miniflux-striptags" && serviceName == "monolift-oracle-striptags":
+		return minifluxStripTagsOracleMain, true
 	case targetName == "activation-caddy-cleanpath" && serviceName == "monolift-oracle-cleanpath":
 		return caddyCleanPathOracleMain, true
 	case targetName == "activation-gitea-pathescapesegments" && serviceName == "monolift-oracle-pathescapesegments":
@@ -422,6 +424,66 @@ func handleInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, invokeResponse{
 		Result: sanitizer.SanitizeHTML(in.BaseURL, in.Input, in.SanitizerOptions),
+	})
+}
+
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		log.Printf("write json: %v", err)
+	}
+}
+`
+
+const minifluxStripTagsOracleMain = `package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+
+	"miniflux.app/v2/internal/reader/sanitizer"
+)
+
+type invokeRequest struct {
+	Input string ` + "`json:\"input\"`" + `
+}
+
+type invokeResponse struct {
+	Result string ` + "`json:\"result\"`" + `
+}
+
+func main() {
+	addr := os.Getenv("MONOLIFT_HTTP_ADDR")
+	if addr == "" {
+		addr = ":8081"
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/invoke", handleInvoke)
+	mux.HandleFunc("/healthz", handleHealthz)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+func handleInvoke(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	defer r.Body.Close()
+	var in invokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, invokeResponse{
+		Result: sanitizer.StripTags(in.Input),
 	})
 }
 

@@ -20,21 +20,24 @@ func main() {
 
 func run(args []string) int {
 	var (
-		packagesFlag  string
-		target        string
-		format        string
-		verbose       bool
-		timeout       time.Duration
-		evalMode      bool
-		evalTraces    string
-		evalManifest  string
-		evalRoot      string
-		evalProjects  string
-		evalJSON      string
-		evalMD        string
-		deterministic     bool
-		augmentations     string
+		packagesFlag       string
+		target             string
+		format             string
+		verbose            bool
+		profile            bool
+		profileOutput      string
+		timeout            time.Duration
+		evalMode           bool
+		evalTraces         string
+		evalManifest       string
+		evalRoot           string
+		evalProjects       string
+		evalJSON           string
+		evalMD             string
+		deterministic      bool
+		augmentations      string
 		reverseImportScope bool
+		skipAugmentIfRTA   bool
 	)
 	flags := flag.NewFlagSet("activation-path", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
@@ -42,6 +45,8 @@ func run(args []string) int {
 	flags.StringVar(&target, "target", "", "target function source location as file:line")
 	flags.StringVar(&format, "format", "text", "output format: text or json")
 	flags.BoolVar(&verbose, "verbose", false, "include diagnostics and phase timings in text output")
+	flags.BoolVar(&profile, "profile", false, "emit structured JSON timing profile")
+	flags.StringVar(&profileOutput, "profile-output", "", "write --profile JSON to this path instead of stdout")
 	flags.DurationVar(&timeout, "timeout", 120*time.Second, "per-target analysis timeout")
 	flags.BoolVar(&evalMode, "eval", false, "run the activation-path evaluation harness")
 	flags.StringVar(&evalTraces, "eval-traces", "docs/research/activation-paths/traces", "directory of structured JSON traces")
@@ -53,6 +58,7 @@ func run(args []string) int {
 	flags.BoolVar(&deterministic, "deterministic", false, "redact nondeterministic feasibility timing/memory fields")
 	flags.StringVar(&augmentations, "augmentations", string(activation.ModeAll), "augmentation mode: rta, structfield, predicates, goroutine, all")
 	flags.BoolVar(&reverseImportScope, "reverse-import-scope", false, "pre-filter packages to transitive importers of the target before type-checking")
+	flags.BoolVar(&skipAugmentIfRTA, "skip-augment-if-rta-reachable", false, "skip augmentation when the target is already reachable in the RTA graph")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -77,17 +83,26 @@ func run(args []string) int {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	analyzer := activation.NewAnalyzer(activation.Config{
-		Dir:           ".",
-		Packages:      patterns,
-		Target:        target,
-		Format:        format,
-		Verbose:       verbose,
-		Timeout:       timeout,
-		Augment:       augmentMode,
-		ScopePackages: reverseImportScope,
+		Dir:                         ".",
+		Packages:                    patterns,
+		Target:                      target,
+		Format:                      format,
+		Verbose:                     verbose,
+		Timeout:                     timeout,
+		Augment:                     augmentMode,
+		ScopePackages:               reverseImportScope,
+		SkipAugmentWhenRTAReachable: skipAugmentIfRTA,
 	})
 	result, err := analyzer.Analyze(ctx)
-	if format == "json" {
+	if profile {
+		if writeErr := writeProfile(profileOutput, result); writeErr != nil {
+			fmt.Fprintln(os.Stderr, writeErr)
+			return 1
+		}
+	}
+	if profile && profileOutput == "" {
+		// Keep stdout machine-readable when --profile owns it.
+	} else if format == "json" {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if result == nil {
@@ -107,6 +122,62 @@ func run(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+type profileReport struct {
+	Found              bool                     `json:"found"`
+	SkippedAugment     bool                     `json:"skipped_augment,omitempty"`
+	Category           activation.MissCategory  `json:"category,omitempty"`
+	Target             *activation.Node         `json:"target,omitempty"`
+	PathLength         int                      `json:"path_length,omitempty"`
+	RecommendedCutStep int                      `json:"recommended_cut_step,omitempty"`
+	RecommendedCutKey  string                   `json:"recommended_cut_key,omitempty"`
+	Diagnostics        []activation.Diagnostic  `json:"diagnostics,omitempty"`
+	PhaseTimings       []activation.PhaseTiming `json:"phase_timings,omitempty"`
+	AugmentSubTimings  []activation.PhaseTiming `json:"augment_sub_timings,omitempty"`
+	Stats              activation.GraphStats    `json:"stats"`
+}
+
+func writeProfile(path string, result *activation.Result) error {
+	report := buildProfileReport(result)
+	var out io.Writer = os.Stdout
+	var file *os.File
+	var err error
+	if path != "" {
+		file, err = os.Create(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		out = file
+	}
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	return enc.Encode(report)
+}
+
+func buildProfileReport(result *activation.Result) profileReport {
+	if result == nil {
+		return profileReport{Category: activation.MissPackageLoadFailure}
+	}
+	report := profileReport{
+		Found:             result.Found,
+		SkippedAugment:    result.SkippedAugment,
+		Category:          result.Category,
+		Target:            result.Target,
+		Diagnostics:       result.Diagnostics,
+		PhaseTimings:      result.Timings,
+		AugmentSubTimings: result.SubTimings,
+		Stats:             result.Stats,
+	}
+	if result.Path != nil {
+		report.PathLength = len(result.Path.Steps)
+	}
+	if cut, err := activation.AnalyzeCut(result, nil); err == nil && cut != nil && cut.Recommended != nil {
+		report.RecommendedCutStep = cut.Recommended.Step
+		report.RecommendedCutKey = cut.Recommended.NodeKey.String()
+	}
+	return report
 }
 
 func runEval(timeout time.Duration, tracesDir, manifestPath, evaluationRoot, projects, jsonPath, mdPath string, deterministic bool, augmentMode activation.AugmentMode) int {

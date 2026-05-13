@@ -19,6 +19,7 @@ func BuildRTAGraph(program *Program, entrypoints []*ssa.Function) (*Graph, error
 		return nil, fmt.Errorf("no entrypoints")
 	}
 	result := rta.Analyze(entrypoints, true)
+	program.invalidateFunctions()
 	return convertCallGraph(program, result.CallGraph), nil
 }
 

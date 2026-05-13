@@ -16,17 +16,18 @@ type Analyzer struct {
 
 // Config describes one activation-path analysis run.
 type Config struct {
-	Dir           string
-	Packages      []string
-	Target        string
-	Format        string
-	Verbose       bool
-	Timeout       time.Duration
-	Context       context.Context `json:"-"`
-	BuildFlags    []string
-	Env           []string
-	Augment       AugmentMode
-	ScopePackages bool
+	Dir                         string
+	Packages                    []string
+	Target                      string
+	Format                      string
+	Verbose                     bool
+	Timeout                     time.Duration
+	Context                     context.Context `json:"-"`
+	BuildFlags                  []string
+	Env                         []string
+	Augment                     AugmentMode
+	ScopePackages               bool
+	SkipAugmentWhenRTAReachable bool
 }
 
 // Program is the loaded package/type/SSA state used by the analyzer.
@@ -35,6 +36,8 @@ type Program struct {
 	Packages    []*packages.Package
 	SSAProgram  *ssa.Program
 	SSAPackages []*ssa.Package
+	functions   []*ssa.Function
+	functionsOK bool
 }
 
 // Graph is a deterministic call graph projection used for path search.
@@ -81,16 +84,18 @@ type PathStep struct {
 
 // Result is the stable analyzer result emitted by the CLI and evaluator.
 type Result struct {
-	Found       bool          `json:"found"`
-	Category    MissCategory  `json:"category,omitempty"`
-	Target      *Node         `json:"target,omitempty"`
-	Entrypoints []*Node       `json:"entrypoints,omitempty"`
-	Path        *Path         `json:"path,omitempty"`
-	Cut         *CutResult    `json:"cut,omitempty"`
-	PartialPath *PartialPath  `json:"partial_path,omitempty"`
-	Diagnostics []Diagnostic  `json:"diagnostics,omitempty"`
-	Timings     []PhaseTiming `json:"timings,omitempty"`
-	Stats       GraphStats    `json:"stats"`
+	Found          bool          `json:"found"`
+	SkippedAugment bool          `json:"skipped_augment,omitempty"`
+	Category       MissCategory  `json:"category,omitempty"`
+	Target         *Node         `json:"target,omitempty"`
+	Entrypoints    []*Node       `json:"entrypoints,omitempty"`
+	Path           *Path         `json:"path,omitempty"`
+	Cut            *CutResult    `json:"cut,omitempty"`
+	PartialPath    *PartialPath  `json:"partial_path,omitempty"`
+	Diagnostics    []Diagnostic  `json:"diagnostics,omitempty"`
+	Timings        []PhaseTiming `json:"timings,omitempty"`
+	SubTimings     []PhaseTiming `json:"sub_timings,omitempty"`
+	Stats          GraphStats    `json:"stats"`
 }
 
 // Diagnostic describes a non-fatal analysis detail or a structured miss cause.
@@ -103,14 +108,22 @@ type Diagnostic struct {
 
 // PhaseTiming records wall time for a major analysis phase.
 type PhaseTiming struct {
-	Phase    string        `json:"phase"`
-	Duration time.Duration `json:"duration"`
+	Phase    string         `json:"phase"`
+	Duration time.Duration  `json:"duration"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // GraphStats is a compact graph size summary.
 type GraphStats struct {
-	Nodes int `json:"nodes"`
-	Edges int `json:"edges"`
+	Nodes               int  `json:"nodes"`
+	Edges               int  `json:"edges"`
+	SSAFunctions        int  `json:"ssa_functions"`
+	GraphFunctions      int  `json:"graph_functions"`
+	ScannedInstructions int  `json:"scanned_instructions"`
+	AddedNodes          int  `json:"added_nodes"`
+	AddedEdges          int  `json:"added_edges"`
+	AugmentIterations   int  `json:"augment_iterations"`
+	AugmentLimitHit     bool `json:"augment_limit_hit"`
 }
 
 // Position records a source location when available.
