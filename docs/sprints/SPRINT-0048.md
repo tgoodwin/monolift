@@ -164,13 +164,13 @@ Generate a same-package exported adapter function that the extracted server call
 
 #### 2G: Admission — method and multi-return gates
 
-- [ ] 2G.1: Accept plans with `ReceiverParam` when receiver type is JSON-serializable (no channels, `io.Reader`/`Writer`, sync primitives, function types). Refuse with `non_serializable_receiver`
-- [ ] 2G.2: Accept plans with multi-return `(T, error)` results. Refuse void-with-side-effects functions with `void_side_effect` if the function has no observable return
-- [ ] 2G.3: When `CutPoint.Receiver` is non-empty but no receiver policy applies (e.g., `ClientReconstructible` state): refuse with `receiver_requires_reconstruction`
-- [ ] 2G.4: Unit test: admit a plan with serializable value-receiver
-- [ ] 2G.5: Unit test: refuse a plan where receiver contains `*sql.DB`
-- [ ] 2G.6: Unit test: admit a plan with `(string, error)` result
-- [ ] 2G.7: Unit test: refuse a plan with `io.Writer` result
+- [x] 2G.1: Accept plans with `ReceiverParam` when receiver type is JSON-serializable (no channels, `io.Reader`/`Writer`, sync primitives, function types). Refuse with `non_serializable_receiver`
+- [x] 2G.2: Accept plans with multi-return `(T, error)` results. Refuse void-with-side-effects functions with `void_side_effect` if the function has no observable return
+- [x] 2G.3: When `CutPoint.Receiver` is non-empty but no receiver policy applies (e.g., `ClientReconstructible` state): refuse with `receiver_requires_reconstruction`
+- [x] 2G.4: Unit test: admit a plan with serializable value-receiver
+- [x] 2G.5: Unit test: refuse a plan where receiver contains `*sql.DB`
+- [x] 2G.6: Unit test: admit a plan with `(string, error)` result
+- [x] 2G.7: Unit test: refuse a plan with `io.Writer` result
 
 #### 2H: Context and logger reconstruction
 

@@ -55,12 +55,41 @@ func AdmitPlan(plan *Plan, base AdmissionVerdict) AdmissionVerdict {
 			verdict = refused(verdict, "missing_reconstructor", "reconstructed parameter has no registered reconstructor", param.GoType)
 		}
 	}
+	// Receiver admission: when CutPoint declares a receiver, a policy must
+	// have been assigned.  If a policy was assigned, the receiver type must
+	// be JSON-serializable (no channels, io types, sync primitives, funcs).
+	if plan.CutPoint.Receiver != "" && plan.ReceiverParam == nil {
+		verdict = refused(verdict, "receiver_requires_reconstruction", "receiver type has no applicable policy (boundary/zero/factory)", plan.CutPoint.Receiver)
+	}
+	if plan.ReceiverParam != nil {
+		if !isSerializableReceiverType(plan.ReceiverParam.GoType) {
+			verdict = refused(verdict, "non_serializable_receiver", "receiver type cannot be serialized over HTTP/JSON", plan.ReceiverParam.GoType)
+		}
+	}
+	// Void-with-side-effects: refuse functions with no observable return.
+	if len(plan.Results) == 0 {
+		verdict = refused(verdict, "void_side_effect", "void function with no return value cannot be verified over HTTP/JSON", "")
+	}
 	// Multi-return (T, error) is supported. Refuse only if there are more
 	// than two results or if the last result of a multi-return is not error.
 	if len(plan.Results) > 2 {
 		verdict = refused(verdict, "unsupported_result_shape", "more than two return values are not supported by the HTTP/JSON generator", "")
 	} else if len(plan.Results) == 2 && plan.Results[1].Codec != CodecError {
 		verdict = refused(verdict, "unsupported_result_shape", "multi-return must have error as the last result", plan.Results[1].GoType)
+	}
+	for _, result := range plan.Results {
+		if result.Codec == CodecError {
+			continue
+		}
+		lowerType := strings.ToLower(result.GoType)
+		switch {
+		case strings.Contains(lowerType, "chan "):
+			verdict = refused(verdict, "streaming_type", "channel result cannot be sent over HTTP/JSON", result.GoType)
+		case strings.Contains(lowerType, "io.reader") || strings.Contains(lowerType, "io.writer"):
+			verdict = refused(verdict, "streaming_type", "streaming result cannot be sent over HTTP/JSON", result.GoType)
+		case strings.Contains(lowerType, "sync."):
+			verdict = refused(verdict, "sync_primitive", "sync primitive result cannot be sent over HTTP/JSON", result.GoType)
+		}
 	}
 	for _, path := range deployArtifactPaths(plan) {
 		if path == "" {
@@ -105,6 +134,32 @@ var dns1123LabelPattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 
 func isDNS1123Label(name string) bool {
 	return len(name) <= 63 && dns1123LabelPattern.MatchString(name)
+}
+
+// isSerializableReceiverType returns false for types that cannot round-trip
+// through JSON: channels, io interfaces, sync primitives, and function types.
+func isSerializableReceiverType(goType string) bool {
+	base := strings.TrimPrefix(goType, "*")
+	lower := strings.ToLower(base)
+	switch {
+	case strings.Contains(lower, "chan "):
+		return false
+	case strings.Contains(lower, "io.reader"),
+		strings.Contains(lower, "io.writer"),
+		strings.Contains(lower, "io.readcloser"),
+		strings.Contains(lower, "io.writecloser"),
+		strings.Contains(lower, "io.readwriter"):
+		return false
+	case strings.Contains(lower, "sync."):
+		return false
+	case strings.HasPrefix(base, "func(") || strings.HasPrefix(base, "func ("):
+		return false
+	case strings.Contains(lower, "sql.db"),
+		strings.Contains(lower, "sql.tx"),
+		strings.Contains(lower, "sql.conn"):
+		return false
+	}
+	return true
 }
 
 func refused(verdict AdmissionVerdict, code, message, typ string) AdmissionVerdict {
