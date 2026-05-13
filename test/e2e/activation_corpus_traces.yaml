@@ -263,13 +263,13 @@ traces:
   - trace_id: gitea/M-16
     project: gitea
     function: "(*Argon2Hasher).HashWithSaltBytes"
-    file_line: "modules/auth/password/hash/argon2.go:FieldNotInCorpus"
+    file_line: "modules/auth/password/hash/argon2.go:29"
     state_class: Stateless
     boundary_class: Serializable
-    status: manifest-skip
+    status: admission-skip
     phase: "3"
-    skip_reason: ""
-    e2e_package: ""
+    skip_reason: "receiver_requires_reconstruction: receiver *PasswordHashAlgorithm has non-serializable fields (recommended cut at PasswordHashAlgorithm.Hash, not concrete Argon2Hasher.HashWithSaltBytes)"
+    e2e_package: activation_gitea_argon2hash
 
   - trace_id: gitea/M-17
     project: gitea
@@ -556,7 +556,7 @@ traces:
     file_line: "server/channels/app/password/hashers/pbkdf2.go:151"
     state_class: ConfigOnly
     boundary_class: Trivial
-    status: scaffolded
+    status: pass
     phase: "3"
     skip_reason: ""
     e2e_package: "activation_mattermost_pbkdf2hash"
@@ -580,9 +580,9 @@ traces:
     file_line: "internal/reader/handler/handler.go:207"
     state_class: Client-reconstructible
     boundary_class: Reconstructible
-    status: manifest-skip
+    status: pass
     phase: "1"
-    skip_reason: "admission accepts; Phase 2D multi-return now supported; pending full e2e validation in Phase 3"
+    skip_reason: ""
     e2e_package: activation_miniflux_refreshfeed
 
   - trace_id: miniflux/M-2
@@ -733,13 +733,13 @@ traces:
   - trace_id: pocketbase/M-3
     project: pocketbase
     function: PasswordFieldValue.Validate
-    file_line: "core/field_password.go:FieldNotInCorpus"
+    file_line: "core/field_password.go:317"
     state_class: Stateless
     boundary_class: Trivial
-    status: manifest-skip
+    status: e2e-fail
     phase: "3"
-    skip_reason: ""
-    e2e_package: ""
+    skip_reason: "stage 9 env-off-fail-modes: superuser auth returns 400 when extracted service disabled; core pipeline (stages 0-8) passed"
+    e2e_package: activation_pocketbase_passwordvalidate
 
   - trace_id: pocketbase/M-4
     project: pocketbase

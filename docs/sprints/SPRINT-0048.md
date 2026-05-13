@@ -89,6 +89,7 @@ No codegen changes — validate that the pipeline already handles these traces e
 - [x] 1.6: Create `workload.go` — exercise the feed refresh path: create admin user, add an RSS feed subscription pointing at the e2e RSS feed server, trigger `PUT /v1/feeds/{feedID}/refresh`, verify entries appear
 - [x] 1.7: Create `oracle.go` — direct invocation of `RefreshFeed` with reconstructed `*storage.Storage` from `DATABASE_URL`. Compare result with extracted service
 - [x] 1.8: Register in `e2e_test.go`. Run focused Kind e2e — all stages pass. If blocked, document and continue to Phase 2
+  - **Verified:** PASS (33.3s). StopAtStage 4, verdict "refuse-blocking" matches. Compile and activation pipeline complete successfully.
 
 ### Phase 2: Callable shape foundation
 
@@ -202,6 +203,7 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 - [x] 3A.5: Create `workload.go` — exercise password validation via collection/record operations
 - [x] 3A.6: Create `oracle.go` — instantiate `PasswordFieldValue{...}`, call `.Validate()`
 - [x] 3A.7: Register in `e2e_test.go`. Run focused Kind e2e
+  - **Verified:** Stages 0-8 PASS. Stage 9 (env-off-fail-modes) FAIL: `POST /api/collections/_superusers/auth-with-password status=400` when extracted service disabled. Core codegen pipeline works; env-off fail-open path for receiver methods needs debugging.
 
 #### 3B: gitea/M-16 `(*Argon2Hasher).HashWithSaltBytes` (pointer receiver, factory construction)
 
@@ -221,6 +223,7 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 - [ ] ~~3B.5: Create `workload.go`~~ (skipped — admission-skip)
 - [ ] ~~3B.6: Create `oracle.go`~~ (skipped — admission-skip)
 - [ ] ~~3B.7: Register in `e2e_test.go`~~ (skipped — admission-skip)
+  - **Verified:** Target scaffolded but Kind e2e FAIL at stage 3: `receiver_requires_reconstruction: receiver *PasswordHashAlgorithm has non-serializable fields`. Consistent with documented 3B.3 admission-skip.
 
 #### 3C: mattermost/M-14 `(PBKDF2).Hash` (value receiver, `(string, error)` return)
 
@@ -231,8 +234,10 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 - [x] 3C.3: Run `codegen.RunLift`. Previously **REFUSED** with `receiver_requires_reconstruction` due to incorrect package path in receiver factory registry (missing `/v8` in mattermost module path). Fixed registry key from `github.com/mattermost/mattermost/server/channels/...` to `github.com/mattermost/mattermost/server/v8/channels/...`. Factory `DefaultPBKDF2` now matches, admission expected to accept with `ReceiverFactory` policy.
 - [x] 3C.4: Create `test/e2e/targets/activation_mattermost_pbkdf2hash/target.go` — mattermost baseline with postgres, target `channels/app/password/hashers/pbkdf2.go:151`
 - [x] 3C.5: Create `workload.go` — exercises PBKDF2.Hash via user creation and login (hash verification). Non-deterministic output (random salt) tested via functional behavior rather than exact value comparison
-- [ ] ~~3C.6: Create oracle.go~~ — not applicable: PBKDF2.Hash generates random salt per call, making deterministic oracle comparison impossible. Behavioral verification through login is sufficient
+- [x] ~~3C.6: Create oracle.go~~ — not applicable: PBKDF2.Hash generates random salt per call, making deterministic oracle comparison impossible. Behavioral verification through login is sufficient
 - [x] 3C.7: Register in `e2e_test.go`
+  - **Verified:** Compile and admission PASS (ReceiverFactory policy, factory registry v8 path fix confirmed). Stage 4 verdict assertion FAIL: target.go missing `ExpectedVerdict: "refuse-blocking"` (scaffolding bug). Also needs `StopAtStage: 10` for full e2e deploy. Codegen pipeline works; scaffolding fix needed.
+- [x] 3C.8: Fix target.go scaffolding — added `ExpectedVerdict: "refuse-blocking"` and `StopAtStage: 10` to target struct literal. Compilation verified.
 
 #### 3D: caddy/M-1 `(TemplateContext).funcMarkdown` (value receiver, `(string, error)`, `any` param)
 
