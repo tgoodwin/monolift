@@ -1,0 +1,236 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REAL_PATH="$(readlink "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VENV="$REPO_DIR/.venv"
+ENV_FILE="$REPO_DIR/.env"
+
+# ── bootstrap ──────────────────────────────────────────────────────────
+if [ -f "$ENV_FILE" ]; then
+    eval "$(grep -v '^#' "$ENV_FILE" | sed 's/^/export /')"
+fi
+
+if [ -n "${PORTAL_TOKEN_FILE:-}" ] && [ -z "${PORTAL_TOKEN:-}" ]; then
+    expanded=$(eval echo "$PORTAL_TOKEN_FILE")
+    PORTAL_TOKEN=$(cat "$expanded")
+    export PORTAL_TOKEN
+fi
+
+export PORTAL_HTTP="${PORTAL_HTTP:-https://boss.emulab.net:43794}"
+
+PORTAL_CLI="$VENV/bin/portal-cli"
+if [ ! -x "$PORTAL_CLI" ]; then
+    echo "error: portal-cli not found. Run:"
+    echo "  python3 -m venv $VENV"
+    echo "  $VENV/bin/pip install 'portal-api[cli] @ git+https://gitlab.flux.utah.edu/emulab/portal-api.git'"
+    exit 1
+fi
+
+JQ=$(command -v jq 2>/dev/null || true)
+if [ -z "$JQ" ]; then
+    echo "error: jq is required (brew install jq)" >&2
+    exit 1
+fi
+
+# ── helpers ────────────────────────────────────────────────────────────
+bold()  { printf '\033[1m%s\033[0m' "$*"; }
+dim()   { printf '\033[2m%s\033[0m' "$*"; }
+green() { printf '\033[32m%s\033[0m' "$*"; }
+red()   { printf '\033[31m%s\033[0m' "$*"; }
+yellow(){ printf '\033[33m%s\033[0m' "$*"; }
+
+status_color() {
+    case "$1" in
+        ready|provisioned) green "$1" ;;
+        failed|error)      red "$1" ;;
+        *)                 yellow "$1" ;;
+    esac
+}
+
+# resolve experiment id: accept UUID or prefix-match on name
+resolve_exp() {
+    local input="$1"
+    # already a UUID
+    if [[ "$input" =~ ^[0-9a-f]{8}-[0-9a-f]{4}- ]]; then
+        echo "$input"
+        return
+    fi
+    # match by name substring
+    local id
+    id=$($PORTAL_CLI experiment list 2>/dev/null \
+        | $JQ -r --arg q "$input" '.experiments[] | select(.name | test($q; "i")) | .id' \
+        | head -1)
+    if [ -z "$id" ]; then
+        echo "error: no experiment matching '$input'" >&2
+        return 1
+    fi
+    echo "$id"
+}
+
+# extract SSH hostname from experiment manifests (XML inside JSON)
+get_ssh_host() {
+    local id="$1"
+    local manifests
+    manifests=$($PORTAL_CLI experiment manifests get --experiment-id "$id" 2>/dev/null || true)
+    [ -z "$manifests" ] && return
+    echo "$manifests" | $JQ -r 'to_entries[].value' 2>/dev/null \
+        | sed -n 's/.*login[^>]*hostname="\([^"]*\)".*/\1/p' \
+        | head -1 || true
+}
+
+# ── commands ───────────────────────────────────────────────────────────
+cmd_ls() {
+    local raw
+    raw=$($PORTAL_CLI experiment list 2>/dev/null)
+    local count
+    count=$(echo "$raw" | $JQ '.experiments | length')
+
+    if [ "$count" -eq 0 ]; then
+        echo "No active experiments."
+        return
+    fi
+
+    echo "$raw" | $JQ -r '.experiments[] | [.name, .status, .profile_name, .bindings.hardware_type // "?", .expires_at, .id] | @tsv' \
+        | while IFS=$'\t' read -r name status profile hw expires id; do
+            expires_short=$(echo "$expires" | sed 's/T/ /;s/+00:00/ UTC/')
+            printf "  %-30s  %s  %-20s  %-12s  %s\n" \
+                "$(bold "$name")" "$(status_color "$status")" "$profile" "$hw" "$(dim "$expires_short")"
+            printf "  %s\n\n" "$(dim "$id")"
+        done
+}
+
+cmd_status() {
+    local id
+    id=$(resolve_exp "${1:?usage: cl status <name|id>}")
+    local raw
+    raw=$($PORTAL_CLI experiment get --experiment-id "$id" 2>/dev/null)
+
+    echo "$raw" | $JQ -r '
+        "  Name:      \(.name)",
+        "  Status:    \(.status)",
+        "  Profile:   \(.profile_name)",
+        "  Hardware:  \(.bindings.hardware_type // "?")",
+        "  Image:     \(.bindings.os_image // "?")",
+        "  Project:   \(.project)",
+        "  Created:   \(.created_at)",
+        "  Expires:   \(.expires_at)",
+        "  Repo:      \(.repository_url // "n/a")",
+        "  Ref:       \(.repository_refspec // "n/a")",
+        "  ID:        \(.id)"
+    '
+
+    local host
+    host=$(get_ssh_host "$id")
+    if [ -n "$host" ]; then
+        echo
+        echo "  SSH:       ssh ${USER}@${host}"
+    fi
+}
+
+cmd_ssh() {
+    local id
+    id=$(resolve_exp "${1:?usage: cl ssh <name|id>}")
+    local host
+    host=$(get_ssh_host "$id")
+    if [ -z "$host" ]; then
+        echo "error: could not determine SSH hostname (experiment may still be provisioning)" >&2
+        exit 1
+    fi
+    echo "Connecting to $host ..."
+    exec ssh "${USER}@${host}"
+}
+
+cmd_extend() {
+    local id hours
+    id=$(resolve_exp "${1:?usage: cl extend <name|id> [hours]}")
+    hours="${2:-16}"
+    $PORTAL_CLI experiment extend --experiment-id "$id" --extend-by "$hours" 2>/dev/null
+    echo "Extended by ${hours}h."
+    cmd_status "$id"
+}
+
+cmd_terminate() {
+    local id
+    id=$(resolve_exp "${1:?usage: cl terminate <name|id>}")
+    read -rp "Terminate experiment $id? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy] ]]; then
+        $PORTAL_CLI experiment terminate --experiment-id "$id" 2>/dev/null
+        echo "Terminated."
+    else
+        echo "Cancelled."
+    fi
+}
+
+cmd_create() {
+    local name="${1:-monolift-build}"
+    local project="${2:-DVM}"
+    local hours="${3:-16}"
+
+    echo "Creating experiment '${name}' (project=${project}, duration=${hours}h) ..."
+    local raw
+    raw=$($PORTAL_CLI experiment create \
+        --name "$name" \
+        --project "$project" \
+        --profile-name monolift-buildserver \
+        --profile-project "$project" \
+        --duration "$hours" \
+        2>/dev/null)
+    local id
+    id=$(echo "$raw" | $JQ -r '.id')
+    echo "Created: $id"
+    echo "Waiting for provisioning ..."
+
+    local status="unknown"
+    while true; do
+        sleep 15
+        status=$($PORTAL_CLI experiment get --experiment-id "$id" 2>/dev/null | $JQ -r '.status')
+        printf "  %s\n" "$(status_color "$status")"
+        case "$status" in
+            ready|provisioned) break ;;
+            failed|error)
+                echo "Experiment failed to provision." >&2
+                exit 1 ;;
+        esac
+    done
+
+    cmd_status "$id"
+}
+
+cmd_raw() {
+    "$PORTAL_CLI" "$@"
+}
+
+# ── dispatch ───────────────────────────────────────────────────────────
+usage() {
+    cat <<EOF
+$(bold "cl") — CloudLab experiment manager for monolift
+
+$(bold "Usage:")
+  cl ls                          List experiments
+  cl status <name|id>            Experiment details + SSH info
+  cl ssh <name|id>               SSH into the build node
+  cl create [name] [project] [hours]
+                                 Create from monolift-buildserver profile
+  cl extend <name|id> [hours]    Extend expiration (default: 16h)
+  cl terminate <name|id>         Tear down an experiment
+  cl raw <portal-cli args...>    Pass-through to portal-cli
+
+$(bold "Environment:")
+  PORTAL_TOKEN or PORTAL_TOKEN_FILE   API token (reads from .env)
+  PORTAL_HTTP                         API endpoint
+EOF
+}
+
+case "${1:-help}" in
+    ls|list)     shift; cmd_ls "$@" ;;
+    status|st)   shift; cmd_status "$@" ;;
+    ssh)         shift; cmd_ssh "$@" ;;
+    create)      shift; cmd_create "$@" ;;
+    extend|ext)  shift; cmd_extend "$@" ;;
+    terminate)   shift; cmd_terminate "$@" ;;
+    raw)         shift; cmd_raw "$@" ;;
+    help|-h|--help) usage ;;
+    *)           echo "Unknown command: $1"; usage; exit 1 ;;
+esac

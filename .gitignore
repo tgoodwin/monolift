@@ -32,3 +32,5 @@ docs/site/site/
 scripts/__pycache__/
 test/memcheck/_kill_smoketest/smoke.bin
 /.moab
+.venv/
+.env
