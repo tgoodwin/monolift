@@ -123,11 +123,11 @@ Three receiver strategies, selected automatically by the planner:
 
 Generate a same-package exported adapter function that the extracted server calls, instead of calling the cut symbol directly. This handles unexported functions and methods (like `caddy/M-1 funcMarkdown`).
 
-- [ ] 2C.1: In `pkg/codegen/render.go`, generate a `MonoliftInvoke<FuncName>` adapter function in the same package as the cut point. For methods: `func MonoliftInvoke<FuncName>(recv <ReceiverType>, args...) results... { return recv.<Method>(args...) }`. For functions: `func MonoliftInvoke<FuncName>(args...) results... { return <func>(args...) }`
-- [ ] 2C.2: The adapter function must be exported so the extracted server (in a separate package) can call it
-- [ ] 2C.3: The adapter is written to the patched package alongside the renamed original function
-- [ ] 2C.4: Unit test: adapter for unexported method `funcMarkdown` produces an exported `MonoliftInvokeFuncMarkdown`
-- [ ] 2C.5: Unit test: adapter for exported function `SanitizeHTML` produces `MonoliftInvokeSanitizeHTML` — verify existing targets can use the adapter path without regression
+- [x] 2C.1: In `pkg/codegen/render.go`, generate a `MonoliftInvoke<FuncName>` adapter function in the same package as the cut point. For methods: `func MonoliftInvoke<FuncName>(recv <ReceiverType>, args...) results... { return recv.<Method>(args...) }`. For functions: `func MonoliftInvoke<FuncName>(args...) results... { return <func>(args...) }`
+- [x] 2C.2: The adapter function must be exported so the extracted server (in a separate package) can call it
+- [x] 2C.3: The adapter is written to the patched package alongside the renamed original function
+- [x] 2C.4: Unit test: adapter for unexported method `funcMarkdown` produces an exported `MonoliftInvokeFuncMarkdown`
+- [x] 2C.5: Unit test: adapter for exported function `SanitizeHTML` produces `MonoliftInvokeSanitizeHTML` — verify existing targets can use the adapter path without regression
 
 #### 2D: Multi-return and error result support
 

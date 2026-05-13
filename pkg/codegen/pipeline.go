@@ -144,6 +144,21 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 			return nil, err
 		}
 		entries = append(entries, ManifestEntry{Path: plan.ClientPath, Kind: "client_stub"})
+
+		// Render and write the same-package invocation adapter.
+		adapterFiles, err := timeLiftPhase(&timings, "render-adapter", func() (map[string][]byte, error) {
+			return RenderAdapter(plan)
+		})
+		if err != nil {
+			return nil, err
+		}
+		for adapterPath, adapterContent := range adapterFiles {
+			if err := writeAtomic(adapterPath, withGeneratedHeader(plan, adapterContent), 0644); err != nil {
+				return nil, err
+			}
+			entries = append(entries, ManifestEntry{Path: adapterPath, Kind: "adapter"})
+		}
+
 		manifest, err = writeManifest(plan, entries, patchedFile)
 		if err != nil {
 			return nil, err
