@@ -410,12 +410,12 @@ traces:
   - trace_id: mattermost/M-1
     project: mattermost
     function: Extract
-    file_line: "server/channels/app/imaging/extractor.go:FieldNotInCorpus"
+    file_line: "server/platform/services/docextractor/docextractor.go:21"
     state_class: Client-reconstructible
     boundary_class: Trivial
-    status: manifest-skip
+    status: admission-skip
     phase: "3"
-    skip_reason: ""
+    skip_reason: "package load failure: channels/app has pre-existing type errors (undefined types in model package); transitive reverse-import set cannot be loaded"
     e2e_package: ""
 
   - trace_id: mattermost/M-2
