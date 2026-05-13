@@ -248,6 +248,9 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		t.Fatalf("%v", err)
 	}
 	defer liftedPF.Stop()
+	if target.StopAtStage <= 7 {
+		return
+	}
 	tracker.Enter(8, "lifted-workload")
 	if len(target.LiftedExtractedServices) > 0 {
 		if err := assertExtractedServicesDormantRuntime(ctx, target, liftedNS); err != nil {
