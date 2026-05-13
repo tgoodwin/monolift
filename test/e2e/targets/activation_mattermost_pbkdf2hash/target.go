@@ -9,7 +9,9 @@ import (
 
 func Target() harness.TargetCase {
 	return harness.TargetCase{
-		Name: "activation-mattermost-pbkdf2hash",
+		Name:            "activation-mattermost-pbkdf2hash",
+		ExpectedVerdict: "refuse-blocking",
+		StopAtStage:     10,
 		BaselineManifests: []string{
 			"test/e2e/fixtures/postgres.yaml",
 			"test/e2e/targets/activation_mattermost_pbkdf2hash/baseline/deployment.yaml",
