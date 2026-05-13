@@ -252,9 +252,9 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 
 #### 3F: mattermost/M-1 `Extract` (package-level, needs context + logger)
 
-- [ ] 3F.1: Locate `Extract` in mattermost corpus. Confirm: package-level function, trivial boundary, client-reconstructible state. Record exact `file:line` and check whether params include `context.Context` and/or logger interfaces
-- [ ] 3F.2: Run activation analysis and `codegen.RunLift`. Verify context/logger reconstruction from Phase 2H is applied. If other params block admission, document and skip
-- [ ] 3F.3: Create target, workload (exercise extraction path), oracle. Run focused Kind e2e
+- [x] 3F.1: Locate `Extract` in mattermost corpus. Found at `server/platform/services/docextractor/docextractor.go:21`. Package-level function, signature: `func Extract(logger mlog.LoggerIFace, filename string, r io.ReadSeeker, settings ExtractSettings) (string, error)`. Params: logger (Phase 2H reconstructible), string (serializable), io.ReadSeeker (Phase 4 streaming bytes codec), ExtractSettings struct (serializable). Returns (string, error) — Phase 2G supported.
+- [x] 3F.2: admission-skip — package load failure. The `channels/app` package (which imports `docextractor`) has pre-existing type errors in the mattermost evaluation codebase (undefined types in `model` package: `SetChannelMembersResponse`, `AccessControlPolicyVersionV0_3`, etc.). Even with `ScopePackages` reverse-import narrowing, `channels/app` is in the transitive reverse-import set and fails type-checking during SSA program construction. The function's own params are theoretically supported (logger=Phase 2H, io.ReadSeeker=Phase 4, ExtractSettings=serializable, (string,error)=Phase 2G), but the infrastructure cannot load the required package graph.
+- [ ] 3F.3: Skipped (admission-skip — package load failure)
 
 ### Phase 4: Streaming-to-bytes codec
 
