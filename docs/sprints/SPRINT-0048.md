@@ -67,7 +67,7 @@ The sprint is designed for overnight AI-model execution via sprint-execute with 
 Build the infrastructure needed for overnight best-effort execution before attempting any new targets.
 
 - [x] 0.1: Audit the current 7 passing activation targets and record whether any correspond exactly to matrix trace IDs. Write the mapping to `docs/research/runs/SPRINT-0048-baseline.md`
-- [ ] 0.2: Create `test/e2e/activation_corpus_traces.yaml` with one row per matrix trace: trace ID, project, function name, target `file:line`, state class, boundary class, matrix status, assigned phase, expected skip reason (when applicable), and e2e target package (when implemented)
+- [x] 0.2: Create `test/e2e/activation_corpus_traces.yaml` with one row per matrix trace: trace ID, project, function name, target `file:line`, state class, boundary class, matrix status, assigned phase, expected skip reason (when applicable), and e2e target package (when implemented)
 - [ ] 0.3: Add `scripts/run_activation_corpus_sweep.sh` that reads the manifest, runs one trace per subprocess, applies a per-trace timeout (default 25 min), writes JSONL results, produces a Markdown summary table, and continues after admission refusal, compile failure, e2e failure, or timeout
 - [ ] 0.4: Define trace result statuses: `pass`, `admission-skip`, `build-skip`, `e2e-fail`, `timeout-skip`, `manifest-skip`, `infra-fail`
 - [ ] 0.5: Add an admission-only mode to the runner (`--admission-only`) that runs `AdmitCut`/`AdmitPlan` for each trace without starting Kind, logging refusal codes for the full matrix

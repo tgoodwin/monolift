@@ -1,0 +1,830 @@
+# SPRINT-0048 Corpus Trace Manifest
+#
+# One row per SPRINT-0039 matrix trace (72 total: 71 corpus traces + mattermost/M-4 structural gap).
+# This manifest drives the sweep runner and tracks per-trace lifecycle status.
+#
+# Status values:
+#   pass            — focused Kind e2e passes
+#   admission-skip  — AdmitCut/AdmitPlan refused the trace
+#   build-skip      — patched package or extracted service failed to compile
+#   e2e-fail        — Kind e2e failed (deploy, workload, oracle, or transcript mismatch)
+#   timeout-skip    — trace exceeded per-trace timeout
+#   manifest-skip   — trace skipped by manifest annotation (not attempted)
+#   infra-fail      — infrastructure failure (cluster, docker, network)
+#
+# Fields:
+#   trace_id        — unique corpus trace identifier (project/M-N)
+#   project         — source project name
+#   function        — recommended cut function name
+#   file_line       — target file:line in the source project
+#   state_class     — receiver/parameter state classification
+#   boundary_class  — boundary data classification
+#   status          — current trace status (see above)
+#   phase           — sprint phase that addresses this trace (0-6 or "deferred")
+#   skip_reason     — reason for skip when status is manifest-skip or admission-skip
+#   e2e_package     — Go e2e target package name (when implemented)
+
+traces:
+  # ── Caddy ──────────────────────────────────────────────────────────────────
+
+  - trace_id: caddy/M-1
+    project: caddy
+    function: "(TemplateContext).funcMarkdown"
+    file_line: "modules/caddyhttp/templates/tplcontext.go:FieldNotInCorpus"
+    state_class: Stateless
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "3"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: caddy/M-2
+    project: caddy
+    function: "(*Templates).executeTemplate"
+    file_line: "modules/caddyhttp/templates/templates.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Proxy-required
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "proxy-required boundary"
+    e2e_package: ""
+
+  - trace_id: caddy/M-3
+    project: caddy
+    function: "(HTTPBasicAuth).correctPassword"
+    file_line: "modules/caddyhttp/caddyauth/basicauth.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: "5"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: caddy/M-4
+    project: caddy
+    function: "(InternalIssuer).Issue"
+    file_line: "modules/caddytls/internalissuer.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: "5"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: caddy/M-5
+    project: caddy
+    function: "(*Encode).ServeHTTP"
+    file_line: "modules/caddyhttp/encode/encode.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Proxy-required
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: caddy/M-7
+    project: caddy
+    function: "(*FileServer).loadDirectoryContents"
+    file_line: "modules/caddyhttp/fileserver/browse.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Proxy-required
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  # ── Gitea ──────────────────────────────────────────────────────────────────
+
+  - trace_id: gitea/M-1
+    project: gitea
+    function: handler
+    file_line: "routers/web/web.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs web context/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-2
+    project: gitea
+    function: handler
+    file_line: "routers/web/web.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs web context/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-3
+    project: gitea
+    function: UpdateAvatar
+    file_line: "routers/api/v1/user/avatar.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs object storage/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-4
+    project: gitea
+    function: Migrate
+    file_line: "services/migrations/migrate.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs repository migration reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-5
+    project: gitea
+    function: registered
+    file_line: "services/auth/source/oauth2/providers.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs registry/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-6
+    project: gitea
+    function: queueHandler
+    file_line: "services/pull/check.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs queue/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-7
+    project: gitea
+    function: checkPullRequestMergeable
+    file_line: "services/pull/merge.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs repository/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-8
+    project: gitea
+    function: GetDiffForRender
+    file_line: "services/gitdiff/gitdiff.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs git repository context reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-9
+    project: gitea
+    function: UploadPackageFile
+    file_line: "routers/api/packages/handler.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs package storage/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-10
+    project: gitea
+    function: handler
+    file_line: "routers/web/web.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs web context/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-11
+    project: gitea
+    function: InitIssueIndexer
+    file_line: "modules/indexer/issues/indexer.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs indexer reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-12
+    project: gitea
+    function: handler
+    file_line: "routers/web/web.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs web context/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-13
+    project: gitea
+    function: send
+    file_line: "services/mailer/mailer.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "5"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: gitea/M-14
+    project: gitea
+    function: DetectWorkflows
+    file_line: "modules/actions/workflows.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs repository/git context reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-15
+    project: gitea
+    function: queueHandler
+    file_line: "services/pull/check.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs queue/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: gitea/M-16
+    project: gitea
+    function: "(*Argon2Hasher).HashWithSaltBytes"
+    file_line: "modules/auth/password/hash/argon2.go:FieldNotInCorpus"
+    state_class: Stateless
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: "3"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: gitea/M-17
+    project: gitea
+    function: RenderFullFile
+    file_line: "modules/highlight/highlight.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: "3"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: gitea/M-19
+    project: gitea
+    function: UploadPackageFile
+    file_line: "routers/api/packages/handler.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs package storage/DB reconstructor"
+    e2e_package: ""
+
+  # ── Listmonk ───────────────────────────────────────────────────────────────
+
+  - trace_id: listmonk/M-1
+    project: listmonk
+    function: "(*Manager).NewCampaignMessage"
+    file_line: "internal/manager/manager.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs campaign manager/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-2
+    project: listmonk
+    function: "(*Postback).Push"
+    file_line: "internal/messenger/postback/postback.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs postback HTTP/client reconstructor"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-3
+    project: listmonk
+    function: "(*Emailer).Push"
+    file_line: "internal/messenger/email/email.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs mailer/SMTP reconstructor"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-4
+    project: listmonk
+    function: "(*App).UploadMedia"
+    file_line: "cmd/media.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs media store/DB reconstructor"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-5
+    project: listmonk
+    function: "(*App).ImportSubscribers"
+    file_line: "cmd/subscribers.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs app DB/import reconstructor"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-6
+    project: listmonk
+    function: "(*App).BounceWebhook"
+    file_line: "cmd/bounce.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs app DB/config reconstructor"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-7
+    project: listmonk
+    function: "(*Campaign).CompileTemplate"
+    file_line: "models/campaigns.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "5"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: listmonk/M-8
+    project: listmonk
+    function: "(*POP).Scan"
+    file_line: "internal/bounce/pop/pop.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Proxy-required
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "proxy-required boundary"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-9
+    project: listmonk
+    function: anonymous
+    file_line: "cmd/handlers.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: listmonk/M-10
+    project: listmonk
+    function: "(*App).BounceWebhook"
+    file_line: "cmd/bounce.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs app DB/config reconstructor"
+    e2e_package: ""
+
+  # ── Mattermost ─────────────────────────────────────────────────────────────
+
+  - trace_id: mattermost/M-1
+    project: mattermost
+    function: Extract
+    file_line: "server/channels/app/imaging/extractor.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "3"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: mattermost/M-2
+    project: mattermost
+    function: uploadFileSimple
+    file_line: "server/channels/api4/file.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs file store/app reconstructor"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-3
+    project: mattermost
+    function: "(*App).handleWebhookEvents"
+    file_line: "server/channels/app/webhook.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-4
+    project: mattermost
+    function: target-not-found
+    file_line: "N/A"
+    state_class: N/A
+    boundary_class: N/A
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "structural activation gap — infeasible"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-5
+    project: mattermost
+    function: bulkExportCmdF
+    file_line: "server/cmd/mmctl/commands/export.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs command/app reconstructor"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-6
+    project: mattermost
+    function: "(*App).getLinkMetadataForURL"
+    file_line: "server/channels/app/post_metadata.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-7
+    project: mattermost
+    function: "(*App).DoCommandRequest"
+    file_line: "server/channels/app/command.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-8
+    project: mattermost
+    function: "(*App).sendPushNotificationToAllSessions"
+    file_line: "server/channels/app/notification_push.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-9
+    project: mattermost
+    function: execute
+    file_line: "server/channels/app/plugin_commands.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-10
+    project: mattermost
+    function: "(*Service).sendFileToRemote"
+    file_line: "server/channels/app/shared_channel_service.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs remote file/client reconstructor"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-11
+    project: mattermost
+    function: bulkImportCmdF
+    file_line: "server/cmd/mmctl/commands/import.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs command/app reconstructor"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-12
+    project: mattermost
+    function: "(*App).sendNotificationEmail"
+    file_line: "server/channels/app/notification_email.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-13
+    project: mattermost
+    function: "(*Service).sendBatchedEmailNotification"
+    file_line: "server/channels/app/email/service.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs mailer/template reconstructor"
+    e2e_package: ""
+
+  - trace_id: mattermost/M-14
+    project: mattermost
+    function: "(PBKDF2).Hash"
+    file_line: "server/public/model/password.go:FieldNotInCorpus"
+    state_class: Stateless
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "3"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: mattermost/M-15
+    project: mattermost
+    function: slackImportCmdF
+    file_line: "server/cmd/mmctl/commands/import.go:FieldNotInCorpus"
+    state_class: Shared-state
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "shared-state trace"
+    e2e_package: ""
+
+  # ── Miniflux ───────────────────────────────────────────────────────────────
+
+  - trace_id: miniflux/M-1
+    project: miniflux
+    function: RefreshFeed
+    file_line: "internal/reader/handler/handler.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: "1"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: miniflux/M-2
+    project: miniflux
+    function: ProcessFeedEntries
+    file_line: "internal/reader/processor/processor.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs processor dependencies reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-3
+    project: miniflux
+    function: SanitizeHTML
+    file_line: "internal/reader/sanitizer/sanitizer.go:217"
+    state_class: Stateless
+    boundary_class: Trivial
+    status: pass
+    phase: "1"
+    skip_reason: ""
+    e2e_package: activation_miniflux_sanitizehtml
+
+  - trace_id: miniflux/M-4
+    project: miniflux
+    function: PushEntries
+    file_line: "internal/integration/integration.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs integrations config/client reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-5
+    project: miniflux
+    function: "(*iconChecker).UpdateOrCreateFeedIcon"
+    file_line: "internal/reader/icon/checker.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs icon checker/storage reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-6
+    project: miniflux
+    function: ParseFeed
+    file_line: "internal/reader/parser/parser.go:FieldNotInCorpus"
+    state_class: Stateless
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: "4"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: miniflux/M-7
+    project: miniflux
+    function: ScrapeWebsite
+    file_line: "internal/reader/scraper/scraper.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs fetch request builder/client reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-8
+    project: miniflux
+    function: ScrapeWebsite
+    file_line: "internal/reader/scraper/scraper.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs fetch request builder/client reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-9
+    project: miniflux
+    function: SendEntry
+    file_line: "internal/integration/integration.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs integration clients reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-10
+    project: miniflux
+    function: "(*subscriptionFinder).FindSubscriptions"
+    file_line: "internal/reader/subscription/finder.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs finder/fetcher reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-13
+    project: miniflux
+    function: ProcessEntryWebPage
+    file_line: "internal/reader/processor/processor.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs feed/user/storage context reconstructor"
+    e2e_package: ""
+
+  - trace_id: miniflux/M-14
+    project: miniflux
+    function: "(*googleProvider).Profile"
+    file_line: "internal/oauth2/google.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs OIDC/provider HTTP reconstructor"
+    e2e_package: ""
+
+  # ── PocketBase ─────────────────────────────────────────────────────────────
+
+  - trace_id: pocketbase/M-1
+    project: pocketbase
+    function: "(*System).CreateThumb"
+    file_line: "tools/filesystem/filesystem.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs filesystem/image reconstructor"
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-2
+    project: pocketbase
+    function: recordAuthWithOAuth2
+    file_line: "apis/record_auth.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "5"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-3
+    project: pocketbase
+    function: PasswordFieldValue.Validate
+    file_line: "core/field_password.go:FieldNotInCorpus"
+    state_class: Stateless
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "3"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-4
+    project: pocketbase
+    function: Create
+    file_line: "tools/archive/create.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs filesystem/archive context reconstructor"
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-5
+    project: pocketbase
+    function: SendRecordPasswordReset
+    file_line: "core/record_auth_helpers.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Trivial
+    status: manifest-skip
+    phase: "5"
+    skip_reason: ""
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-6
+    project: pocketbase
+    function: "(*PasswordField).setValue"
+    file_line: "core/field_password.go:FieldNotInCorpus"
+    state_class: Stateless
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "mutable boundary write-back"
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-7
+    project: pocketbase
+    function: "(*SMTPClient).send"
+    file_line: "tools/mailer/smtp.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs SMTP client/config reconstructor"
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-8
+    project: pocketbase
+    function: "(*writer).Write"
+    file_line: "tools/filesystem/filesystem.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs writer/filesystem reconstructor"
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-9
+    project: pocketbase
+    function: safeFileFromURL
+    file_line: "core/field_file_helpers.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs HTTP/client policy config reconstructor"
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-10
+    project: pocketbase
+    function: "(*BaseApp).ExpandRecords"
+    file_line: "core/app.go:FieldNotInCorpus"
+    state_class: Client-reconstructible
+    boundary_class: Reconstructible
+    status: manifest-skip
+    phase: deferred
+    skip_reason: "needs app/DAO reconstructor"
+    e2e_package: ""
+
+  - trace_id: pocketbase/M-11
+    project: pocketbase
+    function: resolveEmailTemplate
+    file_line: "core/record_auth_helpers.go:FieldNotInCorpus"
+    state_class: Config-only
+    boundary_class: Serializable
+    status: manifest-skip
+    phase: "5"
+    skip_reason: ""
+    e2e_package: ""
