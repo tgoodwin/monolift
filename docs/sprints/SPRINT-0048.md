@@ -238,6 +238,7 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 - [x] 3C.7: Register in `e2e_test.go`
   - **Verified:** Compile and admission PASS (ReceiverFactory policy, factory registry v8 path fix confirmed). Stage 4 verdict assertion FAIL: target.go missing `ExpectedVerdict: "refuse-blocking"` (scaffolding bug). Also needs `StopAtStage: 10` for full e2e deploy. Codegen pipeline works; scaffolding fix needed.
 - [x] 3C.8: Fix target.go scaffolding — added `ExpectedVerdict: "refuse-blocking"` and `StopAtStage: 10` to target struct literal. Compilation verified.
+- [x] 3C.9: Fix go.mod resolution regression — `findModuleRoot` in `pkg/compiler/extract/loader.go` now falls back to `go.work` when `go.mod` is not found. Handles go.work-only workspace layouts (e.g., mattermost evaluation directory after `writeGoWork`). Added 3 unit tests: go.mod preferred, go.work fallback, go.mod wins over go.work in nested layouts.
 
 #### 3D: caddy/M-1 `(TemplateContext).funcMarkdown` (value receiver, `(string, error)`, `any` param)
 

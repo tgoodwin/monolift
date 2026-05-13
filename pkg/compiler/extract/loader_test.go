@@ -515,6 +515,89 @@ func diagnosticIdentityKey(d Diagnostic) string {
 	}, "|")
 }
 
+func TestFindModuleRootPrefersGoMod(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	subdir := filepath.Join(dir, "a", "b")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(subdir, "main.go")
+	if err := os.WriteFile(file, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	root, err := findModuleRoot(file)
+	if err != nil {
+		t.Fatalf("findModuleRoot: %v", err)
+	}
+	if root != dir {
+		t.Fatalf("findModuleRoot = %q, want %q", root, dir)
+	}
+}
+
+func TestFindModuleRootFallsBackToGoWork(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	subdir := filepath.Join(dir, "a", "b")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// No go.mod — only go.work at root
+	if err := os.WriteFile(filepath.Join(dir, "go.work"), []byte("go 1.24\n\nuse .\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(subdir, "main.go")
+	if err := os.WriteFile(file, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	root, err := findModuleRoot(file)
+	if err != nil {
+		t.Fatalf("findModuleRoot: %v", err)
+	}
+	if root != dir {
+		t.Fatalf("findModuleRoot = %q, want %q", root, dir)
+	}
+}
+
+func TestFindModuleRootGoModWinsOverGoWork(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	innerDir := filepath.Join(dir, "inner")
+	subdir := filepath.Join(innerDir, "pkg")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// go.work at top level
+	if err := os.WriteFile(filepath.Join(dir, "go.work"), []byte("go 1.24\n\nuse ./inner\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// go.mod at inner level
+	if err := os.WriteFile(filepath.Join(innerDir, "go.mod"), []byte("module example/inner\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(subdir, "main.go")
+	if err := os.WriteFile(file, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	root, err := findModuleRoot(file)
+	if err != nil {
+		t.Fatalf("findModuleRoot: %v", err)
+	}
+	// Should find go.mod at inner level, not go.work at top level
+	if root != innerDir {
+		t.Fatalf("findModuleRoot = %q, want %q (go.mod should win over go.work)", root, innerDir)
+	}
+}
+
 func TestAnalyzeDetectsPocketBaseRefusals(t *testing.T) {
 	if os.Getenv("MONOLIFT_CORPUS_TESTS") != "1" {
 		t.Skip("skipping corpus-scale test; set MONOLIFT_CORPUS_TESTS=1 to run")
