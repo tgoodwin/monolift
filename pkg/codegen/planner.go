@@ -112,6 +112,13 @@ func BuildPlan(report reportv2.Report, cut activation.CutResult) (*Plan, error) 
 		if err != nil {
 			return nil, err
 		}
+		// Streaming-bytes params (io.Reader, io.ReadSeeker, io.ReadCloser)
+		// are serialized as bounded byte payloads — they are boundary params,
+		// not reconstructed params, even if the report labels them as such.
+		if param.Codec == CodecStreamingBytes {
+			plan.BoundaryParams = append(plan.BoundaryParams, param)
+			continue
+		}
 		if recon, ok := LookupReconstructor(params.At(i).Type()); ok {
 			param.Classification = activation.Reconstructible
 			plan.ReconstructedParams = append(plan.ReconstructedParams, ReconstructedParam{
