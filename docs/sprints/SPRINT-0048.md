@@ -244,9 +244,11 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 
 #### 3E: gitea/M-17 `RenderFullFile` (package-level, config-only, serializable)
 
-- [ ] 3E.1: Locate `RenderFullFile` in gitea corpus. Confirm: package-level function, serializable boundary, config-only state. Record exact `file:line` and full signature — check for named alias/slice return types that may need special codec handling
-- [ ] 3E.2: Run activation analysis and `codegen.RunLift`. If config params are not all serializable, document and skip
-- [ ] 3E.3: Create target, workload (exercise code rendering via API), oracle. Run focused Kind e2e
+- [x] 3E.1: Locate `RenderFullFile` in gitea corpus. Confirm: package-level function, serializable boundary, config-only state. Record exact `file:line` and full signature — check for named alias/slice return types that may need special codec handling
+  - Located at `modules/highlight/highlight.go:124`. Package-level function, params `(fileName, language string, code []byte)`, returns `([]template.HTML, string)`. `template.HTML` is a named string alias from `html/template`.
+- [x] 3E.2: Run activation analysis and `codegen.RunLift`. If config params are not all serializable, document and skip
+  - **admission-skip**: Two admission blockers: (1) `missing_reconstructor: reconstructed parameter has no registered reconstructor ([]byte)` — `[]byte` param classified as needing a reconstructor instead of being treated as serializable. (2) `unsupported_result_shape: multi-return must have error as the last result (string)` — return type `([]template.HTML, string)` is a `(T, T)` multi-return, not `(T, error)`. Pipeline only supports `error` as last return for multi-return functions.
+- [ ] ~~3E.3: Create target, workload (exercise code rendering via API), oracle. Run focused Kind e2e~~ — skipped (admission-skip)
 
 #### 3F: mattermost/M-1 `Extract` (package-level, needs context + logger)
 
