@@ -158,9 +158,12 @@ func findModuleRoot(rootFile string) (string, error) {
 		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
 			return dir, nil
 		}
+		if _, err := os.Stat(filepath.Join(dir, "go.work")); err == nil {
+			return dir, nil
+		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("no go.mod found above %s", rootFile)
+			return "", fmt.Errorf("no go.mod or go.work found above %s", rootFile)
 		}
 		dir = parent
 	}
