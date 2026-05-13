@@ -733,13 +733,13 @@ traces:
   - trace_id: pocketbase/M-3
     project: pocketbase
     function: PasswordFieldValue.Validate
-    file_line: "core/field_password.go:FieldNotInCorpus"
+    file_line: "core/field_password.go:317"
     state_class: Stateless
     boundary_class: Trivial
-    status: manifest-skip
+    status: e2e-retry
     phase: "3"
-    skip_reason: ""
-    e2e_package: ""
+    skip_reason: "stage 9 env-off auth 400: codegen verified correct, increased auth retry resilience (15x3s)"
+    e2e_package: activation_pocketbase_passwordvalidate
 
   - trace_id: pocketbase/M-4
     project: pocketbase
