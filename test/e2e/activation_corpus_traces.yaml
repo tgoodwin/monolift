@@ -52,23 +52,23 @@ traces:
   - trace_id: caddy/M-3
     project: caddy
     function: "(HTTPBasicAuth).correctPassword"
-    file_line: "modules/caddyhttp/caddyauth/basicauth.go:FieldNotInCorpus"
+    file_line: "modules/caddyhttp/caddyauth/basicauth.go:165"
     state_class: Config-only
     boundary_class: Serializable
-    status: manifest-skip
+    status: admission-skip
     phase: "5"
-    skip_reason: ""
+    skip_reason: "receiver_requires_reconstruction: receiver HTTPBasicAuth has state class SharedState"
     e2e_package: ""
 
   - trace_id: caddy/M-4
     project: caddy
     function: "(InternalIssuer).Issue"
-    file_line: "modules/caddytls/internalissuer.go:FieldNotInCorpus"
+    file_line: "modules/caddytls/internalissuer.go:103"
     state_class: Config-only
     boundary_class: Serializable
-    status: manifest-skip
+    status: admission-skip
     phase: "5"
-    skip_reason: ""
+    skip_reason: "receiver_requires_reconstruction: receiver InternalIssuer has state class SharedState"
     e2e_package: ""
 
   - trace_id: caddy/M-5
@@ -230,12 +230,12 @@ traces:
   - trace_id: gitea/M-13
     project: gitea
     function: send
-    file_line: "services/mailer/mailer.go:FieldNotInCorpus"
+    file_line: "services/mailer/sender/sender.go:17"
     state_class: Client-reconstructible
     boundary_class: Trivial
-    status: manifest-skip
+    status: admission-skip
     phase: "5"
-    skip_reason: ""
+    skip_reason: "extract report: liftability: root function NewContext$1 not found — send is a function variable (var Send = NewContext), closure dispatch not supported"
     e2e_package: ""
 
   - trace_id: gitea/M-14
@@ -364,12 +364,12 @@ traces:
   - trace_id: listmonk/M-7
     project: listmonk
     function: "(*Campaign).CompileTemplate"
-    file_line: "models/campaigns.go:FieldNotInCorpus"
+    file_line: "models/campaigns.go:138"
     state_class: Config-only
     boundary_class: Trivial
-    status: manifest-skip
+    status: admission-skip
     phase: "5"
-    skip_reason: ""
+    skip_reason: "receiver_requires_reconstruction: receiver *Campaign has state class SharedState"
     e2e_package: ""
 
   - trace_id: listmonk/M-8
@@ -722,12 +722,12 @@ traces:
   - trace_id: pocketbase/M-2
     project: pocketbase
     function: recordAuthWithOAuth2
-    file_line: "apis/record_auth.go:FieldNotInCorpus"
+    file_line: "apis/record_auth_with_oauth2.go:30"
     state_class: Config-only
     boundary_class: Trivial
-    status: manifest-skip
+    status: admission-skip
     phase: "5"
-    skip_reason: ""
+    skip_reason: "missing_reconstructor: reconstructed parameter has no registered reconstructor (*core.RequestEvent)"
     e2e_package: ""
 
   - trace_id: pocketbase/M-3
@@ -755,12 +755,12 @@ traces:
   - trace_id: pocketbase/M-5
     project: pocketbase
     function: SendRecordPasswordReset
-    file_line: "core/record_auth_helpers.go:FieldNotInCorpus"
+    file_line: "mails/record.go:128"
     state_class: Config-only
     boundary_class: Trivial
-    status: manifest-skip
+    status: admission-skip
     phase: "5"
-    skip_reason: ""
+    skip_reason: "callable_boundary_values: callback class Moderate would require callable values across the boundary (core.App interface param)"
     e2e_package: ""
 
   - trace_id: pocketbase/M-6
@@ -821,10 +821,10 @@ traces:
   - trace_id: pocketbase/M-11
     project: pocketbase
     function: resolveEmailTemplate
-    file_line: "core/record_auth_helpers.go:FieldNotInCorpus"
+    file_line: "mails/record.go:251"
     state_class: Config-only
     boundary_class: Serializable
-    status: manifest-skip
+    status: admission-skip
     phase: "5"
-    skip_reason: ""
+    skip_reason: "callable_boundary_values: callback class Moderate would require callable values across the boundary (core.App interface param)"
     e2e_package: ""

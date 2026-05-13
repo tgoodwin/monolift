@@ -286,14 +286,14 @@ Independent of Phase 2 receiver work. Adds a codec for `io.ReadSeeker`/`io.Reade
 
 Attempt these after Phase 2 receiver support is proven. Each is independent — skip-on-failure. These targets have method receivers with config-only state. Whether they pass depends on the serializability of each project's config structs.
 
-- [ ] 5.1: Attempt `pocketbase/M-11` `resolveEmailTemplate` — direct function call, serializable boundary, config-only. Run admission, scaffold if accepted, focused e2e
-- [ ] 5.2: Attempt `pocketbase/M-5` `SendRecordPasswordReset` — direct function call, trivial boundary, config-only. Run admission, scaffold if accepted, focused e2e
-- [ ] 5.3: Attempt `pocketbase/M-2` `recordAuthWithOAuth2` — needs OAuth provider config, may need fake provider fixture. Run admission first; skip if config struct is not serializable
-- [ ] 5.4: Attempt `caddy/M-3` `(HTTPBasicAuth).correctPassword` — value-receiver, serializable boundary, config-only. Check for private `Account.password` field and `Comparer` interface. Run admission; document if private fields block serialization
-- [ ] 5.5: Attempt `caddy/M-4` `(InternalIssuer).Issue` — involves `context.Context`, `*x509.CertificateRequest`, CA material. Run admission; likely refused due to non-serializable params. Document specific blockers
-- [ ] 5.6: Attempt `listmonk/M-7` `(*Campaign).CompileTemplate` — pointer-receiver, trivial boundary, config-only. Check for `template.FuncMap` callback risk. Run admission; skip if function-typed fields block
-- [ ] 5.7: Attempt `gitea/M-13` `send` — package-level function variable, trivial boundary, client-reconstructible. Run admission; document if function-variable dispatch blocks
-- [ ] 5.8: For each stretch target: if admission accepts, create target/workload/oracle, register, run focused Kind e2e. If admission refuses, record the refusal code in the manifest
+- [x] 5.1: Attempt `pocketbase/M-11` `resolveEmailTemplate` — **admission-skip**: `callable_boundary_values: callback class Moderate would require callable values across the boundary (Moderate)`. Function at `mails/record.go:251` takes `core.App` interface param with callback methods
+- [x] 5.2: Attempt `pocketbase/M-5` `SendRecordPasswordReset` — **admission-skip**: `callable_boundary_values: callback class Moderate would require callable values across the boundary (Moderate)`. Function at `mails/record.go:128` takes `core.App` interface param
+- [x] 5.3: Attempt `pocketbase/M-2` `recordAuthWithOAuth2` — **admission-skip**: `missing_reconstructor: reconstructed parameter has no registered reconstructor (*core.RequestEvent)`. Function at `apis/record_auth_with_oauth2.go:30`
+- [x] 5.4: Attempt `caddy/M-3` `(HTTPBasicAuth).correctPassword` — **admission-skip**: `receiver_requires_reconstruction: receiver HTTPBasicAuth has state class SharedState`. Method at `modules/caddyhttp/caddyauth/basicauth.go:165`
+- [x] 5.5: Attempt `caddy/M-4` `(InternalIssuer).Issue` — **admission-skip**: `receiver_requires_reconstruction: receiver InternalIssuer has state class SharedState`. Method at `modules/caddytls/internalissuer.go:103`
+- [x] 5.6: Attempt `listmonk/M-7` `(*Campaign).CompileTemplate` — **admission-skip**: `receiver_requires_reconstruction: receiver *Campaign has state class SharedState`. Method at `models/campaigns.go:138`
+- [x] 5.7: Attempt `gitea/M-13` `send` — **admission-skip**: `extract report: liftability: root function "NewContext$1" not found`. Function variable at `services/mailer/sender/sender.go:17` — `send` is a closure-backed function variable (`var Send = NewContext`), closure dispatch not supported
+- [x] 5.8: All 7 stretch targets attempted; all refused at admission. Refusal codes recorded in corpus manifest (`test/e2e/activation_corpus_traces.yaml`). No targets reached scaffolding stage
 
 ### Phase 6: Verification and closeout
 
