@@ -143,6 +143,7 @@ const (
 	CodecPrimitive             Codec = "primitive"
 	CodecJSON                  Codec = "json"
 	CodecLocalizedErrorWrapper Codec = "localized_error_wrapper"
+	CodecStreamingBytes        Codec = "streaming_bytes"
 )
 
 type ReturnCodec struct {

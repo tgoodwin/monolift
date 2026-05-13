@@ -25,25 +25,31 @@ func RenderClient(plan *Plan) (map[string][]byte, error) {
 }
 
 type clientView struct {
-	Plan              *Plan
-	Imports           []importSpec
-	RequestFields     []fieldView
-	ResponseField     fieldView
-	Params            []fieldView
-	ParamList         string
-	BoundaryArgs      string
-	OriginalArgs      string
-	HasResult         bool
-	LocalizedResult   bool
-	PrimitiveResult   bool
-	ResultType        string
-	ResultZero        string
-	StubName          string
-	OriginalFuncName  string
-	EndpointEnv       string
-	EnabledEnv        string
-	DefaultEndpoint   string
-	NeedsErrorsImport bool
+	Plan                *Plan
+	Imports             []importSpec
+	RequestFields       []fieldView
+	ResponseField       fieldView
+	Params              []fieldView
+	ParamList           string
+	BoundaryArgs        string
+	OriginalArgs        string
+	HasResult           bool
+	LocalizedResult     bool
+	PrimitiveResult     bool
+	ResultType          string
+	ResultZero          string
+	StubName            string
+	OriginalFuncName    string
+	EndpointEnv         string
+	EnabledEnv          string
+	DefaultEndpoint     string
+	NeedsErrorsImport   bool
+	StreamingBytesParams []streamingByteParam
+}
+
+type streamingByteParam struct {
+	Name    string
+	ByteVar string
 }
 
 func clientTemplateView(plan *Plan) clientView {
@@ -56,17 +62,30 @@ func clientTemplateView(plan *Plan) clientView {
 		{Path: "time"},
 	}
 	var requestFields []fieldView
+	var streamingParams []streamingByteParam
 	for _, param := range plan.BoundaryParams {
+		fieldType := param.GoType
+		if param.Codec == CodecStreamingBytes {
+			fieldType = "[]byte"
+			streamingParams = append(streamingParams, streamingByteParam{
+				Name:    param.Name,
+				ByteVar: param.Name + "Bytes",
+			})
+		}
 		requestFields = append(requestFields, fieldView{
 			Name:         exportedFieldName(param.Name),
 			OriginalName: param.Name,
 			JSONName:     param.JSONName,
-			Type:         param.GoType,
+			Type:         fieldType,
 			ZeroValue:    zeroValue(param.GoType),
 		})
-		if param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
+		if param.Codec != CodecStreamingBytes && param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
 			imports = append(imports, importSpec{Path: param.TypePackagePath})
 		}
+	}
+	if len(streamingParams) > 0 {
+		imports = append(imports, importSpec{Path: "fmt"})
+		imports = append(imports, importSpec{Path: "io"})
 	}
 	var params []fieldView
 	allParams := append([]Param(nil), plan.BoundaryParams...)
@@ -103,25 +122,26 @@ func clientTemplateView(plan *Plan) clientView {
 		needsErrors = localized
 	}
 	return clientView{
-		Plan:              plan,
-		Imports:           uniqueImports(imports),
-		RequestFields:     requestFields,
-		ResponseField:     response,
-		Params:            params,
-		ParamList:         clientParamList(params),
-		BoundaryArgs:      clientRequestLiteral(plan.BoundaryParams),
-		OriginalArgs:      clientOriginalArgs(params),
-		HasResult:         hasResult,
-		LocalizedResult:   localized,
-		PrimitiveResult:   hasResult && !localized,
-		ResultType:        resultType,
-		ResultZero:        resultZero,
-		StubName:          plan.CutPoint.FuncName,
-		OriginalFuncName:  renamedOriginalFunc(plan),
-		EndpointEnv:       "MONOLIFT_" + plan.EnvServiceName + "_ENDPOINT",
-		EnabledEnv:        "MONOLIFT_LIFT_" + plan.EnvServiceName,
-		DefaultEndpoint:   "http://127.0.0.1:8081/invoke",
-		NeedsErrorsImport: needsErrors,
+		Plan:                 plan,
+		Imports:              uniqueImports(imports),
+		RequestFields:        requestFields,
+		ResponseField:        response,
+		Params:               params,
+		ParamList:            clientParamList(params),
+		BoundaryArgs:         clientRequestLiteral(plan.BoundaryParams),
+		OriginalArgs:         clientOriginalArgs(params),
+		HasResult:            hasResult,
+		LocalizedResult:      localized,
+		PrimitiveResult:      hasResult && !localized,
+		ResultType:           resultType,
+		ResultZero:           resultZero,
+		StubName:             plan.CutPoint.FuncName,
+		OriginalFuncName:     renamedOriginalFunc(plan),
+		EndpointEnv:          "MONOLIFT_" + plan.EnvServiceName + "_ENDPOINT",
+		EnabledEnv:           "MONOLIFT_LIFT_" + plan.EnvServiceName,
+		DefaultEndpoint:      "http://127.0.0.1:8081/invoke",
+		NeedsErrorsImport:    needsErrors,
+		StreamingBytesParams: streamingParams,
 	}
 }
 
@@ -154,7 +174,11 @@ func clientOriginalArgs(params []fieldView) string {
 func clientRequestLiteral(params []Param) string {
 	parts := make([]string, 0, len(params))
 	for _, param := range params {
-		parts = append(parts, exportedFieldName(param.Name)+": "+param.Name)
+		value := param.Name
+		if param.Codec == CodecStreamingBytes {
+			value = param.Name + "Bytes"
+		}
+		parts = append(parts, exportedFieldName(param.Name)+": "+value)
 	}
 	return strings.Join(parts, ", ")
 }
@@ -209,6 +233,15 @@ func monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamList }}) ({{ .ResultTy
 	if endpoint == "" {
 		endpoint = "{{ .DefaultEndpoint }}"
 	}
+{{- range .StreamingBytesParams }}
+	{{ .ByteVar }}, err := io.ReadAll({{ .Name }})
+	if err != nil {
+		return {{ $.ResultZero }}, fmt.Errorf("monolift: read streaming param {{ .Name }}: %w", err)
+	}
+	if len({{ .ByteVar }}) > 10*1024*1024 {
+		return {{ $.ResultZero }}, fmt.Errorf("monolift: streaming param {{ .Name }} exceeds 10MB limit")
+	}
+{{- end }}
 	payload := monoliftInvokeRequest{ {{ .BoundaryArgs }} }
 	var body bytes.Buffer
 	if err := json.NewEncoder(&body).Encode(payload); err != nil {

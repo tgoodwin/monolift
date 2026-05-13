@@ -1,0 +1,77 @@
+package stream
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"time"
+)
+
+type monoliftInvokeRequest struct {
+	R []byte `json:"r"`
+}
+
+type monoliftInvokeResponse struct {
+	Result string `json:"result"`
+}
+
+type monoliftLocalizedError struct {
+	Error   string `json:"error,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func ReadContent(r io.Reader) string {
+	if os.Getenv("MONOLIFT_LIFT_READCONTENT") != "on" {
+		return monoliftOriginalReadContent(r)
+	}
+	result, err := monoliftRemoteReadContent(r)
+	if err != nil {
+		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
+			return ""
+		}
+		return monoliftOriginalReadContent(r)
+	}
+	return result
+}
+
+func monoliftRemoteReadContent(r io.Reader) (string, error) {
+	endpoint := os.Getenv("MONOLIFT_READCONTENT_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "http://127.0.0.1:8081/invoke"
+	}
+	rBytes, err := io.ReadAll(r)
+	if err != nil {
+		return "", fmt.Errorf("monolift: read streaming param r: %w", err)
+	}
+	if len(rBytes) > 10*1024*1024 {
+		return "", fmt.Errorf("monolift: streaming param r exceeds 10MB limit")
+	}
+	payload := monoliftInvokeRequest{R: rBytes}
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(payload); err != nil {
+		return "", err
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoint, &body)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", errors.New(resp.Status)
+	}
+	var decoded monoliftInvokeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return "", err
+	}
+	return decoded.Result, nil
+}

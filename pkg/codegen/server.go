@@ -58,18 +58,27 @@ func serverTemplateView(plan *Plan) serverView {
 		{Path: "sync"},
 		{Path: plan.CutPoint.PackagePath},
 	}
+	hasStreamingBytes := false
 	var requestFields []fieldView
 	for _, param := range plan.BoundaryParams {
+		fieldType := param.QualifiedGoType
+		if param.Codec == CodecStreamingBytes {
+			fieldType = "[]byte"
+			hasStreamingBytes = true
+		}
 		requestFields = append(requestFields, fieldView{
 			Name:         exportedFieldName(param.Name),
 			OriginalName: param.Name,
 			JSONName:     param.JSONName,
-			Type:         param.QualifiedGoType,
+			Type:         fieldType,
 			ZeroValue:    zeroValue(param.GoType),
 		})
-		if param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
+		if param.Codec != CodecStreamingBytes && param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
 			imports = append(imports, importSpec{Path: param.TypePackagePath})
 		}
+	}
+	if hasStreamingBytes {
+		imports = append(imports, importSpec{Path: "bytes"})
 	}
 	var stateFields []fieldView
 	var stateInitLines []string

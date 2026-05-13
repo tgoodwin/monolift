@@ -42,7 +42,7 @@ func AdmitPlan(plan *Plan, base AdmissionVerdict) AdmissionVerdict {
 		switch {
 		case strings.Contains(lowerType, "chan "):
 			verdict = refused(verdict, "streaming_type", "channel boundary parameter cannot be sent over HTTP/JSON", param.GoType)
-		case strings.Contains(lowerType, "io.reader") || strings.Contains(lowerType, "io.writer"):
+		case param.Codec != CodecStreamingBytes && (strings.Contains(lowerType, "io.reader") || strings.Contains(lowerType, "io.writer")):
 			verdict = refused(verdict, "streaming_type", "streaming boundary parameter cannot be sent over HTTP/JSON", param.GoType)
 		case strings.Contains(lowerType, "sync."):
 			verdict = refused(verdict, "sync_primitive", "sync primitive boundary parameter cannot be sent over HTTP/JSON", param.GoType)

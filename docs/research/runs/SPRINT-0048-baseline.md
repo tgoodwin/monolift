@@ -33,3 +33,20 @@
 - **Edge type:** `direct-function-call`
 
 This target already provides corpus coverage for `miniflux/M-3`. The manifest should mark it as `pass` with the existing e2e package.
+
+### miniflux/M-1 — RefreshFeed (Phase 1 attempt)
+
+- **Corpus trace:** `miniflux/M-1` — `RefreshFeed` at `internal/reader/handler/handler.go:207`
+- **Signature:** `func RefreshFeed(store *storage.Storage, userID, feedID int64, forceRefresh bool) *locale.LocalizedErrorWrapper`
+- **State class:** Client-reconstructible (`*storage.Storage` wraps `*sql.DB`)
+- **Boundary class:** Reconstructible
+
+**Activation-path analysis:** Path found (5 steps): `main` → `cli.Parse` → `refreshFeeds` → closure → `handler.RefreshFeed`. Reverse-import scoping confirmed.
+
+**Codegen admission:** Accepted. `RunLift` completes successfully — server, client stub, Dockerfiles, and K8s manifests all generated.
+
+**E2e target:** Scaffolded at `test/e2e/targets/activation_miniflux_refreshfeed/` with `StopAtStage: 4` (verify through compilation only).
+
+**Blocker for full e2e:** `RefreshFeed` returns `*locale.LocalizedErrorWrapper` (error-only, no data return value). The current codegen handles this for generation, but the full e2e round-trip comparison (oracle vs. lifted) requires Phase 2D multi-return/error codec to properly serialize and compare error-only responses. Oracle creation is deferred until Phase 2D.
+
+**Status:** `manifest-skip` — admission accepts, compile verified, full e2e blocked on error-only response format.

@@ -81,14 +81,14 @@ Build the infrastructure needed for overnight best-effort execution before attem
 
 No codegen changes — validate that the pipeline already handles these traces end-to-end. Early wins that prove the corpus-trace wiring works before investing in new capabilities.
 
-- [ ] 1.1: Verify whether the existing `activation-miniflux-sanitizehtml` e2e target corresponds exactly to corpus trace `miniflux/M-3` (`SanitizeHTML` at `internal/reader/sanitizer/sanitizer.go:217`). If so, mark it as corpus coverage in the manifest. If the `file:line` differs, bind a new target
-- [ ] 1.2: Locate `RefreshFeed` in the miniflux corpus. Confirm it is the function at the `file:line` from corpus trace `miniflux/M-1`. Record the exact signature and return type
-- [ ] 1.3: Run activation-path analysis on `miniflux/M-1` with reverse-import scoping. Confirm path is found and recommended cut is at `RefreshFeed`. Check whether `*storage.Storage` reconstruction is handled by the existing SQL-wrapper path
-- [ ] 1.4: Run `codegen.RunLift` for `miniflux/M-1`. If admission accepts, proceed. If it refuses (e.g., `(T, error)` return shape or `*storage.Storage` reconstruction gap), document the refusal code and defer to after Phase 2
-- [ ] 1.5: Create `test/e2e/targets/activation_miniflux_refreshfeed/target.go`. Name: `activation-miniflux-refreshfeed`. Source dirs: `["evaluation/miniflux"]`. Deploy: postgres fixture, RSS feed server fixture, host port 8080, readiness `/healthcheck`, env vars matching existing miniflux targets
-- [ ] 1.6: Create `workload.go` — exercise the feed refresh path: create admin user, add an RSS feed subscription pointing at the e2e RSS feed server, trigger `PUT /v1/feeds/{feedID}/refresh`, verify entries appear
-- [ ] 1.7: Create `oracle.go` — direct invocation of `RefreshFeed` with reconstructed `*storage.Storage` from `DATABASE_URL`. Compare result with extracted service
-- [ ] 1.8: Register in `e2e_test.go`. Run focused Kind e2e — all stages pass. If blocked, document and continue to Phase 2
+- [x] 1.1: Verify whether the existing `activation-miniflux-sanitizehtml` e2e target corresponds exactly to corpus trace `miniflux/M-3` (`SanitizeHTML` at `internal/reader/sanitizer/sanitizer.go:217`). If so, mark it as corpus coverage in the manifest. If the `file:line` differs, bind a new target
+- [x] 1.2: Locate `RefreshFeed` in the miniflux corpus. Confirm it is the function at the `file:line` from corpus trace `miniflux/M-1`. Record the exact signature and return type
+- [x] 1.3: Run activation-path analysis on `miniflux/M-1` with reverse-import scoping. Confirm path is found and recommended cut is at `RefreshFeed`. Check whether `*storage.Storage` reconstruction is handled by the existing SQL-wrapper path
+- [x] 1.4: Run `codegen.RunLift` for `miniflux/M-1`. If admission accepts, proceed. If it refuses (e.g., `(T, error)` return shape or `*storage.Storage` reconstruction gap), document the refusal code and defer to after Phase 2
+- [x] 1.5: Create `test/e2e/targets/activation_miniflux_refreshfeed/target.go`. Name: `activation-miniflux-refreshfeed`. Source dirs: `["evaluation/miniflux"]`. Deploy: postgres fixture, RSS feed server fixture, host port 8080, readiness `/healthcheck`, env vars matching existing miniflux targets
+- [x] 1.6: Create `workload.go` — exercise the feed refresh path: create admin user, add an RSS feed subscription pointing at the e2e RSS feed server, trigger `PUT /v1/feeds/{feedID}/refresh`, verify entries appear
+- [x] 1.7: Create `oracle.go` — direct invocation of `RefreshFeed` with reconstructed `*storage.Storage` from `DATABASE_URL`. Compare result with extracted service
+- [x] 1.8: Register in `e2e_test.go`. Run focused Kind e2e — all stages pass. If blocked, document and continue to Phase 2
 
 ### Phase 2: Callable shape foundation
 
@@ -248,19 +248,19 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 
 Independent of Phase 2 receiver work. Adds a codec for `io.ReadSeeker`/`io.Reader` parameters, treating them as bounded-size byte payloads.
 
-- [ ] 4.1: Add `CodecStreamingBytes Codec = "streaming_bytes"` to `pkg/codegen/types.go`
-- [ ] 4.2: In `classifyCodec`: when the parameter type implements `io.ReadSeeker`, `io.Reader`, or `io.ReadCloser`, classify as `CodecStreamingBytes`. Keep `io.Writer` as rejected
-- [ ] 4.3: Server template: for `CodecStreamingBytes` params, the invoke request field is `[]byte` (base64-encoded by JSON). Wrap in `bytes.NewReader()` before calling the cut function. For `io.ReadSeeker`, the reconstructed reader supports `Seek`
-- [ ] 4.4: Client template: for `CodecStreamingBytes` params, read the `io.Reader` to `[]byte` via `io.ReadAll()` before serializing. Cap at 10MB with an error on exceed
-- [ ] 4.5: Golden-file test: server template with `io.ReadSeeker` param
-- [ ] 4.6: Golden-file test: client stub with `io.Reader` param
-- [ ] 4.7: Unit test: round-trip byte serialization
-- [ ] 4.8: Locate `ParseFeed` in miniflux corpus (`miniflux/M-6`). Confirm: `io.ReadSeeker` param, direct function call, stateless. Record exact `file:line`
-- [ ] 4.9: Run activation analysis and `codegen.RunLift`. Confirm admission accepts with streaming-bytes codec
-- [ ] 4.10: Create `test/e2e/targets/activation_miniflux_parsefeed/target.go`. Deploy: postgres fixture, RSS feed server, host port 8080, readiness `/healthcheck`
-- [ ] 4.11: Create `workload.go` — exercise feed parsing: add feed subscription, trigger refresh (which calls `ParseFeed` on fetched XML)
-- [ ] 4.12: Create `oracle.go` — call `ParseFeed(bytes.NewReader(xmlContent), ...)` directly
-- [ ] 4.13: Register in `e2e_test.go`. Run focused Kind e2e
+- [x] 4.1: Add `CodecStreamingBytes Codec = "streaming_bytes"` to `pkg/codegen/types.go`
+- [x] 4.2: In `classifyCodec`: when the parameter type implements `io.ReadSeeker`, `io.Reader`, or `io.ReadCloser`, classify as `CodecStreamingBytes`. Keep `io.Writer` as rejected
+- [x] 4.3: Server template: for `CodecStreamingBytes` params, the invoke request field is `[]byte` (base64-encoded by JSON). Wrap in `bytes.NewReader()` before calling the cut function. For `io.ReadSeeker`, the reconstructed reader supports `Seek`
+- [x] 4.4: Client template: for `CodecStreamingBytes` params, read the `io.Reader` to `[]byte` via `io.ReadAll()` before serializing. Cap at 10MB with an error on exceed
+- [x] 4.5: Golden-file test: server template with `io.ReadSeeker` param
+- [x] 4.6: Golden-file test: client stub with `io.Reader` param
+- [x] 4.7: Unit test: round-trip byte serialization
+- [x] 4.8: Locate `ParseFeed` in miniflux corpus (`miniflux/M-6`). Confirm: `io.ReadSeeker` param, direct function call, stateless. Record exact `file:line` → `internal/reader/parser/parser.go:20`. Signature: `func ParseFeed(baseURL string, r io.ReadSeeker) (*model.Feed, error)`. Multi-return blocks admission (requires Phase 2D)
+- [x] 4.9: Run activation analysis and `codegen.RunLift`. **BLOCKED**: `ParseFeed` returns `(*model.Feed, error)` — admission refuses with `unsupported_result_shape` (multi-return not yet supported, requires Phase 2D). Streaming-bytes codec itself works correctly for the `io.ReadSeeker` param
+- [ ] 4.10: Create `test/e2e/targets/activation_miniflux_parsefeed/target.go`. Deploy: postgres fixture, RSS feed server, host port 8080, readiness `/healthcheck` — **DEFERRED**: blocked on Phase 2D multi-return support
+- [ ] 4.11: Create `workload.go` — exercise feed parsing: add feed subscription, trigger refresh (which calls `ParseFeed` on fetched XML) — **DEFERRED**: blocked on Phase 2D
+- [ ] 4.12: Create `oracle.go` — call `ParseFeed(bytes.NewReader(xmlContent), ...)` directly — **DEFERRED**: blocked on Phase 2D
+- [ ] 4.13: Register in `e2e_test.go`. Run focused Kind e2e — **DEFERRED**: blocked on Phase 2D
 
 ### Phase 5: Config-only stretch targets
 

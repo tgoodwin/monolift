@@ -100,7 +100,11 @@ func callArgs(params []Param, reconstructed []ReconstructedParam, statePrefix st
 	total := len(params) + len(reconstructed)
 	args := make([]string, total)
 	for _, param := range params {
-		args[param.Index] = "req." + exportedFieldName(param.Name)
+		arg := "req." + exportedFieldName(param.Name)
+		if param.Codec == CodecStreamingBytes {
+			arg = "bytes.NewReader(" + arg + ")"
+		}
+		args[param.Index] = arg
 	}
 	for _, param := range reconstructed {
 		args[param.Index] = statePrefix + exportedFieldName(param.Name)

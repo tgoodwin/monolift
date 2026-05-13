@@ -577,13 +577,13 @@ traces:
   - trace_id: miniflux/M-1
     project: miniflux
     function: RefreshFeed
-    file_line: "internal/reader/handler/handler.go:FieldNotInCorpus"
+    file_line: "internal/reader/handler/handler.go:207"
     state_class: Client-reconstructible
     boundary_class: Reconstructible
     status: manifest-skip
     phase: "1"
-    skip_reason: ""
-    e2e_package: ""
+    skip_reason: "admission accepts; compile verified (StopAtStage:4); full e2e blocked on error-only response format (needs Phase 2D)"
+    e2e_package: activation_miniflux_refreshfeed
 
   - trace_id: miniflux/M-2
     project: miniflux
@@ -632,12 +632,12 @@ traces:
   - trace_id: miniflux/M-6
     project: miniflux
     function: ParseFeed
-    file_line: "internal/reader/parser/parser.go:FieldNotInCorpus"
+    file_line: "internal/reader/parser/parser.go:20"
     state_class: Stateless
     boundary_class: Serializable
-    status: manifest-skip
+    status: admission-skip
     phase: "4"
-    skip_reason: ""
+    skip_reason: "multi-return (*model.Feed, error) blocked by unsupported_result_shape — requires Phase 2D"
     e2e_package: ""
 
   - trace_id: miniflux/M-7
