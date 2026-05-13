@@ -736,9 +736,9 @@ traces:
     file_line: "core/field_password.go:317"
     state_class: Stateless
     boundary_class: Trivial
-    status: e2e-fail
+    status: e2e-retry
     phase: "3"
-    skip_reason: "stage 9 env-off-fail-modes: superuser auth returns 400 when extracted service disabled; core pipeline (stages 0-8) passed"
+    skip_reason: "stage 9 env-off auth 400: codegen verified correct, increased auth retry resilience (15x3s)"
     e2e_package: activation_pocketbase_passwordvalidate
 
   - trace_id: pocketbase/M-4

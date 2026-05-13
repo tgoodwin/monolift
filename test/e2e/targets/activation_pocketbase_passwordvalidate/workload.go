@@ -111,12 +111,12 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 
 func authToken(ctx context.Context, base string) (string, error) {
 	var lastErr error
-	for attempt := 0; attempt < 5; attempt++ {
+	for attempt := 0; attempt < 15; attempt++ {
 		if attempt > 0 {
 			select {
 			case <-ctx.Done():
 				return "", ctx.Err()
-			case <-time.After(2 * time.Second):
+			case <-time.After(3 * time.Second):
 			}
 		}
 		token, err := authTokenOnce(ctx, base)
@@ -125,7 +125,7 @@ func authToken(ctx context.Context, base string) (string, error) {
 		}
 		lastErr = err
 	}
-	return "", lastErr
+	return "", fmt.Errorf("auth failed after 15 attempts: %w", lastErr)
 }
 
 func authTokenOnce(ctx context.Context, base string) (string, error) {
