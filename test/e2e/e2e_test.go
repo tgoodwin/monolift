@@ -62,13 +62,35 @@ func TestE2E(t *testing.T) {
 		mattermost.Target(),
 	}
 	targets = append(targets, pragma.Targets()...)
+	batch := &harness.BatchResult{}
+	t.Cleanup(func() {
+		t.Log(batch.SummaryTable())
+	})
 	for _, target := range targets {
 		target := target
 		t.Run(target.Name, func(t *testing.T) {
 			if target.SkipReason != "" {
+				batch.Record(harness.BatchEntry{
+					Target: target.Name,
+					Status: harness.BatchSkipped,
+					Stage:  "skip",
+					Error:  target.SkipReason,
+				})
 				t.Skip(target.SkipReason)
 			}
+			start := time.Now()
 			runTarget(t, cluster, runID, target)
+			duration := time.Since(start)
+			status := harness.BatchPass
+			if t.Failed() {
+				status = harness.BatchE2EFail
+			}
+			batch.Record(harness.BatchEntry{
+				Target:   target.Name,
+				Status:   status,
+				Stage:    "complete",
+				Duration: duration,
+			})
 		})
 	}
 }
