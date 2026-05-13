@@ -582,7 +582,7 @@ traces:
     boundary_class: Reconstructible
     status: manifest-skip
     phase: "1"
-    skip_reason: "admission accepts; compile verified (StopAtStage:4); full e2e blocked on error-only response format (needs Phase 2D)"
+    skip_reason: "admission accepts; Phase 2D multi-return now supported; pending full e2e validation in Phase 3"
     e2e_package: activation_miniflux_refreshfeed
 
   - trace_id: miniflux/M-2
@@ -637,7 +637,7 @@ traces:
     boundary_class: Serializable
     status: admission-skip
     phase: "4"
-    skip_reason: "multi-return (*model.Feed, error) blocked by unsupported_result_shape — requires Phase 2D"
+    skip_reason: "Phase 2D multi-return now supported; admission pipeline resolves cut at caller (RefreshFeed) not ParseFeed — needs file:line update to cut point"
     e2e_package: ""
 
   - trace_id: miniflux/M-7

@@ -168,8 +168,8 @@ for i in $(seq 0 $((TRACE_COUNT - 1))); do
                 ADMIT_ERROR="admission check timed out after 120s"
             else
                 ADMIT_STATUS="admission-skip"
-                # Extract refusal reason from output
-                ADMIT_ERROR=$(echo "$ADMIT_OUTPUT" | grep -oP 'refusal:\s*\K.*' | head -1)
+                # Extract refusal reason from output (compatible with macOS/BSD grep)
+                ADMIT_ERROR=$(echo "$ADMIT_OUTPUT" | sed -n 's/.*refusal: *//p' | head -1)
                 if [[ -z "$ADMIT_ERROR" ]]; then
                     ADMIT_ERROR="admission refused (exit code $EXIT_CODE)"
                 fi

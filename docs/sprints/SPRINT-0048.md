@@ -181,8 +181,8 @@ Generate a same-package exported adapter function that the extracted server call
 
 #### 2I: Integration verification
 
-- [ ] 2I.1: Run `go test ./pkg/codegen/...` — all tests pass including new golden files
-- [ ] 2I.2: Run `go test ./pkg/activation/...` — no regressions
+- [x] 2I.1: Run `go test ./pkg/codegen/...` — all tests pass including new golden files
+- [x] 2I.2: Run `go test ./pkg/activation/...` — no regressions
 - [ ] 2I.3: Run all 7 existing e2e targets — confirm no regressions from codegen changes
 - [x] 2I.4: Update `GeneratorVersion` constant from `"SPRINT-0046"` to `"SPRINT-0048"`
 - [ ] 2I.5: Run the admission-only sweep (`scripts/run_activation_corpus_sweep.sh --admission-only`) and record which traces are now admitted vs. still refused. Update the manifest with current admission statuses
