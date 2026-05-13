@@ -75,7 +75,7 @@ Build the infrastructure needed for overnight best-effort execution before attem
 - [x] 0.7: Add deferred cleanup in the e2e harness: each `t.Run` target block deletes its Kind namespace even on panic or timeout, not just on `t.Fatal`
 - [x] 0.8: Add a `BatchResult` collector that accumulates `{target, status, stage, duration, error}` tuples and prints a summary table at the end of the test run
 - [x] 0.9: Add per-target timeout enforcement (25 min default) with stage-level logging on timeout
-- [ ] 0.10: Run the existing 7 activation targets through the batch harness. Confirm all 7 pass and the summary table prints correctly
+- [x] 0.10: Run the existing 7 activation targets through the batch harness. Confirm all 7 pass and the summary table prints correctly
 
 ### Phase 1: Prove existing generator-eligible corpus rows
 
