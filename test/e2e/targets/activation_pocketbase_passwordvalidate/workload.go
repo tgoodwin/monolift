@@ -110,6 +110,25 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 }
 
 func authToken(ctx context.Context, base string) (string, error) {
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			case <-time.After(2 * time.Second):
+			}
+		}
+		token, err := authTokenOnce(ctx, base)
+		if err == nil {
+			return token, nil
+		}
+		lastErr = err
+	}
+	return "", lastErr
+}
+
+func authTokenOnce(ctx context.Context, base string) (string, error) {
 	payload, err := json.Marshal(map[string]string{
 		"identity": superuserEmail,
 		"password": superuserPassword,
