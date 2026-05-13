@@ -22,6 +22,7 @@ import (
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 	"github.com/tgoodwin/monolift/test/e2e/harness"
 	activation_caddy_cleanpath "github.com/tgoodwin/monolift/test/e2e/targets/activation_caddy_cleanpath"
+	activation_gitea_argon2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_argon2hash"
 	activation_gitea_pathescapesegments "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_pathescapesegments"
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
@@ -58,6 +59,7 @@ func TestE2E(t *testing.T) {
 		activation_miniflux_striptags.Target(),
 		listmonk.Target(),
 		gitea.Target(),
+		activation_gitea_argon2hash.Target(),
 		activation_gitea_pathescapesegments.Target(),
 		activation_listmonk_sanitizeuri.Target(),
 		activation_pocketbase_columnify.Target(),
