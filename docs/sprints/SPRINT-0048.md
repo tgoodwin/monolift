@@ -72,7 +72,7 @@ Build the infrastructure needed for overnight best-effort execution before attem
 - [x] 0.4: Define trace result statuses: `pass`, `admission-skip`, `build-skip`, `e2e-fail`, `timeout-skip`, `manifest-skip`, `infra-fail`
 - [x] 0.5: Add an admission-only mode to the runner (`--admission-only`) that runs `AdmitCut`/`AdmitPlan` for each trace without starting Kind, logging refusal codes for the full matrix
 - [x] 0.6: Seed default manifest skips for proxy-required rows (`caddy/M-2`, `listmonk/M-8`), shared-state rows (10 mattermost/caddy/listmonk traces), `mattermost/M-4` (infeasible), and `pocketbase/M-6` (mutable write-back)
-- [ ] 0.7: Add deferred cleanup in the e2e harness: each `t.Run` target block deletes its Kind namespace even on panic or timeout, not just on `t.Fatal`
+- [x] 0.7: Add deferred cleanup in the e2e harness: each `t.Run` target block deletes its Kind namespace even on panic or timeout, not just on `t.Fatal`
 - [ ] 0.8: Add a `BatchResult` collector that accumulates `{target, status, stage, duration, error}` tuples and prints a summary table at the end of the test run
 - [ ] 0.9: Add per-target timeout enforcement (25 min default) with stage-level logging on timeout
 - [ ] 0.10: Run the existing 7 activation targets through the batch harness. Confirm all 7 pass and the summary table prints correctly

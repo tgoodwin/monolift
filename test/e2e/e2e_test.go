@@ -93,6 +93,24 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	deployer := harness.Deployer{Cluster: cluster, Target: target.Name}
 	baselineNS := harness.Namespace("baseline", target.Name, runID)
 	liftedNS := harness.Namespace("lifted", target.Name, runID)
+
+	// Deferred cleanup: use t.Cleanup + context.Background() to guarantee
+	// namespace deletion even on panic, timeout, or t.Fatal. Runs after all
+	// defers in this function have completed.
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cleanupCancel()
+		_ = deployer.DeleteNamespace(cleanupCtx, baselineNS, 30*time.Second)
+		_ = deployer.DeleteNamespace(cleanupCtx, liftedNS, 30*time.Second)
+	})
+
+	// Recover from panics so one target cannot crash the batch test process.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("panic in target %s: %v", target.Name, r)
+		}
+	}()
+
 	if err := deployer.CreateNamespace(ctx, baselineNS); err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -101,10 +119,6 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 			t.Fatalf("%v", err)
 		}
 	}
-	defer func() {
-		_ = deployer.DeleteNamespace(context.Background(), baselineNS, 30*time.Second)
-		_ = deployer.DeleteNamespace(context.Background(), liftedNS, 30*time.Second)
-	}()
 
 	builder := harness.ImageBuilder{Cluster: cluster, Target: target.Name, SourceDirs: target.SourceDirs}
 	if target.Dockerfile != "" {
