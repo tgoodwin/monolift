@@ -205,13 +205,22 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 
 #### 3B: gitea/M-16 `(*Argon2Hasher).HashWithSaltBytes` (pointer receiver, factory construction)
 
-- [ ] 3B.1: Locate `(*Argon2Hasher).HashWithSaltBytes` in gitea corpus. Confirm: pointer-receiver, serializable boundary, stateless. Record exact `file:line` and return signature (check for `[]byte` salt param — JSON handles it via base64)
-- [ ] 3B.2: Run activation analysis. Confirm path and cut
-- [ ] 3B.3: Run `codegen.RunLift`. Confirm admission accepts with `ReceiverFactory` policy. If refused, document and skip
-- [ ] 3B.4: Create `test/e2e/targets/activation_gitea_argon2hash/target.go`. Deploy: reuse gitea baseline (runtime image, port 3000, readiness `/api/v1/version`)
-- [ ] 3B.5: Create `workload.go` — exercise password hashing: create a gitea user (triggers Argon2), then log in
-- [ ] 3B.6: Create `oracle.go` — instantiate `&Argon2Hasher{...}`, call `.HashWithSaltBytes(password, salt)`. Use deterministic salt for oracle comparison
-- [ ] 3B.7: Register in `e2e_test.go`. Run focused Kind e2e
+- [x] 3B.1: Locate `(*Argon2Hasher).HashWithSaltBytes` in gitea corpus. Confirm: pointer-receiver, serializable boundary, stateless. Record exact `file:line` and return signature (check for `[]byte` salt param — JSON handles it via base64)
+  - Located: `modules/auth/password/hash/argon2.go:29`
+  - Pointer receiver `*Argon2Hasher`, params `(password string, salt []byte)`, returns `string` (hex-encoded argon2 hash)
+  - Factory: `NewArgon2Hasher(config string) *Argon2Hasher` at line 40
+  - Stateless: uses only config fields (time, memory, threads, keyLen)
+- [x] 3B.2: Run activation analysis. Confirm path and cut
+  - Activation path found (7 steps): main → cli.Run → runChangePassword → UpdateAuth → User.SetPassword → PasswordHashAlgorithm.Hash → Argon2Hasher.HashWithSaltBytes
+  - Recommended cut at step 5: `(*PasswordHashAlgorithm).Hash` (not `HashWithSaltBytes` directly)
+- [x] 3B.3: Run `codegen.RunLift`. **REFUSED (pre-admission pipeline failure)**
+  - Error: `extract report: liftability: root function "Hash" not found`
+  - The recommended cut is at `(*PasswordHashAlgorithm).Hash` (step 5), which is a method on a struct that embeds `PasswordSaltHasher` interface. The extract-report builder cannot locate the root function because the cut lands on an interface-embedding wrapper method, not the concrete target function.
+  - **Status: admission-skip** — 3B.4–3B.7 skipped
+- [ ] ~~3B.4: Create `test/e2e/targets/activation_gitea_argon2hash/target.go`~~ (skipped — admission-skip)
+- [ ] ~~3B.5: Create `workload.go`~~ (skipped — admission-skip)
+- [ ] ~~3B.6: Create `oracle.go`~~ (skipped — admission-skip)
+- [ ] ~~3B.7: Register in `e2e_test.go`~~ (skipped — admission-skip)
 
 #### 3C: mattermost/M-14 `(PBKDF2).Hash` (value receiver, `(string, error)` return)
 
