@@ -215,13 +215,15 @@ Sequencing preference: safest single-return targets first, then `(T, error)` tar
 
 #### 3C: mattermost/M-14 `(PBKDF2).Hash` (value receiver, `(string, error)` return)
 
-- [ ] 3C.1: Locate `(PBKDF2).Hash` in mattermost corpus. Confirm: value-receiver, trivial boundary, stateless, `(string, error)` return. Record exact `file:line`
-- [ ] 3C.2: Run activation analysis. Confirm path and cut
-- [ ] 3C.3: Run `codegen.RunLift`. Confirm admission accepts with `ReceiverBoundary` or `ReceiverFactory` policy and `(string, error)` multi-return. If refused, document and skip
-- [ ] 3C.4: Create `test/e2e/targets/activation_mattermost_pbkdf2hash/target.go`. Deploy: mattermost baseline (postgres, host port 8065, workspace support)
-- [ ] 3C.5: Create `workload.go` — exercise password hashing: create user account, log in. Use deterministic error-path probe for oracle comparison (random salt makes normal hash output non-deterministic)
-- [ ] 3C.6: Create `oracle.go` — instantiate `PBKDF2{...}`, call `.Hash(password)`, compare deterministically
-- [ ] 3C.7: Register in `e2e_test.go`. Run focused Kind e2e
+- [x] 3C.1: Locate `(PBKDF2).Hash` in mattermost corpus. Confirm: value-receiver, trivial boundary, stateless, `(string, error)` return. Record exact `file:line`
+  - Located at `server/channels/app/password/hashers/pbkdf2.go:151`. Value receiver `(p PBKDF2)`, params `(password string)`, returns `(string, error)`. Stateless — config fields only (`workFactor`, `keyLength`, `phcHeader`).
+- [x] 3C.2: Run activation analysis. Confirm path and cut
+  - Activation analysis ran successfully (via `codegen.RunLiftWithResult` pipeline).
+- [x] 3C.3: Run `codegen.RunLift`. **REFUSED** — `receiver_requires_reconstruction: receiver PBKDF2 has state class ConfigOnly`. The PBKDF2 struct has config fields that require receiver reconstruction, which is not yet supported for ConfigOnly state class. Skipping 3C.4–3C.7.
+- [ ] ~~3C.4: Create target.go~~ — skipped (admission-skip)
+- [ ] ~~3C.5: Create workload.go~~ — skipped (admission-skip)
+- [ ] ~~3C.6: Create oracle.go~~ — skipped (admission-skip)
+- [ ] ~~3C.7: Register in e2e_test.go~~ — skipped (admission-skip)
 
 #### 3D: caddy/M-1 `(TemplateContext).funcMarkdown` (value receiver, `(string, error)`, `any` param)
 
