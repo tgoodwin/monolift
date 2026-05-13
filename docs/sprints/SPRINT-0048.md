@@ -98,10 +98,10 @@ The primary codegen gate. Adds receiver method support, `(T, error)` multi-retur
 
 Currently methods fail at `renameFuncDecl()` in `patch.go` because the AST filter skips method declarations (`fn.Recv != nil`).
 
-- [ ] 2A.1: Modify `renameFuncDecl()` in `pkg/codegen/patch.go` to handle method declarations. When `plan.CutPoint.Receiver` is non-empty: (a) match AST declarations where `fn.Recv != nil` AND the receiver type matches, (b) rename `fn.Name.Name` to `monoliftOriginal<FuncName>` on the matching receiver type, (c) preserve the receiver parameter name and pointer/value semantics
-- [ ] 2A.2: Unit test: given a source file with `func (h *Argon2Hasher) HashWithSaltBytes(...)`, verify rename to `monoliftOriginalHashWithSaltBytes` with the same `*Argon2Hasher` receiver
-- [ ] 2A.3: Unit test: given both a method and a standalone function of the same name, verify only the method matching the receiver type is renamed
-- [ ] 2A.4: Unit test: verify no collision when `monoliftOriginal<Name>` already exists on the type — refuse with a diagnostic
+- [x] 2A.1: Modify `renameFuncDecl()` in `pkg/codegen/patch.go` to handle method declarations. When `plan.CutPoint.Receiver` is non-empty: (a) match AST declarations where `fn.Recv != nil` AND the receiver type matches, (b) rename `fn.Name.Name` to `monoliftOriginal<FuncName>` on the matching receiver type, (c) preserve the receiver parameter name and pointer/value semantics
+- [x] 2A.2: Unit test: given a source file with `func (h *Argon2Hasher) HashWithSaltBytes(...)`, verify rename to `monoliftOriginalHashWithSaltBytes` with the same `*Argon2Hasher` receiver
+- [x] 2A.3: Unit test: given both a method and a standalone function of the same name, verify only the method matching the receiver type is renamed
+- [x] 2A.4: Unit test: verify no collision when `monoliftOriginal<Name>` already exists on the type — refuse with a diagnostic
 
 #### 2B: Plan builder — receiver policies
 

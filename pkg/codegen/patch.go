@@ -147,6 +147,36 @@ func loadCutPackage(plan *Plan, cutFile string) (*packages.Package, error) {
 	return pkg, nil
 }
 
+// receiverTypeName extracts the type name and pointer-ness from a method
+// declaration's receiver field.
+func receiverTypeName(fn *dst.FuncDecl) (name string, isPointer bool) {
+	if fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return "", false
+	}
+	typ := fn.Recv.List[0].Type
+	if star, ok := typ.(*dst.StarExpr); ok {
+		if ident, ok := star.X.(*dst.Ident); ok {
+			return ident.Name, true
+		}
+	}
+	if ident, ok := typ.(*dst.Ident); ok {
+		return ident.Name, false
+	}
+	return "", false
+}
+
+// matchesReceiver reports whether fn's receiver matches wantReceiver
+// (e.g., "*Argon2Hasher" or "Argon2Hasher").
+func matchesReceiver(fn *dst.FuncDecl, wantReceiver string) bool {
+	typeName, isPointer := receiverTypeName(fn)
+	if typeName == "" {
+		return false
+	}
+	wantPointer := strings.HasPrefix(wantReceiver, "*")
+	wantName := strings.TrimPrefix(wantReceiver, "*")
+	return typeName == wantName && isPointer == wantPointer
+}
+
 func renameFuncDecl(pkg *packages.Package, cutFile string, plan *Plan) ([]byte, bool, error) {
 	originalName := plan.CutPoint.FuncName
 	newName := renamedOriginalFunc(plan)
@@ -177,30 +207,48 @@ func renameFuncDecl(pkg *packages.Package, cutFile string, plan *Plan) ([]byte, 
 		return nil, false, fmt.Errorf("decorate cut file: %w", err)
 	}
 
-	found := false
-	alreadyRenamed := false
+	wantReceiver := plan.CutPoint.Receiver
+
+	var originalDecl *dst.FuncDecl
+	var newNameExists bool
 	for _, decl := range dstFile.Decls {
 		fn, ok := decl.(*dst.FuncDecl)
-		if !ok || fn.Recv != nil {
+		if !ok {
 			continue
 		}
+		if wantReceiver != "" {
+			// Method match: receiver must be present and type must match.
+			if fn.Recv == nil || !matchesReceiver(fn, wantReceiver) {
+				continue
+			}
+		} else {
+			// Standalone function match: skip methods.
+			if fn.Recv != nil {
+				continue
+			}
+		}
 		if fn.Name.Name == originalName {
-			fn.Name.Name = newName
-			found = true
-			break
-		}
-		if fn.Name.Name == newName {
-			alreadyRenamed = true
-			found = true
-			break
+			originalDecl = fn
+		} else if fn.Name.Name == newName {
+			newNameExists = true
 		}
 	}
-	if !found {
-		return nil, false, fmt.Errorf("codegen: function %s not found in %s", originalName, cutFile)
+
+	if originalDecl != nil && newNameExists {
+		return nil, false, fmt.Errorf("codegen: collision: %s already exists in %s; cannot rename %s", newName, cutFile, originalName)
 	}
-	if alreadyRenamed {
+	if originalDecl == nil && newNameExists {
+		// Already renamed in a previous run.
 		return nil, true, nil
 	}
+	if originalDecl == nil {
+		if wantReceiver != "" {
+			return nil, false, fmt.Errorf("codegen: method (%s).%s not found in %s", wantReceiver, originalName, cutFile)
+		}
+		return nil, false, fmt.Errorf("codegen: function %s not found in %s", originalName, cutFile)
+	}
+
+	originalDecl.Name.Name = newName
 
 	var out bytes.Buffer
 	restorer := decorator.NewRestorer()
