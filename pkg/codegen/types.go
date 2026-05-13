@@ -21,6 +21,7 @@ type Plan struct {
 	CutPoint CutPoint
 	Incoming IncomingCall
 
+	ReceiverParam       *ReceiverSpec
 	BoundaryParams      []Param
 	ReconstructedParams []ReconstructedParam
 	Results             []Result
@@ -135,6 +136,22 @@ type Result struct {
 	TypePackageAlias string
 	Codec            Codec
 	Index            int
+}
+
+type ReceiverPolicy string
+
+const (
+	ReceiverBoundary ReceiverPolicy = "receiver_boundary"
+	ReceiverZero     ReceiverPolicy = "receiver_zero"
+	ReceiverFactory  ReceiverPolicy = "receiver_factory"
+)
+
+type ReceiverSpec struct {
+	GoType      string
+	IsPointer   bool
+	Policy      ReceiverPolicy
+	FactoryFunc string
+	Codec       Codec
 }
 
 type Codec string
