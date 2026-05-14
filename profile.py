@@ -33,6 +33,6 @@ request = pc.makeRequestRSpec()
 node = request.RawPC("build")
 node.hardware_type = params.hardware_type
 node.disk_image = params.os_image
-node.addService(pg.Execute(shell="bash", command="/local/repository/cloudlab/setup.sh"))
+node.addService(pg.Execute(shell="bash", command="sudo /local/repository/cloudlab/setup.sh"))
 
 pc.printRequestRSpec(request)
