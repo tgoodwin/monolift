@@ -51,5 +51,5 @@ Hardware type is selectable at instantiation (default: `c6525-25g`).
 
 - `profile.py` — CloudLab profile (top-level, required by CloudLab)
 - `cloudlab/cl` — CLI wrapper around `portal-cli`
-- `cloudlab/setup.sh` — boot-time provisioning (Go, Docker, modules)
-- `cloudlab/bootstrap.sh` — K8s stack setup (Helm, Dapr, Prometheus) for future use
+- `cloudlab/setup.sh` — boot-time provisioning (Go, Docker, kind, kubectl, k9s, eval-target clones, module cache)
+- `cloudlab/clone-targets.sh` — clones evaluation targets pinned in `evaluation/MANIFEST.yaml`

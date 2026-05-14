@@ -10,6 +10,7 @@ exec > >(tee -a "$LOGFILE") 2>&1
 GO_VERSION="1.26.0"
 KIND_VERSION="v0.31.0"
 KUBECTL_VERSION="v1.34.0"
+K9S_VERSION="v0.50.18"
 REPO_DIR="/local/repository"
 
 echo "=== monolift build-server setup ($(date)) ==="
@@ -60,6 +61,16 @@ if ! command -v kubectl &>/dev/null || ! kubectl version --client=true --output=
     chmod +x /usr/local/bin/kubectl
 fi
 echo "kubectl: $(kubectl version --client=true --output=yaml 2>/dev/null | grep gitVersion | head -1)"
+
+# k9s — interactive TUI for inspecting the Kind cluster.
+if ! command -v k9s &>/dev/null || ! k9s version --short 2>/dev/null | grep -q "${K9S_VERSION#v}"; then
+    echo "Installing k9s ${K9S_VERSION}..."
+    curl -fsSL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" -o /tmp/k9s.tar.gz
+    tar -xzf /tmp/k9s.tar.gz -C /tmp k9s
+    mv /tmp/k9s /usr/local/bin/k9s
+    rm -f /tmp/k9s.tar.gz
+fi
+echo "k9s: $(k9s version --short 2>/dev/null | head -2 | tr '\n' ' ')"
 
 # Evaluation targets — must be cloned before `go mod download` because
 # go.mod has local-replace directives pointing at ./evaluation/<target>.
