@@ -50,6 +50,13 @@ status_color() {
 }
 
 # resolve experiment id: accept UUID or prefix-match on name
+require_arg() {
+    if [ -z "${2:-}" ]; then
+        echo "usage: cl $1" >&2
+        exit 1
+    fi
+}
+
 resolve_exp() {
     local input="$1"
     # already a UUID
@@ -102,8 +109,9 @@ cmd_ls() {
 }
 
 cmd_status() {
+    require_arg "status <name|id>" "${1:-}"
     local id
-    id=$(resolve_exp "${1:?usage: cl status <name|id>}")
+    id=$(resolve_exp "$1")
     local raw
     raw=$($PORTAL_CLI experiment get --experiment-id "$id" 2>/dev/null)
 
@@ -130,8 +138,9 @@ cmd_status() {
 }
 
 cmd_ssh() {
+    require_arg "ssh <name|id>" "${1:-}"
     local id
-    id=$(resolve_exp "${1:?usage: cl ssh <name|id>}")
+    id=$(resolve_exp "$1")
     local host
     host=$(get_ssh_host "$id")
     if [ -z "$host" ]; then
@@ -144,7 +153,8 @@ cmd_ssh() {
 
 cmd_extend() {
     local id hours
-    id=$(resolve_exp "${1:?usage: cl extend <name|id> [hours]}")
+    require_arg "extend <name|id> [hours]" "${1:-}"
+    id=$(resolve_exp "$1")
     hours="${2:-16}"
     $PORTAL_CLI experiment extend --experiment-id "$id" --extend-by "$hours" >/dev/null 2>&1
     echo "Extended by ${hours}h."
@@ -153,7 +163,8 @@ cmd_extend() {
 
 cmd_terminate() {
     local id
-    id=$(resolve_exp "${1:?usage: cl terminate <name|id>}")
+    require_arg "terminate <name|id>" "${1:-}"
+    id=$(resolve_exp "$1")
     read -rp "Terminate experiment $id? [y/N] " confirm
     if [[ "$confirm" =~ ^[Yy] ]]; then
         $PORTAL_CLI experiment terminate --experiment-id "$id" 2>/dev/null
