@@ -8,6 +8,8 @@ LOGFILE=/var/log/cloudlab-setup.log
 exec > >(tee -a "$LOGFILE") 2>&1
 
 GO_VERSION="1.26.0"
+KIND_VERSION="v0.31.0"
+KUBECTL_VERSION="v1.34.0"
 REPO_DIR="/local/repository"
 
 echo "=== monolift build-server setup ($(date)) ==="
@@ -41,11 +43,42 @@ fi
 
 echo "Docker: $(docker --version)"
 
-# Pre-fetch Go module cache
+# kind — required by `make e2e` for the Kind-backed harness.
+if ! command -v kind &>/dev/null || ! kind --version | grep -q "${KIND_VERSION#v}"; then
+    echo "Installing kind ${KIND_VERSION}..."
+    curl -fsSL -o /usr/local/bin/kind \
+        "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+    chmod +x /usr/local/bin/kind
+fi
+echo "kind: $(kind --version)"
+
+# kubectl — required by `make e2e`.
+if ! command -v kubectl &>/dev/null || ! kubectl version --client=true --output=yaml 2>/dev/null | grep -q "${KUBECTL_VERSION}"; then
+    echo "Installing kubectl ${KUBECTL_VERSION}..."
+    curl -fsSL -o /usr/local/bin/kubectl \
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+    chmod +x /usr/local/bin/kubectl
+fi
+echo "kubectl: $(kubectl version --client=true --output=yaml 2>/dev/null | grep gitVersion | head -1)"
+
+# Evaluation targets — must be cloned before `go mod download` because
+# go.mod has local-replace directives pointing at ./evaluation/<target>.
+if [ -d "${REPO_DIR}" ]; then
+    echo "Cloning evaluation targets..."
+    REPO_DIR="${REPO_DIR}" "${REPO_DIR}/cloudlab/clone-targets.sh"
+
+    # Hand the clones back to the swapper user so they can build without sudo.
+    OWNER=$(stat -c '%U' "${REPO_DIR}")
+    chown -R "${OWNER}:${OWNER}" "${REPO_DIR}/evaluation"
+fi
+
+# Pre-fetch Go module cache — run as the swapper user so the cache lands
+# in their $HOME with the right ownership (not root's, which is unreachable
+# from the user's later `go build`).
 if [ -d "${REPO_DIR}" ]; then
     echo "Downloading Go modules..."
-    cd "${REPO_DIR}"
-    /usr/local/go/bin/go mod download
+    OWNER=$(stat -c '%U' "${REPO_DIR}")
+    sudo -u "${OWNER}" --preserve-env=PATH bash -c "cd '${REPO_DIR}' && /usr/local/go/bin/go mod download"
 fi
 
 echo "=== setup complete ($(date)) ==="
