@@ -9,6 +9,12 @@ func LookupReconstructor(typ types.Type) (Reconstructor, bool) {
 	if typ == nil {
 		return Reconstructor{}, false
 	}
+	if recon, ok := contextReconstructor(typ); ok {
+		return recon, true
+	}
+	if recon, ok := loggerInterfaceReconstructor(typ); ok {
+		return recon, true
+	}
 	if recon, ok := directReconstructor(typ); ok {
 		return recon, true
 	}
@@ -48,6 +54,47 @@ func directReconstructor(typ types.Type) (Reconstructor, bool) {
 	default:
 		return Reconstructor{}, false
 	}
+}
+
+// contextReconstructor detects context.Context parameters and produces a
+// reconstructor that creates context.Background() on the server side.
+// Context is never serialized across the boundary.
+func contextReconstructor(typ types.Type) (Reconstructor, bool) {
+	named := namedType(typ)
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return Reconstructor{}, false
+	}
+	if named.Obj().Pkg().Path() == "context" && named.Obj().Name() == "Context" {
+		return Reconstructor{
+			ID:      "context_background",
+			Type:    typeString(typ, ""),
+			Imports: []string{"context"},
+		}, true
+	}
+	return Reconstructor{}, false
+}
+
+// loggerInterfaceReconstructor detects logger interface parameters (such as
+// mlog.LoggerIFace) and produces a reconstructor that assigns nil on the
+// server side.  Logger interfaces are not serialized across the boundary.
+func loggerInterfaceReconstructor(typ types.Type) (Reconstructor, bool) {
+	named := namedType(typ)
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return Reconstructor{}, false
+	}
+	if _, ok := named.Underlying().(*types.Interface); !ok {
+		return Reconstructor{}, false
+	}
+	typeName := named.Obj().Name()
+	if strings.Contains(typeName, "Logger") {
+		pkgPath := named.Obj().Pkg().Path()
+		return Reconstructor{
+			ID:      "discard_logger",
+			Type:    typeString(typ, ""),
+			Imports: []string{pkgPath},
+		}, true
+	}
+	return Reconstructor{}, false
 }
 
 func sqlWrapperReconstructor(typ types.Type) (Reconstructor, bool) {

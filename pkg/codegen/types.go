@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GeneratorVersion = "SPRINT-0046"
+	GeneratorVersion = "SPRINT-0048"
 	ManifestName     = "monolift_lift_manifest.json"
 )
 
@@ -21,6 +21,7 @@ type Plan struct {
 	CutPoint CutPoint
 	Incoming IncomingCall
 
+	ReceiverParam       *ReceiverSpec
 	BoundaryParams      []Param
 	ReconstructedParams []ReconstructedParam
 	Results             []Result
@@ -137,12 +138,30 @@ type Result struct {
 	Index            int
 }
 
+type ReceiverPolicy string
+
+const (
+	ReceiverBoundary ReceiverPolicy = "receiver_boundary"
+	ReceiverZero     ReceiverPolicy = "receiver_zero"
+	ReceiverFactory  ReceiverPolicy = "receiver_factory"
+)
+
+type ReceiverSpec struct {
+	GoType      string
+	IsPointer   bool
+	Policy      ReceiverPolicy
+	FactoryFunc string
+	Codec       Codec
+}
+
 type Codec string
 
 const (
 	CodecPrimitive             Codec = "primitive"
 	CodecJSON                  Codec = "json"
+	CodecError                 Codec = "error"
 	CodecLocalizedErrorWrapper Codec = "localized_error_wrapper"
+	CodecStreamingBytes        Codec = "streaming_bytes"
 )
 
 type ReturnCodec struct {

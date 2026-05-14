@@ -35,7 +35,7 @@ Status values are intentionally conservative:
 | `gitea/M-14` | `DetectWorkflows` | yes after state split | not covered | needs-new-reconstructor: repository/git context |
 | `gitea/M-15` | `queueHandler` | yes: serializable | not covered | needs-new-reconstructor: queue/DB family |
 | `gitea/M-16` | `(*Argon2Hasher).HashWithSaltBytes` | yes: serializable | none required | needs-shape/codec-work: receiver/method stub support |
-| `gitea/M-17` | `RenderFullFile` | yes: serializable | config-only not modeled | needs-new-reconstructor: rendering/config family |
+| `gitea/M-17` | `RenderFullFile` | yes: serializable | config-only not modeled | admission-skip: (1) `[]byte` param needs reconstructor registration, (2) `([]template.HTML, string)` multi-return has non-error second result |
 | `gitea/M-19` | `UploadPackageFile` | yes: serializable | not covered | needs-new-reconstructor: package storage/DB family |
 | `gitea/M-2` | `handler` | yes: serializable | not covered | needs-new-reconstructor: web context/DB state |
 | `gitea/M-3` | `UpdateAvatar` | yes: serializable | not covered | needs-new-reconstructor: object storage/DB family |

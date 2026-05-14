@@ -62,8 +62,14 @@ func classifyCodec(typ types.Type) (activation.BoundaryDataClass, Codec) {
 	if typ == nil {
 		return activation.BoundaryInfeasible, CodecJSON
 	}
+	if isErrorType(typ) {
+		return activation.Serializable, CodecError
+	}
 	if isLocalizedErrorWrapper(typ) {
 		return activation.Serializable, CodecLocalizedErrorWrapper
+	}
+	if isStreamingReader(typ) {
+		return activation.Serializable, CodecStreamingBytes
 	}
 	switch t := types.Unalias(typ).(type) {
 	case *types.Basic:
@@ -86,6 +92,25 @@ func classifyCodec(typ types.Type) (activation.BoundaryDataClass, Codec) {
 		}
 	}
 	return activation.Serializable, CodecJSON
+}
+
+func isErrorType(typ types.Type) bool {
+	return types.Identical(typ, types.Universe.Lookup("error").Type())
+}
+
+func isStreamingReader(typ types.Type) bool {
+	named := namedType(typ)
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	if named.Obj().Pkg().Path() != "io" {
+		return false
+	}
+	switch named.Obj().Name() {
+	case "Reader", "ReadSeeker", "ReadCloser":
+		return true
+	}
+	return false
 }
 
 func isLocalizedErrorWrapper(typ types.Type) bool {

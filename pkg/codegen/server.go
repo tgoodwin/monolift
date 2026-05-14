@@ -25,19 +25,25 @@ func RenderServer(plan *Plan) (map[string][]byte, error) {
 }
 
 type serverView struct {
-	Plan              *Plan
-	Imports           []importSpec
-	RequestFields     []fieldView
-	ResponseField     fieldView
-	StateFields       []fieldView
-	StateInitLines    []string
-	StateCloseLines   []string
-	CallArgs          string
-	HasResult         bool
-	LocalizedResult   bool
-	PrimitiveResult   bool
-	CutPackageAlias   string
-	GeneratedFunction string
+	Plan            *Plan
+	Imports         []importSpec
+	RequestFields   []fieldView
+	ResponseField   fieldView
+	StateFields     []fieldView
+	StateInitLines  []string
+	StateCloseLines []string
+	CallArgs        string
+	HasResult       bool
+	HasErrorResult  bool
+	LocalizedResult bool
+	PrimitiveResult bool
+	CutPackageAlias string
+	AdapterFunc     string
+
+	// Receiver support
+	HasReceiver         bool
+	ReceiverRequestType string // qualified type for invokeRequest field (ReceiverBoundary only)
+	ReceiverConstruct   string // construction statement before adapter call (Factory/Zero-pointer)
 }
 
 type fieldView struct {
@@ -58,18 +64,27 @@ func serverTemplateView(plan *Plan) serverView {
 		{Path: "sync"},
 		{Path: plan.CutPoint.PackagePath},
 	}
+	hasStreamingBytes := false
 	var requestFields []fieldView
 	for _, param := range plan.BoundaryParams {
+		fieldType := param.QualifiedGoType
+		if param.Codec == CodecStreamingBytes {
+			fieldType = "[]byte"
+			hasStreamingBytes = true
+		}
 		requestFields = append(requestFields, fieldView{
 			Name:         exportedFieldName(param.Name),
 			OriginalName: param.Name,
 			JSONName:     param.JSONName,
-			Type:         param.QualifiedGoType,
+			Type:         fieldType,
 			ZeroValue:    zeroValue(param.GoType),
 		})
-		if param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
+		if param.Codec != CodecStreamingBytes && param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
 			imports = append(imports, importSpec{Path: param.TypePackagePath})
 		}
+	}
+	if hasStreamingBytes {
+		imports = append(imports, importSpec{Path: "bytes"})
 	}
 	var stateFields []fieldView
 	var stateInitLines []string
@@ -92,45 +107,96 @@ func serverTemplateView(plan *Plan) serverView {
 			stateCloseLines = append(stateCloseLines, strings.ReplaceAll(param.Reconstructor.CloseSource, "db", strings.ToLower(param.Name)+"DB"))
 		}
 	}
+	// Separate non-error results from error results.
 	response := fieldView{}
-	hasResult := len(plan.Results) > 0
+	hasNonErrorResult := false
+	hasErrorResult := false
 	localized := false
 	primitive := false
-	if hasResult {
-		result := plan.Results[0]
-		response = fieldView{
-			Name:      exportedFieldName(result.Name),
-			JSONName:  result.JSONName,
-			Type:      result.QualifiedGoType,
-			ZeroValue: zeroValue(result.GoType),
+	for _, result := range plan.Results {
+		if result.Codec == CodecError {
+			hasErrorResult = true
+			continue
 		}
-		if result.Codec != CodecLocalizedErrorWrapper && result.TypePackagePath != "" && result.TypePackagePath != plan.CutPoint.PackagePath {
-			imports = append(imports, importSpec{Path: result.TypePackagePath})
+		if !hasNonErrorResult {
+			response = fieldView{
+				Name:      exportedFieldName(result.Name),
+				JSONName:  result.JSONName,
+				Type:      result.QualifiedGoType,
+				ZeroValue: zeroValue(result.GoType),
+			}
+			if result.Codec != CodecLocalizedErrorWrapper && result.TypePackagePath != "" && result.TypePackagePath != plan.CutPoint.PackagePath {
+				imports = append(imports, importSpec{Path: result.TypePackagePath})
+			}
+			localized = result.Codec == CodecLocalizedErrorWrapper
+			primitive = result.Codec != CodecLocalizedErrorWrapper
+			hasNonErrorResult = true
 		}
-		localized = result.Codec == CodecLocalizedErrorWrapper
-		primitive = result.Codec != CodecLocalizedErrorWrapper
 	}
-	return serverView{
-		Plan:              plan,
-		Imports:           uniqueImports(imports),
-		RequestFields:     requestFields,
-		ResponseField:     response,
-		StateFields:       stateFields,
-		StateInitLines:    stateInitLines,
-		StateCloseLines:   stateCloseLines,
-		CallArgs:          strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", "),
-		HasResult:         hasResult,
-		LocalizedResult:   localized,
-		PrimitiveResult:   primitive,
-		CutPackageAlias:   plan.CutPoint.PackageName,
-		GeneratedFunction: plan.CutPoint.FuncName,
+	baseCallArgs := strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", ")
+
+	view := serverView{
+		Plan:            plan,
+		Imports:         uniqueImports(imports),
+		RequestFields:   requestFields,
+		ResponseField:   response,
+		StateFields:     stateFields,
+		StateInitLines:  stateInitLines,
+		StateCloseLines: stateCloseLines,
+		CallArgs:        baseCallArgs,
+		HasResult:       hasNonErrorResult,
+		HasErrorResult:  hasErrorResult,
+		LocalizedResult: localized,
+		PrimitiveResult: primitive,
+		CutPackageAlias: plan.CutPoint.PackageName,
+		AdapterFunc:     adapterFuncName(plan.CutPoint.FuncName),
 	}
+
+	// Receiver support: compute request field, construction, and call arg.
+	if plan.ReceiverParam != nil {
+		view.HasReceiver = true
+		baseType := strings.TrimPrefix(plan.ReceiverParam.GoType, "*")
+		qualifiedBase := plan.CutPoint.PackageName + "." + baseType
+
+		var receiverCallArg string
+		switch plan.ReceiverParam.Policy {
+		case ReceiverBoundary:
+			view.ReceiverRequestType = qualifiedBase
+			if plan.ReceiverParam.IsPointer {
+				receiverCallArg = "&req.Receiver"
+			} else {
+				receiverCallArg = "req.Receiver"
+			}
+		case ReceiverFactory:
+			view.ReceiverConstruct = "recv := " + plan.CutPoint.PackageName + "." + plan.ReceiverParam.FactoryFunc + "()"
+			receiverCallArg = "recv"
+		case ReceiverZero:
+			if plan.ReceiverParam.IsPointer {
+				view.ReceiverConstruct = "recv := &" + qualifiedBase + "{}"
+				receiverCallArg = "recv"
+			} else {
+				receiverCallArg = qualifiedBase + "{}"
+			}
+		}
+
+		if view.CallArgs != "" {
+			view.CallArgs = receiverCallArg + ", " + view.CallArgs
+		} else {
+			view.CallArgs = receiverCallArg
+		}
+	}
+
+	return view
 }
 
 func serverReconstructorInit(param ReconstructedParam) []string {
 	field := exportedFieldName(param.Name)
 	dbVar := strings.ToLower(param.Name) + "DB"
 	switch param.Reconstructor.ID {
+	case "context_background":
+		return []string{"state." + field + " = context.Background()"}
+	case "discard_logger":
+		return []string{"state." + field + " = nil"}
 	case "sql_db":
 		return []string{
 			dbVar + `, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
@@ -169,6 +235,9 @@ import (
 )
 
 type invokeRequest struct {
+{{- if .ReceiverRequestType }}
+	Receiver {{ .ReceiverRequestType }} ` + "`json:\"receiver\"`" + `
+{{- end }}
 {{- range .RequestFields }}
 	{{ .Name }} {{ .Type }} ` + "`json:\"{{ .JSONName }}\"`" + `
 {{- end }}
@@ -177,8 +246,13 @@ type invokeRequest struct {
 type invokeResponse struct {
 {{- if .LocalizedResult }}
 	Error *localizedError ` + "`json:\"error,omitempty\"`" + `
-{{- else if .HasResult }}
+{{- else }}
+{{- if .HasResult }}
 	{{ .ResponseField.Name }} {{ .ResponseField.Type }} ` + "`json:\"{{ .ResponseField.JSONName }}\"`" + `
+{{- end }}
+{{- if .HasErrorResult }}
+	Error string ` + "`json:\"error,omitempty\"`" + `
+{{- end }}
 {{- end }}
 }
 
@@ -303,8 +377,11 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+{{- if .ReceiverConstruct }}
+		{{ .ReceiverConstruct }}
+{{- end }}
 {{- if .LocalizedResult }}
-		result := {{ .CutPackageAlias }}.{{ .GeneratedFunction }}({{ .CallArgs }})
+		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
 		var resp invokeResponse
 		if result != nil {
 			var errText string
@@ -313,11 +390,22 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			}
 			resp.Error = &localizedError{Error: errText, Message: result.Translate("en_US")}
 		}
-{{- else if .HasResult }}
-		result := {{ .CutPackageAlias }}.{{ .GeneratedFunction }}({{ .CallArgs }})
+{{- else if .HasErrorResult }}
+{{- if .HasResult }}
+		result, resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
 {{- else }}
-		{{ .CutPackageAlias }}.{{ .GeneratedFunction }}({{ .CallArgs }})
+		resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		resp := invokeResponse{}
+{{- end }}
+		if resultErr != nil {
+			resp.Error = resultErr.Error()
+		}
+{{- else if .HasResult }}
+		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
+{{- else }}
+		{{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
 		resp := invokeResponse{}
 {{- end }}
 		invocationID := state.invocations.record(req, resp)

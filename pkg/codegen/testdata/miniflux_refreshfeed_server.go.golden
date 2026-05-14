@@ -143,7 +143,7 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		result := handler.RefreshFeed(state.Store, req.UserID, req.FeedID, req.ForceRefresh)
+		result := handler.MonoliftInvokeRefreshFeed(state.Store, req.UserID, req.FeedID, req.ForceRefresh)
 		var resp invokeResponse
 		if result != nil {
 			var errText string

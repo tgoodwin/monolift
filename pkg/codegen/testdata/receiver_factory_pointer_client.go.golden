@@ -1,0 +1,75 @@
+package hash
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"time"
+)
+
+type monoliftInvokeRequest struct {
+	Password []byte `json:"password"`
+	Salt     []byte `json:"salt"`
+}
+
+type monoliftInvokeResponse struct {
+	Result []byte `json:"result"`
+	Error  string `json:"error,omitempty"`
+}
+
+type monoliftLocalizedError struct {
+	Error   string `json:"error,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func (a *Argon2Hasher) HashWithSaltBytes(password []byte, salt []byte) ([]byte, error) {
+	if os.Getenv("MONOLIFT_LIFT_HASHWITHSALTBYTES") != "on" {
+		return a.monoliftOriginalHashWithSaltBytes(password, salt)
+	}
+	result, appErr, transportErr := a.monoliftRemoteHashWithSaltBytes(password, salt)
+	if transportErr != nil {
+		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
+			return nil, fmt.Errorf("monolift: extracted service unavailable")
+		}
+		return a.monoliftOriginalHashWithSaltBytes(password, salt)
+	}
+	return result, appErr
+}
+
+func (a *Argon2Hasher) monoliftRemoteHashWithSaltBytes(password []byte, salt []byte) ([]byte, error, error) {
+	endpoint := os.Getenv("MONOLIFT_HASHWITHSALTBYTES_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "http://127.0.0.1:8081/invoke"
+	}
+	payload := monoliftInvokeRequest{Password: password, Salt: salt}
+	var body bytes.Buffer
+	if err := json.NewEncoder(&body).Encode(payload); err != nil {
+		return nil, nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoint, &body)
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, nil, errors.New(resp.Status)
+	}
+	var decoded monoliftInvokeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return nil, nil, err
+	}
+	var appErr error
+	if decoded.Error != "" {
+		appErr = errors.New(decoded.Error)
+	}
+	return decoded.Result, appErr, nil
+}

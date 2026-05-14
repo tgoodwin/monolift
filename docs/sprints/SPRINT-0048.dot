@@ -1,0 +1,362 @@
+digraph SPRINT_0048 {
+    graph [
+        goal="Expand activation-path e2e lift coverage from 7 hand-picked targets into the 72-row SPRINT-0039 corpus trace matrix by adding codegen capabilities in ROI order: receiver method support, (T, error) multi-return, same-package invocation adapters, context/logger reconstruction, and streaming-to-bytes codec.\n\nQuality bar: at least 4 corpus traces pass focused Kind e2e, all 7 existing targets still pass, go test passes for activation and codegen packages.\n\nEXCLUDED: new reconstructor families (DB pools, HTTP clients, mailers, object stores), shared-state traces (10 mattermost/caddy/listmonk rows), proxy-required boundaries (caddy/M-2, listmonk/M-8), mutable boundary write-back (pocketbase/M-6), mattermost/M-4 structural gap, gRPC, streaming beyond finite-reader-to-bytes, multi-cut, Helm/Kustomize.\n\nReference materials:\n- docs/sprints/SPRINT-0048.md — the sprint plan with checkboxes to check off as tasks complete\n- docs/research/activation-paths/analyses/codegen-support-matrix.md — 72-trace matrix\n- docs/research/activation-paths/analyses/recommended-cuts.md — cut recommendations\n- test/e2e/targets/activation_miniflux_striptags/target.go — example e2e target scaffolding\n- test/e2e/targets/activation_caddy_cleanpath/target.go — another example\n- pkg/codegen/types.go — DeployOptions and codegen types\n\nIMPORTANT: As you complete tasks, check off the corresponding - [ ] boxes in docs/sprints/SPRINT-0048.md by changing them to - [x]. Commit the sprint doc update with each task completion.\n\nThis is a multi-phase pipeline. Each step below describes your specific scope — do everything this step asks, nothing less and nothing more.",
+        label="SPRINT-0048: Codegen Expansion",
+        rankdir=TB,
+        default_max_retries=50,
+        default_max_visits=50,
+        default_fidelity="summary:high",
+        agent_stylesheet="
+            box { agent: claude-code; model: claude-opus-4.6; reasoning_effort: high; }
+        ",
+        status_agent_stylesheet="agent: claude-code; model: claude-opus-4.6-fast;",
+        companion_agent_stylesheet="agent: claude-code; model: claude-opus-4.6-fast;"
+    ]
+
+    start [shape=Mdiamond]
+    exit  [shape=Msquare]
+
+    // ============================================================
+    // PHASE 2: Codegen chain → Phase 3 → Phase 5
+    // (P0, P1, P2A, P2B already completed in prior run)
+    // ============================================================
+
+    // --- Phase 2C: Same-package adapter ---
+
+    p2c_implement [
+        label="P2C: Invocation Adapter",
+        auto_status="true",
+        fidelity="full",
+        prompt="$goal\n\nYou are an implementation engineer adding the same-package invocation adapter.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 2C tasks (2C.1-2C.5).\nPrior work: Phase 2A (patch) and 2B (receiver policies) are committed.\n\nFIRST: Check if $context.run_dir/P2C_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. Generate MonoliftInvoke<FuncName> adapter function in the same package as the cut point. For methods: func MonoliftInvoke<FuncName>(recv <ReceiverType>, args...) results... { return recv.<Method>(args...) }. For functions: func MonoliftInvoke<FuncName>(args...) results... { return <func>(args...) }\n2. Adapter is exported so extracted server can call it\n3. Adapter written to patched package alongside renamed original\n4. Unit test: adapter for unexported method funcMarkdown produces exported MonoliftInvokeFuncMarkdown\n5. Unit test: adapter for exported function SanitizeHTML — verify existing targets can use adapter path\n\nCheck off tasks 2C.1-2C.5. Commit after each requirement.\n\nPRE-COMPLETION CHECKLIST:\n[ ] Adapter generated for both methods and functions\n[ ] Unexported targets get exported adapter\n[ ] Unit tests pass\n[ ] go test ./pkg/codegen/... passes\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="implement"
+    ]
+
+    p2c_test [
+        label="P2C: Verify Adapter",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P2C_TEST_REPORT.md.\n\nVerify Phase 2C (same-package invocation adapter).\n\nRequirements:\n1. MonoliftInvoke<FuncName> adapter generation exists in pkg/codegen/render.go or equivalent\n2. Adapter works for unexported methods (produces exported wrapper)\n3. Adapter works for exported functions\n4. Unit tests pass\n5. go test ./pkg/codegen/... passes\n\nOUTPUT: Write $context.run_dir/P2C_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="900s",
+        class="test"
+    ]
+
+    p2c_gate [shape=diamond, label="P2C Pass?"]
+
+    // --- Phase 2D: Multi-return and error support ---
+
+    p2d_implement [
+        label="P2D: Multi-Return Support",
+        auto_status="true",
+        fidelity="full",
+        prompt="$goal\n\nYou are an implementation engineer adding (T, error) multi-return support.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 2D tasks (2D.1-2D.12).\nPrior work: Phases 2A-2C are committed.\n\nFIRST: Check if $context.run_dir/P2D_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. Extend Plan.Results to support zero, one, or multiple return values with Go type and codec\n2. Add error result codec: application errors serialized as {\"error\": \"message\"} in response body with HTTP 200. Transport errors trigger fail-open/fail-closed\n3. Update server template: invoke adapter, capture all return values, serialize as JSON object with named fields\n4. Update client template: deserialize multi-return JSON, reconstruct Go return values. Transport failure: fail-open calls original, fail-closed returns zero values\n5. Update fail-open for (T, error): call original function, return its results\n6. Update fail-closed for (T, error): return (\"\", fmt.Errorf(\"monolift: extracted service unavailable\"))\n7. Golden-file test: server template with (string, error) return\n8. Golden-file test: client stub with (string, error) including fail-open/closed\n9. Golden-file test: server template with bool single return\n10. Golden-file test: void function\n11. Unit test: round-trip (string, error) where error is nil\n12. Unit test: round-trip (string, error) where error is non-nil\n\nCheck off tasks 2D.1-2D.12. Commit after each logical group.\n\nPRE-COMPLETION CHECKLIST:\n[ ] Plan.Results supports 0, 1, N returns\n[ ] Error codec distinguishes transport vs application errors\n[ ] Server and client templates updated\n[ ] All 4 golden-file tests pass\n[ ] Both round-trip unit tests pass\n[ ] go test ./pkg/codegen/... passes\n\n<!-- STATUS: SUCCESS -->",
+        timeout="3600s",
+        class="implement"
+    ]
+
+    p2d_test [
+        label="P2D: Verify Multi-Return",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P2D_TEST_REPORT.md.\n\nVerify Phase 2D (multi-return and error support).\n\nRequirements:\n1. Plan.Results supports zero, one, and multiple return values\n2. Error codec exists: application error → HTTP 200 + JSON error field, transport error → fail-open/closed\n3. Golden-file tests exist and pass for: (string, error), bool, void\n4. Round-trip unit tests pass for nil and non-nil error\n5. go test ./pkg/codegen/... passes\n\nOUTPUT: Write $context.run_dir/P2D_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="900s",
+        class="test"
+    ]
+
+    p2d_gate [shape=diamond, label="P2D Pass?"]
+
+    // --- Phase 2E: Server template — method invocation ---
+
+    p2e_implement [
+        label="P2E: Server Template Methods",
+        auto_status="true",
+        fidelity="full",
+        prompt="$goal\n\nYou are an implementation engineer updating the server template for method invocation.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 2E tasks (2E.1-2E.6).\nPrior work: Phases 2A-2D are committed.\n\nFIRST: Check if $context.run_dir/P2E_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. ReceiverBoundary: add receiver field to invoke request, deserialize, call req.Receiver.Method(args...)\n2. ReceiverFactory: call factory function on server, invoke method on constructed receiver\n3. ReceiverZero: construct zero-value receiver, invoke method\n4. Pointer receivers: take address — (&req.Receiver).Method(args...) or construct *T via factory\n5. Golden-file test: server template with value-receiver ReceiverBoundary\n6. Golden-file test: server template with pointer-receiver ReceiverFactory\n\nCheck off tasks 2E.1-2E.6. Commit after each requirement.\n\nPRE-COMPLETION CHECKLIST:\n[ ] All 3 receiver policies handled in server template\n[ ] Pointer receiver address-taking works\n[ ] Both golden-file tests pass\n[ ] go test ./pkg/codegen/... passes\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="implement"
+    ]
+
+    p2e_test [
+        label="P2E: Verify Server Template",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P2E_TEST_REPORT.md.\n\nVerify Phase 2E (server template method invocation).\n\nRequirements:\n1. Server template handles ReceiverBoundary (deserialize + invoke)\n2. Server template handles ReceiverFactory (construct + invoke)\n3. Server template handles ReceiverZero (zero-value + invoke)\n4. Pointer receiver address-taking works correctly\n5. Golden-file tests exist and pass\n6. go test ./pkg/codegen/... passes\n\nOUTPUT: Write $context.run_dir/P2E_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="900s",
+        class="test"
+    ]
+
+    p2e_gate [shape=diamond, label="P2E Pass?"]
+
+    // --- Phase 2F: Client template — method stub ---
+
+    p2f_implement [
+        label="P2F: Client Template Methods",
+        auto_status="true",
+        fidelity="full",
+        prompt="$goal\n\nYou are an implementation engineer updating the client template for method stubs.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 2F tasks (2F.1-2F.4).\nPrior work: Phases 2A-2E are committed.\n\nFIRST: Check if $context.run_dir/P2F_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. When ReceiverParam present: generate method stub on receiver type. Stub serializes self + args, POSTs to extracted service\n2. Preserve original receiver parameter name and pointer/value semantics\n3. Fail-open calls self.monoliftOriginal<Method>(args...)\n4. Golden-file test: client stub for value-receiver ReceiverBoundary with receiver serialization\n5. Golden-file test: client stub for pointer-receiver ReceiverFactory (no receiver serialization)\n\nCheck off tasks 2F.1-2F.4. Commit after each requirement.\n\nPRE-COMPLETION CHECKLIST:\n[ ] Method stub generated on receiver type\n[ ] Fail-open calls original method\n[ ] Both golden-file tests pass\n[ ] go test ./pkg/codegen/... passes\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="implement"
+    ]
+
+    p2f_test [
+        label="P2F: Verify Client Template",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P2F_TEST_REPORT.md.\n\nVerify Phase 2F (client template method stubs).\n\nRequirements:\n1. Method stub generated on receiver type with self + args serialization\n2. Fail-open calls self.monoliftOriginal<Method>(args...)\n3. Golden-file tests exist and pass for value and pointer receivers\n4. go test ./pkg/codegen/... passes\n\nOUTPUT: Write $context.run_dir/P2F_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="900s",
+        class="test"
+    ]
+
+    p2f_gate [shape=diamond, label="P2F Pass?"]
+
+    // --- Phase 2G: Admission gates ---
+
+    p2g_implement [
+        label="P2G: Admission Gates",
+        auto_status="true",
+        fidelity="full",
+        prompt="$goal\n\nYou are an implementation engineer updating admission to accept method cuts and multi-return.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 2G tasks (2G.1-2G.7).\nPrior work: Phases 2A-2F are committed.\n\nFIRST: Check if $context.run_dir/P2G_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. Accept plans with ReceiverParam when receiver type is JSON-serializable. Refuse with non_serializable_receiver for channels, io types, sync primitives, function types\n2. Accept plans with multi-return (T, error) results. Refuse void-with-side-effects with void_side_effect\n3. When CutPoint.Receiver non-empty but no policy applies: refuse with receiver_requires_reconstruction\n4. Unit test: admit serializable value-receiver\n5. Unit test: refuse receiver with *sql.DB\n6. Unit test: admit (string, error) result\n7. Unit test: refuse io.Writer result\n\nCheck off tasks 2G.1-2G.7. Commit after each requirement.\n\nPRE-COMPLETION CHECKLIST:\n[ ] Admission accepts serializable receivers\n[ ] Admission accepts multi-return results\n[ ] Admission refuses non-serializable receivers and io.Writer results\n[ ] All 4 unit tests pass\n[ ] go test ./pkg/codegen/... passes\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="implement"
+    ]
+
+    p2g_test [
+        label="P2G: Verify Admission",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P2G_TEST_REPORT.md.\n\nVerify Phase 2G (admission gates for methods and multi-return).\n\nRequirements:\n1. Admission accepts serializable receiver plans\n2. Admission refuses non-serializable receivers\n3. Admission accepts (T, error) multi-return\n4. Admission refuses io.Writer results\n5. All unit tests pass\n6. go test ./pkg/codegen/... passes\n\nOUTPUT: Write $context.run_dir/P2G_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="900s",
+        class="test"
+    ]
+
+    p2g_gate [shape=diamond, label="P2G Pass?"]
+
+    // --- Phase 2H: Context and logger reconstruction ---
+
+    p2h_implement [
+        label="P2H: Context/Logger",
+        auto_status="true",
+        fidelity="full",
+        prompt="$goal\n\nYou are an implementation engineer adding context.Context and logger reconstruction.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 2H tasks (2H.1-2H.4).\nPrior work: Phases 2A-2G are committed.\n\nFIRST: Check if $context.run_dir/P2H_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. context.Context parameter handling: when boundary param is context.Context, reconstruct as context.Background() on server. Do not serialize context across boundary\n2. No-op logger reconstruction for mlog.LoggerIFace and similar: construct discard logger on server\n3. Unit test: plan with context.Context param produces server-side context.Background()\n4. Unit test: plan with mlog.LoggerIFace param produces discard logger\n\nCheck off tasks 2H.1-2H.4. Commit after each requirement.\n\nPRE-COMPLETION CHECKLIST:\n[ ] context.Context reconstructed as context.Background()\n[ ] Logger interfaces reconstructed as discard\n[ ] Both unit tests pass\n[ ] go test ./pkg/codegen/... passes\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="implement"
+    ]
+
+    p2h_test [
+        label="P2H: Verify Context/Logger",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P2H_TEST_REPORT.md.\n\nVerify Phase 2H (context and logger reconstruction).\n\nRequirements:\n1. context.Context params produce context.Background() on server\n2. Logger interfaces produce discard logger on server\n3. Neither is serialized across boundary\n4. Unit tests pass\n5. go test ./pkg/codegen/... passes\n\nOUTPUT: Write $context.run_dir/P2H_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="900s",
+        class="test"
+    ]
+
+    p2h_gate [shape=diamond, label="P2H Pass?"]
+
+    // --- Phase 2I: Integration verification ---
+
+    p2i_implement [
+        label="P2I: Integration Verification",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer performing integration verification of all Phase 2 codegen changes.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 2I tasks (2I.1-2I.5).\n\nFIRST: Check if $context.run_dir/P2I_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. Run go test ./pkg/codegen/... — all tests pass\n2. Run go test ./pkg/activation/... — no regressions\n3. Run all 7 existing e2e targets — confirm no regressions from codegen changes\n4. Update GeneratorVersion constant from SPRINT-0046 to SPRINT-0048\n5. Run admission-only sweep (scripts/run_activation_corpus_sweep.sh --admission-only) and update manifest with current admission statuses\n\nCheck off tasks 2I.1-2I.5. Commit after each requirement.\n\nPRE-COMPLETION CHECKLIST:\n[ ] go test ./pkg/codegen/... passes\n[ ] go test ./pkg/activation/... passes\n[ ] All 7 existing e2e targets pass\n[ ] GeneratorVersion updated\n[ ] Admission-only sweep run and manifest updated\n\n<!-- STATUS: SUCCESS -->",
+        timeout="3600s",
+        class="implement"
+    ]
+
+    p2i_test [
+        label="P2I: Verify Integration",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P2I_TEST_REPORT.md.\n\nVerify Phase 2I (integration verification).\n\nRequirements:\n1. go test ./pkg/codegen/... passes\n2. go test ./pkg/activation/... passes\n3. GeneratorVersion in source code is SPRINT-0048\n4. Admission-only sweep has been run and manifest updated\n5. Sprint doc tasks 2I.1-2I.5 are checked off\n\nOUTPUT: Write $context.run_dir/P2I_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="1800s",
+        class="test"
+    ]
+
+    p2i_gate [shape=diamond, label="P2I Pass?"]
+
+    // --- Phase 3: Sequential target scaffolding ---
+
+    p3_task_prep [
+        label="P3: Prepare Target Tasks",
+        auto_status="true",
+        prompt="$goal\n\nYou are a task preparation engineer for sequential target scaffolding.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 3 tasks (3A-3F) for the 6 corpus targets.\nReference: read test/e2e/targets/activation_miniflux_striptags/ and test/e2e/targets/activation_caddy_cleanpath/ for scaffolding patterns.\n\nRead $context.run_dir/WORK_ITEMS.md if it exists. If all items are checked, report SUCCESS.\n\nIf it does not exist, create it with these items:\n- [ ] 3A: pocketbase/M-3 PasswordFieldValue.Validate — value receiver, single bool return, safest target\n- [ ] 3B: gitea/M-16 (*Argon2Hasher).HashWithSaltBytes — pointer receiver, factory construction\n- [ ] 3C: mattermost/M-14 (PBKDF2).Hash — value receiver, (string, error) return\n- [ ] 3D: caddy/M-1 (TemplateContext).funcMarkdown — value receiver, (string, error), any param\n- [ ] 3E: gitea/M-17 RenderFullFile — package-level, config-only\n- [ ] 3F: mattermost/M-1 Extract — package-level, needs context + logger\n\nFor each unchecked item, write a task file $context.run_dir/IMPL_TASK_X.md (A through F) containing:\n- The corpus trace ID and function name\n- The exact file:line from the corpus matrix\n- The receiver type and return signature\n- Step-by-step instructions: run activation analysis, run codegen.RunLift, if admission accepts create target.go/workload.go/oracle.go, register in e2e_test.go, run focused Kind e2e\n- If admission refuses: document refusal code, mark as admission-skip, report SUCCESS\n- Reference the existing target patterns for scaffolding structure\n\nClean up stale worktrees and branches from prior cycles:\ngit worktree prune\ngit worktree remove $context.run_dir/worktrees/impl_a --force 2>/dev/null\ngit worktree remove $context.run_dir/worktrees/impl_b --force 2>/dev/null\ngit worktree remove $context.run_dir/worktrees/impl_c --force 2>/dev/null\ngit worktree remove $context.run_dir/worktrees/impl_d --force 2>/dev/null\ngit worktree remove $context.run_dir/worktrees/impl_e --force 2>/dev/null\ngit worktree remove $context.run_dir/worktrees/impl_f --force 2>/dev/null\ngit worktree prune\ngit branch -D impl_a 2>/dev/null\ngit branch -D impl_b 2>/dev/null\ngit branch -D impl_c 2>/dev/null\ngit branch -D impl_d 2>/dev/null\ngit branch -D impl_e 2>/dev/null\ngit branch -D impl_f 2>/dev/null\n\nIf fewer than 6 unchecked items remain, write NO_WORK in extra task files.\n\n<!-- STATUS: SUCCESS --> (if all items checked)\n<!-- STATUS: FAIL --> (if unchecked items remain — triggers impl fan-out)",
+        timeout="1800s"
+    ]
+
+    p3_prep_gate [shape=diamond, label="All targets done?"]
+
+    p3_impl_a [
+        label="Scaffold Target A",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer scaffolding an e2e target.\n\nYour task: read $context.run_dir/IMPL_TASK_A.md for your specific assignment.\nIf the task file contains NO_WORK, do nothing — report SUCCESS immediately.\n\nWORKTREE SETUP:\n1. git worktree remove $context.run_dir/worktrees/impl_a --force 2>/dev/null; git worktree prune; git branch -D impl_a 2>/dev/null\n2. git worktree add $context.run_dir/worktrees/impl_a -b impl_a main\n3. cd into $context.run_dir/worktrees/impl_a — do ALL work there\n4. Leave the worktree in place when done\n\nFor your assigned target:\n1. Run activation-path analysis. Confirm path found\n2. Run codegen.RunLift. If admission refuses, document in the task file and report SUCCESS (skip is OK)\n3. If accepted: create target.go, workload.go, oracle.go following existing patterns\n4. Register in e2e_test.go\n5. Check off the corresponding task in docs/sprints/SPRINT-0048.md\n6. Commit all changes in the worktree branch\n\nDo NOT run Kind e2e in the worktree — that happens after merge.\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="scaffold"
+    ]
+
+    p3_impl_b [
+        label="Scaffold Target B",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer scaffolding an e2e target.\n\nYour task: read $context.run_dir/IMPL_TASK_B.md for your specific assignment.\nIf the task file contains NO_WORK, do nothing — report SUCCESS immediately.\n\nWORKTREE SETUP:\n1. git worktree remove $context.run_dir/worktrees/impl_b --force 2>/dev/null; git worktree prune; git branch -D impl_b 2>/dev/null\n2. git worktree add $context.run_dir/worktrees/impl_b -b impl_b main\n3. cd into $context.run_dir/worktrees/impl_b — do ALL work there\n4. Leave the worktree in place when done\n\nFollow the same steps as described in the task file. Do NOT run Kind e2e in the worktree.\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="scaffold"
+    ]
+
+    p3_impl_c [
+        label="Scaffold Target C",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer scaffolding an e2e target.\n\nYour task: read $context.run_dir/IMPL_TASK_C.md for your specific assignment.\nIf the task file contains NO_WORK, do nothing — report SUCCESS immediately.\n\nWORKTREE SETUP:\n1. git worktree remove $context.run_dir/worktrees/impl_c --force 2>/dev/null; git worktree prune; git branch -D impl_c 2>/dev/null\n2. git worktree add $context.run_dir/worktrees/impl_c -b impl_c main\n3. cd into $context.run_dir/worktrees/impl_c — do ALL work there\n4. Leave the worktree in place when done\n\nFollow the same steps as described in the task file. Do NOT run Kind e2e in the worktree.\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="scaffold"
+    ]
+
+    p3_impl_d [
+        label="Scaffold Target D",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer scaffolding an e2e target.\n\nYour task: read $context.run_dir/IMPL_TASK_D.md for your specific assignment.\nIf the task file contains NO_WORK, do nothing — report SUCCESS immediately.\n\nWORKTREE SETUP:\n1. git worktree remove $context.run_dir/worktrees/impl_d --force 2>/dev/null; git worktree prune; git branch -D impl_d 2>/dev/null\n2. git worktree add $context.run_dir/worktrees/impl_d -b impl_d main\n3. cd into $context.run_dir/worktrees/impl_d — do ALL work there\n4. Leave the worktree in place when done\n\nFollow the same steps as described in the task file. Do NOT run Kind e2e in the worktree.\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="scaffold"
+    ]
+
+    p3_impl_e [
+        label="Scaffold Target E",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer scaffolding an e2e target.\n\nYour task: read $context.run_dir/IMPL_TASK_E.md for your specific assignment.\nIf the task file contains NO_WORK, do nothing — report SUCCESS immediately.\n\nWORKTREE SETUP:\n1. git worktree remove $context.run_dir/worktrees/impl_e --force 2>/dev/null; git worktree prune; git branch -D impl_e 2>/dev/null\n2. git worktree add $context.run_dir/worktrees/impl_e -b impl_e main\n3. cd into $context.run_dir/worktrees/impl_e — do ALL work there\n4. Leave the worktree in place when done\n\nFollow the same steps as described in the task file. Do NOT run Kind e2e in the worktree.\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="scaffold"
+    ]
+
+    p3_impl_f [
+        label="Scaffold Target F",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer scaffolding an e2e target.\n\nYour task: read $context.run_dir/IMPL_TASK_F.md for your specific assignment.\nIf the task file contains NO_WORK, do nothing — report SUCCESS immediately.\n\nWORKTREE SETUP:\n1. git worktree remove $context.run_dir/worktrees/impl_f --force 2>/dev/null; git worktree prune; git branch -D impl_f 2>/dev/null\n2. git worktree add $context.run_dir/worktrees/impl_f -b impl_f main\n3. cd into $context.run_dir/worktrees/impl_f — do ALL work there\n4. Leave the worktree in place when done\n\nFollow the same steps as described in the task file. Do NOT run Kind e2e in the worktree.\n\n<!-- STATUS: SUCCESS -->",
+        timeout="2400s",
+        class="scaffold"
+    ]
+
+    p3_merge [
+        label="P3: Merge Targets",
+        auto_status="true",
+        prompt="$goal\n\nYou are the merge engineer. Merge all scaffold branches into main.\n\nCRITICAL WARNING: The git log on main WILL show Merge impl_a etc. from PREVIOUS cycles. These are OLD commits. You MUST run git log main..impl_X --oneline for EVERY branch to check for NEW unmerged commits.\n\nMERGE PROCEDURE:\n0. git checkout main\nFor each branch (impl_a through impl_f), in order:\n1. Check if branch exists: git rev-parse --verify impl_X 2>/dev/null\n2. Check for unmerged commits: git log main..impl_X --oneline\n3. If no commits ahead, skip\n4. git merge impl_X --no-ff -m \"Merge impl_X: scaffold corpus target\"\n5. If conflicts: resolve preserving both features, git add + commit\n6. Move to next branch\n\nAfter all merges:\n1. Search for conflict markers — none must remain\n2. Run go test -tags e2e ./test/e2e -run '^$' to verify compilation\n3. SAFETY CHECK: for every branch, verify git log main..impl_X --oneline returns nothing\n4. Clean up worktrees: git worktree remove $context.run_dir/worktrees/impl_X --force (each)\n5. git worktree prune\n6. Delete branches individually: git branch -D impl_X (each, ignore errors)\n\n<!-- STATUS: SUCCESS -->",
+        timeout="1800s"
+    ]
+
+    p3_e2e_test [
+        label="P3: E2E Test Targets",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Run focused Kind e2e for each new corpus-trace target.\n\nDelete any prior $context.run_dir/P3_TEST_REPORT.md.\n\nFor each new target directory under test/e2e/targets/activation_*:\n1. If it was scaffolded this sprint (not one of the original 7), run focused Kind e2e\n2. Record PASS, FAIL (with stage and error), or SKIP (if admission refused)\n3. For failures: document the stage, root cause category, and whether fixable this sprint\n4. Update the corpus manifest with the result\n5. Check off the corresponding Phase 3 task in docs/sprints/SPRINT-0048.md\n\nBest-effort: a target failure does NOT fail this node. Continue to the next target.\n\nOUTPUT: Write $context.run_dir/P3_TEST_REPORT.md with per-target results.\n\n<!-- STATUS: SUCCESS --> (always — best-effort)",
+        timeout="7200s",
+        class="test"
+    ]
+
+    p3_verify [
+        label="P3: Verify Completion",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Read $context.run_dir/WORK_ITEMS.md and $context.run_dir/P3_TEST_REPORT.md.\n\nFor each target that was attempted:\n1. If focused Kind e2e passed: check it off in WORK_ITEMS.md\n2. If admission refused: check it off (skip is acceptable)\n3. If e2e failed: leave unchecked for potential retry\n\nAlways report SUCCESS — the verify node updates the checklist, it does not gate.\n\n<!-- STATUS: SUCCESS -->",
+        timeout="900s"
+    ]
+
+    // --- Phase 5: Stretch targets (sequential best-effort) ---
+
+    p5_stretch [
+        label="P5: Stretch Targets",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer attempting config-only stretch targets.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 5 tasks (5.1-5.8).\n\nAttempt each stretch target sequentially. For each:\n1. Run activation analysis and codegen.RunLift\n2. If admission refuses: document refusal code in corpus manifest, check off as attempted, move to next\n3. If accepted: scaffold target.go/workload.go/oracle.go, register in e2e_test.go\n4. Run focused Kind e2e\n5. If e2e passes: check off sprint task. If fails: document failure, check off as attempted, move to next\n\nTargets in order:\n- 5.1: pocketbase/M-11 resolveEmailTemplate\n- 5.2: pocketbase/M-5 SendRecordPasswordReset\n- 5.3: pocketbase/M-2 recordAuthWithOAuth2\n- 5.4: caddy/M-3 (HTTPBasicAuth).correctPassword\n- 5.5: caddy/M-4 (InternalIssuer).Issue\n- 5.6: listmonk/M-7 (*Campaign).CompileTemplate\n- 5.7: gitea/M-13 send\n- 5.8: each stretch target per above\n\nBest-effort: skip-on-failure. Do not get stuck on any single target.\nCommit after each target attempt.\n\n<!-- STATUS: SUCCESS --> (always — best-effort)",
+        timeout="7200s",
+        class="implement"
+    ]
+
+    // ============================================================
+    // PHASE 4: Streaming codec
+    // ============================================================
+
+    p4_implement [
+        label="P4: Streaming Codec",
+        auto_status="true",
+        prompt="$goal\n\nYou are an implementation engineer completing the miniflux/M-6 ParseFeed e2e target.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 4 tasks (4.1-4.13).\n\nPRIOR WORK ALREADY COMMITTED (do not redo):\n- Tasks 4.1-4.9 are complete: CodecStreamingBytes codec, classifyCodec, server/client templates, golden-file tests, round-trip test, ParseFeed analysis\n- ParseFeed was blocked on multi-return (unsupported_result_shape) — Phase 2D has now added multi-return support\n\nFIRST: Check if $context.run_dir/P4_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRemaining requirements:\n1. Verify go test ./pkg/codegen/... passes (confirm streaming-bytes + multi-return work together)\n2. Re-run codegen.RunLift for miniflux/M-6 ParseFeed — admission should now accept with multi-return support\n3. Create test/e2e/targets/activation_miniflux_parsefeed/ with target.go, workload.go, oracle.go\n4. Register in e2e_test.go\n5. Run focused Kind e2e\n\nCheck off tasks 4.10-4.13 in docs/sprints/SPRINT-0048.md.\nCommit after each logical group.\n\nPRE-COMPLETION CHECKLIST:\n[ ] go test ./pkg/codegen/... passes\n[ ] miniflux/M-6 admission now accepts\n[ ] e2e target passes or blocker documented\n[ ] Sprint doc tasks 4.10-4.13 checked off\n\n<!-- STATUS: SUCCESS -->",
+        timeout="3600s",
+        class="implement"
+    ]
+
+    p4_test [
+        label="P4: Verify Streaming Codec",
+        auto_status="true",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P4_TEST_REPORT.md.\n\nVerify Phase 4 (streaming-to-bytes codec + miniflux/M-6).\n\nRequirements:\n1. CodecStreamingBytes codec type exists in types.go\n2. classifyCodec maps io.ReadSeeker/io.Reader to CodecStreamingBytes\n3. io.Writer is still rejected\n4. Golden-file tests exist and pass\n5. Round-trip unit test passes\n6. miniflux/M-6 ParseFeed: either e2e target passes or blocker documented\n7. go test ./pkg/codegen/... passes\n\nOUTPUT: Write $context.run_dir/P4_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="1800s",
+        class="test"
+    ]
+
+    p4_gate [shape=diamond, label="P4 Pass?"]
+
+    // ============================================================
+    // PHASE 6: Verification + Closeout (implement/test loop)
+    // ============================================================
+
+    p6_implement [
+        label="P6: Final Verification",
+        prompt="$goal\n\nYou are an implementation engineer performing final verification and writing the coverage report.\n\nReference: read docs/sprints/SPRINT-0048.md Phase 6 tasks (6.1-6.12).\n\nFIRST: Check if $context.run_dir/P6_TEST_REPORT.md exists.\nIf it exists: fix iteration. If not: first visit.\n\nRequirements:\n1. Run go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...\n2. Run all 7 original activation targets individually — confirm no regressions\n3. Run all new corpus-trace targets individually — record pass/fail per target\n4. Run best-effort overnight sweep: scripts/run_activation_corpus_sweep.sh --phases all --timeout-per-trace 25m\n5. Run combined activation batch with 4h timeout\n6. Verify each generated manifest lists correct artifact kinds\n7. Verify each extracted Deployment is dormant, no MONOLIFT_LIFT_* env vars\n8. Verify env-off mode produces zero extracted /calls deltas for passing targets\n9. Verify fail-open/fail-closed for each result shape\n10. For each failing target: document stage, root cause, fixable-or-deferred\n11. Run admission-only sweep for deferred rows — verify stable refusal codes\n12. Write docs/research/runs/SPRINT-0048-coverage-report.md with: trace matrix coverage before/after, per-target results, codegen capabilities added, residual blockers, next-sprint backlog ranked by traces unlocked\n\nCheck off tasks 6.1-6.12 in docs/sprints/SPRINT-0048.md.\nCommit after each requirement.\n\nPRE-COMPLETION CHECKLIST:\n[ ] go test passes for all packages\n[ ] No regressions on original 7 targets\n[ ] Coverage report written with complete data\n[ ] All sprint doc Phase 6 checkboxes checked off\n\n<!-- STATUS: SUCCESS -->",
+        timeout="7200s",
+        goal_gate="true",
+        retry_target="p6_implement",
+        class="implement"
+    ]
+
+    p6_test [
+        label="P6: Verify Closeout",
+        prompt="$goal\n\nYou are a verification engineer. Delete any prior $context.run_dir/P6_TEST_REPORT.md.\n\nVerify Phase 6 (final verification and closeout).\n\nRequirements:\n1. go test ./pkg/activation/... ./pkg/codegen/... passes\n2. All 7 original activation targets pass (no regressions)\n3. docs/research/runs/SPRINT-0048-coverage-report.md exists with per-trace results and next-sprint backlog\n4. At least 4 corpus traces have passing e2e results documented\n5. All deferred rows have stable admission refusal codes in the manifest\n6. Sprint doc tasks 6.1-6.12 are checked off\n\nOUTPUT: Write $context.run_dir/P6_TEST_REPORT.md.\n\n<!-- STATUS: SUCCESS --> (only if ALL pass)\n<!-- STATUS: FAIL -->",
+        timeout="1800s",
+        class="test"
+    ]
+
+    p6_gate [shape=diamond, label="P6 Pass?"]
+
+    // ============================================================
+    // WIRING (fully sequential, resuming from Phase 2C)
+    // ============================================================
+
+    // Skip completed phases — start directly at Phase 2C
+    start -> p2c_implement
+
+    // Phase 2 chain (2C → 2D → ... → 2I)
+    p2c_implement -> p2c_test -> p2c_gate
+    p2c_gate -> p2d_implement [condition="outcome=success"]
+    p2c_gate -> p2c_implement
+
+    p2d_implement -> p2d_test -> p2d_gate
+    p2d_gate -> p2e_implement [condition="outcome=success"]
+    p2d_gate -> p2d_implement
+
+    p2e_implement -> p2e_test -> p2e_gate
+    p2e_gate -> p2f_implement [condition="outcome=success"]
+    p2e_gate -> p2e_implement
+
+    p2f_implement -> p2f_test -> p2f_gate
+    p2f_gate -> p2g_implement [condition="outcome=success"]
+    p2f_gate -> p2f_implement
+
+    p2g_implement -> p2g_test -> p2g_gate
+    p2g_gate -> p2h_implement [condition="outcome=success"]
+    p2g_gate -> p2g_implement
+
+    p2h_implement -> p2h_test -> p2h_gate
+    p2h_gate -> p2i_implement [condition="outcome=success"]
+    p2h_gate -> p2h_implement
+
+    p2i_implement -> p2i_test -> p2i_gate
+    p2i_gate -> p3_task_prep [condition="outcome=success"]
+    p2i_gate -> p2i_implement
+
+    // Phase 3: sequential target scaffolding
+    p3_task_prep -> p3_prep_gate
+    p3_prep_gate -> p5_stretch [condition="outcome=success"]
+    p3_prep_gate -> p3_impl_a
+
+    p3_impl_a -> p3_impl_b -> p3_impl_c -> p3_impl_d -> p3_impl_e -> p3_impl_f -> p3_merge
+
+    p3_merge -> p3_e2e_test -> p3_verify -> p3_task_prep
+
+    // Phase 5: stretch targets
+    p5_stretch -> p4_implement
+
+    // Phase 4
+    p4_implement -> p4_test -> p4_gate
+    p4_gate -> p6_implement [condition="outcome=success"]
+    p4_gate -> p4_implement
+
+    // Phase 6
+    p6_implement -> p6_test -> p6_gate
+    p6_gate -> exit [condition="outcome=success"]
+    p6_gate -> p6_implement
+}

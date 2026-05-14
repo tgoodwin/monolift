@@ -22,12 +22,17 @@ import (
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 	"github.com/tgoodwin/monolift/test/e2e/harness"
 	activation_caddy_cleanpath "github.com/tgoodwin/monolift/test/e2e/targets/activation_caddy_cleanpath"
+	activation_gitea_argon2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_argon2hash"
 	activation_gitea_pathescapesegments "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_pathescapesegments"
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
+	activation_mattermost_pbkdf2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_pbkdf2hash"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
+	activation_miniflux_parsefeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_parsefeed"
+	activation_miniflux_refreshfeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_refreshfeed"
 	activation_miniflux_sanitizehtml "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_sanitizehtml"
 	activation_miniflux_striptags "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_striptags"
 	activation_pocketbase_columnify "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_columnify"
+	activation_pocketbase_passwordvalidate "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_passwordvalidate"
 	"github.com/tgoodwin/monolift/test/e2e/targets/caddy"
 	"github.com/tgoodwin/monolift/test/e2e/targets/gitea"
 	"github.com/tgoodwin/monolift/test/e2e/targets/listmonk"
@@ -51,24 +56,51 @@ func TestE2E(t *testing.T) {
 		activation_caddy_cleanpath.Target(),
 		pocketbase.Target(),
 		miniflux.Target(),
+		activation_miniflux_parsefeed.Target(),
+		activation_miniflux_refreshfeed.Target(),
 		activation_miniflux_sanitizehtml.Target(),
 		activation_miniflux_striptags.Target(),
 		listmonk.Target(),
 		gitea.Target(),
+		activation_gitea_argon2hash.Target(),
 		activation_gitea_pathescapesegments.Target(),
 		activation_listmonk_sanitizeuri.Target(),
 		activation_pocketbase_columnify.Target(),
+		activation_pocketbase_passwordvalidate.Target(),
+		activation_mattermost_pbkdf2hash.Target(),
 		activation_mattermost_publiclinkhash.Target(),
 		mattermost.Target(),
 	}
 	targets = append(targets, pragma.Targets()...)
+	batch := &harness.BatchResult{}
+	t.Cleanup(func() {
+		t.Log(batch.SummaryTable())
+	})
 	for _, target := range targets {
 		target := target
 		t.Run(target.Name, func(t *testing.T) {
 			if target.SkipReason != "" {
+				batch.Record(harness.BatchEntry{
+					Target: target.Name,
+					Status: harness.BatchSkipped,
+					Stage:  "skip",
+					Error:  target.SkipReason,
+				})
 				t.Skip(target.SkipReason)
 			}
+			start := time.Now()
 			runTarget(t, cluster, runID, target)
+			duration := time.Since(start)
+			status := harness.BatchPass
+			if t.Failed() {
+				status = harness.BatchE2EFail
+			}
+			batch.Record(harness.BatchEntry{
+				Target:   target.Name,
+				Status:   status,
+				Stage:    "complete",
+				Duration: duration,
+			})
 		})
 	}
 }
@@ -79,13 +111,21 @@ func updateGoldenRequested() bool {
 
 func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harness.TargetCase) {
 	t.Helper()
-	perTargetTimeout := 10 * time.Minute
-	if target.ActivationLift != nil {
-		perTargetTimeout = 20 * time.Minute
-	}
+	perTargetTimeout := harness.DefaultPerTargetTimeout
 	ctx, cancel := context.WithTimeout(context.Background(), perTargetTimeout)
 	defer cancel()
 
+	tracker := harness.NewStageTracker(target.Name)
+
+	// Log which stage was active if the context deadline fires.
+	go func() {
+		<-ctx.Done()
+		if ctx.Err() == context.DeadlineExceeded {
+			t.Logf("TIMEOUT: %s", tracker.TimeoutMessage(perTargetTimeout))
+		}
+	}()
+
+	tracker.Enter(0, "cluster-ensure")
 	if err := cluster.Ensure(ctx); err != nil {
 		t.Fatalf("%v", harness.StageError(0, target.Name, harness.KindHarness, "cluster ensure failed: %v", err))
 	}
@@ -93,6 +133,25 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	deployer := harness.Deployer{Cluster: cluster, Target: target.Name}
 	baselineNS := harness.Namespace("baseline", target.Name, runID)
 	liftedNS := harness.Namespace("lifted", target.Name, runID)
+
+	// Deferred cleanup: use t.Cleanup + context.Background() to guarantee
+	// namespace deletion even on panic, timeout, or t.Fatal. Runs after all
+	// defers in this function have completed.
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cleanupCancel()
+		_ = deployer.DeleteNamespace(cleanupCtx, baselineNS, 30*time.Second)
+		_ = deployer.DeleteNamespace(cleanupCtx, liftedNS, 30*time.Second)
+	})
+
+	// Recover from panics so one target cannot crash the batch test process.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("panic in target %s: %v", target.Name, r)
+		}
+	}()
+
+	tracker.Enter(0, "create-namespaces")
 	if err := deployer.CreateNamespace(ctx, baselineNS); err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -101,13 +160,10 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 			t.Fatalf("%v", err)
 		}
 	}
-	defer func() {
-		_ = deployer.DeleteNamespace(context.Background(), baselineNS, 30*time.Second)
-		_ = deployer.DeleteNamespace(context.Background(), liftedNS, 30*time.Second)
-	}()
 
 	builder := harness.ImageBuilder{Cluster: cluster, Target: target.Name, SourceDirs: target.SourceDirs}
 	if target.Dockerfile != "" {
+		tracker.Enter(0, "build-baseline-image")
 		if err := builder.Build(ctx, target.Dockerfile, target.ContextDir, target.ImageTag); err != nil {
 			t.Fatalf("%v", err)
 		}
@@ -118,6 +174,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 
 	var baselineTranscript harness.Transcript
 	if len(target.BaselineManifests) > 0 {
+		tracker.Enter(1, "baseline-deploy")
 		if err := deployManifestPhases(ctx, deployer, baselineNS, baselineManifestPhases(target), readyTimeout(target.BaselineReadyTimeout)); err != nil {
 			t.Fatalf("%v", harness.StageError(1, target.Name, harness.KindHarness, "baseline deploy failed: %v", err))
 		}
@@ -126,6 +183,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 			t.Fatalf("%v", err)
 		}
 		defer pf.Stop()
+		tracker.Enter(2, "baseline-workload")
 		if err := target.Workload.Setup(ctx, pf.URL); err != nil {
 			t.Fatalf("%v", harness.StageError(2, target.Name, harness.KindWorkload, "baseline setup failed: %v", err))
 		}
@@ -135,6 +193,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		}
 	}
 
+	tracker.Enter(3, "compile")
 	compileDir := filepath.Join(os.TempDir(), "monolift-e2e", target.Name, runID, "compile")
 	compileResult, err := (harness.Compiler{OutputDir: compileDir}).Run(ctx, target)
 	if err != nil {
@@ -169,6 +228,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		return
 	}
 
+	tracker.Enter(5, "build-lifted-images")
 	if err := assertExtractedDeploymentsDormant(target, compileResult.ArtifactsDir); err != nil {
 		t.Fatalf("%v", harness.StageError(7, target.Name, harness.KindHarness, "recursion-safety static assertion failed: %v", err))
 	}
@@ -176,6 +236,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		t.Fatalf("%v", err)
 	}
 
+	tracker.Enter(7, "lifted-deploy")
 	liftedManifests := liftedManifestPaths(target, compileResult.ArtifactsDir)
 	if err := deployManifestPhases(ctx, deployer, liftedNS, liftedManifestPhases(target, liftedManifests), readyTimeout(target.LiftedReadyTimeout)); err != nil {
 		t.Fatalf("%v", err)
@@ -189,6 +250,10 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		t.Fatalf("%v", err)
 	}
 	defer liftedPF.Stop()
+	if target.StopAtStage <= 7 {
+		return
+	}
+	tracker.Enter(8, "lifted-workload")
 	if len(target.LiftedExtractedServices) > 0 {
 		if err := assertExtractedServicesDormantRuntime(ctx, target, liftedNS); err != nil {
 			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "recursion-safety runtime assertion failed: %v", err))
@@ -211,10 +276,12 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted logs assertion failed: %v", err))
 		}
 	}
+	tracker.Enter(9, "transcript-compare")
 	if err := (harness.Transcript{}).Compare(baselineTranscript, liftedTranscript, target.Invariants); err != nil {
 		t.Fatalf("%v", harness.StageError(9, target.Name, harness.KindWorkload, "transcript compare failed: %v", err))
 	}
 	if len(target.LiftedExtractedServices) > 0 {
+		tracker.Enter(9, "env-off-fail-modes")
 		if err := assertEnvOffAndFailModes(ctx, deployer, target, liftedNS, liftedPF.URL, liftedTranscript); err != nil {
 			t.Fatalf("%v", harness.StageError(9, target.Name, harness.KindWorkload, "negative lifted assertions failed: %v", err))
 		}

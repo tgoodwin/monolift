@@ -25,25 +25,45 @@ func RenderClient(plan *Plan) (map[string][]byte, error) {
 }
 
 type clientView struct {
-	Plan              *Plan
-	Imports           []importSpec
-	RequestFields     []fieldView
-	ResponseField     fieldView
-	Params            []fieldView
-	ParamList         string
-	BoundaryArgs      string
-	OriginalArgs      string
-	HasResult         bool
-	LocalizedResult   bool
-	PrimitiveResult   bool
-	ResultType        string
-	ResultZero        string
-	StubName          string
-	OriginalFuncName  string
-	EndpointEnv       string
-	EnabledEnv        string
-	DefaultEndpoint   string
-	NeedsErrorsImport bool
+	Plan                 *Plan
+	Imports              []importSpec
+	RequestFields        []fieldView
+	ResponseField        fieldView
+	Params               []fieldView
+	ParamList            string
+	BoundaryArgs         string
+	OriginalArgs         string
+	HasResult            bool
+	HasErrorResult       bool
+	HasVoidReturn        bool
+	LocalizedResult      bool
+	PrimitiveResult      bool
+	ResultType           string
+	ResultZero           string
+	StubReturnSig        string
+	RemoteReturnSig      string
+	TransportErrZeros    string
+	FailClosedReturn     string
+	StubName             string
+	OriginalFuncName     string
+	EndpointEnv          string
+	EnabledEnv           string
+	DefaultEndpoint      string
+	NeedsErrorsImport    bool
+	StreamingBytesParams []streamingByteParam
+
+	// Receiver support
+	HasReceiver            bool
+	ReceiverDecl           string // e.g. "(t TemplateContext) " or "(h *Argon2Hasher) "
+	ReceiverSelf           string // e.g. "t" or "h" — the receiver variable name
+	ReceiverRequestType    string // qualified type for request field (ReceiverBoundary only)
+	ReceiverBoundaryAssign string // "Receiver: t, " for boundary, empty otherwise
+	CallPrefix             string // "t." for methods, "" for free functions
+}
+
+type streamingByteParam struct {
+	Name    string
+	ByteVar string
 }
 
 func clientTemplateView(plan *Plan) clientView {
@@ -56,17 +76,30 @@ func clientTemplateView(plan *Plan) clientView {
 		{Path: "time"},
 	}
 	var requestFields []fieldView
+	var streamingParams []streamingByteParam
 	for _, param := range plan.BoundaryParams {
+		fieldType := param.GoType
+		if param.Codec == CodecStreamingBytes {
+			fieldType = "[]byte"
+			streamingParams = append(streamingParams, streamingByteParam{
+				Name:    param.Name,
+				ByteVar: param.Name + "Bytes",
+			})
+		}
 		requestFields = append(requestFields, fieldView{
 			Name:         exportedFieldName(param.Name),
 			OriginalName: param.Name,
 			JSONName:     param.JSONName,
-			Type:         param.GoType,
+			Type:         fieldType,
 			ZeroValue:    zeroValue(param.GoType),
 		})
-		if param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
+		if param.Codec != CodecStreamingBytes && param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
 			imports = append(imports, importSpec{Path: param.TypePackagePath})
 		}
+	}
+	if len(streamingParams) > 0 {
+		imports = append(imports, importSpec{Path: "fmt"})
+		imports = append(imports, importSpec{Path: "io"})
 	}
 	var params []fieldView
 	allParams := append([]Param(nil), plan.BoundaryParams...)
@@ -80,49 +113,92 @@ func clientTemplateView(plan *Plan) clientView {
 			imports = append(imports, importSpec{Path: param.TypePackagePath})
 		}
 	}
+	// Separate non-error results from error results.
 	response := fieldView{}
-	hasResult := len(plan.Results) > 0
+	hasNonErrorResult := false
+	hasErrorResult := false
 	localized := false
 	resultType := ""
 	resultZero := ""
 	needsErrors := false
-	if hasResult {
-		result := plan.Results[0]
-		response = fieldView{
-			Name:      exportedFieldName(result.Name),
-			JSONName:  result.JSONName,
-			Type:      result.GoType,
-			ZeroValue: zeroValue(result.GoType),
+	for _, result := range plan.Results {
+		if result.Codec == CodecError {
+			hasErrorResult = true
+			continue
 		}
-		resultType = result.GoType
-		resultZero = zeroValue(result.GoType)
-		if result.TypePackagePath != "" && result.TypePackagePath != plan.CutPoint.PackagePath {
-			imports = append(imports, importSpec{Path: result.TypePackagePath})
+		if !hasNonErrorResult {
+			response = fieldView{
+				Name:      exportedFieldName(result.Name),
+				JSONName:  result.JSONName,
+				Type:      result.GoType,
+				ZeroValue: zeroValue(result.GoType),
+			}
+			resultType = result.GoType
+			resultZero = zeroValue(result.GoType)
+			if result.TypePackagePath != "" && result.TypePackagePath != plan.CutPoint.PackagePath {
+				imports = append(imports, importSpec{Path: result.TypePackagePath})
+			}
+			localized = result.Codec == CodecLocalizedErrorWrapper
+			needsErrors = localized
+			hasNonErrorResult = true
 		}
-		localized = result.Codec == CodecLocalizedErrorWrapper
-		needsErrors = localized
 	}
-	return clientView{
-		Plan:              plan,
-		Imports:           uniqueImports(imports),
-		RequestFields:     requestFields,
-		ResponseField:     response,
-		Params:            params,
-		ParamList:         clientParamList(params),
-		BoundaryArgs:      clientRequestLiteral(plan.BoundaryParams),
-		OriginalArgs:      clientOriginalArgs(params),
-		HasResult:         hasResult,
-		LocalizedResult:   localized,
-		PrimitiveResult:   hasResult && !localized,
-		ResultType:        resultType,
-		ResultZero:        resultZero,
-		StubName:          plan.CutPoint.FuncName,
-		OriginalFuncName:  renamedOriginalFunc(plan),
-		EndpointEnv:       "MONOLIFT_" + plan.EnvServiceName + "_ENDPOINT",
-		EnabledEnv:        "MONOLIFT_LIFT_" + plan.EnvServiceName,
-		DefaultEndpoint:   "http://127.0.0.1:8081/invoke",
-		NeedsErrorsImport: needsErrors,
+	if hasErrorResult {
+		imports = append(imports, importSpec{Path: "fmt"})
+		needsErrors = true // errors.New for reconstructing app errors
 	}
+	hasVoidReturn := !hasNonErrorResult && !hasErrorResult
+	view := clientView{
+		Plan:                 plan,
+		Imports:              uniqueImports(imports),
+		RequestFields:        requestFields,
+		ResponseField:        response,
+		Params:               params,
+		ParamList:            clientParamList(params),
+		BoundaryArgs:         clientRequestLiteral(plan.BoundaryParams),
+		OriginalArgs:         clientOriginalArgs(params),
+		HasResult:            hasNonErrorResult,
+		HasErrorResult:       hasErrorResult,
+		HasVoidReturn:        hasVoidReturn,
+		LocalizedResult:      localized,
+		PrimitiveResult:      hasNonErrorResult && !localized,
+		ResultType:           resultType,
+		ResultZero:           resultZero,
+		StubReturnSig:        computeStubReturnSig(plan.Results),
+		RemoteReturnSig:      computeRemoteReturnSig(plan.Results),
+		TransportErrZeros:    computeTransportErrZeros(plan.Results),
+		FailClosedReturn:     computeFailClosedReturn(plan.Results),
+		StubName:             plan.CutPoint.FuncName,
+		OriginalFuncName:     renamedOriginalFunc(plan),
+		EndpointEnv:          "MONOLIFT_" + plan.EnvServiceName + "_ENDPOINT",
+		EnabledEnv:           "MONOLIFT_LIFT_" + plan.EnvServiceName,
+		DefaultEndpoint:      "http://127.0.0.1:8081/invoke",
+		NeedsErrorsImport:    needsErrors,
+		StreamingBytesParams: streamingParams,
+	}
+
+	// Receiver support: generate method stubs when a receiver is present.
+	if plan.ReceiverParam != nil {
+		view.HasReceiver = true
+		baseType := strings.TrimPrefix(plan.ReceiverParam.GoType, "*")
+		receiverVar := strings.ToLower(baseType[:1])
+
+		if plan.ReceiverParam.IsPointer {
+			view.ReceiverDecl = "(" + receiverVar + " *" + baseType + ") "
+		} else {
+			view.ReceiverDecl = "(" + receiverVar + " " + baseType + ") "
+		}
+		view.ReceiverSelf = receiverVar
+
+		view.CallPrefix = receiverVar + "."
+
+		if plan.ReceiverParam.Policy == ReceiverBoundary {
+			view.ReceiverRequestType = baseType
+			view.ReceiverBoundaryAssign = "Receiver: " + receiverVar + ", "
+		}
+	}
+
+	return view
 }
 
 func sortParamsByIndex(params []Param) {
@@ -154,7 +230,75 @@ func clientOriginalArgs(params []fieldView) string {
 func clientRequestLiteral(params []Param) string {
 	parts := make([]string, 0, len(params))
 	for _, param := range params {
-		parts = append(parts, exportedFieldName(param.Name)+": "+param.Name)
+		value := param.Name
+		if param.Codec == CodecStreamingBytes {
+			value = param.Name + "Bytes"
+		}
+		parts = append(parts, exportedFieldName(param.Name)+": "+value)
+	}
+	return strings.Join(parts, ", ")
+}
+
+// computeStubReturnSig returns the Go return type signature for the stub function.
+// Examples: "string", "(string, error)", "", "error".
+func computeStubReturnSig(results []Result) string {
+	if len(results) == 0 {
+		return ""
+	}
+	if len(results) == 1 {
+		return results[0].GoType
+	}
+	parts := make([]string, len(results))
+	for i, r := range results {
+		parts[i] = r.GoType
+	}
+	return "(" + strings.Join(parts, ", ") + ")"
+}
+
+// computeRemoteReturnSig returns the Go return type for the monoliftRemote function.
+// Appends a transport error to the function's results.
+// Examples: "(string, error)" for single string, "(string, error, error)" for (string, error),
+// "error" for void.
+func computeRemoteReturnSig(results []Result) string {
+	parts := make([]string, 0, len(results)+1)
+	for _, r := range results {
+		parts = append(parts, r.GoType)
+	}
+	parts = append(parts, "error") // transport error
+	if len(parts) == 1 {
+		return parts[0]
+	}
+	return "(" + strings.Join(parts, ", ") + ")"
+}
+
+// computeTransportErrZeros returns the zero-value prefix for transport error returns
+// in monoliftRemote. Examples: `"", nil, ` for (string, error); `"", ` for string;
+// "" for void.
+func computeTransportErrZeros(results []Result) string {
+	if len(results) == 0 {
+		return ""
+	}
+	parts := make([]string, len(results))
+	for i, r := range results {
+		parts[i] = zeroValue(r.GoType)
+	}
+	return strings.Join(parts, ", ") + ", "
+}
+
+// computeFailClosedReturn returns the expression for fail-closed return values.
+// For (T, error): `"", fmt.Errorf("monolift: extracted service unavailable")`.
+// For single T: same as zeroValue. For void: "".
+func computeFailClosedReturn(results []Result) string {
+	if len(results) == 0 {
+		return ""
+	}
+	parts := make([]string, len(results))
+	for i, r := range results {
+		if r.Codec == CodecError {
+			parts[i] = `fmt.Errorf("monolift: extracted service unavailable")`
+		} else {
+			parts[i] = zeroValue(r.GoType)
+		}
 	}
 	return strings.Join(parts, ", ")
 }
@@ -172,6 +316,9 @@ import (
 )
 
 type monoliftInvokeRequest struct {
+{{- if .ReceiverRequestType }}
+	Receiver {{ .ReceiverRequestType }} ` + "`json:\"receiver\"`" + `
+{{- end }}
 {{- range .RequestFields }}
 	{{ .Name }} {{ .Type }} ` + "`json:\"{{ .JSONName }}\"`" + `
 {{- end }}
@@ -180,8 +327,13 @@ type monoliftInvokeRequest struct {
 type monoliftInvokeResponse struct {
 {{- if .LocalizedResult }}
 	Error *monoliftLocalizedError ` + "`json:\"error,omitempty\"`" + `
-{{- else if .HasResult }}
+{{- else }}
+{{- if .HasResult }}
 	{{ .ResponseField.Name }} {{ .ResponseField.Type }} ` + "`json:\"{{ .ResponseField.JSONName }}\"`" + `
+{{- end }}
+{{- if .HasErrorResult }}
+	Error string ` + "`json:\"error,omitempty\"`" + `
+{{- end }}
 {{- end }}
 }
 
@@ -190,47 +342,88 @@ type monoliftLocalizedError struct {
 	Message string ` + "`json:\"message,omitempty\"`" + `
 }
 
-func {{ .StubName }}({{ .ParamList }}) {{ .ResultType }} {
+func {{ .ReceiverDecl }}{{ .StubName }}({{ .ParamList }}){{ if .StubReturnSig }} {{ .StubReturnSig }}{{ end }} {
+{{- if .HasVoidReturn }}
 	if os.Getenv("{{ .EnabledEnv }}") != "on" {
-		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
+		{{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
+		return
 	}
-	result, err := monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+	if err := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }}); err != nil {
+		if os.Getenv("MONOLIFT_LIFT_FAILMODE") != "closed" {
+			{{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
+		}
+	}
+{{- else if .HasErrorResult }}
+	if os.Getenv("{{ .EnabledEnv }}") != "on" {
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
+	}
+{{- if .HasResult }}
+	result, appErr, transportErr := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+{{- else }}
+	appErr, transportErr := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+{{- end }}
+	if transportErr != nil {
+		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
+			return {{ .FailClosedReturn }}
+		}
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
+	}
+{{- if .HasResult }}
+	return result, appErr
+{{- else }}
+	return appErr
+{{- end }}
+{{- else }}
+	if os.Getenv("{{ .EnabledEnv }}") != "on" {
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
+	}
+	result, err := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
 	if err != nil {
 		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
 			return {{ .ResultZero }}
 		}
-		return {{ .OriginalFuncName }}({{ .OriginalArgs }})
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 	}
 	return result
+{{- end }}
 }
 
-func monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamList }}) ({{ .ResultType }}, error) {
+func {{ .ReceiverDecl }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamList }}) {{ .RemoteReturnSig }} {
 	endpoint := os.Getenv("{{ .EndpointEnv }}")
 	if endpoint == "" {
 		endpoint = "{{ .DefaultEndpoint }}"
 	}
-	payload := monoliftInvokeRequest{ {{ .BoundaryArgs }} }
+{{- range .StreamingBytesParams }}
+	{{ .ByteVar }}, err := io.ReadAll({{ .Name }})
+	if err != nil {
+		return {{ $.TransportErrZeros }}fmt.Errorf("monolift: read streaming param {{ .Name }}: %w", err)
+	}
+	if len({{ .ByteVar }}) > 10*1024*1024 {
+		return {{ $.TransportErrZeros }}fmt.Errorf("monolift: streaming param {{ .Name }} exceeds 10MB limit")
+	}
+{{- end }}
+	payload := monoliftInvokeRequest{ {{ .ReceiverBoundaryAssign }}{{ .BoundaryArgs }} }
 	var body bytes.Buffer
 	if err := json.NewEncoder(&body).Encode(payload); err != nil {
-		return {{ .ResultZero }}, err
+		return {{ .TransportErrZeros }}err
 	}
 	req, err := http.NewRequest(http.MethodPost, endpoint, &body)
 	if err != nil {
-		return {{ .ResultZero }}, err
+		return {{ .TransportErrZeros }}err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return {{ .ResultZero }}, err
+		return {{ .TransportErrZeros }}err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return {{ .ResultZero }}, errors.New(resp.Status)
+		return {{ .TransportErrZeros }}errors.New(resp.Status)
 	}
 	var decoded monoliftInvokeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return {{ .ResultZero }}, err
+		return {{ .TransportErrZeros }}err
 	}
 {{- if .LocalizedResult }}
 	if decoded.Error != nil {
@@ -241,6 +434,16 @@ func monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamList }}) ({{ .ResultTy
 		return locale.NewLocalizedErrorWrapper(errors.New(decoded.Error.Error), message), nil
 	}
 	return nil, nil
+{{- else if .HasErrorResult }}
+	var appErr error
+	if decoded.Error != "" {
+		appErr = errors.New(decoded.Error)
+	}
+{{- if .HasResult }}
+	return decoded.{{ .ResponseField.Name }}, appErr, nil
+{{- else }}
+	return appErr, nil
+{{- end }}
 {{- else if .HasResult }}
 	return decoded.{{ .ResponseField.Name }}, nil
 {{- else }}

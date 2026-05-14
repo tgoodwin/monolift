@@ -236,6 +236,9 @@ func exposedOperations(loaded *extract.LoadedModule, root reportv2.Root) ([]repo
 		return out, nil
 	}
 	if root.Identity.Kind == "method" {
+		if strings.Contains(root.Identity.ObjectName, ".") {
+			return []reportv2.SymbolIdentity{root.Identity}, nil
+		}
 		op, err := resolveDirectMethodIdentity(loaded, root.Identity)
 		if err != nil {
 			return nil, err

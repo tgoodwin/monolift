@@ -268,8 +268,11 @@ func knownBoundaryType(typ types.Type) (BoundaryDataClass, string, bool) {
 			return Serializable, "context metadata is serializable", true
 		}
 	case "io":
-		if name == "Reader" || name == "Writer" || name == "ReadCloser" || name == "WriteCloser" {
-			return BoundaryInfeasible, "streaming IO at cut point means cut is too shallow (ADR-0028)", true
+		if name == "Writer" || name == "WriteCloser" {
+			return BoundaryInfeasible, "streaming IO output at cut point means cut is too shallow (ADR-0028)", true
+		}
+		if name == "Reader" || name == "ReadCloser" || name == "ReadSeeker" {
+			return Serializable, "streaming reader can be serialized as bounded byte payload", true
 		}
 	case "net/http":
 		switch name {

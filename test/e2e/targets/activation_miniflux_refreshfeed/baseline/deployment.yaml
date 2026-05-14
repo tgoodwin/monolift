@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: miniflux
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: miniflux
+  template:
+    metadata:
+      labels:
+        app: miniflux
+    spec:
+      containers:
+      - name: miniflux
+        image: miniflux/miniflux:latest
+        env:
+        - name: DATABASE_URL
+          value: postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable
+        - name: RUN_MIGRATIONS
+          value: "1"
+        - name: CREATE_ADMIN
+          value: "1"
+        - name: ADMIN_USERNAME
+          value: admin
+        - name: ADMIN_PASSWORD
+          value: test123
+        - name: FETCHER_ALLOW_PRIVATE_NETWORKS
+          value: "1"
+        ports:
+        - containerPort: 8080

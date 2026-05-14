@@ -40,26 +40,55 @@ func BuildPlan(report reportv2.Report, cut activation.CutResult) (*Plan, error) 
 	if err != nil {
 		return nil, err
 	}
-	fn, ok := pkg.Types.Scope().Lookup(funcName).(*types.Func)
-	if !ok || fn == nil {
-		return nil, fmt.Errorf("codegen: function %s not found in %s", funcName, pkgPath)
+
+	receiver := cut.Recommended.NodeKey.Receiver
+	var sig *types.Signature
+
+	// Receiver policy selection: when a receiver is present, look up the
+	// method on the named type instead of the package scope.
+	var receiverParam *ReceiverSpec
+	if receiver != "" {
+		named, isPointer, err := lookupReceiverType(pkg.Types, receiver)
+		if err != nil {
+			return nil, err
+		}
+		_, methodSig, err := lookupMethod(named, isPointer, funcName)
+		if err != nil {
+			return nil, err
+		}
+		sig = methodSig
+
+		stateClass := cut.Recommended.State
+		spec, err := selectReceiverPolicy(named, isPointer, stateClass)
+		if err != nil {
+			return nil, err
+		}
+		receiverParam = spec
+	} else {
+		fn, ok := pkg.Types.Scope().Lookup(funcName).(*types.Func)
+		if !ok || fn == nil {
+			return nil, fmt.Errorf("codegen: function %s not found in %s", funcName, pkgPath)
+		}
+		fnSig, ok := fn.Type().(*types.Signature)
+		if !ok || fnSig == nil {
+			return nil, fmt.Errorf("codegen: %s is not a function signature", funcName)
+		}
+		sig = fnSig
 	}
-	sig, ok := fn.Type().(*types.Signature)
-	if !ok || sig == nil {
-		return nil, fmt.Errorf("codegen: %s is not a function signature", funcName)
-	}
-	position := findFunctionPosition(pkg, funcName)
+
+	position := findFunctionPosition(pkg, funcName, receiver)
 
 	plan := &Plan{
 		SourceModuleRoot: moduleRoot,
 		SourceModulePath: modulePath(report, pkg),
 		ServiceName:      serviceName(report, funcName),
+		ReceiverParam:    receiverParam,
 		CutPoint: CutPoint{
 			PackagePath: pkgPath,
 			PackageName: pkg.Name,
 			PackageDir:  packageDir(pkg),
 			FuncName:    funcName,
-			Receiver:    cut.Recommended.NodeKey.Receiver,
+			Receiver:    receiver,
 			File:        position.Filename,
 			Line:        position.Line,
 			Column:      position.Column,
@@ -82,6 +111,13 @@ func BuildPlan(report reportv2.Report, cut activation.CutResult) (*Plan, error) 
 		param, err := MapParam(funcName, i, params.At(i), pkgPath)
 		if err != nil {
 			return nil, err
+		}
+		// Streaming-bytes params (io.Reader, io.ReadSeeker, io.ReadCloser)
+		// are serialized as bounded byte payloads — they are boundary params,
+		// not reconstructed params, even if the report labels them as such.
+		if param.Codec == CodecStreamingBytes {
+			plan.BoundaryParams = append(plan.BoundaryParams, param)
+			continue
 		}
 		if recon, ok := LookupReconstructor(params.At(i).Type()); ok {
 			param.Classification = activation.Reconstructible
@@ -175,7 +211,7 @@ func packageDir(pkg *packages.Package) string {
 	return filepath.Dir(pkg.GoFiles[0])
 }
 
-func findFunctionPosition(pkg *packages.Package, name string) token.Position {
+func findFunctionPosition(pkg *packages.Package, name, receiver string) token.Position {
 	if pkg == nil || pkg.Fset == nil {
 		return token.Position{}
 	}
@@ -185,10 +221,33 @@ func findFunctionPosition(pkg *packages.Package, name string) token.Position {
 			if !ok || fn.Name == nil || fn.Name.Name != name {
 				continue
 			}
+			if receiver != "" {
+				if fn.Recv == nil || len(fn.Recv.List) == 0 {
+					continue
+				}
+				if !matchesReceiverType(fn.Recv.List[0].Type, receiver) {
+					continue
+				}
+			}
 			return pkg.Fset.Position(fn.Pos())
 		}
 	}
 	return token.Position{}
+}
+
+func matchesReceiverType(expr ast.Expr, receiver string) bool {
+	base := strings.TrimPrefix(receiver, "*")
+	switch t := expr.(type) {
+	case *ast.StarExpr:
+		return matchesReceiverType(t.X, base)
+	case *ast.Ident:
+		return t.Name == base
+	case *ast.IndexExpr:
+		if ident, ok := t.X.(*ast.Ident); ok {
+			return ident.Name == base
+		}
+	}
+	return false
 }
 
 func serviceName(report reportv2.Report, funcName string) string {

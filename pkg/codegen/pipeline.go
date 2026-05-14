@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/tgoodwin/monolift/pkg/activation"
@@ -144,6 +145,21 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 			return nil, err
 		}
 		entries = append(entries, ManifestEntry{Path: plan.ClientPath, Kind: "client_stub"})
+
+		// Render and write the same-package invocation adapter.
+		adapterFiles, err := timeLiftPhase(&timings, "render-adapter", func() (map[string][]byte, error) {
+			return RenderAdapter(plan)
+		})
+		if err != nil {
+			return nil, err
+		}
+		for adapterPath, adapterContent := range adapterFiles {
+			if err := writeAtomic(adapterPath, withGeneratedHeader(plan, adapterContent), 0644); err != nil {
+				return nil, err
+			}
+			entries = append(entries, ManifestEntry{Path: adapterPath, Kind: "adapter"})
+		}
+
 		manifest, err = writeManifest(plan, entries, patchedFile)
 		if err != nil {
 			return nil, err
@@ -231,9 +247,22 @@ func buildExtractionReport(opts LiftOptions, cut *activation.CutResult) (reportv
 	if name == "" {
 		name = "monolift-" + cut.Recommended.NodeKey.FuncName
 	}
+	surface := compiler.SurfaceFunction
+	declName := cut.Recommended.NodeKey.FuncName
+	declKind := "func"
+	if cut.Recommended.NodeKey.Receiver != "" {
+		surface = compiler.SurfaceMethod
+		declKind = "method"
+		recv := cut.Recommended.NodeKey.Receiver
+		if strings.HasPrefix(recv, "*") {
+			declName = "(*" + recv[1:] + ")." + declName
+		} else {
+			declName = recv + "." + declName
+		}
+	}
 	pragma := &compiler.Pragma{
 		Name:    sanitizeServiceName(name),
-		Surface: compiler.SurfaceFunction,
+		Surface: surface,
 		Options: map[string]string{
 			"name":      sanitizeServiceName(name),
 			"mode":      "remote",
@@ -244,8 +273,8 @@ func buildExtractionReport(opts LiftOptions, cut *activation.CutResult) (reportv
 			Line:     line,
 			EndLine:  line,
 		},
-		DeclName:     cut.Recommended.NodeKey.FuncName,
-		DeclKind:     "func",
+		DeclName:     declName,
+		DeclKind:     declKind,
 		DeclIdentity: cut.Recommended.NodeKey.String(),
 	}
 	report, _, err := compiler.Extract([]string{opts.Source}, []*compiler.Pragma{pragma})

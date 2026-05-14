@@ -49,6 +49,87 @@ func TestAdmitPlanRefusesMissingReconstructor(t *testing.T) {
 	}
 }
 
+// 2G.4: Admit serializable value-receiver
+func TestAdmitPlanAcceptsSerializableReceiver(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{
+			Receiver: "TemplateContext",
+		},
+		ReceiverParam: &ReceiverSpec{
+			GoType:    "TemplateContext",
+			IsPointer: false,
+			Policy:    ReceiverBoundary,
+			Codec:     CodecJSON,
+		},
+		Results: []Result{
+			{Name: "result", GoType: "string", Codec: CodecPrimitive},
+			{Name: "err", GoType: "error", Codec: CodecError},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("verdict refused serializable receiver: %s", verdict.Error())
+	}
+}
+
+// 2G.5: Refuse receiver with *sql.DB
+func TestAdmitPlanRefusesSqlDBReceiver(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{
+			Receiver: "*sql.DB",
+		},
+		ReceiverParam: &ReceiverSpec{
+			GoType:    "*sql.DB",
+			IsPointer: true,
+			Policy:    ReceiverBoundary,
+			Codec:     CodecJSON,
+		},
+		Results: []Result{
+			{Name: "result", GoType: "string", Codec: CodecPrimitive},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("verdict accepted *sql.DB receiver")
+	}
+	found := false
+	for _, r := range verdict.Refusals {
+		if r.Code == "non_serializable_receiver" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected non_serializable_receiver refusal, got: %s", verdict.Error())
+	}
+}
+
+// 2G.6: Admit (string, error) result
+func TestAdmitPlanAcceptsStringErrorResult(t *testing.T) {
+	plan := &Plan{
+		Results: []Result{
+			{Name: "result", GoType: "string", Codec: CodecPrimitive},
+			{Name: "err", GoType: "error", Codec: CodecError},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("verdict refused (string, error) result: %s", verdict.Error())
+	}
+}
+
+// 2G.7: Refuse io.Writer result
+func TestAdmitPlanRefusesIOWriterResult(t *testing.T) {
+	plan := &Plan{
+		Results: []Result{
+			{Name: "w", GoType: "io.Writer", Codec: CodecJSON},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("verdict accepted io.Writer result")
+	}
+}
+
 func emptyReport(t *testing.T) reportv2.Report {
 	t.Helper()
 	return reportv2.Report{}
