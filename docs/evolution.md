@@ -9,6 +9,18 @@ reader's entry point and tells the story that no single ADR can.
 
 ---
 
+## 2026-05-16 — Filesystem roots as explicit durable reconstructors · [ADR-0031](decisions/0031-filesystem-root-reconstructor.md)
+
+SPRINT-0050 added the first filesystem/object-store reconstruction family. The
+key boundary is intentionally narrow: reconstruct a local durable root and its
+known handle, not a whole PocketBase app or broader service root. This made
+`*filesystem.System` admissible only through an explicit registry entry that
+declares its imports, initialization, close behavior, environment, startup
+checks, and shared mount requirements. Payload object paths stay
+root-relative, with absolute paths and `..` traversal rejected at the boundary.
+
+---
+
 ## 2026-05-05 — Cut-placement analyzer: where the network boundary goes
 
 SPRINT-0039 established the research question — given an activation path from
