@@ -56,6 +56,28 @@ func AnalyzeCut(result *Result, graph *Graph) (*CutResult, error) {
 	return cut, nil
 }
 
+// DemoteCandidate marks a candidate as infeasible after codegen admission
+// refuses it. The reason should include the admission refusal code and details.
+func (cut *CutResult) DemoteCandidate(step int, nodeKey FunctionKey, reason string) {
+	if cut == nil {
+		return
+	}
+	demotionReason := "admission-refused"
+	if strings.TrimSpace(reason) != "" {
+		demotionReason += ": " + reason
+	}
+	for i := range cut.Candidates {
+		if cut.Candidates[i].Step != step || cut.Candidates[i].NodeKey != nodeKey {
+			continue
+		}
+		cut.Candidates[i].Feasibility = Infeasible
+		cut.Candidates[i].Reason = demotionReason
+		cut.Recommended = nil
+		rankCutCandidates(cut)
+		return
+	}
+}
+
 func hydratePathFunctions(result *Result, graph *Graph) {
 	if result == nil || result.Path == nil || graph == nil {
 		return

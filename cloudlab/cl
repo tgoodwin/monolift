@@ -14,8 +14,31 @@ fi
 
 if [ -n "${PORTAL_TOKEN_FILE:-}" ] && [ -z "${PORTAL_TOKEN:-}" ]; then
     expanded=$(eval echo "$PORTAL_TOKEN_FILE")
+    # resolve relative paths against the script directory, not CWD
+    case "$expanded" in
+        /*) ;;
+        *)  expanded="$REPO_DIR/$expanded" ;;
+    esac
+    if [ ! -r "$expanded" ]; then
+        echo "error: PORTAL_TOKEN_FILE=$PORTAL_TOKEN_FILE (resolved: $expanded) is not readable" >&2
+        exit 1
+    fi
     PORTAL_TOKEN=$(cat "$expanded")
     export PORTAL_TOKEN
+fi
+
+if [ -z "${PORTAL_TOKEN:-}" ]; then
+    cat >&2 <<EOF
+error: no CloudLab credentials found.
+
+Set one of these in $ENV_FILE (or in your shell):
+  PORTAL_TOKEN=<raw JWT>
+  PORTAL_TOKEN_FILE=<path to file containing JWT>   # relative paths resolve against $REPO_DIR
+
+Optional:
+  PORTAL_HTTP=<api endpoint>   # default: https://boss.emulab.net:43794
+EOF
+    exit 1
 fi
 
 export PORTAL_HTTP="${PORTAL_HTTP:-https://boss.emulab.net:43794}"
@@ -33,6 +56,24 @@ if [ -z "$JQ" ]; then
     echo "error: jq is required (brew install jq)" >&2
     exit 1
 fi
+
+# Bound every portal-cli call so a wedged CloudLab API surfaces as a clear
+# error instead of a silent hang. Override with CL_TIMEOUT=<seconds>.
+CL_TIMEOUT="${CL_TIMEOUT:-20}"
+TIMEOUT_BIN=$(command -v gtimeout 2>/dev/null || command -v timeout 2>/dev/null || true)
+
+portal() {
+    if [ -n "$TIMEOUT_BIN" ]; then
+        "$TIMEOUT_BIN" "$CL_TIMEOUT" "$PORTAL_CLI" "$@"
+        local rc=$?
+        if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+            echo "error: portal-cli $* timed out after ${CL_TIMEOUT}s (CloudLab API at $PORTAL_HTTP may be unresponsive)" >&2
+        fi
+        return $rc
+    else
+        "$PORTAL_CLI" "$@"
+    fi
+}
 
 # ── helpers ────────────────────────────────────────────────────────────
 bold()  { printf '\033[1m%s\033[0m' "$*"; }
@@ -66,7 +107,7 @@ resolve_exp() {
     fi
     # match by name substring
     local id
-    id=$($PORTAL_CLI experiment list 2>/dev/null \
+    id=$(portal experiment list \
         | $JQ -r --arg q "$input" '.experiments[] | select(.name | test($q; "i")) | .id' \
         | head -1)
     if [ -z "$id" ]; then
@@ -80,7 +121,7 @@ resolve_exp() {
 get_ssh_host() {
     local id="$1"
     local manifests
-    manifests=$($PORTAL_CLI experiment manifests get --experiment-id "$id" 2>/dev/null || true)
+    manifests=$(portal experiment manifests get --experiment-id "$id" 2>/dev/null || true)
     [ -z "$manifests" ] && return
     echo "$manifests" | $JQ -r 'to_entries[].value' 2>/dev/null \
         | sed -n 's/.*login[^>]*hostname="\([^"]*\)".*/\1/p' \
@@ -89,10 +130,14 @@ get_ssh_host() {
 
 # ── commands ───────────────────────────────────────────────────────────
 cmd_ls() {
-    local raw
-    raw=$($PORTAL_CLI experiment list 2>/dev/null)
+    local raw rc
+    raw=$(portal experiment list) || rc=$?
+    if [ -n "${rc:-}" ] || [ -z "$raw" ]; then
+        echo "error: 'portal-cli experiment list' failed (rc=${rc:-0}, empty output)" >&2
+        exit 1
+    fi
     local count
-    count=$(echo "$raw" | $JQ '.experiments | length')
+    count=$(echo "$raw" | $JQ '.experiments | length' 2>/dev/null || echo 0)
 
     if [ "$count" -eq 0 ]; then
         echo "No active experiments."
@@ -113,7 +158,7 @@ cmd_status() {
     local id
     id=$(resolve_exp "$1")
     local raw
-    raw=$($PORTAL_CLI experiment get --experiment-id "$id" 2>/dev/null)
+    raw=$(portal experiment get --experiment-id "$id")
 
     echo "$raw" | $JQ -r '
         "  Name:      \(.name)",
@@ -156,7 +201,7 @@ cmd_extend() {
     require_arg "extend <name|id> [hours]" "${1:-}"
     id=$(resolve_exp "$1")
     hours="${2:-16}"
-    $PORTAL_CLI experiment extend --experiment-id "$id" --extend-by "$hours" >/dev/null 2>&1
+    portal experiment extend --experiment-id "$id" --extend-by "$hours" >/dev/null
     echo "Extended by ${hours}h."
     cmd_status "$id"
 }
@@ -167,7 +212,7 @@ cmd_terminate() {
     id=$(resolve_exp "$1")
     read -rp "Terminate experiment $id? [y/N] " confirm
     if [[ "$confirm" =~ ^[Yy] ]]; then
-        $PORTAL_CLI experiment terminate --experiment-id "$id" 2>/dev/null
+        portal experiment terminate --experiment-id "$id"
         echo "Terminated."
     else
         echo "Cancelled."
@@ -181,13 +226,12 @@ cmd_create() {
 
     echo "Creating experiment '${name}' (project=${project}, duration=${hours}h) ..."
     local raw
-    raw=$($PORTAL_CLI experiment create \
+    raw=$(portal experiment create \
         --name "$name" \
         --project "$project" \
         --profile-name monolift-buildserver \
         --profile-project "$project" \
-        --duration "$hours" \
-        2>/dev/null)
+        --duration "$hours")
     local id
     id=$(echo "$raw" | $JQ -r '.id')
     echo "Created: $id"
@@ -196,7 +240,7 @@ cmd_create() {
     local status="unknown"
     while true; do
         sleep 15
-        status=$($PORTAL_CLI experiment get --experiment-id "$id" 2>/dev/null | $JQ -r '.status')
+        status=$(portal experiment get --experiment-id "$id" 2>/dev/null | $JQ -r '.status')
         printf "  %s\n" "$(status_color "$status")"
         case "$status" in
             ready|provisioned) break ;;

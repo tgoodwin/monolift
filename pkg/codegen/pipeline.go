@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ type LiftOptions struct {
 	Trace             string
 	Output            string
 	ServiceName       string
+	Augment           activation.AugmentMode
 	Deploy            DeployOptions
 	WriteMonolithStub bool
 }
@@ -28,9 +30,19 @@ type LiftResult struct {
 	Timings          []activation.PhaseTiming
 	Report           reportv2.Report
 	Cut              activation.CutResult
+	AdmissionVerdict AdmissionVerdict
+	DemotionChain    []CandidateDemotion
 	Plan             *Plan
 	Manifest         *Manifest
 	PatchedFile      string
+}
+
+type CandidateDemotion struct {
+	Step        int                    `json:"step"`
+	NodeKey     activation.FunctionKey `json:"node_key"`
+	NodeName    string                 `json:"node_name,omitempty"`
+	RefusalCode string                 `json:"refusal_code"`
+	Message     string                 `json:"message,omitempty"`
 }
 
 func RunLift(ctx context.Context, opts LiftOptions) error {
@@ -49,34 +61,52 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 		return nil, errors.New("codegen: target is required")
 	}
 	var timings []activation.PhaseTiming
-	result, err := timeLiftPhase(&timings, "activation", func() (*activation.Result, error) {
+	progress := newLiftProgressLogger(opts.Target)
+	result, err := timeLiftPhase(&timings, progress, "activation", func() (*activation.Result, error) {
 		return runActivation(ctx, opts)
 	})
 	if err != nil {
 		return nil, err
 	}
-	cut, err := timeLiftPhase(&timings, "cut", func() (*activation.CutResult, error) {
+	cut, err := timeLiftPhase(&timings, progress, "cut", func() (*activation.CutResult, error) {
 		return activation.AnalyzeCut(result, nil)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("analyze cut: %w", err)
 	}
-	report, err := timeLiftPhase(&timings, "extract-report", func() (reportv2.Report, error) {
+	report, err := timeLiftPhase(&timings, progress, "extract-report", func() (reportv2.Report, error) {
 		return buildExtractionReport(opts, cut)
 	})
 	if err != nil {
 		return nil, err
 	}
-	cutAdmission, err := timeLiftPhase(&timings, "admit-cut", func() (AdmissionVerdict, error) {
-		return AdmitCut(report, *cut), nil
+	var demotionChain []CandidateDemotion
+	admissionPhase := "admit-cut"
+	if admissionAwareRankEnabled() {
+		admissionPhase = "admit-candidate"
+	}
+	cutAdmission, err := timeLiftPhase(&timings, progress, admissionPhase, func() (AdmissionVerdict, error) {
+		if !admissionAwareRankEnabled() {
+			return AdmitCut(report, *cut), nil
+		}
+		verdict, chain, err := admitCutCandidates(report, cut)
+		demotionChain = chain
+		return verdict, err
 	})
 	if err != nil {
 		return nil, err
 	}
 	if !cutAdmission.Accepted {
-		return nil, errors.New(cutAdmission.Error())
+		return &LiftResult{
+			ActivationResult: result,
+			Timings:          timings,
+			Report:           report,
+			Cut:              *cut,
+			AdmissionVerdict: cutAdmission,
+			DemotionChain:    demotionChain,
+		}, errors.New(cutAdmission.Error())
 	}
-	plan, err := timeLiftPhase(&timings, "build-plan", func() (*Plan, error) {
+	plan, err := timeLiftPhase(&timings, progress, "build-plan", func() (*Plan, error) {
 		plan, err := BuildPlan(report, *cut)
 		if err != nil {
 			return nil, err
@@ -94,25 +124,25 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 	if err != nil {
 		return nil, err
 	}
-	serverFiles, err := timeLiftPhase(&timings, "render-server", func() (map[string][]byte, error) {
+	serverFiles, err := timeLiftPhase(&timings, progress, "render-server", func() (map[string][]byte, error) {
 		return RenderServer(plan)
 	})
 	if err != nil {
 		return nil, err
 	}
-	clientFiles, err := timeLiftPhase(&timings, "render-client", func() (map[string][]byte, error) {
+	clientFiles, err := timeLiftPhase(&timings, progress, "render-client", func() (map[string][]byte, error) {
 		return RenderClient(plan)
 	})
 	if err != nil {
 		return nil, err
 	}
-	dockerFiles, err := timeLiftPhase(&timings, "render-dockerfiles", func() (map[string][]byte, error) {
+	dockerFiles, err := timeLiftPhase(&timings, progress, "render-dockerfiles", func() (map[string][]byte, error) {
 		return RenderDockerfiles(plan)
 	})
 	if err != nil {
 		return nil, err
 	}
-	kubernetesFiles, err := timeLiftPhase(&timings, "render-kubernetes", func() (map[string][]byte, error) {
+	kubernetesFiles, err := timeLiftPhase(&timings, progress, "render-kubernetes", func() (map[string][]byte, error) {
 		return RenderKubernetes(plan)
 	})
 	if err != nil {
@@ -131,14 +161,14 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 	var manifest *Manifest
 	if opts.WriteMonolithStub {
 		nonStubArtifacts := filterArtifacts(artifacts, "client_stub")
-		entries, err := timeLiftPhase(&timings, "write-artifacts", func() ([]ManifestEntry, error) {
+		entries, err := timeLiftPhase(&timings, progress, "write-artifacts", func() ([]ManifestEntry, error) {
 			return writeArtifactFiles(plan, nonStubArtifacts)
 		})
 		if err != nil {
 			return nil, err
 		}
 		stubContent := clientFiles[plan.ClientPath]
-		patchedFile, err = timeLiftPhase(&timings, "patch-function", func() (string, error) {
+		patchedFile, err = timeLiftPhase(&timings, progress, "patch-function", func() (string, error) {
 			return PatchCutFunctionProfile(plan, stubContent, &timings)
 		})
 		if err != nil {
@@ -147,7 +177,7 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 		entries = append(entries, ManifestEntry{Path: plan.ClientPath, Kind: "client_stub"})
 
 		// Render and write the same-package invocation adapter.
-		adapterFiles, err := timeLiftPhase(&timings, "render-adapter", func() (map[string][]byte, error) {
+		adapterFiles, err := timeLiftPhase(&timings, progress, "render-adapter", func() (map[string][]byte, error) {
 			return RenderAdapter(plan)
 		})
 		if err != nil {
@@ -166,7 +196,7 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 		}
 	} else {
 		nonStubArtifacts := filterArtifacts(artifacts, "client_stub")
-		manifest, err = timeLiftPhase(&timings, "write-artifacts", func() (*Manifest, error) {
+		manifest, err = timeLiftPhase(&timings, progress, "write-artifacts", func() (*Manifest, error) {
 			return WriteArtifacts(plan, nonStubArtifacts, patchedFile)
 		})
 		if err != nil {
@@ -178,15 +208,49 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 		Timings:          timings,
 		Report:           report,
 		Cut:              *cut,
+		AdmissionVerdict: plan.Admission,
+		DemotionChain:    demotionChain,
 		Plan:             plan,
 		Manifest:         manifest,
 		PatchedFile:      patchedFile,
 	}, nil
 }
 
-func timeLiftPhase[T any](timings *[]activation.PhaseTiming, phase string, fn func() (T, error)) (T, error) {
+type liftProgressLogger struct {
+	logger  *slog.Logger
+	started time.Time
+}
+
+func newLiftProgressLogger(target string) *liftProgressLogger {
+	return &liftProgressLogger{
+		logger:  slog.Default().With("component", "codegen", "target", target),
+		started: time.Now(),
+	}
+}
+
+func (l *liftProgressLogger) start(phase string) {
+	if l == nil || l.logger == nil {
+		return
+	}
+	l.logger.Debug("codegen phase", "phase", phase, "event", "start", "elapsed", time.Since(l.started).Round(time.Second))
+}
+
+func (l *liftProgressLogger) done(phase string, started time.Time, err error) {
+	if l == nil || l.logger == nil {
+		return
+	}
+	status := "done"
+	if err != nil {
+		status = "error"
+	}
+	l.logger.Debug("codegen phase", "phase", phase, "event", status, "duration", time.Since(started).Round(time.Millisecond), "elapsed", time.Since(l.started).Round(time.Second))
+}
+
+func timeLiftPhase[T any](timings *[]activation.PhaseTiming, progress *liftProgressLogger, phase string, fn func() (T, error)) (T, error) {
 	start := time.Now()
+	progress.start(phase)
 	value, err := fn()
+	progress.done(phase, start, err)
 	if timings != nil {
 		*timings = append(*timings, activation.PhaseTiming{Phase: phase, Duration: time.Since(start)})
 	}
@@ -213,12 +277,18 @@ func attachIncomingCall(plan *Plan, path *activation.Path, step int) error {
 }
 
 func runActivation(ctx context.Context, opts LiftOptions) (*activation.Result, error) {
+	augment := opts.Augment
+	if augment == "" {
+		augment = activation.ModeAll
+	}
+	// ScopePackages fills Packages from the target's reverse-import set before
+	// type-checking; keep the fallback narrow rather than whole-repository ./...
 	analyzer := activation.NewAnalyzer(activation.Config{
 		Dir:           opts.Source,
-		Packages:      []string{"./..."},
+		Packages:      nil,
 		Target:        opts.Target,
 		Timeout:       10 * time.Minute,
-		Augment:       activation.ModeAll,
+		Augment:       augment,
 		ScopePackages: true,
 	})
 	result, err := analyzer.Analyze(ctx)
@@ -239,7 +309,7 @@ func buildExtractionReport(opts LiftOptions, cut *activation.CutResult) (reportv
 	if err != nil {
 		return reportv2.Report{}, err
 	}
-	absFile, err := filepath.Abs(file)
+	absFile, err := targetFileForReport(opts.Source, file)
 	if err != nil {
 		return reportv2.Report{}, err
 	}
@@ -285,6 +355,13 @@ func buildExtractionReport(opts LiftOptions, cut *activation.CutResult) (reportv
 		report.BuildConfig.ModuleRoot = opts.Source
 	}
 	return report, nil
+}
+
+func targetFileForReport(source, file string) (string, error) {
+	if !filepath.IsAbs(file) {
+		file = filepath.Join(source, file)
+	}
+	return filepath.Abs(file)
 }
 
 func applyLiftOptions(plan *Plan, opts LiftOptions) {

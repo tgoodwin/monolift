@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tgoodwin/monolift/pkg/codegen"
 	"github.com/tgoodwin/monolift/pkg/compiler"
+	"github.com/tgoodwin/monolift/pkg/logging"
 )
 
 const progname = "monolift"
@@ -148,7 +149,7 @@ func liftCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.hostReadinessPath, "host-readiness-path", "", "readiness probe path for the patched host")
 	cmd.Flags().StringArrayVar(&opts.hostEnv, "host-env", nil, "host environment variable in KEY=VALUE form; repeatable")
 	cmd.Flags().BoolVar(&opts.writeMonolithStub, "write-monolith-stub", false, "patch the monolith callsite to use the generated stub")
-	cmd.Flags().DurationVar(&opts.timeout, "timeout", 120*time.Second, "activation-path analysis timeout")
+	cmd.Flags().DurationVar(&opts.timeout, "timeout", 10*time.Minute, "overall lift timeout")
 	return cmd
 }
 
@@ -166,6 +167,7 @@ func parseHostEnv(raw []string) ([]codegen.EnvVar, error) {
 }
 
 func main() {
+	logging.ConfigureFromEnv()
 	if err := rootCmd().Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

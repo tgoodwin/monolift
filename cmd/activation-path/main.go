@@ -12,9 +12,11 @@ import (
 
 	"github.com/tgoodwin/monolift/pkg/activation"
 	activationeval "github.com/tgoodwin/monolift/pkg/activation/eval"
+	"github.com/tgoodwin/monolift/pkg/logging"
 )
 
 func main() {
+	logging.ConfigureFromEnv()
 	os.Exit(run(os.Args[1:]))
 }
 

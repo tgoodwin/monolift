@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -274,18 +275,37 @@ func nodeForFunction(id int, program *Program, fn *ssa.Function) *Node {
 
 func timePhase[T any](result *Result, phase string, fn func() (T, error)) (T, error) {
 	start := time.Now()
+	logActivationProgress("activation phase", phase, "start", 0)
 	value, err := fn()
+	logActivationProgress("activation phase", phase, progressStatus(err), time.Since(start))
 	result.Timings = append(result.Timings, PhaseTiming{Phase: phase, Duration: time.Since(start)})
 	return value, err
 }
 
 func timeSubPhase[T any](timings *[]PhaseTiming, phase string, fn func() (T, error)) (T, error) {
 	start := time.Now()
+	logActivationProgress("activation subphase", phase, "start", 0)
 	value, err := fn()
+	logActivationProgress("activation subphase", phase, progressStatus(err), time.Since(start))
 	if timings != nil {
 		*timings = append(*timings, PhaseTiming{Phase: phase, Duration: time.Since(start)})
 	}
 	return value, err
+}
+
+func logActivationProgress(message, phase, event string, duration time.Duration) {
+	args := []any{"component", "activation", "phase", phase, "event", event}
+	if duration > 0 {
+		args = append(args, "duration", duration.Round(time.Millisecond))
+	}
+	slog.Debug(message, args...)
+}
+
+func progressStatus(err error) string {
+	if err != nil {
+		return "error"
+	}
+	return "done"
 }
 
 func setPhaseMetadata(result *Result, phase string, metadata map[string]any) {

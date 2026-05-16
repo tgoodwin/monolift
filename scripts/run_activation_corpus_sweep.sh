@@ -10,7 +10,7 @@
 #   scripts/run_activation_corpus_sweep.sh [OPTIONS]
 #
 # Options:
-#   --admission-only     Run AdmitCut/AdmitPlan only (no Kind cluster needed)
+#   --admission-only     Run reverse-import-scoped AdmitCut/AdmitPlan only (no Kind cluster needed)
 #   --phases PHASES      Comma-separated phase filter (e.g., "1,3" or "all")
 #   --timeout-per-trace  Per-trace timeout (default: 25m)
 #   --manifest PATH      Path to manifest YAML (default: test/e2e/activation_corpus_traces.yaml)
@@ -75,10 +75,44 @@ mkdir -p "$OUTPUT_DIR"
 RESULTS_JSONL="$OUTPUT_DIR/results.jsonl"
 SUMMARY_MD="$OUTPUT_DIR/summary.md"
 
-# ── Ensure yq is available (for YAML parsing) ────────────────────────────
+# ── YAML query helper ────────────────────────────────────────────────────
 if ! command -v yq &>/dev/null; then
-    echo "ERROR: yq is required but not installed. Install via: brew install yq" >&2
-    exit 1
+    yq() {
+        python3 - "$1" "$2" <<'PY'
+import re
+import sys
+
+try:
+    import yaml
+except Exception as exc:
+    print(f"ERROR: yq is unavailable and Python yaml import failed: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+expr, path = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as handle:
+    data = yaml.safe_load(handle) or {}
+
+expr = expr.strip()
+if expr == ".traces | length":
+    print(len(data.get("traces") or []))
+    sys.exit(0)
+
+match = re.fullmatch(r"\.traces\[(\d+)\]\.([A-Za-z0-9_]+)", expr)
+if not match:
+    print(f"unsupported fallback yq expression: {expr}", file=sys.stderr)
+    sys.exit(1)
+
+index = int(match.group(1))
+field = match.group(2)
+traces = data.get("traces") or []
+value = traces[index].get(field, "") if 0 <= index < len(traces) else ""
+if value is None:
+    value = ""
+elif isinstance(value, bool):
+    value = "true" if value else "false"
+print(value)
+PY
+    }
 fi
 
 # ── Read manifest ─────────────────────────────────────────────────────────
@@ -153,10 +187,13 @@ for i in $(seq 0 $((TRACE_COUNT - 1))); do
             ADMIT_ERROR="no file:line available for admission"
             ADMIT_STATUS="manifest-skip"
         else
-            # Run admission check via go test with a short timeout
+            # Run admission check via reverse-import-scoped go test. This is a
+            # coarse corpus status sweep, not focused candidate viability
+            # evidence; do not pass whole-repo ./... package scope here.
             set +e
-            ADMIT_OUTPUT=$(timeout 120 go test ./pkg/codegen/... -run "TestAdmission" -v \
-                -args -trace-target="$FILE_LINE" -source-dir="evaluation/$PROJECT" 2>&1)
+            ADMIT_OUTPUT=$(timeout 12m go test ./pkg/codegen/... -run "TestAdmission" -v \
+                -args -trace-target="$FILE_LINE" -source-dir="evaluation/$PROJECT" \
+                -admission-timeout=10m -activation-timeout=8m 2>&1)
             EXIT_CODE=$?
             set -e
 
@@ -165,7 +202,7 @@ for i in $(seq 0 $((TRACE_COUNT - 1))); do
                 ADMIT_ERROR=""
             elif [[ $EXIT_CODE -eq 124 ]]; then
                 ADMIT_STATUS="timeout-skip"
-                ADMIT_ERROR="admission check timed out after 120s"
+                ADMIT_ERROR="admission check timed out after 12m"
             else
                 ADMIT_STATUS="admission-skip"
                 # Extract refusal reason from output (compatible with macOS/BSD grep)

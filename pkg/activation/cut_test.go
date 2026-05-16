@@ -249,3 +249,42 @@ func TestCutRankingDecisionDimensions(t *testing.T) {
 		})
 	}
 }
+
+func TestDemoteCandidateShiftsRecommendedToNextFeasible(t *testing.T) {
+	base := func(step int, name string) CutCandidate {
+		return CutCandidate{
+			Step:         step,
+			NodeKey:      FunctionKey{PackagePath: "p", FuncName: name},
+			NodeName:     name,
+			IncomingEdge: DirectCall,
+			Feasibility:  Feasible,
+			BoundaryData: Serializable,
+			Callbacks:    ZeroConfirmed,
+			State:        Stateless,
+			Surface:      Minimal,
+			ErrorSem:     ErrorOK,
+			EdgeAlign:    Strong,
+		}
+	}
+
+	cut := &CutResult{Candidates: []CutCandidate{
+		base(1, "shallow"),
+		base(2, "deep"),
+	}}
+	rankCutCandidates(cut)
+	if cut.Recommended == nil || cut.Recommended.NodeName != "deep" {
+		t.Fatalf("initial Recommended = %+v, want deep", cut.Recommended)
+	}
+
+	cut.DemoteCandidate(cut.Recommended.Step, cut.Recommended.NodeKey, "receiver_requires_reconstruction: stateful receiver")
+	if cut.Recommended == nil || cut.Recommended.NodeName != "shallow" {
+		t.Fatalf("post-demotion Recommended = %+v, want shallow", cut.Recommended)
+	}
+	demoted := candidateByStep(t, cut.Candidates, 2)
+	if demoted.Feasibility != Infeasible {
+		t.Fatalf("demoted feasibility = %s, want %s", demoted.Feasibility, Infeasible)
+	}
+	if !strings.HasPrefix(demoted.Reason, "admission-refused: receiver_requires_reconstruction:") {
+		t.Fatalf("demoted reason = %q, want admission-refused prefix", demoted.Reason)
+	}
+}

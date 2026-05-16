@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,8 +13,11 @@ import (
 )
 
 var (
-	traceTarget = flag.String("trace-target", "", "file:line target for admission check")
-	sourceDir   = flag.String("source-dir", "", "source directory for admission check")
+	traceTarget       = flag.String("trace-target", "", "file:line target for admission check")
+	sourceDir         = flag.String("source-dir", "", "source directory for admission check")
+	admissionPackages = flag.String("admission-packages", "", "comma-separated package patterns to type-check; empty uses reverse-import scope. Whole-repo ./... is refused.")
+	admissionTimeout  = flag.Duration("admission-timeout", 10*time.Minute, "overall timeout for the admission probe")
+	activationTimeout = flag.Duration("activation-timeout", 8*time.Minute, "timeout for activation-path analysis inside the admission probe")
 )
 
 // TestAdmission runs the full admission pipeline (activation → cut → report →
@@ -35,17 +39,19 @@ func TestAdmission(t *testing.T) {
 	}
 	absTarget := fmt.Sprintf("%s:%d", filepath.Join(absSource, file), line)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	packages, scopePackages := admissionPackageScope(t, *admissionPackages)
+
+	ctx, cancel := context.WithTimeout(context.Background(), *admissionTimeout)
 	defer cancel()
 
 	// Step 1: activation analysis
 	analyzer := activation.NewAnalyzer(activation.Config{
 		Dir:           absSource,
-		Packages:      []string{"./..."},
+		Packages:      packages,
 		Target:        absTarget,
-		Timeout:       60 * time.Second,
+		Timeout:       *activationTimeout,
 		Augment:       activation.ModeAll,
-		ScopePackages: true,
+		ScopePackages: scopePackages,
 	})
 	result, err := analyzer.Analyze(ctx)
 	if err != nil {
@@ -90,4 +96,68 @@ func TestAdmission(t *testing.T) {
 
 	fmt.Printf("ADMITTED: %s (boundary params: %d, reconstructed: %d, results: %d)\n",
 		plan.CutPoint.FuncName, len(plan.BoundaryParams), len(plan.ReconstructedParams), len(plan.Results))
+}
+
+func admissionPackageScope(t *testing.T, raw string) ([]string, bool) {
+	t.Helper()
+	packages, scopePackages, err := parseAdmissionPackageScope(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return packages, scopePackages
+}
+
+func parseAdmissionPackageScope(raw string) ([]string, bool, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, true, nil
+	}
+	parts := strings.Split(raw, ",")
+	patterns := make([]string, 0, len(parts))
+	for _, part := range parts {
+		pattern := strings.TrimSpace(part)
+		if pattern == "" {
+			continue
+		}
+		if pattern == "./..." {
+			return nil, false, fmt.Errorf("focused admission must not type-check the whole repository; use reverse-import scope or explicit target/importer packages")
+		}
+		patterns = append(patterns, pattern)
+	}
+	if len(patterns) == 0 {
+		return nil, true, nil
+	}
+	return patterns, false, nil
+}
+
+func TestParseAdmissionPackageScope(t *testing.T) {
+	t.Run("default uses reverse import scope", func(t *testing.T) {
+		packages, scoped, err := parseAdmissionPackageScope("")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(packages) != 0 || !scoped {
+			t.Fatalf("packages=%v scoped=%v, want nil true", packages, scoped)
+		}
+	})
+
+	t.Run("explicit focused packages", func(t *testing.T) {
+		packages, scoped, err := parseAdmissionPackageScope(" ./cmd/miniflux , ./internal/reader/... ")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if scoped {
+			t.Fatalf("scoped = true, want false")
+		}
+		want := []string{"./cmd/miniflux", "./internal/reader/..."}
+		if strings.Join(packages, "|") != strings.Join(want, "|") {
+			t.Fatalf("packages=%v, want %v", packages, want)
+		}
+	})
+
+	t.Run("rejects whole repo", func(t *testing.T) {
+		if _, _, err := parseAdmissionPackageScope("./..."); err == nil {
+			t.Fatalf("expected error for whole-repo package scope")
+		}
+	})
 }
