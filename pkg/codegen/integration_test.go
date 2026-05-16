@@ -322,6 +322,8 @@ func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
+		"config.NewConfigParser()",
+		"config.Opts = opts",
 		`sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
 		"storage.NewStorage(storeDB)",
 	} {

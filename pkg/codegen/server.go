@@ -89,6 +89,15 @@ func serverTemplateView(plan *Plan) serverView {
 	var stateFields []fieldView
 	var stateInitLines []string
 	var stateCloseLines []string
+	if planNeedsMinifluxConfigInit(plan) {
+		imports = append(imports, importSpec{Path: "miniflux.app/v2/internal/config"})
+		stateInitLines = append(stateInitLines,
+			"cfg := config.NewConfigParser()",
+			"opts, parseErr := cfg.ParseEnvironmentVariables()",
+			"if parseErr != nil { return nil, parseErr }",
+			"config.Opts = opts",
+		)
+	}
 	for _, param := range plan.ReconstructedParams {
 		stateFields = append(stateFields, fieldView{
 			Name:          exportedFieldName(param.Name),
@@ -188,6 +197,18 @@ func serverTemplateView(plan *Plan) serverView {
 	}
 
 	return view
+}
+
+func planNeedsMinifluxConfigInit(plan *Plan) bool {
+	if plan == nil {
+		return false
+	}
+	for _, param := range plan.ReconstructedParams {
+		if param.Reconstructor.ID == "sql_db_wrapper" && param.TypePackagePath == "miniflux.app/v2/internal/storage" {
+			return true
+		}
+	}
+	return false
 }
 
 func serverReconstructorInit(param ReconstructedParam) []string {

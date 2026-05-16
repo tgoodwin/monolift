@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	_ "github.com/lib/pq"
 	"log"
+	"miniflux.app/v2/internal/config"
 	"miniflux.app/v2/internal/reader/handler"
 	"miniflux.app/v2/internal/storage"
 	"net/http"
@@ -89,6 +90,12 @@ type serverState struct {
 
 func initState() (*serverState, error) {
 	state := &serverState{invocations: newInvocationRecorder()}
+	cfg := config.NewConfigParser()
+	opts, parseErr := cfg.ParseEnvironmentVariables()
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	config.Opts = opts
 	storeDB, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return nil, err

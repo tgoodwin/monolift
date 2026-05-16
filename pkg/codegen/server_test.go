@@ -36,6 +36,8 @@ func TestRenderServerRefreshFeedGolden(t *testing.T) {
 		t.Fatalf("rendered server does not match %s", goldenPath)
 	}
 	assertRenderedContains(t, got,
+		`cfg := config.NewConfigParser()`,
+		`config.Opts = opts`,
 		`storeDB, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
 		`if err := storeDB.PingContext(context.Background()); err != nil {`,
 		`state.Store = storage.NewStorage(storeDB)`,
