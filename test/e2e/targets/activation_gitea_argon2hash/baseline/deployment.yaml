@@ -31,6 +31,8 @@ spec:
           value: disable
         - name: GITEA__security__INSTALL_LOCK
           value: "true"
+        - name: GITEA__security__PASSWORD_HASH_ALGO
+          value: argon2
         - name: GITEA__security__SECRET_KEY
           value: monolift-gitea-secret-key
         - name: GITEA__server__HTTP_ADDR

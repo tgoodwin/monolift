@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tgoodwin/monolift/test/e2e/harness"
@@ -27,10 +28,11 @@ type workloadState struct {
 }
 
 var states sync.Map
+var freshFeedSeq atomic.Uint64
 
 func (Workload) Setup(ctx context.Context, host string) error {
 	client := apiClient{base: strings.TrimRight(host, "/"), client: &http.Client{Timeout: 10 * time.Second}}
-	feedID, err := client.ensureFeed(ctx, "http://rss-feed-server/index.xml")
+	feedID, err := client.ensureFeed(ctx, freshFeedURL())
 	if err != nil {
 		return err
 	}
@@ -78,6 +80,9 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 	if err != nil {
 		return harness.Step{}, err
 	}
+	if len(entries) == 0 {
+		return harness.Step{}, fmt.Errorf("feed %d has no entries after refresh", state.feedID)
+	}
 
 	return harness.Step{
 		Method: http.MethodPut,
@@ -95,6 +100,27 @@ func (Workload) Verify(ctx context.Context, host string, expected harness.Transc
 		return err
 	}
 	return harness.Transcript{}.Compare(expected, got, nil)
+}
+
+func (Workload) VerifyBehavior(ctx context.Context, host string, transcript harness.Transcript) error {
+	stateValue, ok := states.Load(host)
+	if !ok {
+		return fmt.Errorf("miniflux workload setup missing for %s", host)
+	}
+	state := stateValue.(*workloadState)
+	client := apiClient{base: strings.TrimRight(host, "/"), client: &http.Client{Timeout: 30 * time.Second}}
+	entries, err := client.feedEntries(ctx, state.feedID)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return fmt.Errorf("feed %d has no entries for behavioral predicate", state.feedID)
+	}
+	return nil
+}
+
+func freshFeedURL() string {
+	return fmt.Sprintf("http://rss-feed-server/index.xml?monolift_resource=%d", freshFeedSeq.Add(1))
 }
 
 type apiClient struct {

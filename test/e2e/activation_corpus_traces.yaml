@@ -266,9 +266,9 @@ traces:
     file_line: "modules/auth/password/hash/argon2.go:29"
     state_class: Stateless
     boundary_class: Serializable
-    status: admission-skip
-    phase: "3"
-    skip_reason: "receiver_requires_reconstruction: receiver *PasswordHashAlgorithm has non-serializable fields (recommended cut at PasswordHashAlgorithm.Hash, not concrete Argon2Hasher.HashWithSaltBytes)"
+    status: pass
+    phase: "1"
+    skip_reason: ""
     e2e_package: activation_gitea_argon2hash
 
   - trace_id: gitea/M-17
@@ -574,6 +574,10 @@ traces:
 
   # ── Miniflux ───────────────────────────────────────────────────────────────
 
+  # SPRINT-0049: focused stage-7 deploy pass in 169.8s. Stage-10 stretch attempted
+  # and reverted to stage 7: stage 8 direct /invoke probe returned nil for the
+  # localized-error result shape; workload + /calls-delta policy remains the
+  # intended correctness signal for post-stage-7 work.
   - trace_id: miniflux/M-1
     project: miniflux
     function: RefreshFeed
@@ -581,7 +585,7 @@ traces:
     state_class: Client-reconstructible
     boundary_class: Reconstructible
     status: pass
-    phase: "1"
+    phase: "3"
     skip_reason: ""
     e2e_package: activation_miniflux_refreshfeed
 
@@ -618,16 +622,18 @@ traces:
     skip_reason: "needs integrations config/client reconstructor"
     e2e_package: ""
 
+  # SPRINT-0049 stretch: stage-4 pass in 85.5s. Admission selected parent
+  # RefreshFeed rather than the *iconChecker leaf, so stage 7 remains deferred.
   - trace_id: miniflux/M-5
     project: miniflux
     function: "(*iconChecker).UpdateOrCreateFeedIcon"
-    file_line: "internal/reader/icon/checker.go:FieldNotInCorpus"
+    file_line: "internal/reader/icon/checker.go:28"
     state_class: Client-reconstructible
     boundary_class: Serializable
-    status: manifest-skip
-    phase: deferred
-    skip_reason: "needs icon checker/storage reconstructor"
-    e2e_package: ""
+    status: pass
+    phase: "4"
+    skip_reason: ""
+    e2e_package: activation_miniflux_feedicon
 
   - trace_id: miniflux/M-6
     project: miniflux

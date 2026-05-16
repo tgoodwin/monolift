@@ -114,6 +114,7 @@ func (c Compiler) runActivationLift(ctx context.Context, target TargetCase, outp
 		Target:            liftTarget,
 		Output:            ".",
 		ServiceName:       spec.ServiceName,
+		Augment:           spec.Augment,
 		Deploy:            spec.Deploy,
 		WriteMonolithStub: true,
 	})
@@ -368,6 +369,8 @@ func activationOracleMain(targetName, serviceName string) (string, bool) {
 		return caddyCleanPathOracleMain, true
 	case targetName == "activation-gitea-pathescapesegments" && serviceName == "monolift-oracle-pathescapesegments":
 		return giteaPathEscapeSegmentsOracleMain, true
+	case targetName == "activation-gitea-argon2hash" && serviceName == "monolift-oracle-argon2hash":
+		return giteaArgon2HashOracleMain, true
 	case targetName == "activation-listmonk-sanitizeuri" && serviceName == "monolift-oracle-sanitizeuri":
 		return listmonkSanitizeURIOracleMain, true
 	case targetName == "activation-pocketbase-columnify" && serviceName == "monolift-oracle-columnify":
@@ -607,6 +610,68 @@ func handleInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, invokeResponse{
 		Result: util.PathEscapeSegments(in.Path),
+	})
+}
+
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		log.Printf("write json: %v", err)
+	}
+}
+`
+
+const giteaArgon2HashOracleMain = `package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+
+	"code.gitea.io/gitea/modules/auth/password/hash"
+)
+
+type invokeRequest struct {
+	Password string ` + "`json:\"password\"`" + `
+	Salt     []byte ` + "`json:\"salt\"`" + `
+}
+
+type invokeResponse struct {
+	Result string ` + "`json:\"result\"`" + `
+}
+
+func main() {
+	addr := os.Getenv("MONOLIFT_HTTP_ADDR")
+	if addr == "" {
+		addr = ":8081"
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/invoke", handleInvoke)
+	mux.HandleFunc("/healthz", handleHealthz)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+func handleInvoke(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	defer r.Body.Close()
+	var in invokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	hasher := hash.NewArgon2Hasher("")
+	writeJSON(w, http.StatusOK, invokeResponse{
+		Result: hasher.HashWithSaltBytes(in.Password, in.Salt),
 	})
 }
 

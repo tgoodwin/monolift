@@ -3,6 +3,7 @@ package activation_mattermost_pbkdf2hash
 import (
 	"time"
 
+	"github.com/tgoodwin/monolift/pkg/activation"
 	"github.com/tgoodwin/monolift/pkg/codegen"
 	"github.com/tgoodwin/monolift/test/e2e/harness"
 )
@@ -30,6 +31,7 @@ func Target() harness.TargetCase {
 		ActivationLift: &harness.ActivationLiftSpec{
 			Target:               "channels/app/password/hashers/pbkdf2.go:151",
 			ServiceName:          "monolift-extracted-pbkdf2hash",
+			Augment:              activation.ModeStructField,
 			ExpectedEnvVarPrefix: "MONOLIFT_LIFT_PBKDF2HASH",
 			DirectInvocationProbePayload: map[string]any{
 				"password": "monolift-test-password",
@@ -66,6 +68,10 @@ func Target() harness.TargetCase {
 			"hash": {
 				"password": "monolift-test-password",
 			},
+		},
+		DirectInvoke: harness.DirectInvokeCheck{
+			Expectation: harness.DirectInvokeStatusOnly,
+			Predicate:   "PBKDF2 hash output is salted and nondeterministic; direct invoke must return HTTP 200 and workload /calls evidence",
 		},
 		Workload:    Workload{},
 		Invariants:  []harness.Invariant{{Path: loginPath, Status: true}},

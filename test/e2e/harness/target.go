@@ -3,6 +3,7 @@ package harness
 import (
 	"time"
 
+	"github.com/tgoodwin/monolift/pkg/activation"
 	"github.com/tgoodwin/monolift/pkg/codegen"
 )
 
@@ -41,6 +42,11 @@ type TargetCase struct {
 	Workload                WorkloadExecutor
 	Oracle                  SymbolInvoker
 	Invariants              []Invariant
+	DirectInvoke            DirectInvokeCheck
+	BehavioralPredicates    []BehavioralPredicate
+	TranscriptNormalizers   []TranscriptNormalizer
+	FreshResourcePolicy     FreshResourcePolicy
+	WorkloadRequirements    []WorkloadRequirement
 	ServiceSymbols          map[string]string
 	InvokePayloads          map[string]map[string]any
 	ServiceName             string
@@ -50,6 +56,7 @@ type TargetCase struct {
 type ActivationLiftSpec struct {
 	Target                       string
 	ServiceName                  string
+	Augment                      activation.AugmentMode
 	Deploy                       codegen.DeployOptions
 	ExpectedEnvVarPrefix         string
 	DirectInvocationProbePayload map[string]any
@@ -58,6 +65,40 @@ type ActivationLiftSpec struct {
 
 type SymbolInvoker interface {
 	Invoke(args map[string]any) (any, error)
+}
+
+type DirectInvokeExpectation string
+
+const (
+	DirectInvokeOracleCompare          DirectInvokeExpectation = "oracle-compare"
+	DirectInvokeNonNilResult           DirectInvokeExpectation = "non-nil-result"
+	DirectInvokeNullableLocalizedError DirectInvokeExpectation = "nullable-localized-error"
+	DirectInvokeStatusOnly             DirectInvokeExpectation = "status-only"
+	DirectInvokeBehavioralInvariant    DirectInvokeExpectation = "behavioral-invariant"
+	DirectInvokeWorkloadCallsDelta     DirectInvokeExpectation = "workload-calls-delta"
+)
+
+type DirectInvokeCheck struct {
+	Expectation DirectInvokeExpectation
+	Predicate   string
+}
+
+type BehavioralPredicate struct {
+	Name        string
+	Description string
+}
+
+type FreshResourcePolicy struct {
+	ResourceKind string
+	Scope        string
+	Description  string
+}
+
+type WorkloadRequirement struct {
+	Name        string
+	Description string
+	EnvVar      string
+	Value       string
 }
 
 type HostBuildSpec struct {

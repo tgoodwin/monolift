@@ -20,6 +20,7 @@ import (
 
 	"github.com/tgoodwin/monolift/pkg/codegen"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"github.com/tgoodwin/monolift/pkg/logging"
 	"github.com/tgoodwin/monolift/test/e2e/harness"
 	activation_caddy_cleanpath "github.com/tgoodwin/monolift/test/e2e/targets/activation_caddy_cleanpath"
 	activation_gitea_argon2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_argon2hash"
@@ -27,6 +28,7 @@ import (
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
 	activation_mattermost_pbkdf2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_pbkdf2hash"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
+	activation_miniflux_feedicon "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_feedicon"
 	activation_miniflux_parsefeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_parsefeed"
 	activation_miniflux_refreshfeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_refreshfeed"
 	activation_miniflux_sanitizehtml "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_sanitizehtml"
@@ -45,6 +47,7 @@ import (
 var updateGolden = flag.Bool("update-golden", false, "rewrite e2e golden reports from current compiler output")
 
 func TestE2E(t *testing.T) {
+	logging.ConfigureFromEnv()
 	if !harness.E2EEnabled() {
 		t.Skip("MONOLIFT_E2E=1 required")
 	}
@@ -56,6 +59,7 @@ func TestE2E(t *testing.T) {
 		activation_caddy_cleanpath.Target(),
 		pocketbase.Target(),
 		miniflux.Target(),
+		activation_miniflux_feedicon.Target(),
 		activation_miniflux_parsefeed.Target(),
 		activation_miniflux_refreshfeed.Target(),
 		activation_miniflux_sanitizehtml.Target(),
@@ -87,6 +91,12 @@ func TestE2E(t *testing.T) {
 					Error:  target.SkipReason,
 				})
 				t.Skip(target.SkipReason)
+			}
+			if err := target.ValidateStagePolicy(); err != nil {
+				t.Fatalf("%v", harness.StageError(0, target.Name, harness.KindHarness, "target policy invalid: %v", err))
+			}
+			if err := target.ValidateWorkloadFitness(); err != nil {
+				t.Fatalf("%v", harness.StageError(0, target.Name, harness.KindFitness, "workload fitness invalid: %v", err))
 			}
 			start := time.Now()
 			runTarget(t, cluster, runID, target)
@@ -232,8 +242,19 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	if err := assertExtractedDeploymentsDormant(target, compileResult.ArtifactsDir); err != nil {
 		t.Fatalf("%v", harness.StageError(7, target.Name, harness.KindHarness, "recursion-safety static assertion failed: %v", err))
 	}
-	if err := buildAndLoadLiftedImages(ctx, builder, target, compileResult.ArtifactsDir); err != nil {
+	if err := buildLiftedImages(ctx, builder, target, compileResult.ArtifactsDir); err != nil {
 		t.Fatalf("%v", err)
+	}
+	if target.StopAtStage <= 5 {
+		return
+	}
+
+	tracker.Enter(6, "load-lifted-images")
+	if err := loadLiftedImages(ctx, builder, target); err != nil {
+		t.Fatalf("%v", err)
+	}
+	if target.StopAtStage <= 6 {
+		return
 	}
 
 	tracker.Enter(7, "lifted-deploy")
@@ -256,7 +277,7 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	tracker.Enter(8, "lifted-workload")
 	if len(target.LiftedExtractedServices) > 0 {
 		if err := assertExtractedServicesDormantRuntime(ctx, target, liftedNS); err != nil {
-			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "recursion-safety runtime assertion failed: %v", err))
+			t.Fatalf("%v", harness.StageError(8, target.Name, harness.ErrorKind(err, harness.KindOracle), "direct-invoke/runtime assertion failed: %v", err))
 		}
 	}
 	if err := target.Workload.Setup(ctx, liftedPF.URL); err != nil {
@@ -269,7 +290,10 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		liftedTranscript, err = target.Workload.Action(ctx, liftedPF.URL)
 	}
 	if err != nil {
-		t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted action failed: %v", err))
+		t.Fatalf("%v", harness.StageError(8, target.Name, harness.ErrorKind(err, harness.KindWorkload), "lifted action failed: %v", err))
+	}
+	if err := assertBehavioralPredicates(ctx, target, liftedPF.URL, liftedTranscript); err != nil {
+		t.Fatalf("%v", harness.StageError(8, target.Name, harness.ErrorKind(err, harness.KindOracle), "behavioral invariant failed: %v", err))
 	}
 	if len(target.LiftedExtractedServices) > 0 {
 		if err := assertExtractedServiceLogs(ctx, target, liftedNS, expectedExtractedLogNeedles(target)); err != nil {
@@ -277,13 +301,13 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		}
 	}
 	tracker.Enter(9, "transcript-compare")
-	if err := (harness.Transcript{}).Compare(baselineTranscript, liftedTranscript, target.Invariants); err != nil {
-		t.Fatalf("%v", harness.StageError(9, target.Name, harness.KindWorkload, "transcript compare failed: %v", err))
+	if err := compareTargetTranscripts(target, baselineTranscript, liftedTranscript); err != nil {
+		t.Fatalf("%v", harness.StageError(9, target.Name, harness.ErrorKind(err, harness.KindOracle), "transcript compare failed: %v", err))
 	}
 	if len(target.LiftedExtractedServices) > 0 {
 		tracker.Enter(9, "env-off-fail-modes")
 		if err := assertEnvOffAndFailModes(ctx, deployer, target, liftedNS, liftedPF.URL, liftedTranscript); err != nil {
-			t.Fatalf("%v", harness.StageError(9, target.Name, harness.KindWorkload, "negative lifted assertions failed: %v", err))
+			t.Fatalf("%v", harness.StageError(9, target.Name, harness.ErrorKind(err, harness.KindWorkload), "negative lifted assertions failed: %v", err))
 		}
 	}
 }
@@ -402,6 +426,42 @@ func readyTimeout(configured time.Duration) time.Duration {
 	return 180 * time.Second
 }
 
+func TestActivationLiftedManifestPhasesDeployHostBeforeExtracted(t *testing.T) {
+	target := harness.TargetCase{
+		Name: "activation-miniflux-refreshfeed",
+		BaselineManifests: []string{
+			"test/e2e/fixtures/postgres.yaml",
+			"test/e2e/targets/activation_miniflux_refreshfeed/baseline/deployment.yaml",
+			"test/e2e/targets/activation_miniflux_refreshfeed/baseline/service.yaml",
+		},
+		LiftedHostBuild: &harness.HostBuildSpec{
+			DeploymentYAML: "lifted/host-deployment.yaml",
+			ServiceYAML:    "lifted/host-service.yaml",
+		},
+		LiftedExtractedServices: []harness.ExtractedServiceSpec{{
+			DeploymentYAML: "lifted/extracted-deployment.yaml",
+			ServiceYAML:    "lifted/extracted-service.yaml",
+		}},
+		ActivationLift: &harness.ActivationLiftSpec{},
+	}
+	artifactsDir := "/tmp/monolift-artifacts"
+	got := liftedManifestPhases(target, liftedManifestPaths(target, artifactsDir))
+	want := [][]string{
+		{"test/e2e/fixtures/postgres.yaml"},
+		{
+			filepath.Join(artifactsDir, "lifted/host-deployment.yaml"),
+			filepath.Join(artifactsDir, "lifted/host-service.yaml"),
+		},
+		{
+			filepath.Join(artifactsDir, "lifted/extracted-deployment.yaml"),
+			filepath.Join(artifactsDir, "lifted/extracted-service.yaml"),
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("lifted manifest phases = %#v, want %#v", got, want)
+	}
+}
+
 type requestWorkload interface {
 	Paths() []string
 	Request(ctx context.Context, host, path string) (harness.Step, error)
@@ -439,6 +499,11 @@ func assertExtractedServicesDormantRuntime(ctx context.Context, target harness.T
 		return err
 	}
 	defer stopExtractedPortForwards(services)
+	oracles, err := startOraclePortForwards(ctx, target, liftedNS)
+	if err != nil {
+		return err
+	}
+	defer stopOraclePortForwards(oracles)
 
 	for _, service := range services {
 		before, err := readCalls(ctx, service.pf.URL)
@@ -456,16 +521,13 @@ func assertExtractedServicesDormantRuntime(ctx context.Context, target harness.T
 		if after-before != 1 {
 			return fmt.Errorf("%s direct /invoke /calls delta=%d want 1", service.spec.Name, after-before)
 		}
-		if target.Oracle != nil {
-			want, err := target.Oracle.Invoke(oracleArgs(service.symbol, invokePayload(target, service.symbol)))
-			if err != nil {
-				return err
-			}
-			if got != want {
-				return fmt.Errorf("%s direct /invoke result=%v want %v", service.spec.Name, got, want)
-			}
-		} else if got == nil {
-			return fmt.Errorf("%s direct /invoke returned nil result", service.spec.Name)
+		want, hasOracle, err := directOracleResult(ctx, target, service.symbol, invokePayload(target, service.symbol), target.Oracle, oracles)
+		if err != nil {
+			return harness.Classify(harness.KindOracle, err)
+		}
+		expectation := harness.DirectInvokeExpectationFor(target.DirectInvoke, hasOracle)
+		if err := harness.CheckDirectInvokeResult(expectation, got, want, hasOracle, target.DirectInvoke.Predicate); err != nil {
+			return harness.Classified(harness.KindOracle, "%s direct /invoke expectation %s failed: %w", service.spec.Name, expectation, err)
 		}
 	}
 	return nil
@@ -474,7 +536,7 @@ func assertExtractedServicesDormantRuntime(ctx context.Context, target harness.T
 func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, liftedNS, liftedURL string) (harness.Transcript, error) {
 	workload, ok := target.Workload.(requestWorkload)
 	if !ok {
-		return harness.Transcript{}, fmt.Errorf("target workload does not support per-request execution")
+		return harness.Transcript{}, harness.Classified(harness.KindFitness, "target workload does not support per-request execution")
 	}
 	services, err := startExtractedPortForwards(ctx, target, liftedNS)
 	if err != nil {
@@ -509,7 +571,7 @@ func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, lif
 			}
 			delta := after - before[service.spec.Name]
 			if delta < 1 {
-				return harness.Transcript{}, fmt.Errorf("%s %s /calls delta=%d want >=1", service.spec.Name, path, delta)
+				return harness.Transcript{}, harness.Classified(harness.KindFitness, "%s %s /calls delta=%d want >=1", service.spec.Name, path, delta)
 			}
 			totals[service.spec.Name] += delta
 		}
@@ -518,12 +580,12 @@ func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, lif
 	for _, service := range services {
 		total := totals[service.spec.Name]
 		if total < int64(len(workload.Paths())) || total > 50 {
-			return harness.Transcript{}, fmt.Errorf("%s aggregate /calls delta=%d want %d <= total <= 50", service.spec.Name, total, len(workload.Paths()))
+			return harness.Transcript{}, harness.Classified(harness.KindFitness, "%s aggregate /calls delta=%d want %d <= total <= 50", service.spec.Name, total, len(workload.Paths()))
 		}
 	}
 	for _, service := range services {
 		if err := assertExtractedInvocations(ctx, target, service.pf.URL, service.symbol, invocationPaths(workload.Paths()), target.Oracle, oracles); err != nil {
-			return harness.Transcript{}, err
+			return harness.Transcript{}, harness.Classify(harness.ErrorKind(err, harness.KindOracle), err)
 		}
 	}
 	return transcript, nil
@@ -628,7 +690,7 @@ func assertExtractedInvocations(ctx context.Context, target harness.TargetCase, 
 		return err
 	}
 	if len(out.Records) == 0 {
-		return fmt.Errorf("%s has no invocation records", symbol)
+		return harness.Classified(harness.KindFitness, "%s has no invocation records", symbol)
 	}
 	if symbol == "cleanpath" {
 		for _, path := range expectedPaths {
@@ -646,7 +708,7 @@ func assertExtractedInvocations(ctx context.Context, target harness.TargetCase, 
 				}
 			}
 			if !found {
-				return fmt.Errorf("no invocation record for path %s in %d records", path, len(out.Records))
+				return harness.Classified(harness.KindFitness, "no invocation record for path %s in %d records", path, len(out.Records))
 			}
 		}
 	}
@@ -665,32 +727,41 @@ func assertExtractedInvocations(ctx context.Context, target harness.TargetCase, 
 			}
 		}
 		if !foundGET {
-			return fmt.Errorf("no sanitizemethod invocation record for GET in %d records", len(out.Records))
+			return harness.Classified(harness.KindFitness, "no sanitizemethod invocation record for GET in %d records", len(out.Records))
 		}
 	}
-	if oracle == nil {
-		if _, ok := oraclePods[symbol]; !ok {
-			return fmt.Errorf("target has no oracle for %s", symbol)
-		}
+	_, hasOraclePod := oraclePods[symbol]
+	expectation := harness.DirectInvokeExpectationFor(target.DirectInvoke, target.Oracle != nil || hasOraclePod)
+	if expectation != harness.DirectInvokeOracleCompare {
+		return nil
 	}
 	for _, record := range out.Records {
 		payload := invocationPayload(target, symbol, record)
 		want := invocationResult(target, symbol, record)
-		var got any
-		var err error
-		if oraclePod, ok := oraclePods[symbol]; ok {
-			got, err = postInvoke(ctx, oraclePod.pf.URL, payload)
-		} else {
-			got, err = oracle.Invoke(oracleArgs(symbol, payload))
-		}
+		got, hasOracle, err := directOracleResult(ctx, target, symbol, payload, oracle, oraclePods)
 		if err != nil {
-			return err
+			return harness.Classify(harness.KindOracle, err)
+		}
+		if !hasOracle {
+			return harness.Classified(harness.KindOracle, "target has no oracle for %s", symbol)
 		}
 		if fmt.Sprint(got) != fmt.Sprint(want) {
-			return fmt.Errorf("%s oracle mismatch for record=%+v: record=%v oracle=%v", symbol, record, want, got)
+			return harness.Classified(harness.KindOracle, "%s oracle mismatch for record=%+v: record=%v oracle=%v", symbol, record, want, got)
 		}
 	}
 	return nil
+}
+
+func directOracleResult(ctx context.Context, target harness.TargetCase, symbol string, payload map[string]any, oracle harness.SymbolInvoker, oraclePods map[string]oracleRuntime) (any, bool, error) {
+	if oraclePod, ok := oraclePods[symbol]; ok {
+		got, err := postInvoke(ctx, oraclePod.pf.URL, payload)
+		return got, true, err
+	}
+	if oracle != nil {
+		got, err := oracle.Invoke(oracleArgs(symbol, payload))
+		return got, true, err
+	}
+	return nil, false, nil
 }
 
 func assertExtractedServiceLogs(ctx context.Context, target harness.TargetCase, ns string, expected []string) error {
@@ -762,6 +833,9 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 	if err != nil {
 		return err
 	}
+	if err := assertBehavioralPredicates(ctx, target, envOffPF.URL, envOffTranscript); err != nil {
+		return err
+	}
 	for _, service := range services {
 		after, err := readCalls(ctx, service.pf.URL)
 		if err != nil {
@@ -771,7 +845,7 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 			return fmt.Errorf("%s env-off /calls delta=%d want 0", service.spec.Name, after-before[service.spec.Name])
 		}
 	}
-	if err := (harness.Transcript{}).Compare(envOnTranscript, envOffTranscript, target.Invariants); err != nil {
+	if err := compareTargetTranscripts(target, envOnTranscript, envOffTranscript); err != nil {
 		return fmt.Errorf("env-off transcript mismatch: %w", err)
 	}
 
@@ -781,6 +855,34 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 		}
 	}
 	return setLiftedEnv(ctx, target, ns, "closed")
+}
+
+func assertBehavioralPredicates(ctx context.Context, target harness.TargetCase, host string, transcript harness.Transcript) error {
+	if len(target.BehavioralPredicates) == 0 {
+		return nil
+	}
+	verifier, ok := target.Workload.(harness.BehavioralInvariantVerifier)
+	if !ok {
+		return harness.Classified(harness.KindHarness, "target declares behavioral predicates but workload does not implement VerifyBehavior")
+	}
+	if err := verifier.VerifyBehavior(ctx, host, transcript); err != nil {
+		return harness.Classify(harness.KindOracle, err)
+	}
+	return nil
+}
+
+func compareTargetTranscripts(target harness.TargetCase, baseline, lifted harness.Transcript) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = harness.Classified(harness.KindOracle, "transcript normalizer failed: %v", r)
+		}
+	}()
+	baseline = baseline.Normalize(target.TranscriptNormalizers...)
+	lifted = lifted.Normalize(target.TranscriptNormalizers...)
+	if err := (harness.Transcript{}).Compare(baseline, lifted, target.Invariants); err != nil {
+		return harness.Classified(harness.KindOracle, "transcript oracle mismatch: %w", err)
+	}
+	return nil
 }
 
 func assertFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
@@ -1343,13 +1445,10 @@ func kubectlResult(ctx context.Context, ns string, args ...string) (harness.Comm
 	return harness.RunCommand(ctx, "kubectl", full...)
 }
 
-func buildAndLoadLiftedImages(ctx context.Context, builder harness.ImageBuilder, target harness.TargetCase, artifactsDir string) error {
+func buildLiftedImages(ctx context.Context, builder harness.ImageBuilder, target harness.TargetCase, artifactsDir string) error {
 	if target.LiftedHostBuild == nil {
 		if target.Dockerfile != "" {
-			if err := builder.Build(ctx, target.Dockerfile, target.ContextDir, target.ImageTag); err != nil {
-				return err
-			}
-			return builder.LoadToKind(ctx, target.ImageTag)
+			return builder.Build(ctx, target.Dockerfile, target.ContextDir, target.ImageTag)
 		}
 		return nil
 	}
@@ -1368,17 +1467,28 @@ func buildAndLoadLiftedImages(ctx context.Context, builder harness.ImageBuilder,
 			return err
 		}
 	}
-	generatedBuilder := builder
-	if err := generatedBuilder.LoadToKind(ctx, spec.ImageTag); err != nil {
+	return nil
+}
+
+func loadLiftedImages(ctx context.Context, builder harness.ImageBuilder, target harness.TargetCase) error {
+	if target.LiftedHostBuild == nil {
+		if target.Dockerfile != "" {
+			return builder.LoadToKind(ctx, target.ImageTag)
+		}
+		return nil
+	}
+
+	spec := *target.LiftedHostBuild
+	if err := builder.LoadToKind(ctx, spec.ImageTag); err != nil {
 		return err
 	}
 	for _, service := range target.LiftedExtractedServices {
-		if err := generatedBuilder.LoadToKind(ctx, service.ImageTag); err != nil {
+		if err := builder.LoadToKind(ctx, service.ImageTag); err != nil {
 			return err
 		}
 	}
 	for _, service := range target.LiftedOracleServices {
-		if err := generatedBuilder.LoadToKind(ctx, service.ImageTag); err != nil {
+		if err := builder.LoadToKind(ctx, service.ImageTag); err != nil {
 			return err
 		}
 	}
@@ -1406,9 +1516,7 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 		paths = append(paths, manifest)
 	}
 	spec := *target.LiftedHostBuild
-	if target.ActivationLift == nil {
-		paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
-	}
+	paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
 	for _, service := range target.LiftedExtractedServices {
 		paths = append(paths,
 			filepath.Join(artifactsDir, service.DeploymentYAML),
@@ -1420,9 +1528,6 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 			filepath.Join(artifactsDir, service.DeploymentYAML),
 			filepath.Join(artifactsDir, service.ServiceYAML),
 		)
-	}
-	if target.ActivationLift != nil {
-		paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
 	}
 	return paths
 }

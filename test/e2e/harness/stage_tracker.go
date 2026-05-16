@@ -2,6 +2,7 @@ package harness
 
 import (
 	"fmt"
+	"log/slog"
 	"sync/atomic"
 	"time"
 )
@@ -30,6 +31,7 @@ func NewStageTracker(target string) *StageTracker {
 func (st *StageTracker) Enter(stage int, label string) {
 	st.stage.Store(int32(stage))
 	st.label.Store(label)
+	slog.Debug("e2e stage", "target", st.target, "stage", stage, "label", label, "elapsed", time.Since(st.started).Round(time.Second))
 }
 
 // Current returns the current stage number and label.

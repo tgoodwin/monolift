@@ -5,12 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 type WorkloadExecutor interface {
 	Setup(ctx context.Context, host string) error
 	Action(ctx context.Context, host string) (Transcript, error)
 	Verify(ctx context.Context, host string, expected Transcript) error
+}
+
+type BehavioralInvariantVerifier interface {
+	VerifyBehavior(ctx context.Context, host string, transcript Transcript) error
 }
 
 type Workload struct {
@@ -70,6 +76,46 @@ func (t Transcript) Normalize(normalizers ...TranscriptNormalizer) Transcript {
 	return clone
 }
 
+func NormalizeIDs() TranscriptNormalizer {
+	return NormalizeBodyFields("id", "ID", "uuid", "UUID")
+}
+
+func NormalizeTimestamps() TranscriptNormalizer {
+	return NormalizeBodyFields("timestamp", "created", "created_at", "updated", "updated_at")
+}
+
+func NormalizeRandomSalts() TranscriptNormalizer {
+	return NormalizeBodyFields("salt", "Salt")
+}
+
+func NormalizeGeneratedPaths() TranscriptNormalizer {
+	pattern := regexp.MustCompile(`(/tmp/monolift-e2e/|/private/tmp/monolift-e2e/)[^"'\s]+`)
+	return NormalizeBodyStrings(pattern, "<generated-path>")
+}
+
+func NormalizeBodyFields(names ...string) TranscriptNormalizer {
+	fields := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		fields[name] = struct{}{}
+	}
+	return func(t *Transcript) {
+		for i := range t.Steps {
+			t.Steps[i].BodyJSON = normalizeBodyFields(t.Steps[i].BodyJSON, fields)
+		}
+	}
+}
+
+func NormalizeBodyStrings(pattern *regexp.Regexp, replacement string) TranscriptNormalizer {
+	return func(t *Transcript) {
+		if pattern == nil {
+			return
+		}
+		for i := range t.Steps {
+			t.Steps[i].BodyJSON = normalizeBodyStrings(t.Steps[i].BodyJSON, pattern, replacement)
+		}
+	}
+}
+
 func (t Transcript) Compare(baseline, lifted Transcript, invariants []Invariant) error {
 	if len(baseline.Steps) != len(lifted.Steps) {
 		return fmt.Errorf("step count mismatch: baseline=%d lifted=%d", len(baseline.Steps), len(lifted.Steps))
@@ -114,4 +160,51 @@ func normalizeJSON(v any) any {
 		return v
 	}
 	return out
+}
+
+func normalizeBodyFields(value any, fields map[string]struct{}) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for key, item := range typed {
+			if _, ok := fields[key]; ok {
+				out[key] = "<normalized>"
+				continue
+			}
+			out[key] = normalizeBodyFields(item, fields)
+		}
+		return out
+	case []any:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = normalizeBodyFields(item, fields)
+		}
+		return out
+	default:
+		return value
+	}
+}
+
+func normalizeBodyStrings(value any, pattern *regexp.Regexp, replacement string) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for key, item := range typed {
+			out[key] = normalizeBodyStrings(item, pattern, replacement)
+		}
+		return out
+	case []any:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = normalizeBodyStrings(item, pattern, replacement)
+		}
+		return out
+	case string:
+		if strings.TrimSpace(typed) == "" {
+			return typed
+		}
+		return pattern.ReplaceAllString(typed, replacement)
+	default:
+		return value
+	}
 }

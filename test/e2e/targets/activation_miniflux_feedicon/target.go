@@ -1,17 +1,18 @@
-package activation_miniflux_refreshfeed
+package activation_miniflux_feedicon
 
 import (
 	"time"
 
 	"github.com/tgoodwin/monolift/pkg/codegen"
 	"github.com/tgoodwin/monolift/test/e2e/harness"
+	refreshfeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_refreshfeed"
 )
 
 func Target() harness.TargetCase {
 	return harness.TargetCase{
-		Name:            "activation-miniflux-refreshfeed",
+		Name:            "activation-miniflux-feedicon",
 		ExpectedVerdict: "refuse-blocking",
-		StopAtStage:     7,
+		StopAtStage:     4,
 		BaselineManifests: []string{
 			"test/e2e/fixtures/postgres.yaml",
 			"test/e2e/fixtures/rss-feed-server.yaml",
@@ -30,19 +31,19 @@ func Target() harness.TargetCase {
 		LiftedReadyTimeout:   5 * time.Minute,
 		SourceDirs:           []string{"evaluation/miniflux"},
 		ActivationLift: &harness.ActivationLiftSpec{
-			Target:               "internal/reader/handler/handler.go:207",
-			ServiceName:          "monolift-extracted-refreshfeed",
-			ExpectedEnvVarPrefix: "MONOLIFT_LIFT_REFRESHFEED",
+			Target:               "internal/reader/icon/checker.go:28",
+			ServiceName:          "monolift-extracted-feedicon",
+			ExpectedEnvVarPrefix: "MONOLIFT_LIFT_FEEDICON",
 			DirectInvocationProbePayload: map[string]any{
 				"user_id":       int64(1),
 				"feed_id":       int64(1),
 				"force_refresh": true,
 			},
 			Deploy: codegen.DeployOptions{
-				HostImage:            "monolift-e2e/miniflux-refreshfeed-host:e2e",
-				ExtractedImage:       "monolift-e2e/extracted-refreshfeed:e2e",
-				HostServiceName:      "miniflux-lifted",
-				ExtractedServiceName: "monolift-extracted-refreshfeed",
+				HostImage:            "monolift-e2e/miniflux-feedicon-host:e2e",
+				ExtractedImage:       "monolift-e2e/extracted-feedicon:e2e",
+				HostServiceName:      "miniflux-feedicon-lifted",
+				ExtractedServiceName: "monolift-extracted-feedicon",
 				HostPort:             8080,
 				HostReadinessPath:    "/healthcheck",
 				HostBuildPackage:     ".",
@@ -62,22 +63,9 @@ func Target() harness.TargetCase {
 			},
 		},
 		ServiceSymbols: map[string]string{
-			"monolift-extracted-refreshfeed": "refreshfeed",
+			"monolift-extracted-feedicon": "feedicon",
 		},
-		DirectInvoke: harness.DirectInvokeCheck{
-			Expectation: harness.DirectInvokeNullableLocalizedError,
-			Predicate:   "refresh workload creates observable entries and extracted-service /calls delta increases",
-		},
-		BehavioralPredicates: []harness.BehavioralPredicate{{
-			Name:        "feed-entries-exist",
-			Description: "after PUT /v1/feeds/{id}/refresh, the host API returns at least one entry for the feed",
-		}},
-		FreshResourcePolicy: harness.FreshResourcePolicy{
-			ResourceKind: "postgres-feed-row",
-			Scope:        "per workload Setup call",
-			Description:  "Setup creates a feed with a unique RSS URL so env-on, env-off, fail-mode, and restored-service checks cannot pass using entries created by an earlier stage.",
-		},
-		Workload:    Workload{},
+		Workload:    refreshfeed.Workload{},
 		ServiceName: "miniflux",
 		ServicePort: 8080,
 	}

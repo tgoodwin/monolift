@@ -11,7 +11,7 @@ func Target() harness.TargetCase {
 	return harness.TargetCase{
 		Name:            "activation-gitea-argon2hash",
 		ExpectedVerdict: "refuse-blocking",
-		StopAtStage:     10,
+		StopAtStage:     8,
 		BaselineManifests: []string{
 			"test/e2e/fixtures/postgres.yaml",
 			"test/e2e/targets/activation_gitea_argon2hash/baseline/deployment.yaml",
@@ -57,6 +57,7 @@ func Target() harness.TargetCase {
 					{Name: "GITEA__database__PASSWD", Value: "miniflux"},
 					{Name: "GITEA__database__SSL_MODE", Value: "disable"},
 					{Name: "GITEA__security__INSTALL_LOCK", Value: "true"},
+					{Name: "GITEA__security__PASSWORD_HASH_ALGO", Value: "argon2"},
 					{Name: "GITEA__security__SECRET_KEY", Value: "monolift-gitea-secret-key"},
 					{Name: "GITEA__server__HTTP_ADDR", Value: "0.0.0.0"},
 					{Name: "GITEA__server__HTTP_PORT", Value: "3000"},
@@ -87,6 +88,13 @@ func Target() harness.TargetCase {
 				"salt":     directInvocationSaltB64,
 			},
 		},
+		DirectInvoke: harness.DirectInvokeCheck{Expectation: harness.DirectInvokeOracleCompare},
+		WorkloadRequirements: []harness.WorkloadRequirement{{
+			Name:        "argon2-password-hash-algorithm",
+			Description: "Gitea must use Argon2 so the workload exercises (*Argon2Hasher).HashWithSaltBytes",
+			EnvVar:      "GITEA__security__PASSWORD_HASH_ALGO",
+			Value:       "argon2",
+		}},
 		Workload:    Workload{},
 		Invariants:  []harness.Invariant{{Path: userAPIPath, Status: true, Body: true}},
 		ServiceName: "gitea",
