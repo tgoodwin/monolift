@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -276,15 +277,18 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	}
 	tracker.Enter(8, "lifted-workload")
 	if len(target.LiftedExtractedServices) > 0 {
+		tracker.Enter(8, "direct-invoke-dormant")
 		if err := assertExtractedServicesDormantRuntime(ctx, target, liftedNS); err != nil {
 			t.Fatalf("%v", harness.StageError(8, target.Name, harness.ErrorKind(err, harness.KindOracle), "direct-invoke/runtime assertion failed: %v", err))
 		}
 	}
+	tracker.Enter(8, "lifted-workload-setup")
 	if err := target.Workload.Setup(ctx, liftedPF.URL); err != nil {
 		t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted setup failed: %v", err))
 	}
 	var liftedTranscript harness.Transcript
 	if len(target.LiftedExtractedServices) > 0 {
+		tracker.Enter(8, "lifted-workload-calls-delta")
 		liftedTranscript, err = runLiftedWithCallDeltas(ctx, target, liftedNS, liftedPF.URL)
 	} else {
 		liftedTranscript, err = target.Workload.Action(ctx, liftedPF.URL)
@@ -292,13 +296,18 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	if err != nil {
 		t.Fatalf("%v", harness.StageError(8, target.Name, harness.ErrorKind(err, harness.KindWorkload), "lifted action failed: %v", err))
 	}
+	tracker.Enter(8, "behavioral-predicates")
 	if err := assertBehavioralPredicates(ctx, target, liftedPF.URL, liftedTranscript); err != nil {
 		t.Fatalf("%v", harness.StageError(8, target.Name, harness.ErrorKind(err, harness.KindOracle), "behavioral invariant failed: %v", err))
 	}
 	if len(target.LiftedExtractedServices) > 0 {
+		tracker.Enter(8, "lifted-logs")
 		if err := assertExtractedServiceLogs(ctx, target, liftedNS, expectedExtractedLogNeedles(target)); err != nil {
 			t.Fatalf("%v", harness.StageError(8, target.Name, harness.KindWorkload, "lifted logs assertion failed: %v", err))
 		}
+	}
+	if target.StopAtStage <= 8 {
+		return
 	}
 	tracker.Enter(9, "transcript-compare")
 	if err := compareTargetTranscripts(target, baselineTranscript, liftedTranscript); err != nil {
@@ -310,6 +319,10 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 			t.Fatalf("%v", harness.StageError(9, target.Name, harness.ErrorKind(err, harness.KindWorkload), "negative lifted assertions failed: %v", err))
 		}
 	}
+	if target.StopAtStage <= 9 {
+		return
+	}
+	tracker.Enter(10, "complete")
 }
 
 func applyActivationCompileResult(target *harness.TargetCase, compileResult harness.CompileResult) error {
@@ -552,24 +565,31 @@ func runLiftedWithCallDeltas(ctx context.Context, target harness.TargetCase, lif
 	transcript := harness.Transcript{Steps: make([]harness.Step, 0, len(workload.Paths()))}
 	totals := make(map[string]int64, len(services))
 	for _, path := range workload.Paths() {
+		slog.Debug("e2e lifted workload request", "target", target.Name, "path", path, "event", "start")
 		before := make(map[string]int64, len(services))
 		for _, service := range services {
+			slog.Debug("e2e lifted calls", "target", target.Name, "service", service.spec.Name, "path", path, "event", "before-start")
 			count, err := readCalls(ctx, service.pf.URL)
 			if err != nil {
 				return harness.Transcript{}, err
 			}
+			slog.Debug("e2e lifted calls", "target", target.Name, "service", service.spec.Name, "path", path, "event", "before-done", "calls", count)
 			before[service.spec.Name] = count
 		}
+		slog.Debug("e2e lifted host request", "target", target.Name, "path", path, "event", "start")
 		step, err := workload.Request(ctx, liftedURL, path)
 		if err != nil {
 			return harness.Transcript{}, err
 		}
+		slog.Debug("e2e lifted host request", "target", target.Name, "path", path, "event", "done", "status", step.Status)
 		for _, service := range services {
+			slog.Debug("e2e lifted calls", "target", target.Name, "service", service.spec.Name, "path", path, "event", "after-start")
 			after, err := readCalls(ctx, service.pf.URL)
 			if err != nil {
 				return harness.Transcript{}, err
 			}
 			delta := after - before[service.spec.Name]
+			slog.Debug("e2e lifted calls", "target", target.Name, "service", service.spec.Name, "path", path, "event", "after-done", "calls", after, "delta", delta)
 			if delta < 1 {
 				return harness.Transcript{}, harness.Classified(harness.KindFitness, "%s %s /calls delta=%d want >=1", service.spec.Name, path, delta)
 			}
@@ -802,15 +822,18 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 
 	hostDeployment := liftedHostDeployment(target)
 	hostService := liftedHostService(target)
+	slog.Debug("e2e negative assertions", "target", target.Name, "phase", "env-off", "event", "set-env")
 	if err := kubectl(ctx, ns, append([]string{"set", "env", "deployment/" + hostDeployment}, liftedEnvOffArgs(target)...)...); err != nil {
 		return err
 	}
+	slog.Debug("e2e negative assertions", "target", target.Name, "phase", "env-off", "event", "rollout-start")
 	if err := kubectl(ctx, ns, "rollout", "status", "deployment/"+hostDeployment, "--timeout=120s"); err != nil {
 		return err
 	}
 	if err := waitForLiftedHostReady(ctx, target, ns, 120*time.Second); err != nil {
 		return err
 	}
+	slog.Debug("e2e negative assertions", "target", target.Name, "phase", "env-off", "event", "ready")
 	envOffPF, err := harness.StartPortForward(ctx, target.Name, ns, hostService, target.ServicePort)
 	if err != nil {
 		return err
@@ -828,14 +851,18 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 		}
 		before[service.spec.Name] = count
 	}
+	slog.Debug("e2e negative assertions", "target", target.Name, "phase", "env-off", "event", "workload-start")
 	envOffTranscript, err := target.Workload.Action(ctx, envOffPF.URL)
-	envOffPF.Stop()
 	if err != nil {
+		envOffPF.Stop()
 		return err
 	}
+	slog.Debug("e2e negative assertions", "target", target.Name, "phase", "env-off", "event", "workload-done")
 	if err := assertBehavioralPredicates(ctx, target, envOffPF.URL, envOffTranscript); err != nil {
+		envOffPF.Stop()
 		return err
 	}
+	envOffPF.Stop()
 	for _, service := range services {
 		after, err := readCalls(ctx, service.pf.URL)
 		if err != nil {
@@ -844,15 +871,18 @@ func assertEnvOffAndFailModes(ctx context.Context, deployer harness.Deployer, ta
 		if after-before[service.spec.Name] != 0 {
 			return fmt.Errorf("%s env-off /calls delta=%d want 0", service.spec.Name, after-before[service.spec.Name])
 		}
+		slog.Debug("e2e negative assertions", "target", target.Name, "phase", "env-off", "service", service.spec.Name, "event", "calls-delta", "delta", after-before[service.spec.Name])
 	}
 	if err := compareTargetTranscripts(target, envOnTranscript, envOffTranscript); err != nil {
 		return fmt.Errorf("env-off transcript mismatch: %w", err)
 	}
 
 	for _, service := range target.LiftedExtractedServices {
+		slog.Debug("e2e negative assertions", "target", target.Name, "phase", "fail-modes", "service", service.Name, "event", "start")
 		if err := assertFailModesForService(ctx, deployer, target, ns, service); err != nil {
 			return err
 		}
+		slog.Debug("e2e negative assertions", "target", target.Name, "phase", "fail-modes", "service", service.Name, "event", "done")
 	}
 	return setLiftedEnv(ctx, target, ns, "closed")
 }
@@ -951,9 +981,11 @@ func assertFailModesForService(ctx context.Context, deployer harness.Deployer, t
 }
 
 func assertActivationFailModesForService(ctx context.Context, deployer harness.Deployer, target harness.TargetCase, ns string, service harness.ExtractedServiceSpec) error {
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "closed", "event", "set-env")
 	if err := setLiftedEnv(ctx, target, ns, "closed"); err != nil {
 		return err
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "closed", "event", "scale-extracted-zero")
 	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
 		return err
 	}
@@ -965,14 +997,17 @@ func assertActivationFailModesForService(ctx context.Context, deployer harness.D
 		closedPF.Stop()
 		return err
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "closed", "event", "workload-start")
 	closedStep, err := firstWorkloadStep(ctx, target, closedPF.URL)
 	closedPF.Stop()
 	if err != nil {
 		return err
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "closed", "event", "workload-done", "status", closedStep.Status)
 	if closedStep.Status >= 500 {
 		return fmt.Errorf("%s fail-closed status=%d want non-5xx sentinel response", service.Name, closedStep.Status)
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "closed", "event", "restore-extracted")
 	if err := scaleExtractedService(ctx, deployer, ns, service, 1); err != nil {
 		return err
 	}
@@ -980,9 +1015,11 @@ func assertActivationFailModesForService(ctx context.Context, deployer harness.D
 		return err
 	}
 
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "open", "event", "set-env")
 	if err := setLiftedEnv(ctx, target, ns, "open"); err != nil {
 		return err
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "open", "event", "scale-extracted-zero")
 	if err := scaleExtractedService(ctx, deployer, ns, service, 0); err != nil {
 		return err
 	}
@@ -994,14 +1031,17 @@ func assertActivationFailModesForService(ctx context.Context, deployer harness.D
 		openPF.Stop()
 		return err
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "open", "event", "workload-start")
 	openStep, err := firstWorkloadStep(ctx, target, openPF.URL)
 	openPF.Stop()
 	if err != nil {
 		return err
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "open", "event", "workload-done", "status", openStep.Status)
 	if openStep.Status >= 500 {
 		return fmt.Errorf("%s fail-open status=%d want local fallback non-5xx response", service.Name, openStep.Status)
 	}
+	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "open", "event", "restore-extracted")
 	if err := scaleExtractedService(ctx, deployer, ns, service, 1); err != nil {
 		return err
 	}

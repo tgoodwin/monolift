@@ -574,10 +574,10 @@ traces:
 
   # ── Miniflux ───────────────────────────────────────────────────────────────
 
-  # SPRINT-0049: focused stage-7 deploy pass in 169.8s. Stage-10 stretch attempted
-  # and reverted to stage 7: stage 8 direct /invoke probe returned nil for the
-  # localized-error result shape; workload + /calls-delta policy remains the
-  # intended correctness signal for post-stage-7 work.
+  # SPRINT-0050: stage-10 pass. Selected cut is the intended
+  # miniflux.app/v2/internal/reader/handler.RefreshFeed function. Proof kind:
+  # workload/calls-delta plus transcript compare, env-off no-calls, fail-mode
+  # checks, and dormant extracted-deployment env check. Residual blocker: none.
   - trace_id: miniflux/M-1
     project: miniflux
     function: RefreshFeed
@@ -585,7 +585,7 @@ traces:
     state_class: Client-reconstructible
     boundary_class: Reconstructible
     status: pass
-    phase: "3"
+    phase: "10"
     skip_reason: ""
     e2e_package: activation_miniflux_refreshfeed
 

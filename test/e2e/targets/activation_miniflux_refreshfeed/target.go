@@ -11,7 +11,7 @@ func Target() harness.TargetCase {
 	return harness.TargetCase{
 		Name:            "activation-miniflux-refreshfeed",
 		ExpectedVerdict: "refuse-blocking",
-		StopAtStage:     7,
+		StopAtStage:     10,
 		BaselineManifests: []string{
 			"test/e2e/fixtures/postgres.yaml",
 			"test/e2e/fixtures/rss-feed-server.yaml",
@@ -58,6 +58,7 @@ func Target() harness.TargetCase {
 				},
 				ExtractedEnvVars: []codegen.EnvVar{
 					{Name: "DATABASE_URL", Value: "postgres://miniflux:miniflux@postgres:5432/miniflux?sslmode=disable"},
+					{Name: "FETCHER_ALLOW_PRIVATE_NETWORKS", Value: "1"},
 				},
 			},
 		},

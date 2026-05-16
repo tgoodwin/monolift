@@ -107,15 +107,15 @@ No reconstructor code starts before this phase produces the decision summary. Th
 
 Default target: `activation-miniflux-refreshfeed` unless Phase 0 chooses a better DB/SQL primary.
 
-- [ ] 2.1: Update the Miniflux target to use the direct-invoke expectation or workload/calls-delta policy selected in Phase 1.
-- [ ] 2.2: Raise the target monotonically on CloudLab from its current stage to stage 8, then stage 9, then stage 10, with one exact `go test` process per stage.
-- [ ] 2.3: At stage 8, verify the lifted workload creates observable feed entries through the host API and records an extracted-service `/calls` delta.
-- [ ] 2.4: At stage 9, verify env-off fallback through the renamed original and confirm the extracted service records no calls.
-- [ ] 2.5: At stage 9, verify fail-open and fail-closed behavior against the declared client policy, narrowing only if the stage-binding doc justifies it.
-- [ ] 2.6: At stage 10, run transcript comparison or the declared normalized/behavioral substitute against fresh resources.
-- [ ] 2.7: Re-verify the dormant invariant: the extracted deployment has required resource env vars, does not receive `MONOLIFT_LIFT_*`, and performs no side effects unless invoked.
+- [x] 2.1: Update the Miniflux target to use the direct-invoke expectation or workload/calls-delta policy selected in Phase 1.
+- [x] 2.2: Raise the target monotonically on CloudLab from its current stage to stage 8, then stage 9, then stage 10, with one exact `go test` process per stage.
+- [x] 2.3: At stage 8, verify the lifted workload creates observable feed entries through the host API and records an extracted-service `/calls` delta.
+- [x] 2.4: At stage 9, verify env-off fallback through the renamed original and confirm the extracted service records no calls.
+- [x] 2.5: At stage 9, verify fail-open and fail-closed behavior against the declared client policy, narrowing only if the stage-binding doc justifies it.
+- [x] 2.6: At stage 10, run transcript comparison or the declared normalized/behavioral substitute against fresh resources.
+- [x] 2.7: Re-verify the dormant invariant: the extracted deployment has required resource env vars, does not receive `MONOLIFT_LIFT_*`, and performs no side effects unless invoked.
 - [ ] 2.8: If the target still cannot reach stage 10, capture the exact stage, response envelope, pod logs, generated manifests, and classification under `.moab/runs/sprint-0050-miniflux-m1/`.
-- [ ] 2.9: Update the manifest row with the stage reached, selected cut, proof kind, and residual blocker if any.
+- [x] 2.9: Update the manifest row with the stage reached, selected cut, proof kind, and residual blocker if any.
 
 ## Phase 3: Filesystem/Object-Store Reconstructor
 
