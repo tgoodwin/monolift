@@ -20,8 +20,9 @@ func RenderKubernetes(plan *Plan) (map[string][]byte, error) {
 		ExtractedVolumeMounts: effectiveExtractedVolumeMounts(plan),
 		SharedVolumeMounts:    effectiveSharedVolumeMounts(plan),
 	}
+	view.SharedVolumeClaims = sharedVolumeClaims(view.SharedVolumeMounts)
 	files := map[string][]byte{}
-	if len(view.SharedVolumeMounts) > 0 {
+	if len(view.SharedVolumeClaims) > 0 {
 		if plan.SharedVolumeClaimPath == "" {
 			return nil, fmt.Errorf("codegen: shared volume mounts require SharedVolumeClaimPath")
 		}
@@ -51,6 +52,7 @@ type kubernetesView struct {
 	HostVolumeMounts      []VolumeMount
 	ExtractedVolumeMounts []VolumeMount
 	SharedVolumeMounts    []SharedVolumeMount
+	SharedVolumeClaims    []SharedVolumeMount
 }
 
 func renderYAML(files map[string][]byte, path, source string, view kubernetesView) error {
@@ -189,6 +191,16 @@ func renderSharedVolumeMount(plan *Plan, mount SharedVolumeMount) SharedVolumeMo
 	return mount
 }
 
+func sharedVolumeClaims(mounts []SharedVolumeMount) []SharedVolumeMount {
+	claims := make([]SharedVolumeMount, 0, len(mounts))
+	for _, mount := range mounts {
+		if mount.HostPath == "" {
+			claims = append(claims, mount)
+		}
+	}
+	return claims
+}
+
 func planHasSQLReconstructor(plan *Plan) bool {
 	if plan == nil {
 		return false
@@ -260,8 +272,14 @@ spec:
       volumes:
 {{- range .SharedVolumeMounts }}
         - name: {{ .Name }}
+{{- if .HostPath }}
+          hostPath:
+            path: {{ yamlQuote .HostPath }}
+            type: DirectoryOrCreate
+{{- else }}
           persistentVolumeClaim:
             claimName: {{ .ClaimName }}
+{{- end }}
 {{- end }}
 {{- end }}
 `
@@ -342,8 +360,14 @@ spec:
 {{- end }}
 {{- range .SharedVolumeMounts }}
         - name: {{ .Name }}
+{{- if .HostPath }}
+          hostPath:
+            path: {{ yamlQuote .HostPath }}
+            type: DirectoryOrCreate
+{{- else }}
           persistentVolumeClaim:
             claimName: {{ .ClaimName }}
+{{- end }}
 {{- end }}
 {{- end }}
 `
@@ -362,7 +386,7 @@ spec:
       targetPort: {{ .Plan.Deploy.HostPort }}
 `
 
-const sharedVolumeClaimTemplate = `{{- range .SharedVolumeMounts }}
+const sharedVolumeClaimTemplate = `{{- range .SharedVolumeClaims }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

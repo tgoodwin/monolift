@@ -717,13 +717,13 @@ traces:
   - trace_id: pocketbase/M-1
     project: pocketbase
     function: "(*System).CreateThumb"
-    file_line: "tools/filesystem/filesystem.go:FieldNotInCorpus"
+    file_line: "tools/filesystem/filesystem.go:489"
     state_class: Client-reconstructible
     boundary_class: Reconstructible
-    status: manifest-skip
-    phase: deferred
-    skip_reason: "needs filesystem/image reconstructor"
-    e2e_package: ""
+    status: e2e-fail
+    phase: "4"
+    skip_reason: "stage 7 passes with hostPath-backed shared filesystem root; stage 8 fresh-upload workload returns the original 300x300 image instead of a 100x100 thumbnail under harness despite manual seeded-route extracted invocation success"
+    e2e_package: activation_pocketbase_createthumb
 
   - trace_id: pocketbase/M-2
     project: pocketbase

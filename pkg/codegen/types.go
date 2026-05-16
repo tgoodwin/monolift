@@ -94,6 +94,7 @@ type SharedVolumeMount struct {
 	ClaimName      string
 	MountPath      string
 	StorageRequest string
+	HostPath       string
 }
 
 type CutPoint struct {

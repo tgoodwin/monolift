@@ -187,6 +187,32 @@ func TestRenderKubernetesFilesystemReconstructorSharedRoot(t *testing.T) {
 	}
 }
 
+func TestRenderKubernetesHostPathSharedRoot(t *testing.T) {
+	plan := filesystemReceiverPlan()
+	plan.Deploy.SharedVolumeMounts = []SharedVolumeMount{{
+		Name:      "monolift-durable-root",
+		ClaimName: "create-thumb-durable-root",
+		MountPath: "/monolift/durable",
+		HostPath:  "/tmp/monolift-e2e/create-thumb-durable-root",
+	}}
+	plan.SharedVolumeClaimPath = ""
+	files, err := RenderKubernetes(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := files[filepath.Join("manifests", "create-thumb-shared-volumes.yaml")]; ok {
+		t.Fatalf("hostPath shared root rendered a PVC artifact")
+	}
+	extractedDeployment := parseKubernetesDoc(t, files[plan.ExtractedDeploymentPath])
+	if !hasHostPathVolume(extractedDeployment.Spec.Template.Spec.Volumes, "monolift-durable-root", "/tmp/monolift-e2e/create-thumb-durable-root") {
+		t.Fatalf("extracted volumes = %+v", extractedDeployment.Spec.Template.Spec.Volumes)
+	}
+	hostDeployment := parseKubernetesDoc(t, files[plan.HostDeploymentPath])
+	if !hasHostPathVolume(hostDeployment.Spec.Template.Spec.Volumes, "monolift-durable-root", "/tmp/monolift-e2e/create-thumb-durable-root") {
+		t.Fatalf("host volumes = %+v", hostDeployment.Spec.Template.Spec.Volumes)
+	}
+}
+
 func hasVolumeMount(mounts []volumeMountDoc, name, path string) bool {
 	for _, mount := range mounts {
 		if mount.Name == name && mount.MountPath == path {
@@ -199,6 +225,15 @@ func hasVolumeMount(mounts []volumeMountDoc, name, path string) bool {
 func hasPVCVolume(volumes []volumeDoc, name, claimName string) bool {
 	for _, volume := range volumes {
 		if volume.Name == name && volume.PersistentVolumeClaim.ClaimName == claimName {
+			return true
+		}
+	}
+	return false
+}
+
+func hasHostPathVolume(volumes []volumeDoc, name, path string) bool {
+	for _, volume := range volumes {
+		if volume.Name == name && volume.HostPath.Path == path {
 			return true
 		}
 	}
@@ -318,6 +353,10 @@ type volumeDoc struct {
 	PersistentVolumeClaim struct {
 		ClaimName string `yaml:"claimName"`
 	} `yaml:"persistentVolumeClaim"`
+	HostPath struct {
+		Path string `yaml:"path"`
+		Type string `yaml:"type"`
+	} `yaml:"hostPath"`
 }
 
 func parseKubernetesDoc(t *testing.T, data []byte) kubernetesDoc {

@@ -133,15 +133,15 @@ Default target: `pocketbase/M-1` `(*filesystem.System).CreateThumb` if Phase 0 c
 
 ## Phase 4: Filesystem/Object-Store Target
 
-- [ ] 4.1: Scaffold the selected target only after Phase 0 confirms the intended cut and resource shape.
-- [ ] 4.2: For `CreateThumb`, build the workload around a shared durable local root: seed an original image object, invoke thumbnail creation through the host path, and assert the thumbnail exists with expected content type or dimensions.
-- [ ] 4.3: Use root-relative direct-invocation payloads. Do not pass host absolute paths as target payload convenience.
+- [x] 4.1: Scaffold the selected target only after Phase 0 confirms the intended cut and resource shape.
+- [x] 4.2: For `CreateThumb`, build the workload around a shared durable local root: seed an original image object, invoke thumbnail creation through the host path, and assert the thumbnail exists with expected content type or dimensions.
+- [x] 4.3: Use root-relative direct-invocation payloads. Do not pass host absolute paths as target payload convenience.
 - [ ] 4.4: If `archive.Create` is selected, seed deterministic files in the durable root and verify the zip output contents through a root-relative output path.
-- [ ] 4.5: Run stage 4, 5, 6, and 7 on CloudLab as separate exact-target processes.
-- [ ] 4.6: Treat stage 7 as the minimum runtime proof for the new filesystem/object-store family.
-- [ ] 4.7: Best effort: raise the filesystem target to stage 8, 9, and 10 using the same monotonic process if transcript and env-off semantics are stable.
-- [ ] 4.8: If the target stops before stage 10, document the binding stage and reason in the coverage report instead of relabeling a deploy-only pass as full proof.
-- [ ] 4.9: Update the manifest row with the selected cut, resource kind, stage reached, and refusal/blocker reason if applicable.
+- [x] 4.5: Run stage 4, 5, 6, and 7 on CloudLab as separate exact-target processes.
+- [x] 4.6: Treat stage 7 as the minimum runtime proof for the new filesystem/object-store family.
+- [x] 4.7: Best effort: raise the filesystem target to stage 8, 9, and 10 using the same monotonic process if transcript and env-off semantics are stable.
+- [x] 4.8: If the target stops before stage 10, document the binding stage and reason in the coverage report instead of relabeling a deploy-only pass as full proof.
+- [x] 4.9: Update the manifest row with the selected cut, resource kind, stage reached, and refusal/blocker reason if applicable.
 
 ## Phase 5: Stretch Candidate
 

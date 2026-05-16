@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -35,6 +37,7 @@ import (
 	activation_miniflux_sanitizehtml "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_sanitizehtml"
 	activation_miniflux_striptags "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_striptags"
 	activation_pocketbase_columnify "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_columnify"
+	activation_pocketbase_createthumb "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_createthumb"
 	activation_pocketbase_passwordvalidate "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_passwordvalidate"
 	"github.com/tgoodwin/monolift/test/e2e/targets/caddy"
 	"github.com/tgoodwin/monolift/test/e2e/targets/gitea"
@@ -43,6 +46,7 @@ import (
 	"github.com/tgoodwin/monolift/test/e2e/targets/miniflux"
 	"github.com/tgoodwin/monolift/test/e2e/targets/pocketbase"
 	"github.com/tgoodwin/monolift/test/e2e/targets/pragma"
+	"gopkg.in/yaml.v3"
 )
 
 var updateGolden = flag.Bool("update-golden", false, "rewrite e2e golden reports from current compiler output")
@@ -71,6 +75,7 @@ func TestE2E(t *testing.T) {
 		activation_gitea_pathescapesegments.Target(),
 		activation_listmonk_sanitizeuri.Target(),
 		activation_pocketbase_columnify.Target(),
+		activation_pocketbase_createthumb.Target(),
 		activation_pocketbase_passwordvalidate.Target(),
 		activation_mattermost_pbkdf2hash.Target(),
 		activation_mattermost_publiclinkhash.Target(),
@@ -120,8 +125,28 @@ func updateGoldenRequested() bool {
 	return *updateGolden || os.Getenv(harness.EnvUpdateGolden) == "1"
 }
 
+func stopStageOverride() (int, bool, error) {
+	raw := strings.TrimSpace(os.Getenv("MONOLIFT_E2E_STOP_STAGE"))
+	if raw == "" {
+		return 0, false, nil
+	}
+	stage, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, true, err
+	}
+	if stage < 0 || stage > 10 {
+		return 0, true, fmt.Errorf("stage must be between 0 and 10, got %d", stage)
+	}
+	return stage, true, nil
+}
+
 func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harness.TargetCase) {
 	t.Helper()
+	if override, ok, err := stopStageOverride(); err != nil {
+		t.Fatalf("%v", harness.StageError(0, target.Name, harness.KindHarness, "invalid stop stage override: %v", err))
+	} else if ok {
+		target.StopAtStage = override
+	}
 	perTargetTimeout := harness.DefaultPerTargetTimeout
 	ctx, cancel := context.WithTimeout(context.Background(), perTargetTimeout)
 	defer cancel()
@@ -438,11 +463,45 @@ func deployManifestPhases(ctx context.Context, deployer harness.Deployer, ns str
 		if err := deployer.Apply(ctx, ns, manifests); err != nil {
 			return err
 		}
+		needsWait, err := phaseNeedsReadinessWait(manifests)
+		if err != nil {
+			return err
+		}
+		if !needsWait {
+			continue
+		}
 		if err := deployer.WaitReady(ctx, ns, timeout); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func phaseNeedsReadinessWait(manifests []string) (bool, error) {
+	for _, manifest := range manifests {
+		data, err := os.ReadFile(harness.FromRepoRoot(manifest))
+		if err != nil {
+			return false, harness.StageError(7, "unknown", harness.KindHarness, "read manifest %s: %v", manifest, err)
+		}
+		decoder := yaml.NewDecoder(bytes.NewReader(data))
+		for {
+			var doc struct {
+				Kind string `yaml:"kind"`
+			}
+			err := decoder.Decode(&doc)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return false, harness.StageError(7, "unknown", harness.KindHarness, "decode manifest %s: %v", manifest, err)
+			}
+			switch doc.Kind {
+			case "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "ReplicationController", "Pod":
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func readyTimeout(configured time.Duration) time.Duration {

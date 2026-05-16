@@ -433,7 +433,7 @@ func applyDeployDefaults(plan *Plan, opts DeployOptions) {
 	plan.HostServicePath = filepath.Join(manifestDir, plan.Deploy.HostServiceName+"-service.yaml")
 	plan.ExtractedDeploymentPath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-deployment.yaml")
 	plan.ExtractedServicePath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-service.yaml")
-	if len(effectiveSharedVolumeMounts(plan)) > 0 {
+	if len(sharedVolumeClaims(effectiveSharedVolumeMounts(plan))) > 0 {
 		plan.SharedVolumeClaimPath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-shared-volumes.yaml")
 	}
 }

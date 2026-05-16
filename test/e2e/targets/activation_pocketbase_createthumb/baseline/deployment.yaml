@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pocketbase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pocketbase
+  template:
+    metadata:
+      labels:
+        app: pocketbase
+    spec:
+      containers:
+        - name: pocketbase
+          image: monolift-e2e/pocketbase-createthumb:e2e
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8090
+          command:
+            - /bin/sh
+            - -c
+            - |
+              rm -rf /pb_data /monolift/durable/*
+              mkdir -p /pb_data /monolift/durable
+              cp -a /seed_pb_data/. /pb_data/
+              rm -rf /pb_data/storage
+              cp -a /seed_pb_data/storage/. /monolift/durable/
+              rm -rf /monolift/durable/wsmn24bux7wo113/84nmscqy84lsi1t/thumbs_300_WlbFWSGmW9.png
+              ln -s /monolift/durable /pb_data/storage
+              /pocketbase superuser upsert admin@example.com Monolift123! --dir=/pb_data
+              exec /pocketbase serve --http=0.0.0.0:8090 --dir=/pb_data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8090
+            periodSeconds: 2
+          volumeMounts:
+            - name: pb-data
+              mountPath: /pb_data
+            - name: pb-shared-root
+              mountPath: /monolift/durable
+      volumes:
+        - name: pb-data
+          emptyDir: {}
+        - name: pb-shared-root
+          emptyDir: {}
