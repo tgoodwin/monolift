@@ -12,8 +12,9 @@ func RenderKubernetes(plan *Plan) (map[string][]byte, error) {
 		return nil, fmt.Errorf("codegen: nil plan")
 	}
 	view := kubernetesView{
-		Plan:        plan,
-		HostEnvVars: hostDeploymentEnvVars(plan),
+		Plan:             plan,
+		HostEnvVars:      hostDeploymentEnvVars(plan),
+		ExtractedEnvVars: extractedDeploymentEnvVars(plan),
 	}
 	files := map[string][]byte{}
 	if err := renderYAML(files, plan.ExtractedDeploymentPath, extractedDeploymentTemplate, view); err != nil {
@@ -32,8 +33,9 @@ func RenderKubernetes(plan *Plan) (map[string][]byte, error) {
 }
 
 type kubernetesView struct {
-	Plan        *Plan
-	HostEnvVars []EnvVar
+	Plan             *Plan
+	HostEnvVars      []EnvVar
+	ExtractedEnvVars []EnvVar
 }
 
 func renderYAML(files map[string][]byte, path, source string, view kubernetesView) error {
@@ -65,6 +67,47 @@ func hostDeploymentEnvVars(plan *Plan) []EnvVar {
 	return env
 }
 
+func extractedDeploymentEnvVars(plan *Plan) []EnvVar {
+	if plan == nil {
+		return nil
+	}
+	env := append([]EnvVar(nil), plan.Deploy.ExtractedEnvVars...)
+	if !planHasSQLReconstructor(plan) || hasEnvVar(env, "DATABASE_URL") {
+		return env
+	}
+	if databaseURL, ok := findEnvVar(plan.Deploy.HostEnvVars, "DATABASE_URL"); ok {
+		env = append(env, databaseURL)
+	}
+	return env
+}
+
+func planHasSQLReconstructor(plan *Plan) bool {
+	if plan == nil {
+		return false
+	}
+	for _, param := range plan.ReconstructedParams {
+		switch param.Reconstructor.ID {
+		case "sql_db", "sql_db_wrapper":
+			return true
+		}
+	}
+	return false
+}
+
+func hasEnvVar(env []EnvVar, name string) bool {
+	_, ok := findEnvVar(env, name)
+	return ok
+}
+
+func findEnvVar(env []EnvVar, name string) (EnvVar, bool) {
+	for _, item := range env {
+		if item.Name == name {
+			return item, true
+		}
+	}
+	return EnvVar{}, false
+}
+
 const extractedDeploymentTemplate = `apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -86,6 +129,13 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Plan.Deploy.ExtractedPort }}
+{{- if .ExtractedEnvVars }}
+          env:
+{{- range .ExtractedEnvVars }}
+            - name: {{ .Name }}
+              value: {{ yamlQuote .Value }}
+{{- end }}
+{{- end }}
           readinessProbe:
             httpGet:
               path: /healthz

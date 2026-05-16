@@ -1,8 +1,11 @@
 package main
 
 import (
-	"code.gitea.io/gitea/modules/auth/password/hash"
+	"context"
+	"database/sql"
 	"encoding/json"
+	"example.com/test/internal/query"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
@@ -10,13 +13,10 @@ import (
 )
 
 type invokeRequest struct {
-	Password []byte `json:"password"`
-	Salt     []byte `json:"salt"`
 }
 
 type invokeResponse struct {
-	Result []byte `json:"result"`
-	Error  string `json:"error,omitempty"`
+	Result string `json:"result"`
 }
 
 type localizedError struct {
@@ -79,11 +79,34 @@ type invocationsResponse struct {
 
 type serverState struct {
 	invocations *invocationRecorder
+	closeFuncs  []func() error
+	Db          *sql.DB
 }
 
 func initState() (*serverState, error) {
 	state := &serverState{invocations: newInvocationRecorder()}
+	dbDB, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		return nil, err
+	}
+	if err := dbDB.PingContext(context.Background()); err != nil {
+		_ = dbDB.Close()
+		return nil, err
+	}
+	state.Db = dbDB
+	state.closeFuncs = append(state.closeFuncs, func() error { return dbDB.Close() })
 	return state, nil
+}
+
+func (state *serverState) Close() {
+	if state == nil {
+		return
+	}
+	for i := len(state.closeFuncs) - 1; i >= 0; i-- {
+		if err := state.closeFuncs[i](); err != nil {
+			log.Printf("close state resource: %v", err)
+		}
+	}
 }
 
 func NewHandler(state *serverState) http.Handler {
@@ -134,14 +157,10 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		recv := hash.NewArgon2Hasher("")
-		result, resultErr := hash.MonoliftInvokeHashWithSaltBytes(recv, req.Password, req.Salt)
+		result := query.MonoliftInvokeRun(state.Db)
 		resp := invokeResponse{Result: result}
-		if resultErr != nil {
-			resp.Error = resultErr.Error()
-		}
 		invocationID := state.invocations.record(req, resp)
-		log.Printf("LIFT_INVOKE service=monolift-hashwithsaltbytes invocation_id=%d", invocationID)
+		log.Printf("LIFT_INVOKE service=monolift-query invocation_id=%d", invocationID)
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			log.Printf("encode response: %v", err)
@@ -154,9 +173,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer state.Close()
 	addr := os.Getenv("MONOLIFT_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8081"
 	}
-	log.Fatal(http.ListenAndServe(addr, NewHandler(state)))
+	if err := http.ListenAndServe(addr, NewHandler(state)); err != nil {
+		log.Printf("listen and serve: %v", err)
+	}
 }

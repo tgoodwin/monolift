@@ -35,9 +35,10 @@ func directReconstructor(typ types.Type) (Reconstructor, bool) {
 	switch {
 	case pointer && pkgPath == "database/sql" && typeName == "DB":
 		return Reconstructor{
-			ID:      "sql_db",
-			Type:    typeString(typ, ""),
-			Imports: []string{"database/sql", "os", "_ github.com/lib/pq"},
+			ID:          "sql_db",
+			Type:        typeString(typ, ""),
+			Imports:     []string{"context", "database/sql", "os", "_ github.com/lib/pq"},
+			CloseSource: "db.Close()",
 		}, true
 	case pointer && pkgPath == "net/http" && typeName == "Client":
 		return Reconstructor{
@@ -115,13 +116,18 @@ func sqlWrapperReconstructor(typ types.Type) (Reconstructor, bool) {
 		if fieldNamed.Obj().Pkg().Path() == "database/sql" && fieldNamed.Obj().Name() == "DB" {
 			pkgPath := named.Obj().Pkg().Path()
 			typeName := named.Obj().Name()
+			constructorPkg := packageAlias(pkgPath)
+			constructorFunc := "New" + typeName
 			return Reconstructor{
 				ID:                      "sql_db_wrapper",
 				Type:                    typeString(typ, ""),
-				Imports:                 []string{"database/sql", "os", "_ github.com/lib/pq", pkgPath},
+				Imports:                 []string{"context", "database/sql", "os", "_ github.com/lib/pq", pkgPath},
+				ConstructorPkg:          constructorPkg,
+				ConstructorFunc:         constructorFunc,
+				ConstructorArgOrder:     []string{"db"},
 				ConstructorPackagePath:  pkgPath,
-				ConstructorPackageAlias: packageAlias(pkgPath),
-				ConstructorName:         "New" + typeName,
+				ConstructorPackageAlias: constructorPkg,
+				ConstructorName:         constructorFunc,
 				CloseSource:             "db.Close()",
 			}, true
 		}

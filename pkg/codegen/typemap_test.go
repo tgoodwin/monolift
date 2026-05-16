@@ -51,3 +51,15 @@ func TestJSONFieldNames(t *testing.T) {
 		t.Fatalf("SanitizeHTML rawHTML json = %q", got)
 	}
 }
+
+func TestByteSlicesRemainBoundaryParams(t *testing.T) {
+	param := Param{
+		Name:            "salt",
+		GoType:          "[]byte",
+		QualifiedGoType: "[]byte",
+		Codec:           CodecJSON,
+	}
+	if !alwaysBoundaryParam(param) {
+		t.Fatal("[]byte JSON param should remain a boundary param")
+	}
+}

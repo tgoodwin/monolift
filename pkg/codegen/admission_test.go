@@ -39,13 +39,23 @@ func TestAdmitPlanRefusesMissingReconstructor(t *testing.T) {
 		ReconstructedParams: []ReconstructedParam{
 			{Param: Param{Name: "store", GoType: "*storage.Storage"}},
 		},
+		Results: []Result{
+			{Name: "result", GoType: "string", Codec: CodecPrimitive},
+		},
 	}
 	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
 	if verdict.Accepted {
 		t.Fatal("verdict accepted missing reconstructor")
 	}
-	if verdict.Refusals[0].Code != "missing_reconstructor" {
-		t.Fatalf("refusal = %s", verdict.Refusals[0].Code)
+	if len(verdict.Refusals) != 1 {
+		t.Fatalf("refusals = %+v, want exactly one missing_reconstructor", verdict.Refusals)
+	}
+	refusal := verdict.Refusals[0]
+	if refusal.Code != "missing_reconstructor" {
+		t.Fatalf("refusal = %s", refusal.Code)
+	}
+	if refusal.Type != "*storage.Storage" {
+		t.Fatalf("refusal type = %s, want *storage.Storage", refusal.Type)
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GeneratorVersion = "SPRINT-0048"
+	GeneratorVersion = "SPRINT-0049"
 	ManifestName     = "monolift_lift_manifest.json"
 )
 
@@ -57,6 +57,7 @@ type DeployOptions struct {
 	HostRuntimeSetup     []string
 	HostArgs             []string
 	HostEnvVars          []EnvVar
+	ExtractedEnvVars     []EnvVar
 	HostAssetCopies      []AssetCopy
 	HostVolumeMounts     []VolumeMount
 	HostConfigMapVolumes []ConfigMapVolume
@@ -151,6 +152,7 @@ type ReceiverSpec struct {
 	IsPointer   bool
 	Policy      ReceiverPolicy
 	FactoryFunc string
+	FactoryArgs []string
 	Codec       Codec
 }
 
@@ -174,6 +176,9 @@ type Reconstructor struct {
 	ID                      string
 	Type                    string
 	Imports                 []string
+	ConstructorPkg          string
+	ConstructorFunc         string
+	ConstructorArgOrder     []string
 	ConstructorPackagePath  string
 	ConstructorPackageAlias string
 	ConstructorName         string

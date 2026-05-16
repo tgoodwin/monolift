@@ -281,6 +281,7 @@ func TestSanitizeHTMLNetworkRoundTrip(t *testing.T) {
 func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
 	root := repoRoot(t)
 	sourceCopy := copySourceToTemp(t, filepath.Join(root, "evaluation", "miniflux"))
+	assertGoModRequires(t, sourceCopy, "github.com/lib/pq")
 	fixture := RefreshFeedFixtureWithSource(root, sourceCopy)
 	plan, err := BuildPlan(fixture.Report, fixture.Cut)
 	if err != nil {
@@ -338,6 +339,28 @@ func TestRefreshFeedCodegenCompilesWithStateReconstruction(t *testing.T) {
 	clientPkg := plan.CutPoint.PackagePath
 	runGo(t, plan.SourceModuleRoot, "build", clientPkg)
 	runGo(t, plan.SourceModuleRoot, "vet", clientPkg)
+}
+
+func assertGoModRequires(t *testing.T, moduleRoot, modulePath string) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(moduleRoot, "go.mod"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), modulePath) {
+		t.Fatalf("go.mod missing %s", modulePath)
+	}
+}
+
+func TestTargetFileForReportResolvesRelativeTargetAgainstSource(t *testing.T) {
+	got, err := targetFileForReport("/repo/evaluation/miniflux", "internal/reader/handler/handler.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Clean("/repo/evaluation/miniflux/internal/reader/handler/handler.go")
+	if got != want {
+		t.Fatalf("target file = %q, want %q", got, want)
+	}
 }
 
 func TestLiftCommandSmokeDeterministic(t *testing.T) {

@@ -119,6 +119,10 @@ func BuildPlan(report reportv2.Report, cut activation.CutResult) (*Plan, error) 
 			plan.BoundaryParams = append(plan.BoundaryParams, param)
 			continue
 		}
+		if alwaysBoundaryParam(param) {
+			plan.BoundaryParams = append(plan.BoundaryParams, param)
+			continue
+		}
 		if recon, ok := LookupReconstructor(params.At(i).Type()); ok {
 			param.Classification = activation.Reconstructible
 			plan.ReconstructedParams = append(plan.ReconstructedParams, ReconstructedParam{
@@ -145,6 +149,10 @@ func BuildPlan(report reportv2.Report, cut activation.CutResult) (*Plan, error) 
 	}
 	plan.ReturnCodec = ReturnCodecFor(plan.Results)
 	return plan, nil
+}
+
+func alwaysBoundaryParam(param Param) bool {
+	return param.Codec == CodecJSON && (param.GoType == "[]byte" || param.QualifiedGoType == "[]byte")
 }
 
 func sourceModuleRoot(report reportv2.Report) (string, error) {

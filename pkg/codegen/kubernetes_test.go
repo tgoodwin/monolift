@@ -112,6 +112,83 @@ func TestExtractedDeploymentOmitsLiftEnv(t *testing.T) {
 	}
 }
 
+func TestExtractedDeploymentIncludesDatabaseURLForSQLReconstructor(t *testing.T) {
+	plan := sqlDeployPlan()
+	files, err := RenderKubernetes(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	extractedDeployment := parseKubernetesDoc(t, files[plan.ExtractedDeploymentPath])
+	env := envMap(extractedDeployment.Spec.Template.Spec.Containers[0].Env)
+	if got, want := env["DATABASE_URL"], "postgres://miniflux@postgres/miniflux?sslmode=disable"; got != want {
+		t.Fatalf("DATABASE_URL = %q, want %q; env=%+v", got, want, env)
+	}
+	if _, ok := env["RUN_MIGRATIONS"]; ok {
+		t.Fatalf("extracted deployment propagated host-only RUN_MIGRATIONS: %+v", env)
+	}
+	if _, ok := env["MONOLIFT_LIFT_QUERY"]; ok {
+		t.Fatalf("extracted deployment propagated lift env: %+v", env)
+	}
+}
+
+func TestExtractedDeploymentOmitsEnvBlockWithoutSQLReconstructor(t *testing.T) {
+	plan := sanitizeHTMLDeployPlan(t)
+	files, err := RenderKubernetes(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	extractedDeployment := parseKubernetesDoc(t, files[plan.ExtractedDeploymentPath])
+	if env := extractedDeployment.Spec.Template.Spec.Containers[0].Env; len(env) != 0 {
+		t.Fatalf("extracted env = %+v, want none", env)
+	}
+	if strings.Contains(string(files[plan.ExtractedDeploymentPath]), "\n          env:\n") {
+		t.Fatalf("extracted deployment rendered env block without SQL reconstructor:\n%s", files[plan.ExtractedDeploymentPath])
+	}
+}
+
+func sqlDeployPlan() *Plan {
+	plan := &Plan{
+		ServiceName:      "query",
+		EnvServiceName:   "QUERY",
+		SourceModuleRoot: "/tmp/source",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/query",
+			PackageName: "query",
+			FuncName:    "Run",
+		},
+		ReconstructedParams: []ReconstructedParam{{
+			Param: Param{
+				Name:            "db",
+				GoType:          "*sql.DB",
+				QualifiedGoType: "*sql.DB",
+				Codec:           CodecJSON,
+			},
+			Reconstructor: Reconstructor{ID: "sql_db"},
+		}},
+	}
+	applyLiftOptions(plan, LiftOptions{
+		Output: filepath.Join(plan.SourceModuleRoot, ".monolift-query"),
+		Deploy: DeployOptions{
+			HostServiceName:      "query-host",
+			ExtractedServiceName: "query",
+			HostEnvVars: []EnvVar{
+				{Name: "DATABASE_URL", Value: "postgres://miniflux@postgres/miniflux?sslmode=disable"},
+				{Name: "RUN_MIGRATIONS", Value: "1"},
+			},
+		},
+	})
+	return plan
+}
+
+func envMap(env []envDoc) map[string]string {
+	out := map[string]string{}
+	for _, item := range env {
+		out[item.Name] = item.Value
+	}
+	return out
+}
+
 type kubernetesDoc struct {
 	APIVersion string `yaml:"apiVersion"`
 	Kind       string `yaml:"kind"`

@@ -104,7 +104,8 @@ func serverTemplateView(plan *Plan) serverView {
 		}
 		stateInitLines = append(stateInitLines, serverReconstructorInit(param)...)
 		if param.Reconstructor.CloseSource != "" {
-			stateCloseLines = append(stateCloseLines, strings.ReplaceAll(param.Reconstructor.CloseSource, "db", strings.ToLower(param.Name)+"DB"))
+			closeSource := strings.ReplaceAll(param.Reconstructor.CloseSource, "db", strings.ToLower(param.Name)+"DB")
+			stateCloseLines = append(stateCloseLines, closeSource)
 		}
 	}
 	// Separate non-error results from error results.
@@ -168,7 +169,7 @@ func serverTemplateView(plan *Plan) serverView {
 				receiverCallArg = "req.Receiver"
 			}
 		case ReceiverFactory:
-			view.ReceiverConstruct = "recv := " + plan.CutPoint.PackageName + "." + plan.ReceiverParam.FactoryFunc + "()"
+			view.ReceiverConstruct = "recv := " + plan.CutPoint.PackageName + "." + plan.ReceiverParam.FactoryFunc + "(" + strings.Join(plan.ReceiverParam.FactoryArgs, ", ") + ")"
 			receiverCallArg = "recv"
 		case ReceiverZero:
 			if plan.ReceiverParam.IsPointer {
@@ -201,17 +202,18 @@ func serverReconstructorInit(param ReconstructedParam) []string {
 		return []string{
 			dbVar + `, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
 			"if err != nil { return nil, err }",
+			"if err := " + dbVar + ".PingContext(context.Background()); err != nil { _ = " + dbVar + ".Close(); return nil, err }",
 			"state." + field + " = " + dbVar,
 		}
 	case "sql_db_wrapper":
-		alias := param.Reconstructor.ConstructorPackageAlias
-		if alias == "" {
-			alias = packageAlias(param.TypePackagePath)
-		}
+		constructorPkg := reconstructorConstructorPkg(param)
+		constructorFunc := reconstructorConstructorFunc(param)
+		constructorArgs := reconstructorConstructorArgs(param, dbVar)
 		return []string{
 			dbVar + `, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
 			"if err != nil { return nil, err }",
-			"state." + field + " = " + alias + "." + param.Reconstructor.ConstructorName + "(" + dbVar + ")",
+			"if err := " + dbVar + ".PingContext(context.Background()); err != nil { _ = " + dbVar + ".Close(); return nil, err }",
+			"state." + field + " = " + constructorPkg + "." + constructorFunc + "(" + strings.Join(constructorArgs, ", ") + ")",
 		}
 	case "http_client":
 		return []string{"state." + field + " = &http.Client{Timeout: 30 * time.Second}"}
@@ -220,6 +222,46 @@ func serverReconstructorInit(param ReconstructedParam) []string {
 	default:
 		return []string{"// missing reconstructor for " + param.Name}
 	}
+}
+
+func reconstructorConstructorPkg(param ReconstructedParam) string {
+	pkg := param.Reconstructor.ConstructorPkg
+	if pkg == "" {
+		pkg = param.Reconstructor.ConstructorPackageAlias
+	}
+	if pkg == "" {
+		pkg = param.Reconstructor.ConstructorPackagePath
+	}
+	if pkg == "" {
+		pkg = param.TypePackagePath
+	}
+	if strings.Contains(pkg, "/") {
+		return packageAlias(pkg)
+	}
+	return pkg
+}
+
+func reconstructorConstructorFunc(param ReconstructedParam) string {
+	if param.Reconstructor.ConstructorFunc != "" {
+		return param.Reconstructor.ConstructorFunc
+	}
+	return param.Reconstructor.ConstructorName
+}
+
+func reconstructorConstructorArgs(param ReconstructedParam, dbVar string) []string {
+	if len(param.Reconstructor.ConstructorArgOrder) == 0 {
+		return []string{dbVar}
+	}
+	args := make([]string, 0, len(param.Reconstructor.ConstructorArgOrder))
+	for _, arg := range param.Reconstructor.ConstructorArgOrder {
+		switch arg {
+		case "db", "sql_db", "*sql.DB":
+			args = append(args, dbVar)
+		default:
+			args = append(args, arg)
+		}
+	}
+	return args
 }
 
 func ServerCommandDir(plan *Plan) string {
@@ -316,6 +358,9 @@ type invocationsResponse struct {
 
 type serverState struct {
 	invocations *invocationRecorder
+{{- if .StateCloseLines }}
+	closeFuncs  []func() error
+{{- end }}
 {{- range .StateFields }}
 	{{ .Name }} {{ .Type }}
 {{- end }}
@@ -326,8 +371,24 @@ func initState() (*serverState, error) {
 {{- range .StateInitLines }}
 	{{ . }}
 {{- end }}
+{{- range .StateCloseLines }}
+	state.closeFuncs = append(state.closeFuncs, func() error { return {{ . }} })
+{{- end }}
 	return state, nil
 }
+
+{{ if .StateCloseLines }}
+func (state *serverState) Close() {
+	if state == nil {
+		return
+	}
+	for i := len(state.closeFuncs) - 1; i >= 0; i-- {
+		if err := state.closeFuncs[i](); err != nil {
+			log.Printf("close state resource: %v", err)
+		}
+	}
+}
+{{ end }}
 
 func NewHandler(state *serverState) http.Handler {
 	if state == nil {
@@ -422,10 +483,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+{{- if .StateCloseLines }}
+	defer state.Close()
+{{- end }}
 	addr := os.Getenv("MONOLIFT_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8081"
 	}
+{{- if .StateCloseLines }}
+	if err := http.ListenAndServe(addr, NewHandler(state)); err != nil {
+		log.Printf("listen and serve: %v", err)
+	}
+{{- else }}
 	log.Fatal(http.ListenAndServe(addr, NewHandler(state)))
+{{- end }}
 }
 `

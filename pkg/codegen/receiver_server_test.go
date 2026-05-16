@@ -53,6 +53,7 @@ func receiverFactoryPointerServerPlan() *Plan {
 			IsPointer:   true,
 			Policy:      ReceiverFactory,
 			FactoryFunc: "NewArgon2Hasher",
+			FactoryArgs: []string{`""`},
 		},
 		BoundaryParams: []Param{
 			{Name: "password", JSONName: "password", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},

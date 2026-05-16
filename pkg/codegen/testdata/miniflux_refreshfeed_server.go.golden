@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	_ "github.com/lib/pq"
@@ -82,6 +83,7 @@ type invocationsResponse struct {
 
 type serverState struct {
 	invocations *invocationRecorder
+	closeFuncs  []func() error
 	Store       *storage.Storage
 }
 
@@ -91,8 +93,24 @@ func initState() (*serverState, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := storeDB.PingContext(context.Background()); err != nil {
+		_ = storeDB.Close()
+		return nil, err
+	}
 	state.Store = storage.NewStorage(storeDB)
+	state.closeFuncs = append(state.closeFuncs, func() error { return storeDB.Close() })
 	return state, nil
+}
+
+func (state *serverState) Close() {
+	if state == nil {
+		return
+	}
+	for i := len(state.closeFuncs) - 1; i >= 0; i-- {
+		if err := state.closeFuncs[i](); err != nil {
+			log.Printf("close state resource: %v", err)
+		}
+	}
 }
 
 func NewHandler(state *serverState) http.Handler {
@@ -166,9 +184,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer state.Close()
 	addr := os.Getenv("MONOLIFT_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8081"
 	}
-	log.Fatal(http.ListenAndServe(addr, NewHandler(state)))
+	if err := http.ListenAndServe(addr, NewHandler(state)); err != nil {
+		log.Printf("listen and serve: %v", err)
+	}
 }

@@ -10,7 +10,8 @@ import (
 
 // receiverFactoryEntry describes a known factory function for a receiver type.
 type receiverFactoryEntry struct {
-	FactoryFunc string
+	FactoryFunc     string
+	ConstructorArgs []string
 }
 
 // receiverFactoryRegistry maps "pkgPath.TypeName" to a factory entry.
@@ -18,7 +19,8 @@ type receiverFactoryEntry struct {
 // requires a known factory rather than JSON deserialization.
 var receiverFactoryRegistry = map[string]receiverFactoryEntry{
 	"code.gitea.io/gitea/modules/auth/password/hash.Argon2Hasher": {
-		FactoryFunc: "NewArgon2Hasher",
+		FactoryFunc:     "NewArgon2Hasher",
+		ConstructorArgs: []string{`""`},
 	},
 	"github.com/mattermost/mattermost/server/v8/channels/app/password/hashers.PBKDF2": {
 		FactoryFunc: "DefaultPBKDF2",
@@ -30,15 +32,23 @@ var receiverFactoryRegistry = map[string]receiverFactoryEntry{
 
 // LookupReceiverFactory checks the factory registry for a known constructor.
 func LookupReceiverFactory(named *types.Named) (string, bool) {
-	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return "", false
-	}
-	key := named.Obj().Pkg().Path() + "." + named.Obj().Name()
-	entry, ok := receiverFactoryRegistry[key]
+	entry, ok := lookupReceiverFactoryEntry(named)
 	if !ok {
 		return "", false
 	}
 	return entry.FactoryFunc, true
+}
+
+func lookupReceiverFactoryEntry(named *types.Named) (receiverFactoryEntry, bool) {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return receiverFactoryEntry{}, false
+	}
+	key := named.Obj().Pkg().Path() + "." + named.Obj().Name()
+	entry, ok := receiverFactoryRegistry[key]
+	if !ok {
+		return receiverFactoryEntry{}, false
+	}
+	return entry, true
 }
 
 // selectReceiverPolicy determines the receiver strategy for a method cut point.
@@ -50,12 +60,13 @@ func selectReceiverPolicy(named *types.Named, isPointer bool, stateClass activat
 	}
 
 	// 1. Check factory registry first.
-	if factory, ok := LookupReceiverFactory(named); ok {
+	if factory, ok := lookupReceiverFactoryEntry(named); ok {
 		return &ReceiverSpec{
 			GoType:      goType,
 			IsPointer:   isPointer,
 			Policy:      ReceiverFactory,
-			FactoryFunc: factory,
+			FactoryFunc: factory.FactoryFunc,
+			FactoryArgs: append([]string(nil), factory.ConstructorArgs...),
 		}, nil
 	}
 

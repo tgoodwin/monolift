@@ -35,6 +35,13 @@ func TestRenderServerRefreshFeedGolden(t *testing.T) {
 	if !bytes.Equal(got, want) {
 		t.Fatalf("rendered server does not match %s", goldenPath)
 	}
+	assertRenderedContains(t, got,
+		`storeDB, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
+		`if err := storeDB.PingContext(context.Background()); err != nil {`,
+		`state.Store = storage.NewStorage(storeDB)`,
+		`state.closeFuncs = append(state.closeFuncs, func() error { return storeDB.Close() })`,
+		`defer state.Close()`,
+	)
 }
 
 func streamingBytesServerPlan() *Plan {
@@ -81,6 +88,126 @@ func TestRenderServerStreamingBytesGolden(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("rendered server does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
+func TestRenderServerSQLReconstructorIncludesPQBlankImport(t *testing.T) {
+	plan := &Plan{
+		ServiceName:      "monolift-query",
+		EnvServiceName:   "QUERY",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/query",
+			PackageName: "query",
+			FuncName:    "Run",
+		},
+		ReconstructedParams: []ReconstructedParam{{
+			Param: Param{
+				Name:             "db",
+				JSONName:         "db",
+				GoType:           "*sql.DB",
+				QualifiedGoType:  "*sql.DB",
+				TypePackagePath:  "database/sql",
+				TypePackageAlias: "sql",
+				Codec:            CodecJSON,
+				Index:            0,
+			},
+			Reconstructor: Reconstructor{
+				ID:      "sql_db",
+				Type:    "*database/sql.DB",
+				Imports: []string{"database/sql", "os", "_ github.com/lib/pq"},
+			},
+		}},
+		Results: []Result{
+			{Name: "result", JSONName: "result", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		ReturnCodec: ReturnCodec{Kind: CodecPrimitive, GoType: "string"},
+		ServerPath:  "/tmp/test/cmd/monolift-query/main.go",
+	}
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ServerPath]
+	if !bytes.Contains(got, []byte("_ \"github.com/lib/pq\"")) {
+		t.Fatalf("rendered server missing lib/pq blank import:\n%s", got)
+	}
+}
+
+func directSQLDBServerPlan() *Plan {
+	return &Plan{
+		ServiceName:      "monolift-query",
+		EnvServiceName:   "QUERY",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/query",
+			PackageName: "query",
+			FuncName:    "Run",
+		},
+		ReconstructedParams: []ReconstructedParam{{
+			Param: Param{
+				Name:             "db",
+				JSONName:         "db",
+				GoType:           "*sql.DB",
+				QualifiedGoType:  "*sql.DB",
+				TypePackagePath:  "database/sql",
+				TypePackageAlias: "sql",
+				Codec:            CodecJSON,
+				Index:            0,
+			},
+			Reconstructor: Reconstructor{
+				ID:          "sql_db",
+				Type:        "*database/sql.DB",
+				Imports:     []string{"context", "database/sql", "os", "_ github.com/lib/pq"},
+				CloseSource: "db.Close()",
+			},
+		}},
+		Results: []Result{
+			{Name: "result", JSONName: "result", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		ReturnCodec: ReturnCodec{Kind: CodecPrimitive, GoType: "string"},
+		ServerPath:  "/tmp/test/cmd/monolift-query/main.go",
+	}
+}
+
+func TestRenderServerDirectSQLDBGolden(t *testing.T) {
+	plan := directSQLDBServerPlan()
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ServerPath]
+	goldenPath := filepath.Join("testdata", "direct_sql_db_server.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered server does not match %s\ngot:\n%s", goldenPath, got)
+	}
+	assertRenderedContains(t, got,
+		`dbDB, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))`,
+		`if err := dbDB.PingContext(context.Background()); err != nil {`,
+		`state.Db = dbDB`,
+		`state.closeFuncs = append(state.closeFuncs, func() error { return dbDB.Close() })`,
+		`defer state.Close()`,
+	)
+}
+
+func assertRenderedContains(t *testing.T, got []byte, snippets ...string) {
+	t.Helper()
+	for _, snippet := range snippets {
+		if !bytes.Contains(got, []byte(snippet)) {
+			t.Fatalf("rendered server missing %q:\n%s", snippet, got)
+		}
 	}
 }
 

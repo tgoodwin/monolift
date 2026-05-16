@@ -109,4 +109,13 @@ func TestReconstructionRegistrySQLWrapper(t *testing.T) {
 	if recon.ConstructorName != "NewStorage" {
 		t.Fatalf("constructor = %s", recon.ConstructorName)
 	}
+	if recon.ConstructorPkg != "storage" {
+		t.Fatalf("constructor pkg = %s, want storage", recon.ConstructorPkg)
+	}
+	if recon.ConstructorFunc != "NewStorage" {
+		t.Fatalf("constructor func = %s, want NewStorage", recon.ConstructorFunc)
+	}
+	if len(recon.ConstructorArgOrder) != 1 || recon.ConstructorArgOrder[0] != "db" {
+		t.Fatalf("constructor arg order = %v, want [db]", recon.ConstructorArgOrder)
+	}
 }
