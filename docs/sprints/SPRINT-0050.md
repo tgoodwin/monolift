@@ -184,21 +184,21 @@ Minimum:
 - [ ] `docs/research/runs/SPRINT-0050-candidates.md` exists and justifies selected and declined candidates.
 - [ ] At least one DB/SQL corpus trace is pushed toward stage 10; if it cannot reach stage 10, the exact binding stage and reason are documented against the stage-binding doc.
 - [ ] At least one new filesystem/object-store reconstructor lands with tests and decision-log context.
-- [ ] At least one filesystem/object-store corpus trace reaches stage 7 with a real reconstructed durable root.
-- [ ] No target is counted as a persistence proof unless the selected cut actually exercises the intended durable resource.
-- [ ] CloudLab verification logs are stored under `.moab/runs/sprint-0050-*`.
+- [x] At least one filesystem/object-store corpus trace reaches stage 7 with a real reconstructed durable root.
+- [x] No target is counted as a persistence proof unless the selected cut actually exercises the intended durable resource.
+- [x] CloudLab verification logs are stored under `.moab/runs/sprint-0050-*`.
 - [ ] No full e2e sweep or bundled e2e regex is run.
 
 Target:
 
 - [ ] `miniflux/M-1` reaches stage 10 with workload evidence, env-off/fail-mode checks, dormant invariant, and transcript compare or declared substitute.
-- [ ] The filesystem/object-store primary reaches stage 7 or later with shared durable root proof and path-safety coverage.
+- [x] The filesystem/object-store primary reaches stage 7 or later with shared durable root proof and path-safety coverage.
 - [ ] One stretch candidate reaches stage 4 or later without violating scope.
 - [ ] Manifest drift from SPRINT-0049 is reconciled.
 
 Stretch:
 
-- [ ] Filesystem/object-store primary reaches stage 10.
+- [x] Filesystem/object-store primary reaches stage 10.
 - [ ] A second DB/SQL or filesystem trace reaches stage 7 or later.
 - [ ] SQLite research identifies a clean future target that avoids `core.App` reconstruction.
 

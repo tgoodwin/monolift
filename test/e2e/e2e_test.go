@@ -174,6 +174,10 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 	// namespace deletion even on panic, timeout, or t.Fatal. Runs after all
 	// defers in this function have completed.
 	t.Cleanup(func() {
+		if harness.KeepNamespaces() {
+			t.Logf("MONOLIFT_E2E_KEEP=1 set; preserving namespaces %s and %s", baselineNS, liftedNS)
+			return
+		}
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cleanupCancel()
 		_ = deployer.DeleteNamespace(cleanupCtx, baselineNS, 30*time.Second)
@@ -592,6 +596,10 @@ func TestActivationLiftedManifestPhasesDeployGeneratedInfraBeforePods(t *testing
 type requestWorkload interface {
 	Paths() []string
 	Request(ctx context.Context, host, path string) (harness.Step, error)
+}
+
+type failClosedRequestWorkload interface {
+	FailClosedRequest(ctx context.Context, host, path string) (harness.Step, error)
 }
 
 type extractedRuntime struct {
@@ -1112,7 +1120,7 @@ func assertActivationFailModesForService(ctx context.Context, deployer harness.D
 		return err
 	}
 	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "closed", "event", "workload-start")
-	closedStep, err := firstWorkloadStep(ctx, target, closedPF.URL)
+	closedStep, err := firstFailClosedWorkloadStep(ctx, target, closedPF.URL)
 	closedPF.Stop()
 	if err != nil {
 		return err
@@ -1255,6 +1263,7 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 
 	// Retry a few times to allow k8s endpoint propagation after scale-up.
 	var lastDelta int64
+	var lastErr error
 	for attempt := 0; attempt < 5; attempt++ {
 		if attempt > 0 {
 			time.Sleep(3 * time.Second)
@@ -1264,15 +1273,18 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 			return err
 		}
 		if err := target.Workload.Setup(ctx, caddyPF.URL); err != nil {
-			return err
+			lastErr = err
+			continue
 		}
 		if target.Name == "miniflux" || target.ActivationLift != nil {
 			if _, err := firstWorkloadStep(ctx, target, caddyPF.URL); err != nil {
-				return err
+				lastErr = err
+				continue
 			}
 		} else {
 			if _, err := workloadStep(ctx, target, caddyPF.URL, "/headers"); err != nil {
-				return err
+				lastErr = err
+				continue
 			}
 		}
 		after, err := readCalls(ctx, servicePF.URL)
@@ -1283,6 +1295,9 @@ func assertRestoredServiceCalls(ctx context.Context, target harness.TargetCase, 
 		if lastDelta >= 1 {
 			return nil
 		}
+	}
+	if lastErr != nil {
+		return fmt.Errorf("%s restored workload did not succeed after retry: %w", service.Name, lastErr)
 	}
 	return fmt.Errorf("%s restored /calls delta=%d want >=1", service.Name, lastDelta)
 }
@@ -1557,6 +1572,17 @@ func firstWorkloadStep(ctx context.Context, target harness.TargetCase, liftedURL
 	workload, ok := target.Workload.(requestWorkload)
 	if !ok {
 		return harness.Step{}, fmt.Errorf("target workload does not support per-request execution")
+	}
+	return workload.Request(ctx, liftedURL, workload.Paths()[0])
+}
+
+func firstFailClosedWorkloadStep(ctx context.Context, target harness.TargetCase, liftedURL string) (harness.Step, error) {
+	workload, ok := target.Workload.(requestWorkload)
+	if !ok {
+		return harness.Step{}, fmt.Errorf("target workload does not support per-request execution")
+	}
+	if failClosed, ok := target.Workload.(failClosedRequestWorkload); ok {
+		return failClosed.FailClosedRequest(ctx, liftedURL, workload.Paths()[0])
 	}
 	return workload.Request(ctx, liftedURL, workload.Paths()[0])
 }

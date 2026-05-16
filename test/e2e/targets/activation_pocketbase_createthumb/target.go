@@ -10,6 +10,11 @@ import (
 const (
 	directOriginalKey = "wsmn24bux7wo113/84nmscqy84lsi1t/300_WlbFWSGmW9.png"
 	directThumbKey    = "monolift-direct/thumbs_300_WlbFWSGmW9.png/100x100_300_WlbFWSGmW9.png"
+	// test/e2e/fixtures/kind-config.yaml mounts the same host directory at
+	// /data on every worker node. Plain /tmp hostPath directories are
+	// node-local and do not work when host and extracted pods land on
+	// different workers.
+	kindSharedHostPathRoot = "/data/monolift-e2e/pocketbase-createthumb-durable-root"
 )
 
 func Target() harness.TargetCase {
@@ -72,7 +77,7 @@ exec /pocketbase serve --http=0.0.0.0:8090 --dir=/pb_data
 					Name:      "monolift-durable-root",
 					ClaimName: "monolift-extracted-createthumb-durable-root",
 					MountPath: "/monolift/durable",
-					HostPath:  "/tmp/monolift-e2e/pocketbase-createthumb-durable-root",
+					HostPath:  kindSharedHostPathRoot,
 				}},
 			},
 		},

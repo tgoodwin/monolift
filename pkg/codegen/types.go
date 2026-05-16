@@ -94,7 +94,9 @@ type SharedVolumeMount struct {
 	ClaimName      string
 	MountPath      string
 	StorageRequest string
-	HostPath       string
+	// HostPath is node-local unless the cluster maps the same backing path into
+	// every eligible node. Prefer PVCs for real clusters.
+	HostPath string
 }
 
 type CutPoint struct {

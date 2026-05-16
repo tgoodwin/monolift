@@ -75,6 +75,14 @@ func (Workload) Paths() []string {
 }
 
 func (Workload) Request(ctx context.Context, host, path string) (harness.Step, error) {
+	return requestThumbnail(ctx, host, path, true)
+}
+
+func (Workload) FailClosedRequest(ctx context.Context, host, path string) (harness.Step, error) {
+	return requestThumbnail(ctx, host, path, false)
+}
+
+func requestThumbnail(ctx context.Context, host, path string, requireThumb bool) (harness.Step, error) {
 	if path != workloadPath {
 		return harness.Step{}, fmt.Errorf("unsupported pocketbase thumbnail workload path %s", path)
 	}
@@ -104,7 +112,7 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 	if resp.StatusCode == http.StatusOK && decodeErr != nil {
 		return harness.Step{}, fmt.Errorf("decode thumbnail response: %w", decodeErr)
 	}
-	if resp.StatusCode == http.StatusOK && (width != thumbExpectedSize || height != thumbExpectedSize) {
+	if requireThumb && resp.StatusCode == http.StatusOK && (width != thumbExpectedSize || height != thumbExpectedSize) {
 		return harness.Step{}, fmt.Errorf("thumbnail dimensions=%dx%d want %dx%d", width, height, thumbExpectedSize, thumbExpectedSize)
 	}
 	return harness.Step{
