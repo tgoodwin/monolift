@@ -29,24 +29,24 @@ monoliths the compiler is being developed against.
 
 ## The reboot thesis
 
-The workshop paper demonstrated the mechanism: ordinary Go code could
+The workshop paper demonstrated the core idea: ordinary Go code could
 remain a monolith by default while selected calls became remote
 invocations under a compiler/runtime policy. The reboot keeps that core
-claim, but replaces the prototype assumptions that did not survive real
-code.
+claim, but replaces the prototype assumptions that do not hold in real-world
+application codebases.
 
 The prototype mostly knew how to lift stateless HTTP-handler-shaped
 functions wired near `main()`. Real Go monoliths are not that regular:
 useful lift targets may be ordinary domain functions, methods on
 stateful receivers, callbacks registered with frameworks, or handlers
 hidden behind application-specific dispatch. The reboot therefore moves
-Monolift from recognizing one favored shape to asking a more general
-set of questions: can this region safely cross a network, what state
+Monolift from recognizing one hardcoded shape to asking a more general
+set of questions: can this region of computation safely cross a network, what state
 does it carry, how does the program reach it, and where should the
 network boundary actually go?
 
-The result is not a new project in place of the paper. It is a stricter
-compiler contract for making the paper's claim work against production
+The result is a stricter
+compiler contract for making the workshop paper's claims work against production
 Go monoliths.
 
 ## Terms used throughout
@@ -69,46 +69,48 @@ If you are returning from the workshop paper, start with
 [What's changing after the initial workshop paper](v1-to-v2.md). That
 page explains which paper commitments were preserved, revised, or
 retired. Then read [Evaluation targets](evaluation-targets.md), which
-defines the pinned corpus used throughout the site. The technical pages
-then move from admission, to state, to refusals, to the two path
-problems: recovering how the program reaches the target and deciding
+describes the set of real-world Go monolith codebases referenced throughout the site. The technical pages then move from admission, to state, to refusals, to the two path
+problems: recovering how the program reaches the lift target and deciding
 where the network boundary belongs.
 
-Most pages open with either an **"At a glance"** paper-delta section or
-a **"Research question and result"** section. Readers who want the
-high-level argument can stop there; readers who want the implementation
-details can keep going into the paired compiler and corpus examples.
 
 ## Sections
 
 - [**What's changing after the initial workshop paper**](v1-to-v2.md) —
   the contract renegotiation, traced on a single function that was
-  refused under v1 and is admitted under v2.
+  infeasible under v1 and is admitted under v2.
 - [**Evaluation targets**](evaluation-targets.md) — the pinned
-  open-source Go monoliths the compiler is developed against.
+  open-source Go monoliths the v2 compiler is being developed against.
 - [**Reasoning about liftability**](canonical-shapes.md) —
-  why the paper's assumption that lift admission could be recognized
-  from HTTP-handler-like signatures was replaced by a named
-  liftability-property vocabulary.
+  describes a named liftability-property vocabulary the compiler uses to evaluate what code regions can be extracted for distribution.
 - [**Pattern matching on stateful code**](state-class-inference.md) —
   why the paper's rule that lifts must be stateless was relaxed, and
   how state archetypes build on liftability properties, form candidate
   sets, and resolve overlapping matches.
 - [**Making the compiler opinionated**](refusal-diagnostics.md) — how
   the paper's commitment to refusing lifts the compiler cannot
-  distribute reliably is kept, and made concrete through a named set of
+  distribute reliably is implemented and made concrete through a named set of
   refusal codes.
 - [**Recovering activation paths**](activation-paths.md) —
-  how the compiler recovers the path from `main()` to a lifted
-  region, so it knows where to place the network boundary.
-  Designed empirically: 72 reviewed traces across 6 codebases
-  guided incremental algorithm development to 71/72 coverage.
+  how the compiler recovers the control flow path from `main()` to a lifted
+  region, so it can reason about where to place the network boundary.
 - [**Drawing the network boundary**](cut-placement.md) — how the compiler
   decides where on the activation path to insert the network boundary.
   The lift target and the cut point are not always the same function;
   a decision tree over six dimensions picks the best candidate.
+- [**Code extraction**](extraction.md) — once a cut point is chosen,
+  how the compiler pulls the function body out of the monolith and
+  renders the boundary scaffolding around it to produce a *lift*;
+  which reconstructors and receiver policies make a candidate
+  admissible; and how admission feeds back into placement. The page
+  describes the current long-running-pod backend, but the extraction
+  phase is runtime-agnostic.
+- [**Stages of evidence**](validation-ladder.md) — the 0–10 e2e ladder
+  the harness uses to grade a lift, with each rung tied to a specific
+  claim (compile, deploy, reach, transcript-compare, fail-mode).
 - [**Finding your way around the code**](reading-guide.md) — how to map
-  the narrative pages back to `pkg/compiler/` and the ADR log.
+  the narrative pages back to `pkg/compiler/`, `pkg/activation/`,
+  `pkg/codegen/`, and the ADR log.
 
 ## External references
 

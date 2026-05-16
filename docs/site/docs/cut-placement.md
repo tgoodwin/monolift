@@ -203,6 +203,72 @@ it did. Every rejected candidate gets a reason: "ranked below
 recommended step 10: surface Minimal beat Large" or "rejected by
 boundary-data hard gate: function-value parameter."
 
+## When a ranked cut cannot be extracted
+
+The decision tree is a placement proposal, not the final proof that a
+lift can be extracted. It ranks candidates using activation-path
+evidence: the cut-point signature, receiver state, callbacks, surface
+area, error shape, and edge alignment. After ranking, codegen
+admission builds a concrete lift plan for the recommended cut and
+checks whether the compiler can actually generate the remote boundary.
+
+The two phases intentionally use different mental models. The ranker
+asks: **would this be a good network boundary if the compiler knew how
+to realize it?** That keeps placement focused on semantics: small
+surface area, simple boundary data, low callback pressure,
+reconstructible state, and natural component edges. Extraction asks a
+narrower question: **can this specific compiler version produce
+correct artifacts for that boundary?** It needs concrete serializers,
+reconstructors, constructor arguments, call-site patches, imports,
+shutdown hooks, and deployment environment.
+
+That gap is useful. A candidate may be architecturally better than its
+neighbors but still fail extraction because a reconstructor is
+missing, the receiver is only known through an interface field, or a
+type is serializable in principle but unsupported by the current codec
+table. If the ranker tried to bake every extraction limitation into
+its own model, cut placement would become a shadow code generator.
+Instead, placement proposes the best semantic boundary; admission
+tests whether the current extractor can make it real.
+
+Admission asks questions that are deliberately more concrete than
+placement:
+
+- Are every parameter and return value supported by the wire format?
+- If a receiver or parameter is not serializable, is there a registered
+  reconstructor with enough metadata to rebuild it remotely?
+- Can the generated server construct the receiver and call the selected
+  method without hidden application state?
+- Can the host call site be patched without changing the source-level
+  API exposed to surrounding code?
+- Does the plan preserve the local fallback and failure behavior the
+  contract requires?
+
+If the top-ranked candidate fails one of these checks for a reason that
+a deeper cut might avoid, the compiler demotes that candidate and
+reruns the same ranking over the remaining feasible candidates. This
+turns admission from a terminal yes/no gate into feedback for placement:
+the recommender still prefers small, deep, low-state cuts, but it also
+learns when a theoretically good boundary cannot be generated.
+
+```mermaid
+flowchart LR
+    A["activation path"] --> B["rank cut candidates"]
+    B --> C["try codegen admission"]
+    C -->|accepted| D["extract lifted service"]
+    C -->|retryable refusal| E["demote candidate with reason"]
+    E --> B
+    C -->|terminal refusal| F["report refusal code"]
+```
+
+This loop keeps the activation analyzer independent from codegen. The
+activation package can rank candidates using general static evidence;
+codegen owns the more implementation-specific question of whether a
+candidate can be rendered into server, client, patch, and deployment
+artifacts. The only information that flows back is structured: which
+candidate failed, and why. That reason becomes part of the cut report
+rather than a hidden special case.
+
 ## Monolift's comparator, paired with the data it classifies
 
 The Monolift side is `betterCutCandidate` — the comparator that applies

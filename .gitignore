@@ -15,6 +15,8 @@ docs/research/runs/**
 !docs/research/runs/SPRINT-0035-rta-baseline.json
 !docs/research/runs/SPRINT-0037-full.json
 !docs/research/runs/SPRINT-0038-final.json
+!docs/research/runs/SPRINT-0050-candidates.md
+!docs/research/runs/SPRINT-0050-stage-binding.md
 
 # Local external target checkouts; evaluation/MANIFEST.yaml is tracked.
 evaluation/*/
@@ -34,3 +36,4 @@ test/memcheck/_kill_smoketest/smoke.bin
 /.moab
 .venv/
 .env
+cloudlab/*.jwt

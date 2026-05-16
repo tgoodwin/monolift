@@ -86,6 +86,12 @@ target are prohibited.
 Each target row runs these stages. Refusal targets (pocketbase) exit cleanly
 after stage 4.
 
+For activation-lift targets, `docs/research/runs/SPRINT-0050-stage-binding.md`
+is the authoritative stage contract for stages 3-10. That note supersedes this
+table where it adds persistence-specific requirements such as direct-invoke
+expectations, `/calls` deltas, env-off behavior, fail modes, fresh resources,
+and declared transcript substitutions.
+
 | # | Stage | Assertion | Failure signal |
 |---|---|---|---|
 | 0 | **Setup** | Kind cluster `monolift-e2e` exists (create if absent); nodes Ready ≤60s; namespaces created | `kind cluster monolift-e2e not ready: worker NotReady after 60s` |

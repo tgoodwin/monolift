@@ -189,3 +189,15 @@ sprints:
     executor: opus+gpt-5.5+gemini
     created: "2026-05-03T03:53:13+00:00"
     updated: "2026-05-03T03:53:13+00:00"
+  - id: SPRINT-0049
+    title: DB/SQL reconstructor family + gitea/M-16 admission unblock
+    status: in-progress
+    executor: gpt-5.4
+    created: "2026-05-14T01:14:45+00:00"
+    updated: "2026-05-14T01:34:02+00:00"
+  - id: SPRINT-0050
+    title: External persistence lift escalation
+    status: in-progress
+    executor: gpt-5.4
+    created: "2026-05-16T16:33:49+00:00"
+    updated: "2026-05-16T18:11:11+00:00"

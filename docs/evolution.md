@@ -637,6 +637,19 @@ loader/SSA/callgraph cost and incremental EntryPath cost.
 
 ---
 
+## 2026-05-16 — Focused admission scope
+
+ADR-0030 makes focused admission a target-scope question instead of a
+whole-repository question. Admission-only corpus sweeps remain useful for coarse
+manifest drift, but they cannot reject candidates when broad package loading or
+augmentation cost times out. Focused probes now use reverse-import scope or an
+explicit target/importer package set, and `TestAdmission` refuses explicit
+`./...` package scope.
+
+**Primary artifacts:** `docs/decisions/0030-focused-admission-scope.md` · `pkg/codegen/admission_sweep_test.go` · `scripts/run_activation_corpus_sweep.sh`
+
+---
+
 ## Pending
 
 - **Full archetype catalog migration.** SPRINT-0017 migrates only

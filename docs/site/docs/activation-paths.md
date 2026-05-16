@@ -162,6 +162,41 @@ functions appear.
 **4. Find the shortest path.** Run breadth-first search (BFS) from all
 entrypoints to the target.
 
+### What augmentation means in practice
+
+Augmentation is a fixed-point loop over the SSA graph, not a single
+lookup. The baseline call graph resolves direct calls and type-derived
+interface calls; augmentation recovers edges where the eventual callee
+is first stored in data, then invoked later. When a pass adds new
+functions, those functions are explored as new roots. Their bodies may
+contain more stored values, so augmentation runs again until exploration
+and value-flow scanning stop adding functions.
+
+| Augmentation pass | Edge pattern it recovers |
+|---|---|
+| Struct-field tracking | Handlers, callbacks, or services stored on command, router, or app structs. |
+| Package-variable tracking | Package-level function slots and global registries used as dispatch tables. |
+| Callback-argument tracking | Functions passed into queue, worker, middleware, or hook constructors. |
+| Goroutine tracking | `go f(...)` launches that create an asynchronous activation path. |
+| Map-function tracking | String-keyed registries for hashers, renderers, providers, and framework plugins. |
+| Interface-field tracking | Concrete values stored behind interface fields and later reached through method dispatch. |
+
+The expensive part is repeated broad scanning. Large Go monoliths
+contain many SSA functions and instructions, and each fixed-point
+iteration has to revisit enough of that space to notice new stored
+values exposed by newly explored functions. Some indexes can be reused
+within a run, and reverse-import scoping narrows the initial package
+set, but a fresh analysis still reloads packages, rebuilds SSA, runs
+RTA, then iterates augmentation until the graph stabilizes. The payoff
+is that the result remains a static graph with labeled edges rather
+than a collection of framework-specific special cases.
+
+In the implementation, `activation` is the phase that performs package
+scoping, loading, SSA construction, target resolution, RTA,
+augmentation, and final BFS. Report extraction, cut admission, and
+artifact rendering are downstream codegen phases that consume the
+activation result.
+
 ## A concrete example
 
 Consider Caddy's markdown rendering function, which the corpus

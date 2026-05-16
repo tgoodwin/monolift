@@ -97,3 +97,21 @@ Artifacts and compiler output live under:
 
 Use `make e2e-clean` to remove local artifact dumps and `make e2e-reset` to
 recreate the Kind cluster.
+
+## Admission Probes
+
+Focused admission is a target-scope question, not a whole-repository question.
+Do not run candidate viability probes with `./...` package scope. Use the
+reverse-import-scoped default in `TestAdmission`, or pass an explicit package
+set that contains the target package and the application entry package being
+studied.
+
+Research probes should write explicit artifacts under `.moab/runs/...` rather
+than hiding the evidence inside a test failure. The Go test wrapper exists for
+repeatable regression checks around the admission pipeline; it is not the
+primary UX for exploratory candidate research.
+
+The admission-only corpus sweep is only a coarse manifest drift measurement.
+Its results can say "this row changed status" or "this row needs a focused
+probe"; they must not be used to reject a durable-resource candidate when the
+failure is broad package loading, augmentation cost, or timeout.

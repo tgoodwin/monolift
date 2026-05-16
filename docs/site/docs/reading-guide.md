@@ -11,7 +11,7 @@ compiler.
 
 - **`pkg/compiler/`** (root) — pragma parser and key-rule schema
   (`pragma.go`, `pragma_keys.go`), top-level extraction entry points
-  (`extract.go`), artifact + manifest emission (`artifacts.go`,
+  (`extract.go`), artifact + manifest rendering (`artifacts.go`,
   `manifests.go`), and shared types. Start here to trace a pragma from
   comment to validated `Pragma`.
 - **`pkg/compiler/extract/`** — SSA + `go/types` extraction. Harvests
@@ -44,7 +44,43 @@ compiler.
   activation-handoff evidence, and a scoped function-reference index.
   See [Recovering activation paths](activation-paths.md).
 - **`pkg/compiler/embeds/`** — embedded template assets referenced by
-  artifact emission.
+  artifact rendering.
+
+## Activation and codegen tour
+
+The newer activation-path and lift-extraction work lives outside
+`pkg/compiler/`, because it consumes compiler reports but also needs its
+own corpus evaluator, cut-placement model, and e2e artifact pipeline.
+
+- **`pkg/activation/`** — standalone activation-path analyzer. It loads
+  packages, builds SSA, runs RTA, augments the graph with value-flow
+  edges, finds paths, classifies misses, ranks cut candidates, and
+  records phase/subphase timings. See
+  [Recovering activation paths](activation-paths.md) and
+  [Drawing the network boundary](cut-placement.md).
+- **`pkg/activation/eval/`** — corpus runner and aggregate reporting for
+  the reviewed activation traces. This is where reachability changes
+  are measured across the pinned projects.
+- **`pkg/codegen/`** — activation-lift artifact generation. It turns a
+  selected cut into a plan, applies admission gates, renders server and
+  client adapters, patches the host call site, emits Docker/Kubernetes
+  artifacts, and records admission-aware demotions when the first cut is
+  not liftable. The reconstructor families (`recon.go`), receiver
+  policies (`types.go`), and admission-aware retry loop (`cut_admit.go`)
+  are the entry points behind [Code extraction](extraction.md).
+- **`test/e2e/`** — the validation ladder for generated artifacts:
+  compile and verdict checks, image build, image load, deployment,
+  lifted workload execution, transcript comparison, and fail-mode
+  assertions. The target files describe which rung each corpus slice
+  is expected to reach. See
+  [Stages of evidence](validation-ladder.md) for the assertion attached
+  to each stage. The corpus manifest at
+  `test/e2e/activation_corpus_traces.yaml` records the latest stage
+  each trace cleared.
+- **`pkg/logging/`** — process-wide `slog` setup for opt-in compiler
+  progress logs. `MONOLIFT_LOG_LEVEL=debug` surfaces e2e stages,
+  codegen phases, and activation subphases without changing library
+  APIs.
 
 ## ADR index
 
