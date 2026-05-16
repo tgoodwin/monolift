@@ -72,6 +72,23 @@ func TestSelectReceiverPolicyFactory(t *testing.T) {
 	}
 }
 
+func TestSelectReceiverPolicyReconstructedFilesystem(t *testing.T) {
+	named := pocketbaseFilesystemSystemType()
+	spec, err := selectReceiverPolicy(named, true, activation.ClientReconstructible)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if spec.Policy != ReceiverReconstructed {
+		t.Fatalf("policy = %s, want %s", spec.Policy, ReceiverReconstructed)
+	}
+	if !spec.IsPointer {
+		t.Fatal("IsPointer = false, want true")
+	}
+	if spec.Reconstructor.ID != "pocketbase_local_filesystem" {
+		t.Fatalf("reconstructor = %s", spec.Reconstructor.ID)
+	}
+}
+
 func TestSelectReceiverPolicyRefusedDBField(t *testing.T) {
 	pkg := makeTestPkg("dbpkg")
 	sqlPkg := types.NewPackage("database/sql", "sql")

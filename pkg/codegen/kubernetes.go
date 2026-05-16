@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 	"text/template"
 )
 
@@ -12,11 +13,22 @@ func RenderKubernetes(plan *Plan) (map[string][]byte, error) {
 		return nil, fmt.Errorf("codegen: nil plan")
 	}
 	view := kubernetesView{
-		Plan:             plan,
-		HostEnvVars:      hostDeploymentEnvVars(plan),
-		ExtractedEnvVars: extractedDeploymentEnvVars(plan),
+		Plan:                  plan,
+		HostEnvVars:           hostDeploymentEnvVars(plan),
+		ExtractedEnvVars:      extractedDeploymentEnvVars(plan),
+		HostVolumeMounts:      effectiveHostVolumeMounts(plan),
+		ExtractedVolumeMounts: effectiveExtractedVolumeMounts(plan),
+		SharedVolumeMounts:    effectiveSharedVolumeMounts(plan),
 	}
 	files := map[string][]byte{}
+	if len(view.SharedVolumeMounts) > 0 {
+		if plan.SharedVolumeClaimPath == "" {
+			return nil, fmt.Errorf("codegen: shared volume mounts require SharedVolumeClaimPath")
+		}
+		if err := renderYAML(files, plan.SharedVolumeClaimPath, sharedVolumeClaimTemplate, view); err != nil {
+			return nil, err
+		}
+	}
 	if err := renderYAML(files, plan.ExtractedDeploymentPath, extractedDeploymentTemplate, view); err != nil {
 		return nil, err
 	}
@@ -33,9 +45,12 @@ func RenderKubernetes(plan *Plan) (map[string][]byte, error) {
 }
 
 type kubernetesView struct {
-	Plan             *Plan
-	HostEnvVars      []EnvVar
-	ExtractedEnvVars []EnvVar
+	Plan                  *Plan
+	HostEnvVars           []EnvVar
+	ExtractedEnvVars      []EnvVar
+	HostVolumeMounts      []VolumeMount
+	ExtractedVolumeMounts []VolumeMount
+	SharedVolumeMounts    []SharedVolumeMount
 }
 
 func renderYAML(files map[string][]byte, path, source string, view kubernetesView) error {
@@ -72,6 +87,7 @@ func extractedDeploymentEnvVars(plan *Plan) []EnvVar {
 		return nil
 	}
 	env := append([]EnvVar(nil), plan.Deploy.ExtractedEnvVars...)
+	env = appendMissingEnvVars(env, reconstructorExtractedEnvVars(plan)...)
 	if !planHasSQLReconstructor(plan) || hasEnvVar(env, "DATABASE_URL") {
 		return env
 	}
@@ -79,6 +95,98 @@ func extractedDeploymentEnvVars(plan *Plan) []EnvVar {
 		env = append(env, databaseURL)
 	}
 	return env
+}
+
+func appendMissingEnvVars(env []EnvVar, additions ...EnvVar) []EnvVar {
+	for _, item := range additions {
+		if item.Name == "" || hasEnvVar(env, item.Name) {
+			continue
+		}
+		env = append(env, item)
+	}
+	return env
+}
+
+func reconstructorExtractedEnvVars(plan *Plan) []EnvVar {
+	var env []EnvVar
+	for _, reconstructor := range planReconstructors(plan) {
+		env = append(env, reconstructor.ExtractedEnvVars...)
+	}
+	return env
+}
+
+func effectiveHostVolumeMounts(plan *Plan) []VolumeMount {
+	if plan == nil {
+		return nil
+	}
+	mounts := append([]VolumeMount(nil), plan.Deploy.HostVolumeMounts...)
+	for _, shared := range effectiveSharedVolumeMounts(plan) {
+		mounts = appendMissingVolumeMount(mounts, VolumeMount{Name: shared.Name, MountPath: shared.MountPath})
+	}
+	return mounts
+}
+
+func effectiveExtractedVolumeMounts(plan *Plan) []VolumeMount {
+	if plan == nil {
+		return nil
+	}
+	mounts := append([]VolumeMount(nil), plan.Deploy.ExtractedVolumeMounts...)
+	for _, shared := range effectiveSharedVolumeMounts(plan) {
+		mounts = appendMissingVolumeMount(mounts, VolumeMount{Name: shared.Name, MountPath: shared.MountPath})
+	}
+	return mounts
+}
+
+func appendMissingVolumeMount(mounts []VolumeMount, addition VolumeMount) []VolumeMount {
+	if addition.Name == "" || addition.MountPath == "" {
+		return mounts
+	}
+	for _, item := range mounts {
+		if item.Name == addition.Name || item.MountPath == addition.MountPath {
+			return mounts
+		}
+	}
+	return append(mounts, addition)
+}
+
+func effectiveSharedVolumeMounts(plan *Plan) []SharedVolumeMount {
+	if plan == nil {
+		return nil
+	}
+	mounts := append([]SharedVolumeMount(nil), plan.Deploy.SharedVolumeMounts...)
+	for _, reconstructor := range planReconstructors(plan) {
+		for _, mount := range reconstructor.SharedVolumeMounts {
+			mounts = appendMissingSharedVolumeMount(mounts, renderSharedVolumeMount(plan, mount))
+		}
+	}
+	return mounts
+}
+
+func appendMissingSharedVolumeMount(mounts []SharedVolumeMount, addition SharedVolumeMount) []SharedVolumeMount {
+	if addition.Name == "" || addition.ClaimName == "" || addition.MountPath == "" {
+		return mounts
+	}
+	for _, item := range mounts {
+		if item.Name == addition.Name || item.ClaimName == addition.ClaimName || item.MountPath == addition.MountPath {
+			return mounts
+		}
+	}
+	return append(mounts, addition)
+}
+
+func renderSharedVolumeMount(plan *Plan, mount SharedVolumeMount) SharedVolumeMount {
+	serviceName := ""
+	if plan != nil {
+		serviceName = plan.Deploy.ExtractedServiceName
+		if serviceName == "" {
+			serviceName = plan.ServiceName
+		}
+	}
+	mount.ClaimName = strings.ReplaceAll(mount.ClaimName, "${SERVICE}", serviceName)
+	if mount.StorageRequest == "" {
+		mount.StorageRequest = "1Gi"
+	}
+	return mount
 }
 
 func planHasSQLReconstructor(plan *Plan) bool {
@@ -136,11 +244,26 @@ spec:
               value: {{ yamlQuote .Value }}
 {{- end }}
 {{- end }}
+{{- if .ExtractedVolumeMounts }}
+          volumeMounts:
+{{- range .ExtractedVolumeMounts }}
+            - name: {{ .Name }}
+              mountPath: {{ .MountPath }}
+{{- end }}
+{{- end }}
           readinessProbe:
             httpGet:
               path: /healthz
               port: {{ .Plan.Deploy.ExtractedPort }}
             periodSeconds: 2
+{{- if .SharedVolumeMounts }}
+      volumes:
+{{- range .SharedVolumeMounts }}
+        - name: {{ .Name }}
+          persistentVolumeClaim:
+            claimName: {{ .ClaimName }}
+{{- end }}
+{{- end }}
 `
 
 const extractedServiceTemplate = `apiVersion: v1
@@ -199,14 +322,14 @@ spec:
             - name: {{ .Name }}
               value: {{ yamlQuote .Value }}
 {{- end }}
-{{- if .Plan.Deploy.HostVolumeMounts }}
+{{- if .HostVolumeMounts }}
           volumeMounts:
-{{- range .Plan.Deploy.HostVolumeMounts }}
+{{- range .HostVolumeMounts }}
             - name: {{ .Name }}
               mountPath: {{ .MountPath }}
 {{- end }}
 {{- end }}
-{{- if or .Plan.Deploy.HostConfigMapVolumes .Plan.Deploy.HostEmptyDirVolumes }}
+{{- if or .Plan.Deploy.HostConfigMapVolumes .Plan.Deploy.HostEmptyDirVolumes .SharedVolumeMounts }}
       volumes:
 {{- range .Plan.Deploy.HostConfigMapVolumes }}
         - name: {{ .Name }}
@@ -216,6 +339,11 @@ spec:
 {{- range .Plan.Deploy.HostEmptyDirVolumes }}
         - name: {{ . }}
           emptyDir: {}
+{{- end }}
+{{- range .SharedVolumeMounts }}
+        - name: {{ .Name }}
+          persistentVolumeClaim:
+            claimName: {{ .ClaimName }}
 {{- end }}
 {{- end }}
 `
@@ -232,4 +360,19 @@ spec:
     - name: http
       port: {{ .Plan.Deploy.HostPort }}
       targetPort: {{ .Plan.Deploy.HostPort }}
+`
+
+const sharedVolumeClaimTemplate = `{{- range .SharedVolumeMounts }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .ClaimName }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .StorageRequest }}
+---
+{{- end }}
 `

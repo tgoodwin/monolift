@@ -157,6 +157,9 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 		Artifact{Path: plan.HostDeploymentPath, Kind: "k8s_deployment_host", Content: kubernetesFiles[plan.HostDeploymentPath]},
 		Artifact{Path: plan.HostServicePath, Kind: "k8s_service_host", Content: kubernetesFiles[plan.HostServicePath]},
 	)
+	if plan.SharedVolumeClaimPath != "" {
+		artifacts = append(artifacts, Artifact{Path: plan.SharedVolumeClaimPath, Kind: "k8s_persistent_volume_claim", Content: kubernetesFiles[plan.SharedVolumeClaimPath]})
+	}
 	var patchedFile string
 	var manifest *Manifest
 	if opts.WriteMonolithStub {
@@ -430,4 +433,7 @@ func applyDeployDefaults(plan *Plan, opts DeployOptions) {
 	plan.HostServicePath = filepath.Join(manifestDir, plan.Deploy.HostServiceName+"-service.yaml")
 	plan.ExtractedDeploymentPath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-deployment.yaml")
 	plan.ExtractedServicePath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-service.yaml")
+	if len(effectiveSharedVolumeMounts(plan)) > 0 {
+		plan.SharedVolumeClaimPath = filepath.Join(manifestDir, plan.Deploy.ExtractedServiceName+"-shared-volumes.yaml")
+	}
 }

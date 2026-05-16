@@ -25,20 +25,22 @@ func RenderServer(plan *Plan) (map[string][]byte, error) {
 }
 
 type serverView struct {
-	Plan            *Plan
-	Imports         []importSpec
-	RequestFields   []fieldView
-	ResponseField   fieldView
-	StateFields     []fieldView
-	StateInitLines  []string
-	StateCloseLines []string
-	CallArgs        string
-	HasResult       bool
-	HasErrorResult  bool
-	LocalizedResult bool
-	PrimitiveResult bool
-	CutPackageAlias string
-	AdapterFunc     string
+	Plan                           *Plan
+	Imports                        []importSpec
+	RequestFields                  []fieldView
+	ResponseField                  fieldView
+	StateFields                    []fieldView
+	StateInitLines                 []string
+	StateCloseLines                []string
+	RequestValidationLines         []string
+	NeedsRootRelativePathValidator bool
+	CallArgs                       string
+	HasResult                      bool
+	HasErrorResult                 bool
+	LocalizedResult                bool
+	PrimitiveResult                bool
+	CutPackageAlias                string
+	AdapterFunc                    string
 
 	// Receiver support
 	HasReceiver         bool
@@ -113,8 +115,22 @@ func serverTemplateView(plan *Plan) serverView {
 		}
 		stateInitLines = append(stateInitLines, serverReconstructorInit(param)...)
 		if param.Reconstructor.CloseSource != "" {
-			closeSource := strings.ReplaceAll(param.Reconstructor.CloseSource, "db", strings.ToLower(param.Name)+"DB")
-			stateCloseLines = append(stateCloseLines, closeSource)
+			stateCloseLines = append(stateCloseLines, serverReconstructorCloseSource(param))
+		}
+	}
+	if receiverParam, ok := reconstructedReceiverParam(plan); ok {
+		stateFields = append(stateFields, fieldView{
+			Name:          exportedFieldName(receiverParam.Name),
+			OriginalName:  receiverParam.Name,
+			Type:          receiverParam.QualifiedGoType,
+			Reconstructor: receiverParam.Reconstructor,
+		})
+		for _, raw := range receiverParam.Reconstructor.Imports {
+			imports = append(imports, importSpecFromRaw(raw))
+		}
+		stateInitLines = append(stateInitLines, serverReconstructorInit(receiverParam)...)
+		if receiverParam.Reconstructor.CloseSource != "" {
+			stateCloseLines = append(stateCloseLines, serverReconstructorCloseSource(receiverParam))
 		}
 	}
 	// Separate non-error results from error results.
@@ -144,22 +160,30 @@ func serverTemplateView(plan *Plan) serverView {
 		}
 	}
 	baseCallArgs := strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", ")
+	requestValidationLines := rootRelativePathValidationLines(plan)
+	if len(requestValidationLines) > 0 {
+		imports = append(imports, importSpec{Path: "fmt"})
+		imports = append(imports, importSpec{Path: "path/filepath"})
+		imports = append(imports, importSpec{Path: "strings"})
+	}
 
 	view := serverView{
-		Plan:            plan,
-		Imports:         uniqueImports(imports),
-		RequestFields:   requestFields,
-		ResponseField:   response,
-		StateFields:     stateFields,
-		StateInitLines:  stateInitLines,
-		StateCloseLines: stateCloseLines,
-		CallArgs:        baseCallArgs,
-		HasResult:       hasNonErrorResult,
-		HasErrorResult:  hasErrorResult,
-		LocalizedResult: localized,
-		PrimitiveResult: primitive,
-		CutPackageAlias: plan.CutPoint.PackageName,
-		AdapterFunc:     adapterFuncName(plan.CutPoint.FuncName),
+		Plan:                           plan,
+		Imports:                        uniqueImports(imports),
+		RequestFields:                  requestFields,
+		ResponseField:                  response,
+		StateFields:                    stateFields,
+		StateInitLines:                 stateInitLines,
+		StateCloseLines:                stateCloseLines,
+		RequestValidationLines:         requestValidationLines,
+		NeedsRootRelativePathValidator: len(requestValidationLines) > 0,
+		CallArgs:                       baseCallArgs,
+		HasResult:                      hasNonErrorResult,
+		HasErrorResult:                 hasErrorResult,
+		LocalizedResult:                localized,
+		PrimitiveResult:                primitive,
+		CutPackageAlias:                plan.CutPoint.PackageName,
+		AdapterFunc:                    adapterFuncName(plan.CutPoint.FuncName),
 	}
 
 	// Receiver support: compute request field, construction, and call arg.
@@ -180,6 +204,8 @@ func serverTemplateView(plan *Plan) serverView {
 		case ReceiverFactory:
 			view.ReceiverConstruct = "recv := " + plan.CutPoint.PackageName + "." + plan.ReceiverParam.FactoryFunc + "(" + strings.Join(plan.ReceiverParam.FactoryArgs, ", ") + ")"
 			receiverCallArg = "recv"
+		case ReceiverReconstructed:
+			receiverCallArg = "state.Receiver"
 		case ReceiverZero:
 			if plan.ReceiverParam.IsPointer {
 				view.ReceiverConstruct = "recv := &" + qualifiedBase + "{}"
@@ -213,6 +239,13 @@ func planNeedsMinifluxConfigInit(plan *Plan) bool {
 
 func serverReconstructorInit(param ReconstructedParam) []string {
 	field := exportedFieldName(param.Name)
+	if len(param.Reconstructor.InitLines) > 0 || len(param.Reconstructor.StartupProbeLines) > 0 || len(param.Reconstructor.ConstructorLines) > 0 {
+		lines := make([]string, 0, len(param.Reconstructor.InitLines)+len(param.Reconstructor.StartupProbeLines)+len(param.Reconstructor.ConstructorLines))
+		lines = append(lines, renderReconstructorLines(field, param.Reconstructor.InitLines)...)
+		lines = append(lines, renderReconstructorLines(field, param.Reconstructor.StartupProbeLines)...)
+		lines = append(lines, renderReconstructorLines(field, param.Reconstructor.ConstructorLines)...)
+		return lines
+	}
 	dbVar := strings.ToLower(param.Name) + "DB"
 	switch param.Reconstructor.ID {
 	case "context_background":
@@ -243,6 +276,103 @@ func serverReconstructorInit(param ReconstructedParam) []string {
 	default:
 		return []string{"// missing reconstructor for " + param.Name}
 	}
+}
+
+func serverReconstructorCloseSource(param ReconstructedParam) string {
+	field := exportedFieldName(param.Name)
+	if strings.Contains(param.Reconstructor.CloseSource, "$") {
+		return renderReconstructorLine(field, param.Reconstructor.CloseSource)
+	}
+	return strings.ReplaceAll(param.Reconstructor.CloseSource, "db", strings.ToLower(param.Name)+"DB")
+}
+
+func renderReconstructorLines(field string, lines []string) []string {
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		out = append(out, renderReconstructorLine(field, line))
+	}
+	return out
+}
+
+func renderReconstructorLine(field, line string) string {
+	resourceVar := lowerIdentifier(field)
+	replacements := map[string]string{
+		"$STATE_FIELD":    field,
+		"$RESOURCE_VAR":   resourceVar,
+		"$ROOT_VAR":       resourceVar + "Root",
+		"$CLEAN_ROOT_VAR": resourceVar + "CleanRoot",
+		"$INFO_VAR":       resourceVar + "RootInfo",
+	}
+	for old, new := range replacements {
+		line = strings.ReplaceAll(line, old, new)
+	}
+	return line
+}
+
+func lowerIdentifier(name string) string {
+	if name == "" {
+		return "resource"
+	}
+	return strings.ToLower(name[:1]) + name[1:]
+}
+
+func rootRelativePathValidationLines(plan *Plan) []string {
+	suffixes := rootRelativePathSuffixes(plan)
+	if len(suffixes) == 0 {
+		return nil
+	}
+	var lines []string
+	seen := map[string]struct{}{}
+	for _, param := range plan.BoundaryParams {
+		if param.GoType != "string" && param.QualifiedGoType != "string" {
+			continue
+		}
+		if !matchesRootRelativePathSuffix(param, suffixes) {
+			continue
+		}
+		field := exportedFieldName(param.Name)
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		seen[field] = struct{}{}
+		lines = append(lines, `if err := monoliftValidateRootRelativePath("`+param.JSONName+`", req.`+field+`); err != nil { http.Error(w, err.Error(), http.StatusBadRequest); return }`)
+	}
+	return lines
+}
+
+func rootRelativePathSuffixes(plan *Plan) []string {
+	var suffixes []string
+	seen := map[string]struct{}{}
+	for _, reconstructor := range planReconstructors(plan) {
+		for _, suffix := range reconstructor.RootRelativePathSuffixes {
+			if suffix == "" {
+				continue
+			}
+			if _, ok := seen[suffix]; ok {
+				continue
+			}
+			seen[suffix] = struct{}{}
+			suffixes = append(suffixes, suffix)
+		}
+	}
+	return suffixes
+}
+
+func matchesRootRelativePathSuffix(param Param, suffixes []string) bool {
+	field := exportedFieldName(param.Name)
+	jsonSuffixes := make([]string, 0, len(suffixes))
+	for _, suffix := range suffixes {
+		jsonSuffixes = append(jsonSuffixes, strings.TrimPrefix(toSnake(suffix), "_"))
+		if strings.HasSuffix(param.Name, suffix) || strings.HasSuffix(field, suffix) {
+			return true
+		}
+	}
+	for _, suffix := range jsonSuffixes {
+		if param.JSONName == suffix || strings.HasSuffix(param.JSONName, "_"+suffix) {
+			return true
+		}
+	}
+	return false
 }
 
 func reconstructorConstructorPkg(param ReconstructedParam) string {
@@ -447,6 +577,27 @@ func NewHandler(state *serverState) http.Handler {
 	return mux
 }
 
+{{ if .NeedsRootRelativePathValidator }}
+func monoliftValidateRootRelativePath(name, value string) error {
+	if value == "" {
+		return fmt.Errorf("%s must be root-relative and non-empty", name)
+	}
+	if filepath.IsAbs(value) {
+		return fmt.Errorf("%s must be root-relative", name)
+	}
+	clean := filepath.Clean(value)
+	for _, part := range strings.Split(filepath.ToSlash(value), "/") {
+		if part == ".." {
+			return fmt.Errorf("%s must not contain .. traversal", name)
+		}
+	}
+	if clean == "." {
+		return fmt.Errorf("%s must not escape the durable root", name)
+	}
+	return nil
+}
+{{ end }}
+
 func invokeHandler(state *serverState) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -459,6 +610,9 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+{{- range .RequestValidationLines }}
+		{{ . }}
+{{- end }}
 {{- if .ReceiverConstruct }}
 		{{ .ReceiverConstruct }}
 {{- end }}

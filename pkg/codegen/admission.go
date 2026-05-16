@@ -56,14 +56,24 @@ func AdmitPlan(plan *Plan, base AdmissionVerdict) AdmissionVerdict {
 		}
 	}
 	// Receiver admission: when CutPoint declares a receiver, a policy must
-	// have been assigned.  If a policy was assigned, the receiver type must
-	// be JSON-serializable (no channels, io types, sync primitives, funcs).
+	// have been assigned. Boundary receivers are serialized, while factory and
+	// reconstructed receivers are rebuilt inside the extracted service.
 	if plan.CutPoint.Receiver != "" && plan.ReceiverParam == nil {
-		verdict = refused(verdict, "receiver_requires_reconstruction", "receiver type has no applicable policy (boundary/zero/factory)", plan.CutPoint.Receiver)
+		verdict = refused(verdict, "receiver_requires_reconstruction", "receiver type has no applicable policy (boundary/zero/factory/reconstructed)", plan.CutPoint.Receiver)
 	}
 	if plan.ReceiverParam != nil {
-		if !isSerializableReceiverType(plan.ReceiverParam.GoType) {
-			verdict = refused(verdict, "non_serializable_receiver", "receiver type cannot be serialized over HTTP/JSON", plan.ReceiverParam.GoType)
+		switch plan.ReceiverParam.Policy {
+		case ReceiverBoundary:
+			if !isSerializableReceiverType(plan.ReceiverParam.GoType) {
+				verdict = refused(verdict, "non_serializable_receiver", "receiver type cannot be serialized over HTTP/JSON", plan.ReceiverParam.GoType)
+			}
+		case ReceiverReconstructed:
+			if plan.ReceiverParam.Reconstructor.ID == "" {
+				verdict = refused(verdict, "missing_reconstructor", "reconstructed receiver has no registered reconstructor", plan.ReceiverParam.GoType)
+			}
+		case ReceiverFactory, ReceiverZero:
+		default:
+			verdict = refused(verdict, "receiver_requires_reconstruction", "receiver type has no applicable policy (boundary/zero/factory/reconstructed)", plan.ReceiverParam.GoType)
 		}
 	}
 	// Void-with-side-effects: refuse functions with no observable return.
@@ -127,6 +137,7 @@ func deployArtifactPaths(plan *Plan) []string {
 		plan.HostServicePath,
 		plan.ExtractedDeploymentPath,
 		plan.ExtractedServicePath,
+		plan.SharedVolumeClaimPath,
 	}
 }
 

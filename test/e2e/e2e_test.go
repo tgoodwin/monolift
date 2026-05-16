@@ -365,6 +365,19 @@ func applyActivationCompileResult(target *harness.TargetCase, compileResult harn
 	if err != nil {
 		return err
 	}
+	var infraManifests []string
+	for _, kind := range []string{"k8s_persistent_volume_claim"} {
+		path := artifactPath(manifest, kind, "")
+		if path == "" {
+			continue
+		}
+		rel, err := relArtifactPath(compileResult.ArtifactsDir, path)
+		if err != nil {
+			return err
+		}
+		infraManifests = append(infraManifests, rel)
+	}
+	target.LiftedInfrastructureManifests = infraManifests
 	target.LiftedHostBuild = &harness.HostBuildSpec{
 		Dockerfile:     hostDockerfile,
 		ContextRoot:    contextRoot,
@@ -461,6 +474,48 @@ func TestActivationLiftedManifestPhasesDeployHostBeforeExtracted(t *testing.T) {
 	got := liftedManifestPhases(target, liftedManifestPaths(target, artifactsDir))
 	want := [][]string{
 		{"test/e2e/fixtures/postgres.yaml"},
+		{
+			filepath.Join(artifactsDir, "lifted/host-deployment.yaml"),
+			filepath.Join(artifactsDir, "lifted/host-service.yaml"),
+		},
+		{
+			filepath.Join(artifactsDir, "lifted/extracted-deployment.yaml"),
+			filepath.Join(artifactsDir, "lifted/extracted-service.yaml"),
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("lifted manifest phases = %#v, want %#v", got, want)
+	}
+}
+
+func TestActivationLiftedManifestPhasesDeployGeneratedInfraBeforePods(t *testing.T) {
+	target := harness.TargetCase{
+		Name: "activation-pocketbase-createthumb",
+		BaselineManifests: []string{
+			"test/e2e/fixtures/pocketbase-config.yaml",
+			"test/e2e/targets/activation_pocketbase_createthumb/baseline/deployment.yaml",
+			"test/e2e/targets/activation_pocketbase_createthumb/baseline/service.yaml",
+		},
+		LiftedInfrastructureManifests: []string{
+			"monolift_gen/create-thumb/manifests/create-thumb-shared-volumes.yaml",
+		},
+		LiftedHostBuild: &harness.HostBuildSpec{
+			DeploymentYAML: "lifted/host-deployment.yaml",
+			ServiceYAML:    "lifted/host-service.yaml",
+		},
+		LiftedExtractedServices: []harness.ExtractedServiceSpec{{
+			DeploymentYAML: "lifted/extracted-deployment.yaml",
+			ServiceYAML:    "lifted/extracted-service.yaml",
+		}},
+		ActivationLift: &harness.ActivationLiftSpec{},
+	}
+	artifactsDir := "/tmp/monolift-artifacts"
+	got := liftedManifestPhases(target, liftedManifestPaths(target, artifactsDir))
+	want := [][]string{
+		{
+			"test/e2e/fixtures/pocketbase-config.yaml",
+			filepath.Join(artifactsDir, "monolift_gen/create-thumb/manifests/create-thumb-shared-volumes.yaml"),
+		},
 		{
 			filepath.Join(artifactsDir, "lifted/host-deployment.yaml"),
 			filepath.Join(artifactsDir, "lifted/host-service.yaml"),
@@ -1547,13 +1602,16 @@ func liftedManifestPaths(target harness.TargetCase, artifactsDir string) []strin
 		sort.Strings(liftedManifests)
 		return liftedManifests
 	}
-	paths := make([]string, 0, len(target.BaselineManifests)+2+len(target.LiftedExtractedServices)*2)
+	paths := make([]string, 0, len(target.BaselineManifests)+len(target.LiftedInfrastructureManifests)+2+len(target.LiftedExtractedServices)*2)
 	for _, manifest := range target.BaselineManifests {
 		base := filepath.Base(manifest)
 		if base == "deployment.yaml" || base == "service.yaml" {
 			continue
 		}
 		paths = append(paths, manifest)
+	}
+	for _, manifest := range target.LiftedInfrastructureManifests {
+		paths = append(paths, filepath.Join(artifactsDir, manifest))
 	}
 	spec := *target.LiftedHostBuild
 	paths = append(paths, filepath.Join(artifactsDir, spec.DeploymentYAML), filepath.Join(artifactsDir, spec.ServiceYAML))
@@ -1584,9 +1642,10 @@ func liftedManifestPhases(target harness.TargetCase, manifests []string) [][]str
 		}
 		infra = append(infra, manifest)
 	}
+	infra = append(infra, target.LiftedInfrastructureManifests...)
 	phases := make([][]string, 0, 2+len(target.LiftedExtractedServices))
 	if len(infra) > 0 {
-		phases = append(phases, infra)
+		phases = append(phases, manifests[:len(infra)])
 	}
 	phases = append(phases, manifests[len(infra):len(infra)+2])
 	offset := len(infra) + 2

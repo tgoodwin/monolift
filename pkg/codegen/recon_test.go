@@ -6,6 +6,14 @@ import (
 	"testing"
 )
 
+func pocketbaseFilesystemSystemType() *types.Named {
+	pkg := types.NewPackage("github.com/pocketbase/pocketbase/tools/filesystem", "filesystem")
+	tn := types.NewTypeName(0, pkg, "System", nil)
+	named := types.NewNamed(tn, types.NewStruct(nil, nil), nil)
+	pkg.Scope().Insert(tn)
+	return named
+}
+
 func TestReconstructionRegistryDirectTypes(t *testing.T) {
 	cases := []struct {
 		pkgPath string
@@ -118,4 +126,40 @@ func TestReconstructionRegistrySQLWrapper(t *testing.T) {
 	if len(recon.ConstructorArgOrder) != 1 || recon.ConstructorArgOrder[0] != "db" {
 		t.Fatalf("constructor arg order = %v, want [db]", recon.ConstructorArgOrder)
 	}
+}
+
+func TestReconstructionRegistryPocketBaseFilesystemSystem(t *testing.T) {
+	recon, ok := LookupReconstructor(types.NewPointer(pocketbaseFilesystemSystemType()))
+	if !ok {
+		t.Fatal("LookupReconstructor(*filesystem.System) = false")
+	}
+	if recon.ID != "pocketbase_local_filesystem" {
+		t.Fatalf("reconstructor ID = %s, want pocketbase_local_filesystem", recon.ID)
+	}
+	assertStringSliceContains(t, recon.Imports, "github.com/pocketbase/pocketbase/tools/filesystem")
+	if len(recon.InitLines) == 0 || len(recon.StartupProbeLines) == 0 || len(recon.ConstructorLines) == 0 {
+		t.Fatalf("filesystem reconstructor missing init/probe/constructor metadata: %+v", recon)
+	}
+	if recon.CloseSource != "state.$STATE_FIELD.Close()" {
+		t.Fatalf("CloseSource = %q", recon.CloseSource)
+	}
+	if len(recon.ExtractedEnvVars) != 1 || recon.ExtractedEnvVars[0].Name != "MONOLIFT_FILESYSTEM_ROOT" {
+		t.Fatalf("ExtractedEnvVars = %+v", recon.ExtractedEnvVars)
+	}
+	if len(recon.SharedVolumeMounts) != 1 || recon.SharedVolumeMounts[0].MountPath != "/monolift/durable" {
+		t.Fatalf("SharedVolumeMounts = %+v", recon.SharedVolumeMounts)
+	}
+	if len(recon.RootRelativePathSuffixes) != 1 || recon.RootRelativePathSuffixes[0] != "Key" {
+		t.Fatalf("RootRelativePathSuffixes = %+v", recon.RootRelativePathSuffixes)
+	}
+}
+
+func assertStringSliceContains(t *testing.T, got []string, want string) {
+	t.Helper()
+	for _, item := range got {
+		if item == want {
+			return
+		}
+	}
+	t.Fatalf("%v does not contain %q", got, want)
 }

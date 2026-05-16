@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"bytes"
+	"go/types"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -169,6 +170,80 @@ func directSQLDBServerPlan() *Plan {
 		},
 		ReturnCodec: ReturnCodec{Kind: CodecPrimitive, GoType: "string"},
 		ServerPath:  "/tmp/test/cmd/monolift-query/main.go",
+	}
+}
+
+func filesystemReceiverPlan() *Plan {
+	recon := filesystemSystemReconstructor(types.NewPointer(pocketbaseFilesystemSystemType()))
+	plan := &Plan{
+		ServiceName:      "create-thumb",
+		EnvServiceName:   "CREATE_THUMB",
+		SourceModuleRoot: "/tmp/source",
+		SourceModulePath: "github.com/pocketbase/pocketbase",
+		CutPoint: CutPoint{
+			PackagePath: "github.com/pocketbase/pocketbase/tools/filesystem",
+			PackageName: "filesystem",
+			FuncName:    "CreateThumb",
+			Receiver:    "*System",
+		},
+		ReceiverParam: &ReceiverSpec{
+			GoType:        "*System",
+			IsPointer:     true,
+			Policy:        ReceiverReconstructed,
+			Reconstructor: recon,
+		},
+		BoundaryParams: []Param{
+			{Name: "originalKey", JSONName: "original_key", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "thumbKey", JSONName: "thumb_key", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 1},
+			{Name: "thumbSize", JSONName: "thumb_size", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 2},
+		},
+		Results: []Result{
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 0},
+		},
+		ReturnCodec: ReturnCodec{Kind: CodecError, GoType: "error"},
+		ServerPath:  "/tmp/source/.monolift-create-thumb/cmd/create-thumb/main.go",
+	}
+	applyLiftOptions(plan, LiftOptions{Output: "/tmp/source/.monolift-create-thumb", ServiceName: "create-thumb"})
+	return plan
+}
+
+func TestRenderServerFilesystemReceiverGolden(t *testing.T) {
+	plan := filesystemReceiverPlan()
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ServerPath]
+	goldenPath := filepath.Join("testdata", "filesystem_receiver_server.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered server does not match %s\ngot:\n%s", goldenPath, got)
+	}
+	assertRenderedContains(t, got,
+		`Receiver    *filesystem.System`,
+		`receiverRoot := os.Getenv("MONOLIFT_FILESYSTEM_ROOT")`,
+		`if err := os.MkdirAll(receiverCleanRoot, 0o755); err != nil {`,
+		`receiverRootInfo, err := os.Stat(receiverCleanRoot)`,
+		`receiver, err := filesystem.NewLocal(receiverCleanRoot)`,
+		`state.Receiver = receiver`,
+		`state.closeFuncs = append(state.closeFuncs, func() error { return state.Receiver.Close() })`,
+		`monoliftValidateRootRelativePath("original_key", req.OriginalKey)`,
+		`monoliftValidateRootRelativePath("thumb_key", req.ThumbKey)`,
+		`resultErr := filesystem.MonoliftInvokeCreateThumb(state.Receiver, req.OriginalKey, req.ThumbKey, req.ThumbSize)`,
+	)
+	if bytes.Contains(got, []byte(`monoliftValidateRootRelativePath("thumb_size"`)) {
+		t.Fatalf("thumb_size should not be root-relative validated:\n%s", got)
 	}
 }
 

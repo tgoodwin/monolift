@@ -24,6 +24,20 @@ func LookupReconstructor(typ types.Type) (Reconstructor, bool) {
 	return Reconstructor{}, false
 }
 
+func hasKnownReceiverReconstructor(pkgPath, typeName string) bool {
+	_, ok := receiverReconstructorID(pkgPath, typeName)
+	return ok
+}
+
+func receiverReconstructorID(pkgPath, typeName string) (string, bool) {
+	switch pkgPath + "." + typeName {
+	case "github.com/pocketbase/pocketbase/tools/filesystem.System":
+		return "pocketbase_local_filesystem", true
+	default:
+		return "", false
+	}
+}
+
 func directReconstructor(typ types.Type) (Reconstructor, bool) {
 	named := namedType(typ)
 	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
@@ -52,8 +66,46 @@ func directReconstructor(typ types.Type) (Reconstructor, bool) {
 			Type:    typeString(typ, ""),
 			Imports: []string{"log", "os"},
 		}, true
+	case pointer && pkgPath == "github.com/pocketbase/pocketbase/tools/filesystem" && typeName == "System":
+		return filesystemSystemReconstructor(typ), true
 	default:
 		return Reconstructor{}, false
+	}
+}
+
+func filesystemSystemReconstructor(typ types.Type) Reconstructor {
+	return Reconstructor{
+		ID:      "pocketbase_local_filesystem",
+		Type:    typeString(typ, ""),
+		Imports: []string{"fmt", "os", "path/filepath", "github.com/pocketbase/pocketbase/tools/filesystem"},
+		InitLines: []string{
+			`$ROOT_VAR := os.Getenv("MONOLIFT_FILESYSTEM_ROOT")`,
+			`if $ROOT_VAR == "" { return nil, fmt.Errorf("MONOLIFT_FILESYSTEM_ROOT is required") }`,
+			`$CLEAN_ROOT_VAR, err := filepath.Abs($ROOT_VAR)`,
+			`if err != nil { return nil, err }`,
+		},
+		StartupProbeLines: []string{
+			`if err := os.MkdirAll($CLEAN_ROOT_VAR, 0o755); err != nil { return nil, err }`,
+			`$INFO_VAR, err := os.Stat($CLEAN_ROOT_VAR)`,
+			`if err != nil { return nil, err }`,
+			`if !$INFO_VAR.IsDir() { return nil, fmt.Errorf("MONOLIFT_FILESYSTEM_ROOT %s is not a directory", $CLEAN_ROOT_VAR) }`,
+		},
+		ConstructorLines: []string{
+			`$RESOURCE_VAR, err := filesystem.NewLocal($CLEAN_ROOT_VAR)`,
+			`if err != nil { return nil, err }`,
+			`state.$STATE_FIELD = $RESOURCE_VAR`,
+		},
+		CloseSource: "state.$STATE_FIELD.Close()",
+		ExtractedEnvVars: []EnvVar{
+			{Name: "MONOLIFT_FILESYSTEM_ROOT", Value: "/monolift/durable"},
+		},
+		SharedVolumeMounts: []SharedVolumeMount{{
+			Name:           "monolift-durable-root",
+			ClaimName:      "${SERVICE}-durable-root",
+			MountPath:      "/monolift/durable",
+			StorageRequest: "1Gi",
+		}},
+		RootRelativePathSuffixes: []string{"Key"},
 	}
 }
 
@@ -133,4 +185,41 @@ func sqlWrapperReconstructor(typ types.Type) (Reconstructor, bool) {
 		}
 	}
 	return Reconstructor{}, false
+}
+
+func planReconstructors(plan *Plan) []Reconstructor {
+	if plan == nil {
+		return nil
+	}
+	reconstructors := make([]Reconstructor, 0, len(plan.ReconstructedParams)+1)
+	for _, param := range plan.ReconstructedParams {
+		if param.Reconstructor.ID != "" {
+			reconstructors = append(reconstructors, param.Reconstructor)
+		}
+	}
+	if plan.ReceiverParam != nil && plan.ReceiverParam.Policy == ReceiverReconstructed && plan.ReceiverParam.Reconstructor.ID != "" {
+		reconstructors = append(reconstructors, plan.ReceiverParam.Reconstructor)
+	}
+	return reconstructors
+}
+
+func reconstructedReceiverParam(plan *Plan) (ReconstructedParam, bool) {
+	if plan == nil || plan.ReceiverParam == nil || plan.ReceiverParam.Policy != ReceiverReconstructed {
+		return ReconstructedParam{}, false
+	}
+	baseType := strings.TrimPrefix(plan.ReceiverParam.GoType, "*")
+	qualified := plan.CutPoint.PackageName + "." + baseType
+	if plan.ReceiverParam.IsPointer {
+		qualified = "*" + qualified
+	}
+	return ReconstructedParam{
+		Param: Param{
+			Name:             "receiver",
+			GoType:           plan.ReceiverParam.GoType,
+			QualifiedGoType:  qualified,
+			TypePackagePath:  plan.CutPoint.PackagePath,
+			TypePackageAlias: plan.CutPoint.PackageName,
+		},
+		Reconstructor: plan.ReceiverParam.Reconstructor,
+	}, true
 }

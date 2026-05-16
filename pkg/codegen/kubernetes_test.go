@@ -146,6 +146,65 @@ func TestExtractedDeploymentOmitsEnvBlockWithoutSQLReconstructor(t *testing.T) {
 	}
 }
 
+func TestRenderKubernetesFilesystemReconstructorSharedRoot(t *testing.T) {
+	plan := filesystemReceiverPlan()
+	files, err := RenderKubernetes(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.SharedVolumeClaimPath == "" {
+		t.Fatal("SharedVolumeClaimPath is empty")
+	}
+	if _, ok := files[plan.SharedVolumeClaimPath]; !ok {
+		t.Fatalf("missing shared volume claim artifact %s", plan.SharedVolumeClaimPath)
+	}
+
+	extractedDeployment := parseKubernetesDoc(t, files[plan.ExtractedDeploymentPath])
+	extractedContainer := extractedDeployment.Spec.Template.Spec.Containers[0]
+	env := envMap(extractedContainer.Env)
+	if got, want := env["MONOLIFT_FILESYSTEM_ROOT"], "/monolift/durable"; got != want {
+		t.Fatalf("MONOLIFT_FILESYSTEM_ROOT = %q, want %q; env=%+v", got, want, env)
+	}
+	if !hasVolumeMount(extractedContainer.VolumeMounts, "monolift-durable-root", "/monolift/durable") {
+		t.Fatalf("extracted volumeMounts = %+v", extractedContainer.VolumeMounts)
+	}
+	if !hasPVCVolume(extractedDeployment.Spec.Template.Spec.Volumes, "monolift-durable-root", "create-thumb-durable-root") {
+		t.Fatalf("extracted volumes = %+v", extractedDeployment.Spec.Template.Spec.Volumes)
+	}
+
+	hostDeployment := parseKubernetesDoc(t, files[plan.HostDeploymentPath])
+	hostContainer := hostDeployment.Spec.Template.Spec.Containers[0]
+	if !hasVolumeMount(hostContainer.VolumeMounts, "monolift-durable-root", "/monolift/durable") {
+		t.Fatalf("host volumeMounts = %+v", hostContainer.VolumeMounts)
+	}
+	if !hasPVCVolume(hostDeployment.Spec.Template.Spec.Volumes, "monolift-durable-root", "create-thumb-durable-root") {
+		t.Fatalf("host volumes = %+v", hostDeployment.Spec.Template.Spec.Volumes)
+	}
+
+	claim := parseKubernetesDoc(t, files[plan.SharedVolumeClaimPath])
+	if claim.Kind != "PersistentVolumeClaim" || claim.Metadata.Name != "create-thumb-durable-root" {
+		t.Fatalf("claim = %+v", claim)
+	}
+}
+
+func hasVolumeMount(mounts []volumeMountDoc, name, path string) bool {
+	for _, mount := range mounts {
+		if mount.Name == name && mount.MountPath == path {
+			return true
+		}
+	}
+	return false
+}
+
+func hasPVCVolume(volumes []volumeDoc, name, claimName string) bool {
+	for _, volume := range volumes {
+		if volume.Name == name && volume.PersistentVolumeClaim.ClaimName == claimName {
+			return true
+		}
+	}
+	return false
+}
+
 func sqlDeployPlan() *Plan {
 	plan := &Plan{
 		ServiceName:      "query",
@@ -208,6 +267,7 @@ type kubernetesDoc struct {
 			} `yaml:"metadata"`
 			Spec struct {
 				Containers []containerDoc `yaml:"containers"`
+				Volumes    []volumeDoc    `yaml:"volumes"`
 			} `yaml:"spec"`
 		} `yaml:"template"`
 		Ports []servicePortDoc `yaml:"ports"`
@@ -221,6 +281,7 @@ type containerDoc struct {
 	Ports           []containerPortDoc `yaml:"ports"`
 	ReadinessProbe  readinessProbeDoc  `yaml:"readinessProbe"`
 	Env             []envDoc           `yaml:"env"`
+	VolumeMounts    []volumeMountDoc   `yaml:"volumeMounts"`
 }
 
 type containerPortDoc struct {
@@ -245,6 +306,18 @@ type readinessProbeDoc struct {
 type envDoc struct {
 	Name  string `yaml:"name"`
 	Value string `yaml:"value"`
+}
+
+type volumeMountDoc struct {
+	Name      string `yaml:"name"`
+	MountPath string `yaml:"mountPath"`
+}
+
+type volumeDoc struct {
+	Name                  string `yaml:"name"`
+	PersistentVolumeClaim struct {
+		ClaimName string `yaml:"claimName"`
+	} `yaml:"persistentVolumeClaim"`
 }
 
 func parseKubernetesDoc(t *testing.T, data []byte) kubernetesDoc {

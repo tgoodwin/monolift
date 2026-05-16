@@ -38,32 +38,35 @@ type Plan struct {
 	HostServicePath         string
 	ExtractedDeploymentPath string
 	ExtractedServicePath    string
+	SharedVolumeClaimPath   string
 
 	Admission AdmissionVerdict
 }
 
 type DeployOptions struct {
-	HostImage            string
-	ExtractedImage       string
-	HostServiceName      string
-	ExtractedServiceName string
-	HostPort             int
-	ExtractedPort        int
-	HostReadinessPath    string
-	HostBuildPackage     string
-	HostBinaryName       string
-	HostBuildCommand     string
-	HostRuntimeImage     string
-	HostRuntimeSetup     []string
-	HostArgs             []string
-	HostEnvVars          []EnvVar
-	ExtractedEnvVars     []EnvVar
-	HostAssetCopies      []AssetCopy
-	HostVolumeMounts     []VolumeMount
-	HostConfigMapVolumes []ConfigMapVolume
-	HostEmptyDirVolumes  []string
-	HostRunAsUser        int64
-	ImagePullPolicy      string
+	HostImage             string
+	ExtractedImage        string
+	HostServiceName       string
+	ExtractedServiceName  string
+	HostPort              int
+	ExtractedPort         int
+	HostReadinessPath     string
+	HostBuildPackage      string
+	HostBinaryName        string
+	HostBuildCommand      string
+	HostRuntimeImage      string
+	HostRuntimeSetup      []string
+	HostArgs              []string
+	HostEnvVars           []EnvVar
+	ExtractedEnvVars      []EnvVar
+	HostAssetCopies       []AssetCopy
+	HostVolumeMounts      []VolumeMount
+	ExtractedVolumeMounts []VolumeMount
+	HostConfigMapVolumes  []ConfigMapVolume
+	HostEmptyDirVolumes   []string
+	SharedVolumeMounts    []SharedVolumeMount
+	HostRunAsUser         int64
+	ImagePullPolicy       string
 }
 
 type EnvVar struct {
@@ -84,6 +87,13 @@ type VolumeMount struct {
 type ConfigMapVolume struct {
 	Name          string
 	ConfigMapName string
+}
+
+type SharedVolumeMount struct {
+	Name           string
+	ClaimName      string
+	MountPath      string
+	StorageRequest string
 }
 
 type CutPoint struct {
@@ -142,18 +152,20 @@ type Result struct {
 type ReceiverPolicy string
 
 const (
-	ReceiverBoundary ReceiverPolicy = "receiver_boundary"
-	ReceiverZero     ReceiverPolicy = "receiver_zero"
-	ReceiverFactory  ReceiverPolicy = "receiver_factory"
+	ReceiverBoundary      ReceiverPolicy = "receiver_boundary"
+	ReceiverZero          ReceiverPolicy = "receiver_zero"
+	ReceiverFactory       ReceiverPolicy = "receiver_factory"
+	ReceiverReconstructed ReceiverPolicy = "receiver_reconstructed"
 )
 
 type ReceiverSpec struct {
-	GoType      string
-	IsPointer   bool
-	Policy      ReceiverPolicy
-	FactoryFunc string
-	FactoryArgs []string
-	Codec       Codec
+	GoType        string
+	IsPointer     bool
+	Policy        ReceiverPolicy
+	FactoryFunc   string
+	FactoryArgs   []string
+	Codec         Codec
+	Reconstructor Reconstructor
 }
 
 type Codec string
@@ -173,16 +185,22 @@ type ReturnCodec struct {
 }
 
 type Reconstructor struct {
-	ID                      string
-	Type                    string
-	Imports                 []string
-	ConstructorPkg          string
-	ConstructorFunc         string
-	ConstructorArgOrder     []string
-	ConstructorPackagePath  string
-	ConstructorPackageAlias string
-	ConstructorName         string
-	CloseSource             string
+	ID                       string
+	Type                     string
+	Imports                  []string
+	ConstructorPkg           string
+	ConstructorFunc          string
+	ConstructorArgOrder      []string
+	ConstructorPackagePath   string
+	ConstructorPackageAlias  string
+	ConstructorName          string
+	InitLines                []string
+	StartupProbeLines        []string
+	ConstructorLines         []string
+	CloseSource              string
+	ExtractedEnvVars         []EnvVar
+	SharedVolumeMounts       []SharedVolumeMount
+	RootRelativePathSuffixes []string
 }
 
 type Artifact struct {

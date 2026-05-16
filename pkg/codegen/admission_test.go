@@ -113,6 +113,47 @@ func TestAdmitPlanRefusesSqlDBReceiver(t *testing.T) {
 	}
 }
 
+func TestAdmitPlanAcceptsReconstructedFilesystemReceiver(t *testing.T) {
+	plan := filesystemReceiverPlan()
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("verdict refused reconstructed filesystem receiver: %s", verdict.Error())
+	}
+}
+
+func TestAdmitPlanRefusesReconstructedReceiverMissingMetadata(t *testing.T) {
+	plan := filesystemReceiverPlan()
+	plan.ReceiverParam.Reconstructor = Reconstructor{}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("verdict accepted reconstructed receiver without metadata")
+	}
+	found := false
+	for _, refusal := range verdict.Refusals {
+		if refusal.Code == "missing_reconstructor" && refusal.Type == "*System" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("missing metadata refusal not found: %s", verdict.Error())
+	}
+}
+
+func TestPreflightReceiverAdmissionAllowsKnownFilesystemReconstructor(t *testing.T) {
+	candidate := activation.CutCandidate{
+		NodeKey: activation.FunctionKey{
+			PackagePath: "github.com/pocketbase/pocketbase/tools/filesystem",
+			Receiver:    "*System",
+			FuncName:    "CreateThumb",
+		},
+		State: activation.ClientReconstructible,
+	}
+	verdict, refused := preflightReceiverAdmission(AdmissionVerdict{Accepted: true}, candidate)
+	if refused || !verdict.Accepted {
+		t.Fatalf("preflight refused known filesystem reconstructor: refused=%v verdict=%s", refused, verdict.Error())
+	}
+}
+
 // 2G.6: Admit (string, error) result
 func TestAdmitPlanAcceptsStringErrorResult(t *testing.T) {
 	plan := &Plan{

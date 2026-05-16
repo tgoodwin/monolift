@@ -135,6 +135,9 @@ func preflightReceiverAdmission(base AdmissionVerdict, candidate activation.CutC
 	if _, ok := receiverFactoryRegistry[candidate.NodeKey.PackagePath+"."+receiver]; ok {
 		return base, false
 	}
+	if hasKnownReceiverReconstructor(candidate.NodeKey.PackagePath, receiver) {
+		return base, false
+	}
 	switch candidate.State {
 	case activation.Stateless, activation.ConfigOnly:
 		return base, false

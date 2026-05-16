@@ -70,6 +70,19 @@ func selectReceiverPolicy(named *types.Named, isPointer bool, stateClass activat
 		}, nil
 	}
 
+	receiverType := types.Type(named)
+	if isPointer {
+		receiverType = types.NewPointer(named)
+	}
+	if reconstructor, ok := LookupReconstructor(receiverType); ok {
+		return &ReceiverSpec{
+			GoType:        goType,
+			IsPointer:     isPointer,
+			Policy:        ReceiverReconstructed,
+			Reconstructor: reconstructor,
+		}, nil
+	}
+
 	// For boundary and zero policies, require Stateless or ConfigOnly state class.
 	// ConfigOnly receivers hold immutable configuration data that is safe to serialize.
 	if stateClass != activation.Stateless && stateClass != activation.ConfigOnly {

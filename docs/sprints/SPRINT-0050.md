@@ -122,14 +122,14 @@ Default target: `activation-miniflux-refreshfeed` unless Phase 0 chooses a bette
 Default target: `pocketbase/M-1` `(*filesystem.System).CreateThumb` if Phase 0 confirms the intended cut. Fallback: `pocketbase/M-4` `archive.Create`.
 
 - [x] 3.1: Document the selected filesystem/object-store reconstructor family in `docs/decisions/` or the project’s current decision-log location.
-- [ ] 3.2: Extend reconstructor metadata so a state reconstructor can declare generated imports, init code, close code, extracted env vars, startup probes, and required mounts from one registry entry.
-- [ ] 3.3: Implement the minimal local filesystem/root reconstructor for the selected target. For PocketBase `*filesystem.System`, render `filesystem.NewLocal(root)` and close the handle during shutdown.
-- [ ] 3.4: Use an explicit env var for the durable root and reject unsafe absolute paths or `..` traversal when payload paths are meant to be root-relative.
-- [ ] 3.5: Add deployment support for a shared durable root between host and extracted service. Do not use per-pod `emptyDir` for data that both pods must see.
-- [ ] 3.6: Add a startup probe or init check that distinguishes rendered code from usable state, such as statting the durable root or probing a bucket.
-- [ ] 3.7: Add unit and golden tests for reconstructor detection, constructor metadata, init/probe/close rendering, selected env propagation, and mount propagation.
-- [ ] 3.8: Add admission tests proving the selected reconstructed parameter admits, and that missing reconstructor metadata refuses with a clear reason.
-- [ ] 3.9: Bump `GeneratorVersion` to `SPRINT-0050` with the first codegen output, reconstructor, or generated deployment-shape change, and update goldens in the same patch.
+- [x] 3.2: Extend reconstructor metadata so a state reconstructor can declare generated imports, init code, close code, extracted env vars, startup probes, and required mounts from one registry entry.
+- [x] 3.3: Implement the minimal local filesystem/root reconstructor for the selected target. For PocketBase `*filesystem.System`, render `filesystem.NewLocal(root)` and close the handle during shutdown.
+- [x] 3.4: Use an explicit env var for the durable root and reject unsafe absolute paths or `..` traversal when payload paths are meant to be root-relative.
+- [x] 3.5: Add deployment support for a shared durable root between host and extracted service. Do not use per-pod `emptyDir` for data that both pods must see.
+- [x] 3.6: Add a startup probe or init check that distinguishes rendered code from usable state, such as statting the durable root or probing a bucket.
+- [x] 3.7: Add unit and golden tests for reconstructor detection, constructor metadata, init/probe/close rendering, selected env propagation, and mount propagation.
+- [x] 3.8: Add admission tests proving the selected reconstructed parameter admits, and that missing reconstructor metadata refuses with a clear reason.
+- [x] 3.9: Bump `GeneratorVersion` to `SPRINT-0050` with the first codegen output, reconstructor, or generated deployment-shape change, and update goldens in the same patch.
 
 ## Phase 4: Filesystem/Object-Store Target
 
