@@ -157,7 +157,7 @@ Only one stretch target should be promoted after the primary DB and filesystem p
 
 ## Phase 6: Verification and Closeout
 
-- [ ] 6.1: Run `go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...` on CloudLab and store logs under `.moab/runs/sprint-0050-closeout/`.
+- [x] 6.1: Run `go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...` on CloudLab and store logs under `.moab/runs/sprint-0050-closeout/`.
 - [ ] 6.2: Run focused e2e for each touched target as one exact `go test -run '^TestE2E/<target>$'` process.
 - [ ] 6.3: After any Phase 1 direct-invoke or oracle-policy change, run regression e2e for adjacent SPRINT-0049 targets likely to be affected, including `activation-pocketbase-passwordvalidate` and `activation-mattermost-pbkdf2hash` if applicable.
 - [ ] 6.4: Run a final admission-only corpus sweep on CloudLab and store artifacts under `.moab/runs/sprint-0050-admission-final/`.

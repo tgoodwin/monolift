@@ -38,6 +38,18 @@ func receiverReconstructorID(pkgPath, typeName string) (string, bool) {
 	}
 }
 
+type sqlWrapperEntry struct {
+	ConstructorFunc     string
+	ConstructorArgOrder []string
+}
+
+var sqlWrapperRegistry = map[string]sqlWrapperEntry{
+	"miniflux.app/v2/internal/storage.Storage": {
+		ConstructorFunc:     "NewStorage",
+		ConstructorArgOrder: []string{"db"},
+	},
+}
+
 func directReconstructor(typ types.Type) (Reconstructor, bool) {
 	named := namedType(typ)
 	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
@@ -155,6 +167,12 @@ func sqlWrapperReconstructor(typ types.Type) (Reconstructor, bool) {
 	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
 		return Reconstructor{}, false
 	}
+	pkgPath := named.Obj().Pkg().Path()
+	typeName := named.Obj().Name()
+	entry, ok := sqlWrapperRegistry[pkgPath+"."+typeName]
+	if !ok || entry.ConstructorFunc == "" {
+		return Reconstructor{}, false
+	}
 	strct, ok := types.Unalias(named.Underlying()).(*types.Struct)
 	if !ok {
 		return Reconstructor{}, false
@@ -166,17 +184,19 @@ func sqlWrapperReconstructor(typ types.Type) (Reconstructor, bool) {
 			continue
 		}
 		if fieldNamed.Obj().Pkg().Path() == "database/sql" && fieldNamed.Obj().Name() == "DB" {
-			pkgPath := named.Obj().Pkg().Path()
-			typeName := named.Obj().Name()
 			constructorPkg := packageAlias(pkgPath)
-			constructorFunc := "New" + typeName
+			constructorFunc := entry.ConstructorFunc
+			constructorArgOrder := append([]string(nil), entry.ConstructorArgOrder...)
+			if len(constructorArgOrder) == 0 {
+				constructorArgOrder = []string{"db"}
+			}
 			return Reconstructor{
 				ID:                      "sql_db_wrapper",
 				Type:                    typeString(typ, ""),
 				Imports:                 []string{"context", "database/sql", "os", "_ github.com/lib/pq", pkgPath},
 				ConstructorPkg:          constructorPkg,
 				ConstructorFunc:         constructorFunc,
-				ConstructorArgOrder:     []string{"db"},
+				ConstructorArgOrder:     constructorArgOrder,
 				ConstructorPackagePath:  pkgPath,
 				ConstructorPackageAlias: constructorPkg,
 				ConstructorName:         constructorFunc,
