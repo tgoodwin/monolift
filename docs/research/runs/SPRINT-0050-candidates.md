@@ -62,12 +62,25 @@ reported:
 | timeout-skip | 0 |
 | build/e2e/infra | 0 |
 
+Final admission-only closeout on 2026-05-17:
+`.moab/runs/sprint-0050-admission-final/20260516-220613/summary.md`
+reported:
+
+| Status | Count |
+|---|---:|
+| pass | 8 |
+| admission-skip | 12 |
+| manifest-skip | 52 |
+| timeout-skip | 0 |
+| build/e2e/infra | 0 |
+
 Rows needing reconciliation:
 
 | Trace | Manifest / prior evidence | SPRINT-0050 ruling |
 |---|---|---|
-| `pocketbase/M-3` | SPRINT-0049 coverage says focused e2e reached stage 10; manifest still says `e2e-retry`. | Manifest drift. Keep as regression after harness/oracle changes; do not count as new persistence graduation. |
-| `miniflux/M-6` | SPRINT-0049 baseline said admission-only pass and e2e stage 7; current manifest says admission-skip because the pipeline resolves the cut at caller `RefreshFeed`, not `ParseFeed`. | Manifest drift plus target-line mismatch. Do not count as a separate persistence proof. |
+| `gitea/M-9` | Phase 5 source-local result reached stage 5. | Reconciled to focused stage-7 pass for generated deployment readiness. Stage 8+ RPM behavior remains deferred. |
+| `pocketbase/M-3` | SPRINT-0049 coverage says focused e2e reached stage 10; manifest still says `e2e-retry`. | Reconciled to pass after 6.3 regression. Do not count as new persistence graduation. |
+| `miniflux/M-6` | SPRINT-0049 baseline said admission-only pass and e2e stage 7; manifest said admission-skip. | Reconciled to admission-only pass. Final detail log admits `ParseFeed` with two boundary params and two results, but there is still no focused e2e target, so do not count as a separate persistence proof. |
 | `miniflux/M-5` | Manifest says pass/stage 4, but the generated cut is parent `RefreshFeed`. | Parent-cut-only. Do not count as icon/file leaf proof. |
 | `gitea/M-16` | SPRINT-0049 focused e2e required `GITEA__security__PASSWORD_HASH_ALGO=argon2` to exercise the lifted symbol. | Workload-fitness metadata must include required config/env. |
 

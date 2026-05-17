@@ -158,13 +158,18 @@ Only one stretch target should be promoted after the primary DB and filesystem p
 ## Phase 6: Verification and Closeout
 
 - [x] 6.1: Run `go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...` on CloudLab and store logs under `.moab/runs/sprint-0050-closeout/`.
-- [ ] 6.2: Run focused e2e for each touched target as one exact `go test -run '^TestE2E/<target>$'` process.
-- [ ] 6.3: After any Phase 1 direct-invoke or oracle-policy change, run regression e2e for adjacent SPRINT-0049 targets likely to be affected, including `activation-pocketbase-passwordvalidate` and `activation-mattermost-pbkdf2hash` if applicable.
-- [ ] 6.4: Run a final admission-only corpus sweep on CloudLab and store artifacts under `.moab/runs/sprint-0050-admission-final/`.
-- [ ] 6.5: Verify dormant invariants for every persistence target: resource env vars present, `MONOLIFT_LIFT_*` absent from extracted deployment, env-off records no extracted-service calls.
-- [ ] 6.6: Update `test/e2e/activation_corpus_traces.yaml` for every touched row with accurate status, selected cut, stage reached, proof kind, and skip/refusal reason.
-- [ ] 6.7: Write `docs/research/runs/SPRINT-0050-coverage-report.md` with before/after counts, per-target stage results, reconstructor families added, stage-ladder decisions, manifest deltas, residual blockers, and next-sprint backlog.
-- [ ] 6.8: Confirm `GeneratorVersion` and codegen goldens are consistent if generated output changed.
+- [x] 6.2: Run focused e2e for each touched target as one exact `go test -run '^TestE2E/<target>$'` process.
+- [x] 6.2a: Run focused e2e for `activation-gitea-rpmrepo`.
+- [x] 6.2b: Run focused e2e for `activation-pocketbase-createthumb`.
+- [x] 6.2c: Run focused e2e for `activation-miniflux-refreshfeed`.
+- [x] 6.3: After any Phase 1 direct-invoke or oracle-policy change, run regression e2e for adjacent SPRINT-0049 targets likely to be affected, including `activation-pocketbase-passwordvalidate` and `activation-mattermost-pbkdf2hash` if applicable.
+- [x] 6.3a: Run regression e2e for `activation-pocketbase-passwordvalidate`.
+- [x] 6.3b: Run regression e2e for `activation-mattermost-pbkdf2hash`.
+- [x] 6.4: Run a final admission-only corpus sweep on CloudLab and store artifacts under `.moab/runs/sprint-0050-admission-final/`.
+- [x] 6.5: Verify dormant invariants for every persistence target: resource env vars present, `MONOLIFT_LIFT_*` absent from extracted deployment, env-off records no extracted-service calls.
+- [x] 6.6: Update `test/e2e/activation_corpus_traces.yaml` for every touched row with accurate status, selected cut, stage reached, proof kind, and skip/refusal reason.
+- [x] 6.7: Write `docs/research/runs/SPRINT-0050-coverage-report.md` with before/after counts, per-target stage results, reconstructor families added, stage-ladder decisions, manifest deltas, residual blockers, and next-sprint backlog.
+- [x] 6.8: Confirm `GeneratorVersion` and codegen goldens are consistent if generated output changed.
 
 ## Remote Test Discipline
 
@@ -181,21 +186,21 @@ Only one stretch target should be promoted after the primary DB and filesystem p
 
 Minimum:
 
-- [ ] `docs/research/runs/SPRINT-0050-stage-binding.md` exists and records explicit rulings for direct-invoke result shapes, parent-over-leaf admission, and workload fitness.
-- [ ] `docs/research/runs/SPRINT-0050-candidates.md` exists and justifies selected and declined candidates.
-- [ ] At least one DB/SQL corpus trace is pushed toward stage 10; if it cannot reach stage 10, the exact binding stage and reason are documented against the stage-binding doc.
-- [ ] At least one new filesystem/object-store reconstructor lands with tests and decision-log context.
+- [x] `docs/research/runs/SPRINT-0050-stage-binding.md` exists and records explicit rulings for direct-invoke result shapes, parent-over-leaf admission, and workload fitness.
+- [x] `docs/research/runs/SPRINT-0050-candidates.md` exists and justifies selected and declined candidates.
+- [x] At least one DB/SQL corpus trace is pushed toward stage 10; if it cannot reach stage 10, the exact binding stage and reason are documented against the stage-binding doc.
+- [x] At least one new filesystem/object-store reconstructor lands with tests and decision-log context.
 - [x] At least one filesystem/object-store corpus trace reaches stage 7 with a real reconstructed durable root.
 - [x] No target is counted as a persistence proof unless the selected cut actually exercises the intended durable resource.
 - [x] CloudLab verification logs are stored under `.moab/runs/sprint-0050-*`.
-- [ ] No full e2e sweep or bundled e2e regex is run.
+- [x] No full e2e sweep or bundled e2e regex is run.
 
 Target:
 
-- [ ] `miniflux/M-1` reaches stage 10 with workload evidence, env-off/fail-mode checks, dormant invariant, and transcript compare or declared substitute.
+- [x] `miniflux/M-1` reaches stage 10 with workload evidence, env-off/fail-mode checks, dormant invariant, and transcript compare or declared substitute.
 - [x] The filesystem/object-store primary reaches stage 7 or later with shared durable root proof and path-safety coverage.
 - [x] One stretch candidate reaches stage 4 or later without violating scope.
-- [ ] Manifest drift from SPRINT-0049 is reconciled.
+- [x] Manifest drift from SPRINT-0049 is reconciled.
 
 Stretch:
 

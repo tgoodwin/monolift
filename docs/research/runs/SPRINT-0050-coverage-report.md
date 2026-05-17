@@ -99,3 +99,72 @@ Deferred stretch candidates:
 - Mattermost filestore work remains deferred. The image path is rooted in
   `channels/app` upload state, and the remote-cluster path needs queue/channel
   dispatch plus generic HTTP-client behavior.
+
+## Phase 6 Verification
+
+Package-level verification:
+
+- Initial Phase 6.1 run:
+  `.moab/runs/sprint-0050-closeout/phase6-1-pkg-tests-20260516-210222.log`
+  failed `TestSelectReceiverPolicyRefusedDBField`.
+- Fix: `sql_db_wrapper` reconstruction now requires explicit constructor
+  metadata in `sqlWrapperRegistry`; arbitrary structs containing `*sql.DB` no
+  longer invent `New<Type>` constructors.
+- Focused fix check:
+  `.moab/runs/sprint-0050-closeout/phase6-1-codegen-sqlwrapper-fix-20260516-211016.log`
+  passed `TestSelectReceiverPolicyRefusedDBField`,
+  `TestReconstructionRegistrySQLWrapper`, and
+  `TestRefreshFeedCodegenCompilesWithStateReconstruction`.
+- Rerun Phase 6.1 package set passed:
+  `.moab/runs/sprint-0050-closeout/phase6-1-pkg-tests-rerun-20260516-211042.log`
+
+Focused e2e closeout:
+
+- `activation-gitea-rpmrepo` passed stage 7 in 15.8m:
+  `.moab/runs/sprint-0050-closeout/phase6-2a-gitea-rpmrepo-20260516-211821.log`
+- `activation-pocketbase-createthumb` passed stage 10 in 4.5m:
+  `.moab/runs/sprint-0050-closeout/phase6-2b-pocketbase-createthumb-20260516-213500.log`
+- `activation-miniflux-refreshfeed` passed stage 10 in 3.1m:
+  `.moab/runs/sprint-0050-closeout/phase6-2c-miniflux-refreshfeed-20260516-214020.log`
+- `activation-pocketbase-passwordvalidate` first failed before runtime because
+  its Dockerfile copied `evaluation/pocketbase` from a symlinked build context:
+  `.moab/runs/sprint-0050-closeout/phase6-3a-pocketbase-passwordvalidate-20260516-214422.log`
+- Fix: align `activation-pocketbase-passwordvalidate` with the newer
+  PocketBase targets by using `evaluation/pocketbase` as Docker build context
+  and copying module files relative to that context.
+- `activation-pocketbase-passwordvalidate` rerun passed stage 10 in 8.7m:
+  `.moab/runs/sprint-0050-closeout/phase6-3a-pocketbase-passwordvalidate-rerun-20260516-214618.log`
+- `activation-mattermost-pbkdf2hash` passed stage 7 in 9.0m:
+  `.moab/runs/sprint-0050-closeout/phase6-3b-mattermost-pbkdf2hash-20260516-215559.log`
+
+Dormant and env-off checks:
+
+- `activation-miniflux-refreshfeed` and
+  `activation-pocketbase-createthumb` both passed extracted-service calls-delta
+  checks, transcript/behavioral checks, env-off no-call checks, fail-mode
+  checks, and restore checks.
+- `activation-gitea-rpmrepo` is stage-7 readiness only. It passed generated
+  deployment readiness and the static dormant extracted-deployment assertion,
+  but it is not counted as an RPM metadata behavior proof.
+
+Final admission-only sweep:
+
+- Output directory:
+  `.moab/runs/sprint-0050-admission-final/20260516-220613`
+- Run log:
+  `.moab/runs/sprint-0050-admission-final/20260516-220613/run.log`
+- Results:
+  `.moab/runs/sprint-0050-admission-final/20260516-220613/results.jsonl`
+- Summary:
+  `.moab/runs/sprint-0050-admission-final/20260516-220613/summary.md`
+- Counts: pass 8, admission-skip 12, manifest-skip 52, build-skip 0,
+  e2e-fail 0, timeout-skip 0, infra-fail 0.
+- Reconciled drift: `miniflux/M-6` now admits the intended `ParseFeed` cut
+  (`ADMITTED: ParseFeed (boundary params: 2, reconstructed: 0, results: 2)`),
+  but still has no focused e2e target and is not counted as a separate
+  persistence proof. Detail log:
+  `.moab/runs/sprint-0050-closeout/phase6-miniflux-m6-admission-detail-20260516-230422.log`
+
+Generator version:
+
+- `pkg/codegen/types.go` reports `GeneratorVersion = "SPRINT-0050"`.
