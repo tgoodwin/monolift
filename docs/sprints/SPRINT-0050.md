@@ -1,6 +1,6 @@
 # SPRINT-0050: External persistence lift escalation
 
-**Status:** in-progress
+**Status:** done
 **Predecessors:** SPRINT-0048, SPRINT-0049
 
 ## Intent
@@ -207,6 +207,12 @@ Stretch:
 - [x] Filesystem/object-store primary reaches stage 10.
 - [ ] A second DB/SQL or filesystem trace reaches stage 7 or later.
 - [ ] SQLite research identifies a clean future target that avoids `core.App` reconstruction.
+
+## Closeout
+
+Closed 2026-05-17. Minimum and target acceptance were met: `miniflux/M-1` reached stage 10, `pocketbase/M-1` reached stage 10, `gitea/M-9` reached stage 7 as the promoted stretch target, and the final admission-only sweep recorded 8 pass, 12 admission-skip, 52 manifest-skip, and no build, e2e, timeout, or infra failures.
+
+The remaining unchecked items are deliberate non-goals or deferred stretch work: 2.8 did not apply because the DB/SQL primary reached stage 10, 4.4 did not apply because `archive.Create` was not selected, and the second stage-7 persistence trace plus SQLite target research remain backlog candidates.
 
 ## Risks
 
