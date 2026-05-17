@@ -59,21 +59,35 @@ Research timeout policy:
 Stretch result:
 
 - `gitea/M-9` (`services/packages/rpm.BuildSpecificRepositoryFiles`) reached
-  source-local stage 5.
-- Stage 4/generation log:
+  focused Kind e2e stage 7 with target `activation-gitea-rpmrepo`.
+- Earlier source-local stage 4/generation log:
   `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage4-clean-lift-20260516-192525.log`
-- Stage 5 extracted build log:
+- Earlier source-local stage 5 extracted build log:
   `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage5-build-20260516-193842.log`
+- Focused e2e stage 4 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage4-20260516-195418.log`
+- Focused e2e stage 5 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage5-20260516-200736.log`
+- Focused e2e stage 6 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage6-20260516-202500.log`
+- Focused e2e stage 7 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage7-20260516-204212.log`
+- Stage 7 Kubernetes evidence:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage7-kubectl-20260516-205745.log`
 - Selected cut:
   `code.gitea.io/gitea/services/packages/rpm.BuildSpecificRepositoryFiles` at
   `services/packages/rpm/repository.go:163`.
-- Cost profile: activation about 12m13s, dominated by about 9m56s in
-  augmentation. Extraction report took about 24s, build-plan about 12s, and
-  patch-function about 26s.
-- Runtime blocker: no Kind e2e was promoted because a meaningful proof would
-  need Gitea package DB rows, RPM metadata inputs, package blob storage, and an
-  upload or metadata rebuild workload. That fixture/runtime work is too large
-  for the Phase 5 stretch slot and is not a timeout classification.
+- Runtime evidence: the lifted namespace reached ready deployments for
+  `gitea-lifted`, `monolift-extracted-gitea-rpmrepo`, and `postgres`. The
+  stage-7 workload is intentionally health/readiness only, so this is a
+  generated deployment proof, not an RPM metadata behavior proof.
+- Cost profile: the stage-7 run passed in about 15.0m. Activation took about
+  11m29s, dominated by about 9m13s in augmentation. Extraction report took
+  about 23s, build-plan about 12s, and patch-function about 13s.
+- Stage 8+ blocker: not a timeout and not runtime readiness. A meaningful RPM
+  metadata workload still needs Gitea package DB rows, RPM metadata inputs,
+  package blob storage, and an upload or metadata rebuild action. That fixture
+  work remains too large for the Phase 5 stretch slot.
 
 Deferred stretch candidates:
 

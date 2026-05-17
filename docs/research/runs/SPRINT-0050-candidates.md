@@ -34,13 +34,13 @@ evidence: source-local lift selects `RefreshFeed`, not `*iconChecker`.
 lift then fails on callable boundary values.
 
 Phase 5 update:
-`gitea/M-9` is promoted only as the stretch research target, not as a Kind e2e
-proof. A clean source-local lift of
-`services/packages/rpm.BuildSpecificRepositoryFiles` selected the intended
-below-router service cut and the generated extracted command builds. Runtime
-promotion is deferred because a meaningful e2e fixture would need Gitea package
-DB rows, package blob storage, and an upload/metadata workload. The internal
-15s admission-aware plan cap is not treated as a blocker; it is cost
+`gitea/M-9` is promoted only as the stretch research target. A clean
+source-local lift of `services/packages/rpm.BuildSpecificRepositoryFiles`
+selected the intended below-router service cut, the generated extracted command
+builds, and the focused Kind e2e target reaches stage 7. Stage 8+ behavior is
+deferred because a meaningful RPM fixture would need Gitea package DB rows,
+package blob storage, and an upload/metadata workload. The internal 15s
+admission-aware plan cap is not treated as a blocker; it is cost
 instrumentation only.
 
 Research method:
@@ -148,24 +148,38 @@ promoted stretch target. The focused source-local run used a clean tracked
 archive of `evaluation/gitea` and disabled admission-aware reranking so the
 research result was not governed by the 15s candidate planning cap.
 
-- Lift log:
+- Earlier source-local lift log:
   `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage4-clean-lift-20260516-192525.log`
-- Extracted build log:
+- Earlier source-local extracted build log:
   `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage5-build-20260516-193842.log`
+- Focused e2e stage 4 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage4-20260516-195418.log`
+- Focused e2e stage 5 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage5-20260516-200736.log`
+- Focused e2e stage 6 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage6-20260516-202500.log`
+- Focused e2e stage 7 log:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage7-20260516-204212.log`
+- Stage 7 Kubernetes evidence:
+  `.moab/runs/sprint-0050-gitea-rpmrepo/stage7-kubectl-20260516-205745.log`
 - Selected cut:
   `code.gitea.io/gitea/services/packages/rpm.BuildSpecificRepositoryFiles`
   at `services/packages/rpm/repository.go:163`.
-- Stage reached: source-local stage 5. The lift generated host/extracted
-  artifacts with the same-package adapter, and `go build
-  ./cmd/monolift-extracted-gitea-rpmrepo` passed.
-- Cost profile: activation took about 12m13s; augmentation dominated at about
-  9m56s. The recurring expensive subphases were package-var, map func-value,
-  and interface-field augmentation. Extraction report took about 24s,
-  build-plan about 12s, and patch-function about 26s.
-- Runtime blocker: not a timeout. A real e2e would need a Gitea package fixture
-  with package DB rows, RPM metadata inputs, package blob storage, and an upload
-  or metadata rebuild workload. That is more fixture/runtime work than the
-  Phase 5 stretch slot should take after the primary DB and filesystem proofs.
+- Stage reached: focused Kind e2e stage 7. The generated host and extracted
+  images built, loaded into Kind, and deployed ready alongside Postgres.
+  Kubernetes evidence showed `gitea-lifted`,
+  `monolift-extracted-gitea-rpmrepo`, and `postgres` all `1/1 Running`.
+- Proof boundary: the stage-7 target uses a health/readiness workload only. It
+  proves generated deployment viability for the selected M9 cut, but it does
+  not exercise RPM package metadata semantics.
+- Cost profile: the stage-7 run passed in about 15.0m. Activation took about
+  11m29s; augmentation dominated at about 9m13s. Extraction report took about
+  23s, build-plan about 12s, and patch-function about 13s.
+- Stage 8+ blocker: not a timeout and not runtime readiness. A behavioral RPM
+  e2e still needs package DB rows, RPM metadata inputs, package blob storage,
+  and an upload or metadata rebuild workload. That is more fixture/runtime work
+  than the Phase 5 stretch slot should take after the primary DB and filesystem
+  proofs.
 
 `gitea/M-19` has the analogous Debian service-level cut at
 `services/packages/debian/repository.go:154`, but it is not promoted because

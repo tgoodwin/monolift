@@ -28,6 +28,7 @@ import (
 	activation_caddy_cleanpath "github.com/tgoodwin/monolift/test/e2e/targets/activation_caddy_cleanpath"
 	activation_gitea_argon2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_argon2hash"
 	activation_gitea_pathescapesegments "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_pathescapesegments"
+	activation_gitea_rpmrepo "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_rpmrepo"
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
 	activation_mattermost_pbkdf2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_pbkdf2hash"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
@@ -73,6 +74,7 @@ func TestE2E(t *testing.T) {
 		gitea.Target(),
 		activation_gitea_argon2hash.Target(),
 		activation_gitea_pathescapesegments.Target(),
+		activation_gitea_rpmrepo.Target(),
 		activation_listmonk_sanitizeuri.Target(),
 		activation_pocketbase_columnify.Target(),
 		activation_pocketbase_createthumb.Target(),
@@ -140,6 +142,21 @@ func stopStageOverride() (int, bool, error) {
 	return stage, true, nil
 }
 
+func perTargetTimeoutOverride() (time.Duration, bool, error) {
+	raw := strings.TrimSpace(os.Getenv("MONOLIFT_E2E_TARGET_TIMEOUT"))
+	if raw == "" {
+		return 0, false, nil
+	}
+	timeout, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, true, err
+	}
+	if timeout <= 0 {
+		return 0, true, fmt.Errorf("timeout must be positive, got %s", raw)
+	}
+	return timeout, true, nil
+}
+
 func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harness.TargetCase) {
 	t.Helper()
 	if override, ok, err := stopStageOverride(); err != nil {
@@ -148,6 +165,11 @@ func runTarget(t *testing.T, cluster harness.Cluster, runID string, target harne
 		target.StopAtStage = override
 	}
 	perTargetTimeout := harness.DefaultPerTargetTimeout
+	if override, ok, err := perTargetTimeoutOverride(); err != nil {
+		t.Fatalf("%v", harness.StageError(0, target.Name, harness.KindHarness, "invalid target timeout override: %v", err))
+	} else if ok {
+		perTargetTimeout = override
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), perTargetTimeout)
 	defer cancel()
 

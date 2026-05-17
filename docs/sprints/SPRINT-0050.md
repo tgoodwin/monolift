@@ -153,6 +153,7 @@ Only one stretch target should be promoted after the primary DB and filesystem p
 - [x] 5.4: Research Mattermost filestore cuts only if time remains and avoid `channels/app`-rooted candidates unless load stability has already been demonstrated.
 - [x] 5.5: Promote at most one stretch target. Reuse the DB or filesystem fixture; do not add a third fixture family this sprint.
 - [x] 5.6: Aim for stage 4 minimum and stage 7 if cheap. Do not let stretch stage 10 block closeout.
+- [x] 5.7: Best effort raise `gitea/M-9` from source-local stage 5 to focused e2e stage 7 before Phase 6.
 
 ## Phase 6: Verification and Closeout
 

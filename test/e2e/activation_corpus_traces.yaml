@@ -183,16 +183,19 @@ traces:
     skip_reason: "needs git repository context reconstructor"
     e2e_package: ""
 
+  # SPRINT-0050 Phase 5: focused e2e target reached stage 7. This is a
+  # deployment/readiness proof for generated host/extracted services; stage 8+
+  # RPM package behavior remains deferred to a real package fixture/workload.
   - trace_id: gitea/M-9
     project: gitea
     function: BuildSpecificRepositoryFiles
     file_line: "services/packages/rpm/repository.go:163"
     state_class: Client-reconstructible
     boundary_class: Serializable
-    status: manifest-skip
+    status: pass
     phase: "5"
-    skip_reason: "Phase 5 source-local stretch reached stage 5 for service-level RPM repository metadata cut; e2e/runtime deferred because fixture needs Gitea package DB rows plus package blob storage and upload workload"
-    e2e_package: ""
+    skip_reason: ""
+    e2e_package: activation_gitea_rpmrepo
 
   - trace_id: gitea/M-10
     project: gitea
