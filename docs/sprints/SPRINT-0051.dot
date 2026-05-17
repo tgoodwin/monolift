@@ -1,0 +1,485 @@
+// SPRINT-0051: Boundary-adapter compiler pass + listmonk/M-4 stage-10 proof
+//
+// Topology: Option B (Robust) - per-phase Implement/Test loops, plus
+// Pattern-2 parallel audits at the two load-bearing risk points:
+//   - P5-AUDIT: independent verification of the UploadMedia guardrail
+//     and ADR-0028 invariants.
+//   - P9-AUDIT: final acceptance-criteria audit covering the Minimum
+//     and Target lists in the sprint doc.
+//
+// Reference docs (consumed by every implementor):
+//   - docs/sprints/SPRINT-0051.md
+//   - docs/research/activation-paths/boundary-adapter-strategy.md
+//   - docs/decisions/0028-monolith-as-gateway.md
+//   - docs/sprints/SPRINT-0050.md
+//   - evaluation/listmonk/cmd/media.go
+//
+// Implementors check off `- [ ]` boxes in docs/sprints/SPRINT-0051.md as
+// they complete sub-tasks (per project convention; see SPRINT-0048.dot).
+//
+// Inter-node artifacts live under {{run_dir}}/. Reviewers read implementor
+// outputs via {{<impl>.last_output}} (renders verbatim if empty = first visit).
+//
+// Heavy work (corpus sweeps, e2e, Kind, cmd/activation-path against real
+// corpus, GINKGO-driven e2e ladder) MUST run on CloudLab - see the sprint's
+// Remote Test Discipline section. Implementor prompts repeat this.
+
+digraph SPRINT_0051 {
+    graph [
+        goal="Land the boundary-adapter recovery compiler pass and prove it end-to-end by taking listmonk/M-4 (processImage) to stage 10 on CloudLab, with the selected cut remaining processImage (NOT (*App).UploadMedia).\n\nEXCLUDED: cost-model ranking, general SSA rewrite, patterns beyond multipart_file_read_all and bytes_reader_return, streaming transport, removing the FeasibleWithProxy JSON constant, other corpus targets, live-proxy transport. Stretch only: reader_read_all.\n\nReference materials (read these in every phase):\n- docs/sprints/SPRINT-0051.md - task checklist; check off `- [ ]` boxes as tasks complete and commit the sprint doc update with each substantive change\n- docs/research/activation-paths/boundary-adapter-strategy.md - the spec, both Part 1 and Part 2\n- docs/decisions/0028-monolith-as-gateway.md - upstream ADR (no proxy resurrection)\n- docs/sprints/SPRINT-0050.md - stage ladder + regression baseline\n- evaluation/listmonk/cmd/media.go - processImage and (*App).UploadMedia\n\nRemote Test Discipline: heavy work (go test ./pkg/codegen/..., go test ./pkg/activation/..., e2e/Kind, cmd/activation-path against real corpus targets, corpus sweeps) runs on CloudLab. Local work is editing, source reading, docs, and small unit/golden tests that do not touch evaluation/*. Use focused target/importer package scope; never use timeout failures from broad package loading as viability evidence. Stage escalation one target, one stage, one `go test` process at a time - never jump stages.\n\nCloudLab build node layout: the monolift repo is already cloned on the build node at /local/repository. Run heavy commands from there (cd /local/repository), do NOT re-clone, and do NOT assume $HOME or $GOPATH layouts. Use `cl ssh <experiment> -- 'cd /local/repository && <cmd>'` (or the equivalent helper) so commands execute in-tree. Artifact paths like .moab/runs/... resolve under /local/repository on the build node; copy them back locally only when needed for commit.",
+        label="SPRINT-0051: Boundary Adapter Recovery",
+        rankdir=TB,
+        status_agent=claude
+    ]
+
+    start [shape=Mdiamond]
+    exit  [shape=Msquare]
+
+    // ============================================================
+    // PHASE P0 - Decision gate (sprint Phase 0)
+    // ============================================================
+
+    p0_decision_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=8,
+        timeout="3600s",
+        label="P0: Decision Gate Implement",
+        prompt="{{goal}}\n\nYou are a research engineer producing the SPRINT-0051 decision document. This is a narrow evidence-and-decision gate (3-day cap in the sprint plan; the cap is informational here - converge as fast as you can).\n\nPrevious reviewer critique (empty on first visit): {{p0_decision_review.last_output}}\n\nIf a critique exists above, this is a fix iteration: address every issue raised, do not weaken any requirement.\nIf empty, this is your first visit.\n\nScope: sprint Phase 0 tasks 0.1 through 0.9 in docs/sprints/SPRINT-0051.md. Read the sprint doc and the boundary-adapter spec before doing anything.\n\nRequirements (all must be satisfied in the final state):\n1. Run the baseline audit (0.1) on CloudLab: `cmd/activation-path` against evaluation/listmonk/cmd/media.go with reverse-import scope. Capture the exact refusal code(s) for processImage today, the current selected cut, the demotion chain, and whether admission climbs to (*App).UploadMedia. Save artifacts under .moab/runs/sprint-0051-baseline/.\n2. Call-site scan (0.2): `rg -n 'processImage\\\\(' evaluation/listmonk/` plus grep for address-of / function-value uses. Record at .moab/runs/sprint-0051-baseline/listmonk-callsites.md.\n3. Decide where AdapterClass lives (0.3): orthogonal field on CutCandidate in pkg/activation/cut.go; do NOT fold into BoundaryDataClass. Document package boundary.\n4. Decide recovery-branch wiring (0.4): tryAdapterPass wired into pkg/codegen/cut_admit.go before demotion, only for shape-compatible refusals, explicitly NOT for receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, or broad parent cuts.\n5. Pin inline-payload size policy at 8 MiB (0.5).\n6. Decide M-4 stage-10 oracle policy (0.6): default direct PNG byte comparison; VERIFY by running the helper twice against the same fixture and byte-comparing. If divergence: declared pixel-hash + dimension normalizer. Document the verification result.\n7. Fixture plan (0.7): commit a deterministic ~64 KiB PNG under test/e2e/targets/activation_listmonk_processimage/testdata/.\n8. Confirm LiveProxyRequired exclusion list (0.8): http.ResponseWriter, io.Writer output params, channels, transaction callbacks, function values, *os.File, mutable write-back with aliasing.\n9. Write the decision doc at docs/research/runs/SPRINT-0051-adapter-decisions.md with a one-page summary at the top covering 0.3, 0.4, 0.5, 0.6, 0.8 plus the falsifiability hooks from the Open Questions table.\n10. Check off sprint doc tasks 0.1-0.9.\n\nCloudLab discipline: tasks 0.1, 0.6 verification, and any sweep work run on CloudLab. Local work is fine for editing the decision doc and the fixture commit. Before heavy work, run `cl ls` / `cl status <experiment>` locally. If no experiment exists, ask the user to start the monolift-buildserver profile.\n\nAnti-gaming:\n- Do NOT weaken, skip, or remove any decision item to make convergence easier.\n- Do NOT collapse the verification step in 0.6 into an assertion; actually run the helper twice.\n- Do NOT mark the LiveProxyRequired list as 'TODO' - codify it.\n\nPRE-COMPLETION CHECKLIST:\n[ ] All nine items above are satisfied with evidence\n[ ] Decision doc one-pager covers 0.3, 0.4, 0.5, 0.6, 0.8\n[ ] .moab/runs/sprint-0051-baseline/ contains baseline + callsites artifacts\n[ ] PNG fixture committed\n[ ] Sprint doc 0.1-0.9 checkboxes flipped to [x] and committed"
+    ]
+
+    p0_decision_review [
+        shape=box,
+        llm_provider=codex,
+        max_iterations=8,
+        timeout="2400s",
+        label="P0: Decision Gate Review",
+        prompt="{{goal}}\n\nYou are a verification engineer. Your only job is to review and report; you do not modify code or fix anything.\n\nImplementation under review: {{p0_decision_impl.last_output}}\n\nVerify each requirement against the current state of the repo and CloudLab artifacts:\n1. docs/research/runs/SPRINT-0051-adapter-decisions.md exists with a one-page summary at the top covering 0.3, 0.4, 0.5, 0.6, 0.8 and falsifiability hooks.\n2. .moab/runs/sprint-0051-baseline/ contains the baseline refusal-code capture (processImage today) and listmonk-callsites.md.\n3. Decision on AdapterClass location is explicit and matches the sprint constraint (orthogonal to BoundaryDataClass).\n4. Decision on recovery-branch wiring enumerates the four NOT-eligible categories (receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, broad parent cuts).\n5. 8 MiB inline-payload ceiling pinned with refusal code adapter_payload_too_large.\n6. Oracle policy includes the verify-twice artifact (actual run, not just an assertion). If divergence found, declared pixel-hash + dimension normalizer documented.\n7. Deterministic ~64 KiB PNG committed under test/e2e/targets/activation_listmonk_processimage/testdata/.\n8. LiveProxyRequired exclusion list is codified (not 'TODO').\n9. Sprint doc tasks 0.1-0.9 checkboxes are flipped to [x] in docs/sprints/SPRINT-0051.md.\n\nAim for a Pareto-optimal outcome: FAIL only on issues that materially affect correctness, completeness, or quality. Do not fail over stylistic or cosmetic issues.\n\nFor each requirement, record the verification method (file inspection / git log / CloudLab artifact path / command output) and a PASS or FAIL with specific evidence.\n\nOUTPUT: a short report. End with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf you reject, follow with a one-line critique under 80 characters naming the worst remaining issue."
+    ]
+
+    p0_decision_gate [shape=diamond, label="P0 Pass?"]
+
+    // ============================================================
+    // PHASE P1 - IR + admission scaffolding (sprint Phase 1)
+    // ============================================================
+
+    p1_ir_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=10,
+        timeout="3600s",
+        label="P1: IR Scaffolding",
+        prompt="{{goal}}\n\nYou are an implementation engineer adding the boundary-adapter IR types and admission scaffolding.\n\nPrevious reviewer critique (empty on first visit): {{p1_ir_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 1 tasks 1.1-1.7 in docs/sprints/SPRINT-0051.md. Read the sprint doc and the decision doc at docs/research/runs/SPRINT-0051-adapter-decisions.md before doing anything.\n\nRequirements:\n1. Add AdapterClass enum to pkg/activation/cut_types.go with five values: DirectBoundary, AdapterPossible, AdapterUnknown, LiveProxyRequired, AdapterImpossible. Map existing Trivial/Serializable boundary classes to DirectBoundary in classifyBoundaryData (pkg/activation/cut_boundary.go) - label propagation only, no behavior change.\n2. Add AdapterClass AdapterClass and AdapterReason string fields to CutCandidate (pkg/activation/cut.go). rankCutCandidates records the field but does NOT use it for ranking (fallback framing, per ADR-0028 + decision doc).\n3. Add AdapterPlan type in pkg/codegen/types.go next to Plan with fields: SourceFunction, HostSignature, RemoteSignature, InputTransforms []AdapterPattern, BodyRewrite AdapterBodyRewrite, OutputTransforms []AdapterPattern, Proofs []AdapterProof, TransportPolicy AdapterTransport. JSON-tagged for manifest/debug emission.\n4. Attach optional *AdapterPlan field on Plan. When non-nil, codegen uses the adapter path; when nil, renders direct as today.\n5. Add the full refusal-code vocabulary to pkg/codegen/admission.go / types.go: adapter_finite_input, adapter_local_lifecycle, adapter_use_shape, adapter_return_rehydration, adapter_error_order, adapter_call_site, adapter_payload_too_large, adapter_unknown, adapter_impossible, live_proxy_required.\n6. Add MONOLIFT_BOUNDARY_ADAPTER env-var read at admission-loop entry. When 0, admitCutCandidates skips the adapter branch entirely. Default 1 locally; flag-off parity is an acceptance criterion in P8.\n7. Synthetic boundary classification tests in pkg/activation/cut_synthetic_test.go for *multipart.FileHeader, *bytes.Reader, io.Writer, http.ResponseWriter, channel, *os.File - each maps to the expected AdapterClass.\n8. Check off sprint doc tasks 1.1-1.7 and commit.\n\nCloudLab discipline: `go test ./pkg/activation/... ./pkg/codegen/...` runs on CloudLab. Local work fine for editing.\n\nAnti-gaming:\n- Do NOT fold AdapterClass into BoundaryDataClass (ADR-0028 violation).\n- Do NOT use AdapterClass in rankCutCandidates ranking logic.\n- Do NOT add patterns or rendering in this phase - that's P3/P4.\n- Do NOT skip the synthetic test cases.\n\nPRE-COMPLETION CHECKLIST:\n[ ] All five AdapterClass values exist\n[ ] CutCandidate fields added, not used for ranking\n[ ] AdapterPlan type lands with all spec'd fields\n[ ] All ten refusal codes in the admission vocabulary\n[ ] MONOLIFT_BOUNDARY_ADAPTER env-var honored\n[ ] All six synthetic classification tests pass on CloudLab\n[ ] Sprint doc 1.1-1.7 checked off and committed"
+    ]
+
+    p1_ir_review [
+        shape=box,
+        llm_provider=gemini,
+        max_iterations=10,
+        timeout="2400s",
+        label="P1: Verify IR",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify code.\n\nImplementation under review: {{p1_ir_impl.last_output}}\n\nVerify each requirement. For source-level claims, grep/read the actual files; for test claims, confirm on CloudLab that `go test ./pkg/activation/... ./pkg/codegen/...` passes.\n\n1. AdapterClass enum exists in pkg/activation/cut_types.go with the five values; existing Trivial/Serializable map to DirectBoundary in classifyBoundaryData.\n2. CutCandidate has AdapterClass + AdapterReason; rankCutCandidates does NOT use AdapterClass for ranking (grep the file).\n3. AdapterPlan type in pkg/codegen/types.go with all required fields, JSON-tagged.\n4. *AdapterPlan attached to Plan as optional field.\n5. All ten refusal codes are present in pkg/codegen admission code (grep for each).\n6. MONOLIFT_BOUNDARY_ADAPTER env-var read at admission-loop entry; flag-off skips adapter branch.\n7. Synthetic classification tests in pkg/activation/cut_synthetic_test.go cover all six types listed in the sprint.\n8. Sprint doc 1.1-1.7 checkboxes are [x].\n\nAim for a Pareto-optimal outcome: FAIL only on material issues. Cosmetics do not block.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars on the next line."
+    ]
+
+    p1_ir_gate [shape=diamond, label="P1 Pass?"]
+
+    // ============================================================
+    // PHASE P2 - Multi-result DTO normalization (sprint Phase 2)
+    // Highest regression risk in the sprint.
+    // ============================================================
+
+    p2_dto_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=15,
+        timeout="3600s",
+        label="P2: DTO Normalization",
+        prompt="{{goal}}\n\nYou are an implementation engineer landing generic multi-result-DTO normalization. This is the highest regression risk in the sprint - it changes admission behavior for ALL boundaries, not just adapter-eligible ones. The regression-test step (req 6) is load-bearing.\n\nPrevious reviewer critique (empty on first visit): {{p2_dto_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 2 tasks 2.1-2.8 in docs/sprints/SPRINT-0051.md.\n\nRequirements:\n1. Audit pkg/codegen/multireturn_test.go, client.go, server.go for current multi-result behavior. Save audit summary in docs/research/runs/SPRINT-0051-adapter-decisions.md (append a Phase-2 section).\n2. Add ResultDTO representation to pkg/codegen/types.go alongside Result. Each multi-return function with > 1 non-error return generates a synthetic <FuncName>Result struct with named fields (declared return names if available, else Result0..N).\n3. Update AdmitPlan in pkg/codegen/admission.go so unsupported_result_shape refusal becomes conditional: if all non-error returns can be packed into a single DTO with JSON-codable fields, allow with codec CodecResultDTO; otherwise refuse as before.\n4. Thread the DTO through ReturnCodecFor, computeStubReturnSig, computeRemoteReturnSig, computeTransportErrZeros, plus server response rendering and client unpacking.\n5. Preserve app-facing signatures in generated host stubs - (*bytes.Reader, int, int, error) must remain unchanged on the call-site side.\n6. Unit tests for return shapes: (T, error) unchanged, (T) unchanged, (T, U, error), ([]byte, int, int, error) (the M-4 shape), (T, T), void. Plus negative cases for non-JSON-codable result types.\n7. REGRESSION CHECK (load-bearing): run SPRINT-0049/0050 stage-10 targets miniflux/M-1 and pocketbase/M-1 through admission with the new DTO code path on CloudLab. Confirm result envelopes are unchanged OR intentionally migrated with refreshed goldens (document either way). If anything breaks, fix it before declaring success.\n8. Bump GeneratorVersion to SPRINT-0051 with the first codegen output change; refresh affected goldens in the same patch.\n9. Check off sprint doc tasks 2.1-2.8 and commit.\n\nCloudLab discipline: regression e2e for miniflux/M-1 and pocketbase/M-1 (req 7) runs on CloudLab. Unit/golden tests for the DTO codec can run locally.\n\nAnti-gaming:\n- Do NOT gate DTO normalization on AdapterClass - it's generic and must run for every boundary.\n- Do NOT skip the regression check on miniflux/M-1 and pocketbase/M-1.\n- Do NOT change app-facing signatures.\n- Do NOT defer golden refreshes - refresh in the same patch that bumps GeneratorVersion.\n\nPRE-COMPLETION CHECKLIST:\n[ ] ResultDTO type added and threaded through codec/server/client/transport-err paths\n[ ] All six golden return-shape tests pass\n[ ] miniflux/M-1 and pocketbase/M-1 e2e green on CloudLab with the new DTO path\n[ ] App-facing signatures unchanged (grep generated stubs for processImage-style shape)\n[ ] GeneratorVersion = SPRINT-0051 and goldens refreshed in same patch\n[ ] Sprint doc 2.1-2.8 checked off and committed"
+    ]
+
+    p2_dto_review [
+        shape=box,
+        llm_provider=codex,
+        max_iterations=15,
+        timeout="3600s",
+        label="P2: Verify DTO",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify code.\n\nImplementation under review: {{p2_dto_impl.last_output}}\n\nVerify each requirement. The regression check (req 4 below) is load-bearing - verify it on CloudLab; do not accept it on hearsay.\n\n1. ResultDTO type exists in pkg/codegen/types.go and is threaded through ReturnCodecFor, computeStubReturnSig, computeRemoteReturnSig, computeTransportErrZeros, server.go response rendering, client.go unpacking. Grep each.\n2. AdmitPlan's unsupported_result_shape refusal is conditional on JSON-codability (not unconditional).\n3. Golden tests pass on CloudLab for all six shapes listed in the implementor's req 6 (including the M-4 shape ([]byte, int, int, error)) plus negative cases.\n4. REGRESSION CHECK on CloudLab: miniflux/M-1 and pocketbase/M-1 still pass (stage-10) with the new DTO path. Confirm by running focused e2e for each on CloudLab. Look at .moab/runs/ for evidence.\n5. App-facing signatures unchanged in generated host stubs - grep representative generated outputs.\n6. GeneratorVersion constant = SPRINT-0051; goldens refreshed in the same patch (check `git log --stat` on the goldens vs the constant bump).\n7. Sprint doc 2.1-2.8 are [x].\n\nAim for a Pareto-optimal outcome: FAIL only on material issues. A trivially-stale golden header is not a failure; a missing regression check is.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars."
+    ]
+
+    p2_dto_gate [shape=diamond, label="P2 Pass?"]
+
+    // ============================================================
+    // PHASE P3 - Pattern library + 6 proofs (sprint Phase 3)
+    // ============================================================
+
+    p3_patterns_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=12,
+        timeout="3600s",
+        label="P3: Patterns + Proofs",
+        prompt="{{goal}}\n\nYou are an implementation engineer landing the boundary-adapter pattern library and the six static feasibility obligations.\n\nPrevious reviewer critique (empty on first visit): {{p3_patterns_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 3 tasks 3.1-3.8 in docs/sprints/SPRINT-0051.md.\n\nRequirements:\n1. Define AdapterPattern and AdapterProof interfaces in pkg/codegen/adapter_patterns.go. Each pattern owns: Name() string, Matches(param ssa.Value) bool, Discharge(ctx ProofContext) []AdapterProof, RenderInputExtraction(...) string, RenderRemoteReconstruction(...) string.\n2. Implement multipart_file_read_all. Match: parameter type *mime/multipart.FileHeader. Discharge: adapter_finite_input (Open + io.ReadAll), adapter_local_lifecycle (host owns Open/Close/defer), adapter_use_shape (helper SSA references the parameter only through Open() then read; no Filename/Header/Size access, no multiple opens, no mutation, no alias escape).\n3. Implement bytes_reader_return. Match: declared return type *bytes.Reader whose value in helper SSA is bytes.NewReader(byteSlice) with no other producer. Discharge: adapter_return_rehydration. Render remote: return []byte. Render host: bytes.NewReader(out.<Field>).\n4. Implement the six proof checks:\n   - adapter_finite_input: every adapter-required param has a pattern with a finite-extraction renderer.\n   - adapter_local_lifecycle: no helper SSA instruction calls Close, holds a defer, or escapes the awkward-typed value as a non-finite payload.\n   - adapter_use_shape: pattern-specific predicate; refuse on unrecognized operations.\n   - adapter_return_rehydration: every awkward return has a rehydration pattern.\n   - adapter_error_order: read errors that would have occurred inside the helper now occur host-side before RPC; record divergence in plan diagnostics but accept (per spec section 5).\n   - adapter_call_site: reverse-import-scope scan - function not used as a function value, address-of, or via reflection. Bound to the activation-path scope.\n5. LiveProxyRequired detectors for the full exclusion list from P0.8: http.ResponseWriter, io.Writer output params, channels, transaction callbacks, function values, *os.File, mutable write-back. When matched, tryAdapterPass returns live_proxy_required immediately without attempting patterns.\n6. Negative pattern fixtures (must refuse): multiple Open calls on one *multipart.FileHeader, file.Filename/Header/Size use, returned multipart.File, io.Writer output parameters, function-value use, reflective access, http.ResponseWriter params.\n7. Golden JSON for the expected AdapterPlan for processImage, including InputTransforms, OutputTransforms, BodyRewrite, all six Proofs, TransportPolicy: inline_json_bytes.\n8. Integration test: feed processImage SSA into tryAdapterPass; assert it produces the golden AdapterPlan end-to-end.\n9. Check off sprint doc 3.1-3.8 and commit.\n\nCloudLab discipline: integration test against real processImage SSA (req 8) runs on CloudLab. Unit/golden tests for individual patterns can run locally.\n\nAnti-gaming:\n- Do NOT relax adapter_use_shape to accept unrecognized operations.\n- Do NOT silently accept proofs that fail; emit refusal codes.\n- Do NOT skip the LiveProxyRequired detectors - they prevent scope creep.\n- Do NOT add patterns beyond the two scoped in this sprint (reader_read_all is stretch only - leave it).\n\nPRE-COMPLETION CHECKLIST:\n[ ] Both patterns implemented with full discharge\n[ ] All six proof checks implemented with explicit refusal codes\n[ ] LiveProxyRequired detectors cover the full exclusion list\n[ ] Negative fixtures refuse every listed case\n[ ] Golden AdapterPlan for processImage committed and matches integration-test output\n[ ] go test ./pkg/codegen/... passes on CloudLab\n[ ] Sprint doc 3.1-3.8 checked off and committed"
+    ]
+
+    p3_patterns_review [
+        shape=box,
+        llm_provider=gemini,
+        max_iterations=12,
+        timeout="2400s",
+        label="P3: Verify Patterns",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify code.\n\nImplementation under review: {{p3_patterns_impl.last_output}}\n\nVerify each requirement:\n1. AdapterPattern and AdapterProof interfaces in pkg/codegen/adapter_patterns.go with the required method signatures.\n2. multipart_file_read_all and bytes_reader_return patterns exist with the spec'd Match + Discharge + Render methods.\n3. All six proof checks are implemented; each has an explicit refusal code path.\n4. LiveProxyRequired detectors cover the seven exclusion-list entries (http.ResponseWriter, io.Writer output params, channels, transaction callbacks, function values, *os.File, mutable write-back).\n5. Negative fixtures exist for every listed case and the tests confirm refusal.\n6. Golden JSON AdapterPlan for processImage matches the integration-test output (run the integration test on CloudLab; do not assume).\n7. go test ./pkg/codegen/... passes on CloudLab.\n8. Sprint doc 3.1-3.8 are [x].\n\nAim for a Pareto-optimal outcome.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars."
+    ]
+
+    p3_patterns_gate [shape=diamond, label="P3 Pass?"]
+
+    // ============================================================
+    // PHASE P4 - Host wrapper + helper rendering (sprint Phase 4)
+    // ============================================================
+
+    p4_render_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=12,
+        timeout="3600s",
+        label="P4: Wrapper + Helper",
+        prompt="{{goal}}\n\nYou are an implementation engineer rendering the host wrapper and the normalized helper for adapter-recovered cuts.\n\nPrevious reviewer critique (empty on first visit): {{p4_render_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 4 tasks 4.1-4.7 in docs/sprints/SPRINT-0051.md.\n\nRequirements:\n1. Extend pkg/codegen/adapter.go RenderAdapter to render the host wrapper when Plan.AdapterPlan != nil. The wrapper preserves the original function name, drains awkward inputs (file.Open(), defer src.Close(), io.ReadAll, inline-size check against the 8 MiB ceiling), calls the normalized remote helper, and rebuilds awkward returns (bytes.NewReader(out.Thumbnail)).\n2. Render the normalized helper as the extracted target. Body is the original body with the pattern-matched AST prologue replaced (e.g. src, err := file.Open(); img, err := imaging.Decode(src) -> img, err := imaging.Decode(bytes.NewReader(input))). Implementation: in-place AST surgery against the helper function guarded by adapter_use_shape. Fall back to clone-and-replace if package boundaries force it.\n3. Run goimports on rendered output to keep imports consistent after the body rewrite drops mime/multipart from the helper and adds bytes / io. Golden test: generated file compiles standalone.\n4. Update pkg/codegen/server.go so the normalized helper signature renders correctly and packs into the synthetic processImageResult DTO from P2.\n5. Generated client renders fail-open as a call to the renamed local implementation; fail-closed returns (nil, 0, 0, error) for processImage. Confirm MONOLIFT_LIFT_PROCESSIMAGE-style env-var handling is consistent with the renamed wrapper.\n6. Confirm extracted deployment manifests do NOT include MONOLIFT_LIFT_* env vars (SPRINT-0050 invariant).\n7. Golden test: render the M-4 host wrapper and normalized helper end-to-end. Compare against committed goldens; wrapper must match the spec's example (docs/research/activation-paths/boundary-adapter-strategy.md Part 2) almost verbatim.\n8. Check off sprint doc 4.1-4.7 and commit.\n\nCloudLab discipline: golden tests and `go test ./pkg/codegen/...` run on CloudLab.\n\nAnti-gaming:\n- Do NOT bypass the 8 MiB inline-size check.\n- Do NOT generalize AST surgery beyond pattern-matched prologue replacement.\n- Do NOT skip goimports - the import block must be clean.\n- Do NOT add MONOLIFT_LIFT_* env vars to extracted manifests.\n\nPRE-COMPLETION CHECKLIST:\n[ ] Host wrapper preserves original signature and drains/rebuilds correctly\n[ ] Helper body rewritten via prologue replacement; generated file compiles standalone\n[ ] goimports applied\n[ ] Server renders into processImageResult DTO\n[ ] Client renders fail-open + fail-closed for processImage\n[ ] No MONOLIFT_LIFT_* in extracted manifests\n[ ] M-4 wrapper/helper goldens match spec Part 2\n[ ] go test ./pkg/codegen/... green on CloudLab\n[ ] Sprint doc 4.1-4.7 checked off and committed"
+    ]
+
+    p4_render_review [
+        shape=box,
+        llm_provider=codex,
+        max_iterations=12,
+        timeout="2400s",
+        label="P4: Verify Rendering",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify code.\n\nImplementation under review: {{p4_render_impl.last_output}}\n\nVerify each requirement:\n1. RenderAdapter extended; host wrapper renders the required prologue/epilogue and inline-size check.\n2. Helper body rewritten via prologue replacement; generated file compiles standalone (compile a representative golden on CloudLab).\n3. goimports applied - no unused mime/multipart import in the helper output.\n4. Server template packs into the processImageResult DTO from P2.\n5. Client renders fail-open (local impl call) + fail-closed (nil, 0, 0, error) correctly.\n6. Extracted deployment manifests contain NO MONOLIFT_LIFT_* env vars (grep generated YAML).\n7. M-4 wrapper/helper goldens match the spec Part 2 example.\n8. go test ./pkg/codegen/... passes on CloudLab.\n9. Sprint doc 4.1-4.7 are [x].\n\nAim for a Pareto-optimal outcome.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars."
+    ]
+
+    p4_render_gate [shape=diamond, label="P4 Pass?"]
+
+    // ============================================================
+    // PHASE P5 - Recovery-branch integration (sprint Phase 5)
+    // Followed by P5-AUDIT (parallel triad) on the UploadMedia guardrail.
+    // ============================================================
+
+    p5_recovery_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=12,
+        timeout="3600s",
+        label="P5: Recovery Integration",
+        prompt="{{goal}}\n\nYou are an implementation engineer wiring the boundary-adapter pass as a recovery branch in admission.\n\nPrevious reviewer critique (empty on first visit): {{p5_recovery_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 5 tasks 5.1-5.8 in docs/sprints/SPRINT-0051.md.\n\nRequirements:\n1. Wire tryAdapterPass into pkg/codegen/cut_admit.go admitCutCandidates after direct AdmitCut/AdmitPlan refusal of the preferred semantic cut. On success: attach the plan and stop. On failure: mark AdapterClass and fall through to existing demotion.\n2. Restrict retry-eligibility to shape-compatible refusals: unsupported_boundary_data, unsupported_result_shape, unsupported_param_shape, adapter_unknown. Other refusals fall straight through to demotion.\n3. Code-level guards (NOT just docs) prevent adapter planning on receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, or broad parent cuts.\n4. Preserve the existing demotion chain. Add an AdapterRecovery diagnostic showing direct refusal code, adapter class, proof verdicts, and selected normalized boundary.\n5. UPLOAD-MEDIA GUARDRAIL (load-bearing): pipeline test demonstrating that direct admission refuses processImage, adapter recovery accepts it, and the pipeline does NOT select (*App).UploadMedia. This is the load-bearing invariant for the sprint. Test must live in pkg/codegen/ (not e2e) and assert selected_cut == processImage explicitly.\n6. Pipeline test: adapter proof fails (synthetic shape that matches multipart_file_read_all but violates adapter_use_shape) -> existing demotion still chooses the next admissible candidate.\n7. Pipeline test: fallback does NOT change recommendation when the preferred semantic cut is already direct-admissible (no false adapter selection).\n8. Retry budget bounded at len(Candidates); adapter pass is one-shot per candidate.\n9. Check off sprint doc 5.1-5.8 and commit.\n\nCloudLab discipline: `go test ./pkg/codegen/... ./pkg/activation/...` and any cmd/activation-path runs against real corpus targets run on CloudLab.\n\nAnti-gaming:\n- Do NOT broaden retry-eligibility beyond the four shape-compatible codes.\n- Do NOT relax the UploadMedia guardrail test to accept (*App).UploadMedia.\n- Do NOT use cost-model ranking to pick between direct and adapter cuts (fallback only).\n- Do NOT add adapter planning paths for the four excluded categories.\n\nPRE-COMPLETION CHECKLIST:\n[ ] tryAdapterPass wired into admitCutCandidates after direct-refusal\n[ ] Retry-eligibility restricted to the four shape-compatible codes\n[ ] Code-level exclusion guards exist (grep the source)\n[ ] AdapterRecovery diagnostic emitted with required fields\n[ ] UPLOAD-MEDIA GUARDRAIL TEST PRESENT and PASSING on CloudLab; asserts selected_cut == processImage\n[ ] Proof-failure pipeline test green\n[ ] Direct-admissible passthrough pipeline test green (no false adapter selection)\n[ ] Retry budget bounded; one-shot per candidate\n[ ] Sprint doc 5.1-5.8 checked off and committed"
+    ]
+
+    p5_recovery_review [
+        shape=box,
+        llm_provider=gemini,
+        max_iterations=12,
+        timeout="2400s",
+        label="P5: Verify Recovery",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify code.\n\nImplementation under review: {{p5_recovery_impl.last_output}}\n\nVerify each requirement. The UploadMedia guardrail (req 5 below) is load-bearing - run the pipeline test on CloudLab and inspect the source assertion, do not accept it on hearsay.\n\n1. tryAdapterPass wired into admitCutCandidates after direct refusal (grep cut_admit.go).\n2. Retry-eligibility limited to unsupported_boundary_data, unsupported_result_shape, unsupported_param_shape, adapter_unknown (grep the gating code).\n3. Code-level guards exist in source for the four excluded categories (receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, broad parent cuts).\n4. AdapterRecovery diagnostic structure includes the required four fields.\n5. UPLOAD-MEDIA GUARDRAIL: pipeline test exists in pkg/codegen/ that asserts selected_cut == processImage and that admission does not climb to (*App).UploadMedia. Run on CloudLab; confirm pass.\n6. Proof-failure pipeline test passes on CloudLab.\n7. Direct-admissible passthrough test passes on CloudLab.\n8. Retry budget = len(Candidates); adapter pass one-shot (grep the loop budget).\n9. Sprint doc 5.1-5.8 are [x].\n\nAim for a Pareto-optimal outcome. The UploadMedia guardrail is non-negotiable - flag any weakness.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars."
+    ]
+
+    p5_recovery_gate [shape=diamond, label="P5 Pass?"]
+
+    // ============================================================
+    // P5-AUDIT - Parallel audit of UploadMedia guardrail + ADR-0028
+    // Pattern 2: preparer -> fan-out (3 reviewers) -> fan-in (unanimity) -> gate -> fix
+    // ============================================================
+
+    p5_audit_prep [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="3600s",
+        label="P5-AUDIT: Prepare Evidence",
+        prompt="{{goal}}\n\nYou are a preparer. Your only job is to generate fresh evidence for three independent reviewers. Do not modify production code in this step (the fix node will).\n\nProduce {{run_dir}}/P5_EVIDENCE.md containing:\n\n1. The current state of the UploadMedia guardrail pipeline test in pkg/codegen/. Include the test file path, the assertion line(s), and the CloudLab `go test` invocation + its latest pass result.\n2. The state of cut_admit.go around tryAdapterPass: paste the recovery-branch wiring code with line numbers and the surrounding context.\n3. The retry-eligibility gating code: paste it with line numbers; list the four shape-compatible refusal codes it admits.\n4. The four code-level exclusion guards (receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, broad parent cuts): paste each with file:line and context.\n5. Run MONOLIFT_BOUNDARY_ADAPTER=0 admission-only corpus sweep on CloudLab; save artifacts to .moab/runs/sprint-0051-admission-flag-off/. Compare to SPRINT-0050 admission baseline. Record any deltas (target: zero deltas).\n6. Run MONOLIFT_BOUNDARY_ADAPTER=1 admission-only corpus sweep on CloudLab; save artifacts to .moab/runs/sprint-0051-admission-flag-on/. Record any deltas vs SPRINT-0050 baseline (expected: M-4 row flip plus incidental adapter-recovered candidates only).\n7. Confirm no adapter rendering produces a live-proxy renderer: grep for the absence of any live RPC marshalling of multipart/io.Reader/etc. Paste the grep commands and output.\n8. Confirm no cost-model code was added: grep cut.go / cut_admit.go for any cost comparison between direct and adapter cuts.\n\nAfter writing P5_EVIDENCE.md:\n\n- Reference each section by heading so reviewers can cross-link.\n- Do not draw conclusions or render a verdict; reviewers do that.\n- Do not edit production code; only diagnostics and evidence files.\n\nReport completion with the evidence file path."
+    ]
+
+    p5_audit_fanout [shape=component, max_parallel=3]
+
+    p5_audit_a [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="1800s",
+        label="P5-AUDIT A (claude)",
+        prompt="{{goal}}\n\nYou are an independent auditor - Reviewer A. You do not coordinate with or defer to any other reviewer. Form your own judgment.\n\nRead the prepared evidence at {{run_dir}}/P5_EVIDENCE.md. For code-level checks, inspect the source directly at the file:line locations cited.\n\nAim for a Pareto-optimal outcome: FAIL a requirement only when the issue materially affects correctness, completeness, or quality. Do NOT fail over stylistic or trivial issues.\n\nAudit the following requirements:\n1. UPLOAD-MEDIA GUARDRAIL (load-bearing): the pipeline test in pkg/codegen/ asserts selected_cut == processImage and the recovery path does not climb to (*App).UploadMedia. Re-run the test on CloudLab to confirm.\n2. Recovery branch is fallback-framed, NOT ranked: no cost-model code added that would let admission choose between direct and adapter cuts based on a score.\n3. The four code-level exclusion guards (receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, broad parent cuts) exist in source - not just in comments or docs.\n4. ADR-0028 semantics preserved: no live proxy renderer ships. AdapterPossible renders LOCAL code that marshals FINITE values (read the rendered output to confirm); no live RPC marshalling of multipart, *bytes.Reader, io.Reader, etc.\n5. MONOLIFT_BOUNDARY_ADAPTER=0 admission sweep produces ZERO-delta parity vs SPRINT-0050 baseline. Compare .moab/runs/sprint-0051-admission-flag-off/ to the SPRINT-0050 baseline.\n6. MONOLIFT_BOUNDARY_ADAPTER=1 admission sweep deltas are limited to the M-4 row flip plus incidental adapter-recovered candidates (each recorded in evidence).\n\nOUTPUT: write {{run_dir}}/P5_AUDIT_A.md containing per-requirement findings with evidence. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf you reject, follow with a list of failed requirements (one per line).\n\nAlso emit the VERDICT line as the last line of your prompt response (the gate matches against the response, not the file)."
+    ]
+
+    p5_audit_b [
+        shape=box,
+        llm_provider=codex,
+        max_iterations=6,
+        timeout="1800s",
+        label="P5-AUDIT B (codex)",
+        prompt="{{goal}}\n\nYou are an independent auditor - Reviewer B. You do not coordinate with or defer to any other reviewer. Form your own judgment.\n\nRead the prepared evidence at {{run_dir}}/P5_EVIDENCE.md. For code-level checks, inspect the source directly.\n\nAim for a Pareto-optimal outcome: FAIL only on issues that materially affect correctness, completeness, or quality.\n\nAudit the same requirements as Reviewer A (UploadMedia guardrail, fallback-framing, exclusion guards, ADR-0028 preservation, MONOLIFT_BOUNDARY_ADAPTER=0 zero-delta parity, MONOLIFT_BOUNDARY_ADAPTER=1 expected deltas).\n\nFor each requirement, identify the verification method (file inspection / CloudLab artifact path / command output), run it, record PASS or FAIL with specific evidence.\n\nOUTPUT: write {{run_dir}}/P5_AUDIT_B.md with per-requirement findings. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, list failed requirements.\n\nAlso emit the VERDICT line as the last line of your prompt response."
+    ]
+
+    p5_audit_c [
+        shape=box,
+        llm_provider=gemini,
+        max_iterations=6,
+        timeout="1800s",
+        label="P5-AUDIT C (gemini)",
+        prompt="{{goal}}\n\nYou are an independent auditor - Reviewer C. You do not coordinate with or defer to any other reviewer. Form your own judgment.\n\nRead the prepared evidence at {{run_dir}}/P5_EVIDENCE.md. Inspect source directly for code-level checks.\n\nAim for a Pareto-optimal outcome: FAIL only on issues that materially affect correctness, completeness, or quality.\n\nAudit the same six requirements as Reviewers A and B.\n\nOUTPUT: write {{run_dir}}/P5_AUDIT_C.md with per-requirement findings. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, list failed requirements.\n\nAlso emit the VERDICT line as the last line of your prompt response."
+    ]
+
+    p5_audit_join [
+        shape=tripleoctagon,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="1800s",
+        label="P5-AUDIT: Consolidate",
+        prompt="{{goal}}\n\nYou are the audit verdict consolidator for P5.\n\nRead the three reviewer reports:\n{{branch:p5_audit_a}}\n{{branch:p5_audit_b}}\n{{branch:p5_audit_c}}\n\nAlso read the files {{run_dir}}/P5_AUDIT_A.md, {{run_dir}}/P5_AUDIT_B.md, {{run_dir}}/P5_AUDIT_C.md for full detail.\n\nApply the unanimity rule:\n- ANY reviewer reporting VERDICT: reject -> final verdict is reject\n- ALL reviewers reporting VERDICT: accept -> final verdict is accept\n\nWrite {{run_dir}}/P5_AUDIT_MERGED.md containing:\n1. Final verdict\n2. Deduplicated findings (merge overlapping, preserve unique)\n3. For each finding: evidence and which reviewer(s) flagged it\n\nWhen merging, discard nit-picks with negligible real-world impact. Only escalate findings that materially affect correctness, completeness, or quality.\n\nThe UploadMedia guardrail is non-negotiable - if any reviewer flagged it, the final verdict is reject regardless of severity-merging.\n\nEnd your response with exactly one of:\n\nVERDICT: accept\nVERDICT: reject"
+    ]
+
+    p5_audit_gate [shape=diamond, label="P5 Audit Pass?"]
+
+    p5_audit_fix [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="3600s",
+        label="P5-AUDIT: Fix",
+        prompt="{{goal}}\n\nYou are a debugging engineer. Address the findings from the P5 parallel audit.\n\nRead {{run_dir}}/P5_AUDIT_MERGED.md carefully.\n\nPrioritize findings by impact. The UploadMedia guardrail is the load-bearing one; if it's flagged, fix it first. Address remaining findings in descending impact order. Fully resolve one before moving to the next.\n\nAim for a Pareto-optimal outcome: focus effort where it materially improves correctness or quality. Do not chase diminishing returns on minor or cosmetic issues - if remaining findings are trivial, the work is done.\n\nCloudLab discipline: any fix that touches pipeline tests, admission sweeps, or e2e behavior must be verified on CloudLab.\n\nAnti-gaming:\n- Do NOT weaken the UploadMedia guardrail test to make it pass.\n- Do NOT broaden retry-eligibility to make a refusal go away.\n- Do NOT remove code-level exclusion guards.\n- Do NOT introduce cost-model ranking to resolve an ambiguity.\n\nAfter fixing, commit each substantive change. Report what you fixed and route back to the preparer for re-verification."
+    ]
+
+    // ============================================================
+    // PHASE P6 - listmonk/M-4 stage 10 on CloudLab (sprint Phase 6)
+    // Stage progression 4->5->6->7->8->9->10, strict ladder, one stage per
+    // `go test` process, never jump.
+    // ============================================================
+
+    p6_stage10_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=20,
+        timeout="3600s",
+        label="P6: listmonk/M-4 stage 10",
+        prompt="{{goal}}\n\nYou are an implementation engineer landing the listmonk/M-4 (processImage) stage-10 e2e proof on CloudLab.\n\nPrevious reviewer critique (empty on first visit): {{p6_stage10_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 6 tasks 6.1-6.10 in docs/sprints/SPRINT-0051.md. Reuse activation_listmonk_sanitizeuri/ as the structural reference (it already handles Listmonk auth + Postgres fixture).\n\nRequirements:\n1. Scaffold test/e2e/targets/activation_listmonk_processimage/ with target.go, workload.go, baseline manifests. Reuse activation_listmonk_sanitizeuri/ patterns.\n2. Register activation_listmonk_processimage in test/e2e/e2e_test.go. Set ActivationLift.Target to cmd/media.go:processImage and ServiceName to monolift-extracted-processimage.\n3. Workload: authenticate as admin, upload the deterministic PNG fixture (from P0 task 0.7) via the existing Listmonk /api/media route (which invokes (*App).UploadMedia -> processImage).\n4. Oracle: compute the expected thumbnail by running processImage locally against the fixture in a Go test helper. Preserve the P0.6 determinism-check artifact.\n5. Direct-invoke expectation: declared oracle policy from P0.6 (oracle-compare if direct-byte succeeded; declared pixel-hash + dimension normalizer otherwise).\n6. Transcript checks: thumbnail object written through a.media.Put; original-width / original-height returned in the response; content type recorded; extracted-service /calls records exactly one call per upload.\n7. STAGE PROGRESSION on CloudLab, ONE STAGE PER EXACT `go test` PROCESS, NEVER JUMP: 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10. Per SPRINT-0050 stage ladder. Save per-stage artifacts under .moab/runs/sprint-0051-stage-N/.\n8. Env-off check: with MONOLIFT_LIFT_* off, the host falls back to the local helper and the extracted service records zero /calls. Thumbnail is still correct.\n9. Fail-open / fail-closed check: with the extracted service unavailable, the generated client policy for processImage (fail-open by default) returns the correct result via local fallback; fail-closed mode returns (nil, 0, 0, error).\n10. Update test/e2e/activation_corpus_traces.yaml row for listmonk/M-4: status: pass, phase: 10, boundary_class: AdapterPossible, selected_cut: processImage, proof_kind: adapter-direct-compare (or adapter-png-normalized). The selected_cut MUST be processImage, not (*App).UploadMedia.\n11. Check off sprint doc 6.1-6.10 and commit.\n\nCloudLab discipline: EVERYTHING e2e here runs on CloudLab. Before each stage, run `cl status <experiment>`. If aborted before cleanup, delete kind cluster monolift-e2e or orphaned mlv2-* namespaces before the next run. Stage one target, one stage, one `go test` process at a time. NEVER jump stages.\n\nAnti-gaming:\n- Do NOT jump stages (no skipping 4->7).\n- Do NOT set selected_cut to (*App).UploadMedia and claim sprint success - the whole sprint thesis is that processImage stays selected via adapter recovery.\n- Do NOT use `make e2e`, broad multi-target -run regex, or scripts/run_activation_corpus_sweep.sh --phases all as proof for this target.\n- Do NOT relax the oracle policy beyond what P0.6 declared.\n- Do NOT silently skip the env-off or fail-mode checks.\n\nPRE-COMPLETION CHECKLIST:\n[ ] Target scaffolded and registered\n[ ] Workload uploads via /api/media as admin\n[ ] Oracle computed and applied per P0.6 policy\n[ ] All transcript checks pass\n[ ] All seven stages 4->10 passed on CloudLab via the strict ladder; per-stage artifacts under .moab/runs/sprint-0051-stage-N/\n[ ] Env-off check passes\n[ ] Fail-open + fail-closed checks pass\n[ ] activation_corpus_traces.yaml updated with selected_cut: processImage\n[ ] Sprint doc 6.1-6.10 checked off and committed"
+    ]
+
+    p6_stage10_review [
+        shape=box,
+        llm_provider=codex,
+        max_iterations=20,
+        timeout="3600s",
+        label="P6: Verify stage 10",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify code.\n\nImplementation under review: {{p6_stage10_impl.last_output}}\n\nVerify each requirement. The selected_cut == processImage assertion (req 10) is load-bearing - confirm it in the corpus_traces.yaml AND in the actual e2e artifacts.\n\n1. test/e2e/targets/activation_listmonk_processimage/ exists with target.go, workload.go, baseline manifests, testdata/ PNG fixture.\n2. Target registered in test/e2e/e2e_test.go with the correct Target and ServiceName.\n3. Workload uses Listmonk admin auth + /api/media for upload.\n4. Oracle computes expected thumbnail; matches P0.6 declared policy.\n5. Transcript checks (Put, original-width/height, content type, /calls count) all assert correctly.\n6. STAGE LADDER: each of stages 4, 5, 6, 7, 8, 9, 10 has a corresponding .moab/runs/sprint-0051-stage-N/ artifact directory with a passing `go test` log from CloudLab. Verify no stage was skipped.\n7. Env-off check: MONOLIFT_LIFT_* off -> local fallback returns correct thumbnail; extracted service /calls = 0.\n8. Fail-open + fail-closed checks verified.\n9. test/e2e/activation_corpus_traces.yaml row for listmonk/M-4: status: pass, phase: 10, boundary_class: AdapterPossible, selected_cut: processImage. The selected_cut MUST be processImage. If it's anything else (especially (*App).UploadMedia), reject.\n10. Sprint doc 6.1-6.10 are [x].\n\nAim for a Pareto-optimal outcome. The selected_cut value is non-negotiable.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars."
+    ]
+
+    p6_stage10_gate [shape=diamond, label="P6 Pass?"]
+
+    // ============================================================
+    // PHASE P7 - Documentation (sprint Phase 7)
+    // ============================================================
+
+    p7_docs_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="1800s",
+        label="P7: Documentation",
+        prompt="{{goal}}\n\nYou are an implementation engineer writing the SPRINT-0051 documentation deliverables.\n\nPrevious reviewer critique (empty on first visit): {{p7_docs_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 7 tasks 7.1-7.5 in docs/sprints/SPRINT-0051.md.\n\nIMPORTANT - ADRs are decisions, not TODO lists. ADR-0032 records the architectural decision that LANDED in this sprint; it must not enumerate future work as decisions. Use the project's ADR convention: ADRs in docs/decisions/, narrative in docs/evolution.md.\n\nRequirements:\n1. docs/decisions/0032-boundary-adapter-recovery.md - cover: the five-class taxonomy and why it is orthogonal to BoundaryDataClass; recovery-branch placement (not ranking) with falsifiability hook; the six obligations and their refusal codes; why multi-result-DTO normalization is independent of adapter classification; inline-only transport policy with the 8 MiB ceiling and Transport: staged_object as future enum; the MONOLIFT_BOUNDARY_ADAPTER flag rollout policy with a removal target (SPRINT-0053+ after two clean releases); explicit link to ADR-0028 explaining why AdapterPossible is NOT a resurrection of FeasibleWithProxy.\n2. docs/evolution.md - paragraph on the adapter pass: what it does, what it does not (no ranking, no live proxy, no SSA rewrite), the listmonk/M-4 stage-10 result.\n3. docs/research/activation-paths/analyses/listmonk-M-4.md - rewrite. Replace 'Proxy-required' / 'Feasible-with-proxy' column entries with AdapterPossible. Replace 'Recommended Cut' with the adapted semantic unit. Reference ADR-0032.\n4. docs/research/activation-paths/cut-placement-synthesis.md - update the 'Framework Callback' archetype row: listmonk/M-4 has migrated to adapter-recovered.\n5. docs/research/runs/SPRINT-0051-coverage-report.md - before/after M-4 status, exact commands, artifacts, oracle policy, residual backlog (e.g. reader_read_all, staging transport).\n6. Check off sprint doc 7.1-7.5 and commit.\n\nNo CloudLab work in this phase - all editing.\n\nAnti-gaming:\n- Do NOT write ADR-0032 as a TODO list of future work; it records the decision that landed.\n- Do NOT leave 'Proxy-required' or 'Feasible-with-proxy' terminology in analyses/listmonk-M-4.md.\n- Do NOT defer the rollout-removal target language in ADR-0032.\n- Do NOT skip the explicit ADR-0028 link.\n\nPRE-COMPLETION CHECKLIST:\n[ ] ADR-0032 lands and is written as a decision\n[ ] evolution.md updated with adapter-pass paragraph\n[ ] analyses/listmonk-M-4.md rewritten; retired terminology gone; ADR-0032 referenced\n[ ] cut-placement-synthesis.md framework-callback row updated\n[ ] SPRINT-0051-coverage-report.md complete with before/after, commands, artifacts, oracle policy, backlog\n[ ] Sprint doc 7.1-7.5 checked off and committed"
+    ]
+
+    p7_docs_review [
+        shape=box,
+        llm_provider=gemini,
+        max_iterations=6,
+        timeout="1200s",
+        label="P7: Verify Docs",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify docs (the implementor will fix).\n\nImplementation under review: {{p7_docs_impl.last_output}}\n\nVerify each requirement by reading the actual files:\n1. docs/decisions/0032-boundary-adapter-recovery.md exists and is written as a DECISION (not a TODO list). It covers: 5-class taxonomy + orthogonality, recovery-branch placement + falsifiability, six obligations + refusal codes, multi-result DTO independence, inline 8 MiB transport policy + future enum, MONOLIFT_BOUNDARY_ADAPTER rollout + removal target (SPRINT-0053+ after two clean releases), explicit ADR-0028 link disclaiming proxy resurrection.\n2. docs/evolution.md has a paragraph on the adapter pass covering: what it does, what it does not, M-4 stage-10 result.\n3. docs/research/activation-paths/analyses/listmonk-M-4.md no longer contains 'Proxy-required' or 'Feasible-with-proxy'; uses AdapterPossible; references ADR-0032.\n4. docs/research/activation-paths/cut-placement-synthesis.md Framework Callback row reflects M-4 adapter-recovered status.\n5. docs/research/runs/SPRINT-0051-coverage-report.md exists with before/after M-4 status, exact commands, artifacts, oracle policy, residual backlog.\n6. Sprint doc 7.1-7.5 are [x].\n\nAim for a Pareto-optimal outcome. Writing-style nits do not block; missing required content does.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars."
+    ]
+
+    p7_docs_gate [shape=diamond, label="P7 Pass?"]
+
+    // ============================================================
+    // PHASE P8 - Verification + closeout (sprint Phase 8)
+    // Followed by P9-AUDIT (parallel triad) on full acceptance criteria.
+    // ============================================================
+
+    p8_closeout_impl [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=10,
+        timeout="3600s",
+        label="P8: Closeout",
+        prompt="{{goal}}\n\nYou are an implementation engineer performing the closeout verification: regression sweeps, flag-off parity, and ledger update.\n\nPrevious reviewer critique (empty on first visit): {{p8_closeout_review.last_output}}\n\nIf a critique exists above, this is a fix iteration.\nIf empty, this is your first visit.\n\nScope: sprint Phase 8 tasks 8.1-8.9 in docs/sprints/SPRINT-0051.md.\n\nRequirements:\n1. Run go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/... on CloudLab. Store logs under .moab/runs/sprint-0051-closeout/.\n2. Focused e2e for activation_listmonk_processimage per the strict stage ladder (one stage per `go test` process; if all stages already green from P6, document and reference; do not re-run).\n3. Regression e2e on adjacent and result-shape-affected targets on CloudLab: activation_listmonk_sanitizeuri (closest in shape; shared codegen path), activation_miniflux_refreshfeed, activation_pocketbase_createthumb (SPRINT-0050 stage-10 winners - confirm flag-on does not regress them).\n4. Flag-off parity sweep: admission-only corpus sweep with MONOLIFT_BOUNDARY_ADAPTER=0, compare to SPRINT-0050 admission baseline. Save under .moab/runs/sprint-0051-admission-flag-off/. Differences MUST be zero.\n5. Flag-on admission-only corpus sweep with MONOLIFT_BOUNDARY_ADAPTER=1, save under .moab/runs/sprint-0051-admission-flag-on/. Differences from baseline should be limited to the M-4 row flip plus any incidental adapter-recovered candidates (record each one).\n6. Confirm generated artifacts contain no MONOLIFT_LIFT_* env vars in extracted deployments.\n7. Confirm GeneratorVersion, goldens, manifest, ADR, analysis note, evolution note, and corpus row all agree on the SPRINT-0051 changes.\n8. Confirm no full e2e sweep, broad multi-target -run regex, or whole-repository focused admission was used as proof anywhere in this sprint.\n9. Update sprint ledger (docs/sprints/ledger.yaml) to status: done with executor recorded.\n10. Check off sprint doc 8.1-8.9 and commit.\n\nCloudLab discipline: every test/sweep here runs on CloudLab. Use focused target/importer package scope; do not use timeout failures from broad package loading as viability evidence. If an e2e run is aborted before cleanup, delete the kind cluster monolift-e2e or orphaned mlv2-* namespaces before the next run.\n\nAnti-gaming:\n- Do NOT skip the regression sweep on SPRINT-0050 winners.\n- Do NOT accept non-zero deltas on the flag-off parity sweep.\n- Do NOT use a full e2e sweep as proof for any target.\n- Do NOT mark the ledger done if any of 1-9 are incomplete.\n\nPRE-COMPLETION CHECKLIST:\n[ ] All three test runs green on CloudLab\n[ ] Regression e2e green on the three named SPRINT-0050 winners with flag on\n[ ] Flag-off parity sweep: zero deltas vs SPRINT-0050 baseline\n[ ] Flag-on sweep: only M-4 row flip + recorded incidental candidates\n[ ] No MONOLIFT_LIFT_* in extracted manifests\n[ ] All artifacts agree on SPRINT-0051\n[ ] No forbidden sweep types used as proof\n[ ] Ledger updated to done with executor\n[ ] Sprint doc 8.1-8.9 checked off and committed"
+    ]
+
+    p8_closeout_review [
+        shape=box,
+        llm_provider=codex,
+        max_iterations=10,
+        timeout="3600s",
+        label="P8: Verify Closeout",
+        prompt="{{goal}}\n\nYou are a verification engineer. Do not modify code.\n\nImplementation under review: {{p8_closeout_impl.last_output}}\n\nVerify each requirement by inspecting CloudLab artifacts under .moab/runs/sprint-0051-closeout/, .moab/runs/sprint-0051-admission-flag-off/, .moab/runs/sprint-0051-admission-flag-on/, plus the ledger:\n1. go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/... green on CloudLab.\n2. activation_listmonk_processimage stage-10 ladder artifacts present (or referenced from P6).\n3. Regression e2e green on the three named SPRINT-0050 winners with flag on.\n4. Flag-off parity sweep: zero deltas vs SPRINT-0050 baseline.\n5. Flag-on sweep: deltas limited to M-4 row flip + recorded incidental candidates.\n6. No MONOLIFT_LIFT_* in extracted manifests (grep).\n7. GeneratorVersion, goldens, manifest, ADR, analyses note, evolution note, corpus row all agree on SPRINT-0051.\n8. No full e2e sweep / broad -run regex / whole-repo focused admission used as proof (inspect command logs in the run artifacts).\n9. Sprint ledger status = done with executor.\n10. Sprint doc 8.1-8.9 are [x].\n\nAim for a Pareto-optimal outcome.\n\nOUTPUT: short report with per-requirement PASS/FAIL + evidence. End with exactly:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, one-line critique under 80 chars."
+    ]
+
+    p8_closeout_gate [shape=diamond, label="P8 Pass?"]
+
+    // ============================================================
+    // P9-AUDIT - Final acceptance audit (full sprint criteria)
+    // ============================================================
+
+    p9_audit_prep [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="2400s",
+        label="P9-AUDIT: Prepare Evidence",
+        prompt="{{goal}}\n\nYou are a preparer. Your only job is to generate fresh evidence for three independent reviewers performing the final acceptance audit. Do not modify production code.\n\nProduce {{run_dir}}/P9_EVIDENCE.md containing, for each Minimum acceptance criterion in docs/sprints/SPRINT-0051.md and each Target acceptance criterion:\n\nMinimum (from the sprint doc):\nM1. SPRINT-0051-adapter-decisions.md exists with explicit decisions on the three open questions + determinism-verification artifact - paste the relevant sections.\nM2. AdapterClass enum, AdapterPlan IR, all ten refusal codes - list source locations and confirm unit tests run on CloudLab.\nM3. Multi-result-DTO normalization exercised by golden tests for (T, U, error), (T, int, int, error), passthrough for (T, error)/(T) - list test names + last CloudLab pass.\nM4. multipart_file_read_all and bytes_reader_return patterns implemented with proof discharge + negative fixtures - list source + tests.\nM5. Direct admission refusal of processImage recovers through adapter planning rather than selecting (*App).UploadMedia - quote the pipeline test source + last CloudLab pass result.\nM6. Generated host wrapper preserves processImage signature (*bytes.Reader, int, int, error) and call-site compatibility - paste the generated wrapper signature.\nM7. ADR-0032 lands; analyses/listmonk-M-4.md no longer uses retired proxy terminology; evolution.md updated - list files + paste relevant lines.\nM8. MONOLIFT_BOUNDARY_ADAPTER=0 admission sweep produces zero-delta parity vs SPRINT-0050 baseline - paste the diff result.\n\nTarget (from the sprint doc):\nT1. activation-listmonk-processimage reaches stage 10 on CloudLab via the strict 4->5->6->7->8->9->10 ladder - list per-stage artifact paths.\nT2. Stage 10 uses direct PNG byte comparison or declared pixel-hash + dimension normalizer - paste the oracle assertion.\nT3. Env-off and fail-mode checks pass per generated client policy - paste check results.\nT4. test/e2e/activation_corpus_traces.yaml records listmonk/M-4 as status: pass, phase: 10, selected_cut: processImage, boundary_class: AdapterPossible - paste the row.\nT5. SPRINT-0050 stage-10 winners (miniflux/M-1, pocketbase/M-1) pass unchanged with flag on - list test names + last CloudLab pass.\nT6. CloudLab artifacts stored under .moab/runs/sprint-0051-* - list the directories.\n\nReport completion with the evidence file path. Do not draw conclusions; reviewers do that."
+    ]
+
+    p9_audit_fanout [shape=component, max_parallel=3]
+
+    p9_audit_a [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="1800s",
+        label="P9-AUDIT A (claude)",
+        prompt="{{goal}}\n\nYou are an independent auditor - Reviewer A. You do not coordinate with or defer to any other reviewer.\n\nRead the prepared evidence at {{run_dir}}/P9_EVIDENCE.md and cross-check by inspecting source/artifacts directly.\n\nAim for a Pareto-optimal outcome: FAIL only on issues that materially affect the sprint's claims. Do not fail over stylistic issues.\n\nAudit:\n- All eight Minimum acceptance criteria (M1-M8) are satisfied.\n- All six Target acceptance criteria (T1-T6) are satisfied.\n- ADR-0028 invariant preserved (no proxy renderer shipped; AdapterPossible renders local code marshalling finite values, not live RPC for awkward types).\n- No scope creep beyond the sprint's 'Out of scope' list (no new patterns beyond multipart_file_read_all + bytes_reader_return + optional stretch reader_read_all; no cost-model ranking; no live-proxy transport; no other corpus targets gained as part of this sprint).\n- selected_cut for M-4 in activation_corpus_traces.yaml is processImage, NOT (*App).UploadMedia.\n\nOUTPUT: write {{run_dir}}/P9_AUDIT_A.md with per-criterion findings + evidence. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, list failed criteria.\n\nAlso emit the VERDICT line as the last line of your prompt response."
+    ]
+
+    p9_audit_b [
+        shape=box,
+        llm_provider=codex,
+        max_iterations=6,
+        timeout="1800s",
+        label="P9-AUDIT B (codex)",
+        prompt="{{goal}}\n\nYou are an independent auditor - Reviewer B. You do not coordinate with or defer to any other reviewer.\n\nRead {{run_dir}}/P9_EVIDENCE.md and cross-check sources/artifacts directly.\n\nAim for a Pareto-optimal outcome.\n\nAudit the same criteria as Reviewer A (M1-M8, T1-T6, ADR-0028 preservation, scope discipline, selected_cut = processImage).\n\nOUTPUT: write {{run_dir}}/P9_AUDIT_B.md with per-criterion findings. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, list failed criteria.\n\nAlso emit the VERDICT line as the last line of your prompt response."
+    ]
+
+    p9_audit_c [
+        shape=box,
+        llm_provider=gemini,
+        max_iterations=6,
+        timeout="1800s",
+        label="P9-AUDIT C (gemini)",
+        prompt="{{goal}}\n\nYou are an independent auditor - Reviewer C. You do not coordinate with or defer to any other reviewer.\n\nRead {{run_dir}}/P9_EVIDENCE.md and cross-check sources/artifacts directly.\n\nAim for a Pareto-optimal outcome.\n\nAudit the same criteria as Reviewers A and B.\n\nOUTPUT: write {{run_dir}}/P9_AUDIT_C.md. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, list failed criteria.\n\nAlso emit the VERDICT line as the last line of your prompt response."
+    ]
+
+    p9_audit_join [
+        shape=tripleoctagon,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="1800s",
+        label="P9-AUDIT: Consolidate",
+        prompt="{{goal}}\n\nYou are the audit verdict consolidator for the final SPRINT-0051 acceptance audit.\n\nRead the three reviewer reports:\n{{branch:p9_audit_a}}\n{{branch:p9_audit_b}}\n{{branch:p9_audit_c}}\n\nAlso read {{run_dir}}/P9_AUDIT_A.md, {{run_dir}}/P9_AUDIT_B.md, {{run_dir}}/P9_AUDIT_C.md.\n\nApply the unanimity rule:\n- ANY reviewer reporting VERDICT: reject -> final verdict is reject\n- ALL reviewers reporting VERDICT: accept -> final verdict is accept\n\nWrite {{run_dir}}/P9_AUDIT_MERGED.md containing:\n1. Final verdict\n2. Deduplicated findings (merge overlapping, preserve unique)\n3. For each finding: evidence and which reviewer(s) flagged it\n4. A mapping from each finding to the corresponding sprint acceptance criterion (M1-M8 or T1-T6)\n\nWhen merging, discard nit-picks; only escalate findings that materially affect correctness, completeness, or quality. The selected_cut == processImage assertion and the ADR-0028 invariant are non-negotiable - if any reviewer flagged them, reject.\n\nEnd your response with exactly one of:\n\nVERDICT: accept\nVERDICT: reject"
+    ]
+
+    p9_audit_gate [shape=diamond, label="P9 Audit Pass?"]
+
+    p9_audit_fix [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=6,
+        timeout="3600s",
+        label="P9-AUDIT: Fix",
+        prompt="{{goal}}\n\nYou are a debugging engineer. Address the findings from the final sprint acceptance audit.\n\nRead {{run_dir}}/P9_AUDIT_MERGED.md carefully.\n\nPrioritize findings by impact:\n1. selected_cut for M-4 is anything other than processImage -> fix immediately; this is the sprint thesis.\n2. ADR-0028 invariant violation (any live-proxy renderer present) -> fix immediately.\n3. Missing Minimum acceptance criterion -> fix before Target items.\n4. Failed Target acceptance criterion -> fix in declared priority order.\n5. Documentation gaps -> fix last.\n\nAim for a Pareto-optimal outcome: fully resolve high-impact findings before moving to low-impact ones. If remaining findings are trivial, the work is done.\n\nCloudLab discipline: any fix touching pipeline tests, admission, e2e, or sweeps must be verified on CloudLab.\n\nAnti-gaming:\n- Do NOT weaken acceptance criteria to make findings go away.\n- Do NOT relax the selected_cut assertion.\n- Do NOT introduce live-proxy code.\n- Do NOT skip the CloudLab verification.\n\nAfter fixing, commit each substantive change. Report what you fixed and route back to the preparer for re-verification."
+    ]
+
+    // ============================================================
+    // Retrospective (single codergen, no loop)
+    // ============================================================
+
+    retrospective [
+        shape=box,
+        llm_provider=claude,
+        max_iterations=1,
+        timeout="1200s",
+        label="Retrospective",
+        prompt="{{goal}}\n\nYou are a process engineer writing the SPRINT-0051 retrospective.\n\nRead {{run_dir}}/events.jsonl carefully. Examine which nodes converged quickly, which looped multiple times, which audit findings were caught only by parallel triad, which were caught in single-reviewer phases, and which decisions in P0 saved (or cost) iterations later.\n\nWrite {{run_dir}}/RETROSPECTIVE.md with these sections:\n1. What went well - three to five bullets, specific to this run.\n2. What failed or looped - list each phase where the implement/test loop took >3 iterations or the audit rejected, with the root cause.\n3. Audit-only catches - findings the parallel triads caught that the per-phase reviewers missed. If none, say so.\n4. Recommendations for improving this pipeline - concrete, actionable; tied to what actually happened in this run, not generic advice.\n5. Recommendations for the next sprint (SPRINT-0052+) - what should change in the boundary-adapter work or its admission integration, based on findings.\n\nKeep it tight: under two pages. Do NOT recapitulate the sprint plan - that's in docs/sprints/SPRINT-0051.md. The retrospective is about the RUN."
+    ]
+
+    // ============================================================
+    // WIRING
+    // ============================================================
+
+    start -> p0_decision_impl
+
+    // P0
+    p0_decision_impl -> p0_decision_review
+    p0_decision_review -> p0_decision_gate
+    p0_decision_gate -> p1_ir_impl       [condition="context.p0_decision_review.last_output contains \"VERDICT: accept\""]
+    p0_decision_gate -> p0_decision_impl [condition="context.p0_decision_review.last_output contains \"VERDICT: reject\""]
+
+    // P1
+    p1_ir_impl -> p1_ir_review
+    p1_ir_review -> p1_ir_gate
+    p1_ir_gate -> p2_dto_impl  [condition="context.p1_ir_review.last_output contains \"VERDICT: accept\""]
+    p1_ir_gate -> p1_ir_impl   [condition="context.p1_ir_review.last_output contains \"VERDICT: reject\""]
+
+    // P2
+    p2_dto_impl -> p2_dto_review
+    p2_dto_review -> p2_dto_gate
+    p2_dto_gate -> p3_patterns_impl [condition="context.p2_dto_review.last_output contains \"VERDICT: accept\""]
+    p2_dto_gate -> p2_dto_impl      [condition="context.p2_dto_review.last_output contains \"VERDICT: reject\""]
+
+    // P3
+    p3_patterns_impl -> p3_patterns_review
+    p3_patterns_review -> p3_patterns_gate
+    p3_patterns_gate -> p4_render_impl    [condition="context.p3_patterns_review.last_output contains \"VERDICT: accept\""]
+    p3_patterns_gate -> p3_patterns_impl  [condition="context.p3_patterns_review.last_output contains \"VERDICT: reject\""]
+
+    // P4
+    p4_render_impl -> p4_render_review
+    p4_render_review -> p4_render_gate
+    p4_render_gate -> p5_recovery_impl [condition="context.p4_render_review.last_output contains \"VERDICT: accept\""]
+    p4_render_gate -> p4_render_impl   [condition="context.p4_render_review.last_output contains \"VERDICT: reject\""]
+
+    // P5
+    p5_recovery_impl -> p5_recovery_review
+    p5_recovery_review -> p5_recovery_gate
+    p5_recovery_gate -> p5_audit_prep     [condition="context.p5_recovery_review.last_output contains \"VERDICT: accept\""]
+    p5_recovery_gate -> p5_recovery_impl  [condition="context.p5_recovery_review.last_output contains \"VERDICT: reject\""]
+
+    // P5-AUDIT
+    p5_audit_prep -> p5_audit_fanout
+    p5_audit_fanout -> p5_audit_a
+    p5_audit_fanout -> p5_audit_b
+    p5_audit_fanout -> p5_audit_c
+    p5_audit_a -> p5_audit_join
+    p5_audit_b -> p5_audit_join
+    p5_audit_c -> p5_audit_join
+    p5_audit_join -> p5_audit_gate
+    p5_audit_gate -> p6_stage10_impl [condition="context.p5_audit_join.last_output contains \"VERDICT: accept\""]
+    p5_audit_gate -> p5_audit_fix    [condition="context.p5_audit_join.last_output contains \"VERDICT: reject\""]
+    p5_audit_fix -> p5_audit_prep
+
+    // P6
+    p6_stage10_impl -> p6_stage10_review
+    p6_stage10_review -> p6_stage10_gate
+    p6_stage10_gate -> p7_docs_impl     [condition="context.p6_stage10_review.last_output contains \"VERDICT: accept\""]
+    p6_stage10_gate -> p6_stage10_impl  [condition="context.p6_stage10_review.last_output contains \"VERDICT: reject\""]
+
+    // P7
+    p7_docs_impl -> p7_docs_review
+    p7_docs_review -> p7_docs_gate
+    p7_docs_gate -> p8_closeout_impl [condition="context.p7_docs_review.last_output contains \"VERDICT: accept\""]
+    p7_docs_gate -> p7_docs_impl     [condition="context.p7_docs_review.last_output contains \"VERDICT: reject\""]
+
+    // P8
+    p8_closeout_impl -> p8_closeout_review
+    p8_closeout_review -> p8_closeout_gate
+    p8_closeout_gate -> p9_audit_prep     [condition="context.p8_closeout_review.last_output contains \"VERDICT: accept\""]
+    p8_closeout_gate -> p8_closeout_impl  [condition="context.p8_closeout_review.last_output contains \"VERDICT: reject\""]
+
+    // P9-AUDIT
+    p9_audit_prep -> p9_audit_fanout
+    p9_audit_fanout -> p9_audit_a
+    p9_audit_fanout -> p9_audit_b
+    p9_audit_fanout -> p9_audit_c
+    p9_audit_a -> p9_audit_join
+    p9_audit_b -> p9_audit_join
+    p9_audit_c -> p9_audit_join
+    p9_audit_join -> p9_audit_gate
+    p9_audit_gate -> retrospective  [condition="context.p9_audit_join.last_output contains \"VERDICT: accept\""]
+    p9_audit_gate -> p9_audit_fix   [condition="context.p9_audit_join.last_output contains \"VERDICT: reject\""]
+    p9_audit_fix -> p9_audit_prep
+
+    // Retrospective and exit
+    retrospective -> exit
+}

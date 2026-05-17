@@ -17,6 +17,7 @@ docs/research/runs/**
 !docs/research/runs/SPRINT-0038-final.json
 !docs/research/runs/SPRINT-0050-candidates.md
 !docs/research/runs/SPRINT-0050-stage-binding.md
+!docs/research/runs/SPRINT-0051-adapter-decisions.md
 
 # Local external target checkouts; evaluation/MANIFEST.yaml is tracked.
 evaluation/*/
