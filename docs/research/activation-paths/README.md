@@ -123,6 +123,9 @@ Scored every activation-path node as a candidate network boundary across the 72-
 - [`analyses/`](analyses/)
 - [`analyses/recommended-cuts.md`](analyses/recommended-cuts.md)
 - [`cut-placement-synthesis.md`](cut-placement-synthesis.md)
+- [`boundary-adapter-strategy.md`](boundary-adapter-strategy.md) — follow-on
+  strategy for `AdapterPossible` cuts where the semantic target is good but
+  the source signature needs a generated network-boundary adapter.
 
 ## Key finding: RTA-augmentation ordering
 
