@@ -30,7 +30,10 @@ Remote bare-metal build server (and eventually e2e K8s testing) via [CloudLab](h
 ## Usage
 
 ```
-cl ls                              List experiments
+cl ls                              List your experiments
+cl ls --all                        List all visible experiments (may be slow)
+cl ls --creator <user|all>         List experiments for a creator
+cl ls --project <project|all>      List experiments for a project
 cl status <name|id>                Details + SSH connection string
 cl ssh <name|id>                   SSH into the build node
 cl create [name] [project] [hours] Spin up from monolift-buildserver profile
@@ -40,6 +43,10 @@ cl raw <args...>                   Pass-through to portal-cli
 ```
 
 Name matching is fuzzy — `cl status tgoodwin` will match an experiment named `tgoodwin-305638`.
+`cl ls` and fuzzy name resolution default to `--creator "$USER"` because the
+CloudLab portal's unfiltered experiment-list endpoint can hang. Set
+`CL_LIST_CREATOR=all` or use `cl ls --all` when you genuinely need the
+unfiltered portal query.
 
 ## Profile
 

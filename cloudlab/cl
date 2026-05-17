@@ -90,6 +90,22 @@ status_color() {
     esac
 }
 
+set_default_list_args() {
+    LIST_ARGS=()
+
+    # CloudLab's unfiltered /experiments endpoint can hang. For the normal
+    # developer workflow, list the current user's experiments by default.
+    local creator="${CL_LIST_CREATOR:-${USER:-}}"
+    local project="${CL_LIST_PROJECT:-}"
+
+    if [ -n "$creator" ] && [ "$creator" != "all" ]; then
+        LIST_ARGS+=(--creator "$creator")
+    fi
+    if [ -n "$project" ] && [ "$project" != "all" ]; then
+        LIST_ARGS+=(--project "$project")
+    fi
+}
+
 # resolve experiment id: accept UUID or prefix-match on name
 require_arg() {
     if [ -z "${2:-}" ]; then
@@ -106,8 +122,9 @@ resolve_exp() {
         return
     fi
     # match by name substring
+    set_default_list_args
     local id
-    id=$(portal experiment list \
+    id=$(portal experiment list "${LIST_ARGS[@]}" \
         | $JQ -r --arg q "$input" '.experiments[] | select(.name | test($q; "i")) | .id' \
         | head -1)
     if [ -z "$id" ]; then
@@ -130,8 +147,51 @@ get_ssh_host() {
 
 # ── commands ───────────────────────────────────────────────────────────
 cmd_ls() {
+    local creator="${CL_LIST_CREATOR:-${USER:-}}"
+    local project="${CL_LIST_PROJECT:-}"
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --all)
+                creator="all"
+                project="all"
+                shift ;;
+            --creator)
+                if [ -z "${2:-}" ]; then
+                    echo "usage: cl ls [--all] [--creator <user|all>] [--project <project|all>]" >&2
+                    exit 1
+                fi
+                creator="$2"
+                shift 2 ;;
+            --creator=*)
+                creator="${1#--creator=}"
+                shift ;;
+            --project)
+                if [ -z "${2:-}" ]; then
+                    echo "usage: cl ls [--all] [--creator <user|all>] [--project <project|all>]" >&2
+                    exit 1
+                fi
+                project="$2"
+                shift 2 ;;
+            --project=*)
+                project="${1#--project=}"
+                shift ;;
+            *)
+                echo "unknown cl ls option: $1" >&2
+                echo "usage: cl ls [--all] [--creator <user|all>] [--project <project|all>]" >&2
+                exit 1 ;;
+        esac
+    done
+
+    LIST_ARGS=()
+    if [ -n "$creator" ] && [ "$creator" != "all" ]; then
+        LIST_ARGS+=(--creator "$creator")
+    fi
+    if [ -n "$project" ] && [ "$project" != "all" ]; then
+        LIST_ARGS+=(--project "$project")
+    fi
+
     local raw rc
-    raw=$(portal experiment list) || rc=$?
+    raw=$(portal experiment list "${LIST_ARGS[@]}") || rc=$?
     if [ -n "${rc:-}" ] || [ -z "$raw" ]; then
         echo "error: 'portal-cli experiment list' failed (rc=${rc:-0}, empty output)" >&2
         exit 1
