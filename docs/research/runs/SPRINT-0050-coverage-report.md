@@ -44,3 +44,44 @@ Stage 9 policy note:
   weakening the normal Stage 8 behavioral predicate.
 - Restore checks retry transient workload failures while Kubernetes endpoint
   propagation catches up after scaling the extracted service back to one replica.
+
+## Phase 5 Stretch Research
+
+Research timeout policy:
+
+- Internal caps are cost instrumentation, not viability decisions. If a cap
+  fires during research, rerun with the cap disabled or widened before
+  classifying the candidate.
+- Candidate blockers must be semantic or runtime facts: wrong selected cut,
+  shared-state/app receiver, unsupported shape, missing reconstructor, generated
+  build failure, fixture scope, or violated workload contract.
+
+Stretch result:
+
+- `gitea/M-9` (`services/packages/rpm.BuildSpecificRepositoryFiles`) reached
+  source-local stage 5.
+- Stage 4/generation log:
+  `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage4-clean-lift-20260516-192525.log`
+- Stage 5 extracted build log:
+  `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage5-build-20260516-193842.log`
+- Selected cut:
+  `code.gitea.io/gitea/services/packages/rpm.BuildSpecificRepositoryFiles` at
+  `services/packages/rpm/repository.go:163`.
+- Cost profile: activation about 12m13s, dominated by about 9m56s in
+  augmentation. Extraction report took about 24s, build-plan about 12s, and
+  patch-function about 26s.
+- Runtime blocker: no Kind e2e was promoted because a meaningful proof would
+  need Gitea package DB rows, RPM metadata inputs, package blob storage, and an
+  upload or metadata rebuild workload. That fixture/runtime work is too large
+  for the Phase 5 stretch slot and is not a timeout classification.
+
+Deferred stretch candidates:
+
+- `gitea/M-19` has the analogous Debian repository metadata cut, but Phase 5
+  promoted only the RPM target.
+- `listmonk/M-4` remains deferred. Provider-level filesystem probes were cheap,
+  but selected cuts climbed back to a synthetic `UploadMedia$1` closure or a
+  `*Manager` shared-state receiver.
+- Mattermost filestore work remains deferred. The image path is rooted in
+  `channels/app` upload state, and the remote-cluster path needs queue/channel
+  dispatch plus generic HTTP-client behavior.

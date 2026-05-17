@@ -147,12 +147,12 @@ Default target: `pocketbase/M-1` `(*filesystem.System).CreateThumb` if Phase 0 c
 
 Only one stretch target should be promoted after the primary DB and filesystem paths are stable.
 
-- [ ] 5.1: Reevaluate `miniflux/M-5` after the admission-rerank decision. Attempt it only if the intended `*iconChecker` cut can be expressed without adding generic HTTP-client reconstruction.
-- [ ] 5.2: Research one Gitea package/blob cut below routers if it fits the same durable-resource pattern and avoids auth/web context, repository state, queues, and generic HTTP client expansion.
-- [ ] 5.3: Research one Listmonk provider-level media store cut if it avoids `(*App).UploadMedia`, `echo.Context`, import goroutines, mailers, and app-owned shared state.
-- [ ] 5.4: Research Mattermost filestore cuts only if time remains and avoid `channels/app`-rooted candidates unless load stability has already been demonstrated.
-- [ ] 5.5: Promote at most one stretch target. Reuse the DB or filesystem fixture; do not add a third fixture family this sprint.
-- [ ] 5.6: Aim for stage 4 minimum and stage 7 if cheap. Do not let stretch stage 10 block closeout.
+- [x] 5.1: Reevaluate `miniflux/M-5` after the admission-rerank decision. Attempt it only if the intended `*iconChecker` cut can be expressed without adding generic HTTP-client reconstruction.
+- [x] 5.2: Research one Gitea package/blob cut below routers if it fits the same durable-resource pattern and avoids auth/web context, repository state, queues, and generic HTTP client expansion.
+- [x] 5.3: Research one Listmonk provider-level media store cut if it avoids `(*App).UploadMedia`, `echo.Context`, import goroutines, mailers, and app-owned shared state.
+- [x] 5.4: Research Mattermost filestore cuts only if time remains and avoid `channels/app`-rooted candidates unless load stability has already been demonstrated.
+- [x] 5.5: Promote at most one stretch target. Reuse the DB or filesystem fixture; do not add a third fixture family this sprint.
+- [x] 5.6: Aim for stage 4 minimum and stage 7 if cheap. Do not let stretch stage 10 block closeout.
 
 ## Phase 6: Verification and Closeout
 
@@ -193,7 +193,7 @@ Target:
 
 - [ ] `miniflux/M-1` reaches stage 10 with workload evidence, env-off/fail-mode checks, dormant invariant, and transcript compare or declared substitute.
 - [x] The filesystem/object-store primary reaches stage 7 or later with shared durable root proof and path-safety coverage.
-- [ ] One stretch candidate reaches stage 4 or later without violating scope.
+- [x] One stretch candidate reaches stage 4 or later without violating scope.
 - [ ] Manifest drift from SPRINT-0049 is reconciled.
 
 Stretch:

@@ -33,6 +33,16 @@ evidence: source-local lift selects `RefreshFeed`, not `*iconChecker`.
 `listmonk/M-4` is deferred because admission refuses `*App` shared state and
 lift then fails on callable boundary values.
 
+Phase 5 update:
+`gitea/M-9` is promoted only as the stretch research target, not as a Kind e2e
+proof. A clean source-local lift of
+`services/packages/rpm.BuildSpecificRepositoryFiles` selected the intended
+below-router service cut and the generated extracted command builds. Runtime
+promotion is deferred because a meaningful e2e fixture would need Gitea package
+DB rows, package blob storage, and an upload/metadata workload. The internal
+15s admission-aware plan cap is not treated as a blocker; it is cost
+instrumentation only.
+
 Research method:
 Candidate decisions are based on focused scoped admission and source-local lift
 artifacts, not whole-repository admission. The admission-only baseline is useful
@@ -130,3 +140,49 @@ icon handling.
 
 `listmonk/M-4` is out of scope for SPRINT-0050 implementation. It requires
 `*App` shared-state reconstruction and callable boundary values.
+
+### Phase 5 Stretch Research
+
+`gitea/M-9` (`services/packages/rpm.BuildSpecificRepositoryFiles`) is the only
+promoted stretch target. The focused source-local run used a clean tracked
+archive of `evaluation/gitea` and disabled admission-aware reranking so the
+research result was not governed by the 15s candidate planning cap.
+
+- Lift log:
+  `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage4-clean-lift-20260516-192525.log`
+- Extracted build log:
+  `.moab/runs/sprint-0050-phase5/gitea-rpmrepo-stage5-build-20260516-193842.log`
+- Selected cut:
+  `code.gitea.io/gitea/services/packages/rpm.BuildSpecificRepositoryFiles`
+  at `services/packages/rpm/repository.go:163`.
+- Stage reached: source-local stage 5. The lift generated host/extracted
+  artifacts with the same-package adapter, and `go build
+  ./cmd/monolift-extracted-gitea-rpmrepo` passed.
+- Cost profile: activation took about 12m13s; augmentation dominated at about
+  9m56s. The recurring expensive subphases were package-var, map func-value,
+  and interface-field augmentation. Extraction report took about 24s,
+  build-plan about 12s, and patch-function about 26s.
+- Runtime blocker: not a timeout. A real e2e would need a Gitea package fixture
+  with package DB rows, RPM metadata inputs, package blob storage, and an upload
+  or metadata rebuild workload. That is more fixture/runtime work than the
+  Phase 5 stretch slot should take after the primary DB and filesystem proofs.
+
+`gitea/M-19` has the analogous Debian service-level cut at
+`services/packages/debian/repository.go:154`, but it is not promoted because
+Phase 5 allows at most one stretch target.
+
+`listmonk/M-4` remains deferred after provider-level media-store probes:
+
+- `internal/media/providers/filesystem.(*Client).Delete` was narrow and fast
+  through activation, but the generated path selected a synthetic
+  `UploadMedia$1` closure in `cmd`, which codegen cannot resolve as a source
+  function.
+- `internal/media/providers/filesystem.(*Client).GetBlob` was also narrow and
+  fast, but admission selected/refused a `*Manager` shared-state receiver rather
+  than staying at the provider boundary.
+
+Mattermost filestore work is deferred. The relevant image-upload trace is
+`channels/app` rooted at `(*UploadFileTask).postprocessImage`, with app/fileinfo
+state plus write-file closure dependencies. The remote-cluster file trace
+requires queue/channel dispatch, a reader-provider filestore abstraction, and
+generic HTTP-client behavior. Neither fits the Phase 5 stretch constraints.

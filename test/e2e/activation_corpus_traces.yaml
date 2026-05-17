@@ -185,13 +185,13 @@ traces:
 
   - trace_id: gitea/M-9
     project: gitea
-    function: UploadPackageFile
-    file_line: "routers/api/packages/handler.go:FieldNotInCorpus"
+    function: BuildSpecificRepositoryFiles
+    file_line: "services/packages/rpm/repository.go:163"
     state_class: Client-reconstructible
     boundary_class: Serializable
     status: manifest-skip
-    phase: deferred
-    skip_reason: "needs package storage/DB reconstructor"
+    phase: "5"
+    skip_reason: "Phase 5 source-local stretch reached stage 5 for service-level RPM repository metadata cut; e2e/runtime deferred because fixture needs Gitea package DB rows plus package blob storage and upload workload"
     e2e_package: ""
 
   - trace_id: gitea/M-10
@@ -284,13 +284,13 @@ traces:
 
   - trace_id: gitea/M-19
     project: gitea
-    function: UploadPackageFile
-    file_line: "routers/api/packages/handler.go:FieldNotInCorpus"
+    function: BuildSpecificRepositoryFiles
+    file_line: "services/packages/debian/repository.go:154"
     state_class: Client-reconstructible
     boundary_class: Serializable
     status: manifest-skip
-    phase: deferred
-    skip_reason: "needs package storage/DB reconstructor"
+    phase: "5"
+    skip_reason: "analogous Debian package metadata cut identified below routers, but not promoted because Phase 5 allows at most one stretch target"
     e2e_package: ""
 
   # ── Listmonk ───────────────────────────────────────────────────────────────
@@ -330,13 +330,13 @@ traces:
 
   - trace_id: listmonk/M-4
     project: listmonk
-    function: "(*App).UploadMedia"
-    file_line: "cmd/media.go:FieldNotInCorpus"
+    function: processImage
+    file_line: "cmd/media.go:212"
     state_class: Client-reconstructible
     boundary_class: Reconstructible
-    status: manifest-skip
-    phase: deferred
-    skip_reason: "needs media store/DB reconstructor"
+    status: admission-skip
+    phase: "5"
+    skip_reason: "provider-level filesystem Delete/GetBlob probes were narrow and fast but selected cuts climbed back to UploadMedia$1 or *Manager shared state; do not count as media-provider proof"
     e2e_package: ""
 
   - trace_id: listmonk/M-5
@@ -420,13 +420,13 @@ traces:
 
   - trace_id: mattermost/M-2
     project: mattermost
-    function: uploadFileSimple
-    file_line: "server/channels/api4/file.go:FieldNotInCorpus"
+    function: "(*UploadFileTask).postprocessImage"
+    file_line: "server/channels/app/file.go:931"
     state_class: Client-reconstructible
     boundary_class: Serializable
     status: manifest-skip
-    phase: deferred
-    skip_reason: "needs file store/app reconstructor"
+    phase: "5"
+    skip_reason: "Phase 5 review found filestore-relevant image path is channels/app-rooted and depends on UploadFileTask app/fileinfo/writeFile closure state; load stability not demonstrated"
     e2e_package: ""
 
   - trace_id: mattermost/M-3
@@ -509,12 +509,12 @@ traces:
   - trace_id: mattermost/M-10
     project: mattermost
     function: "(*Service).sendFileToRemote"
-    file_line: "server/channels/app/shared_channel_service.go:FieldNotInCorpus"
+    file_line: "server/platform/services/remotecluster/sendfile.go:84"
     state_class: Client-reconstructible
     boundary_class: Serializable
     status: manifest-skip
-    phase: deferred
-    skip_reason: "needs remote file/client reconstructor"
+    phase: "5"
+    skip_reason: "remote-cluster file transfer needs queue/channel dispatch, ReaderProvider filestore access, and generic HTTP-client behavior; outside Phase 5 stretch scope"
     e2e_package: ""
 
   - trace_id: mattermost/M-11
@@ -622,17 +622,17 @@ traces:
     skip_reason: "needs integrations config/client reconstructor"
     e2e_package: ""
 
-  # SPRINT-0049 stretch: stage-4 pass in 85.5s. Admission selected parent
-  # RefreshFeed rather than the *iconChecker leaf, so stage 7 remains deferred.
+  # SPRINT-0049/0050 stage-4 e2e passes only for a parent RefreshFeed cut.
+  # Do not count this as an UpdateOrCreateFeedIcon leaf proof.
   - trace_id: miniflux/M-5
     project: miniflux
     function: "(*iconChecker).UpdateOrCreateFeedIcon"
     file_line: "internal/reader/icon/checker.go:28"
     state_class: Client-reconstructible
     boundary_class: Serializable
-    status: pass
-    phase: "4"
-    skip_reason: ""
+    status: admission-skip
+    phase: "5"
+    skip_reason: "focused stage-4 rerun selected parent RefreshFeed at internal/reader/handler/handler.go:207, not the intended *iconChecker leaf; leaf still needs iconChecker/feed-icon state reconstruction and is not promoted"
     e2e_package: activation_miniflux_feedicon
 
   - trace_id: miniflux/M-6
