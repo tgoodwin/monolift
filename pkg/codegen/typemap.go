@@ -50,12 +50,85 @@ func ReturnCodecFor(results []Result) ReturnCodec {
 	if len(results) == 0 {
 		return ReturnCodec{}
 	}
+	// When a ResultDTO is applicable (> 1 non-error return), the caller
+	// sets CodecResultDTO after building the DTO. Here we just classify
+	// the first non-error result for backwards compatibility.
 	result := results[0]
 	return ReturnCodec{
 		Kind:     result.Codec,
 		Nullable: strings.HasPrefix(result.GoType, "*"),
 		GoType:   result.GoType,
 	}
+}
+
+// BuildResultDTO examines a plan's results and, if there are > 1 non-error
+// returns whose types are all JSON-codable, builds a ResultDTO that packs
+// them into a single struct. Returns nil if a DTO is not needed (0 or 1
+// non-error result) or not possible (non-JSON-codable type in the results).
+func BuildResultDTO(funcName string, results []Result) *ResultDTO {
+	var nonError []Result
+	for _, r := range results {
+		if r.Codec == CodecError {
+			continue
+		}
+		nonError = append(nonError, r)
+	}
+	if len(nonError) <= 1 {
+		return nil
+	}
+	// Check all non-error results are JSON-codable.
+	for _, r := range nonError {
+		if !isJSONCodableResultType(r.GoType) {
+			return nil
+		}
+	}
+	name := "result"
+	if funcName != "" {
+		name = strings.ToLower(funcName[:1]) + funcName[1:] + "Result"
+	}
+	dto := &ResultDTO{
+		Name: name,
+	}
+	for i, r := range nonError {
+		fieldName := r.Name
+		if fieldName == "" || fieldName == "result" {
+			fieldName = "Result" + string(rune('0'+i))
+		}
+		dto.Fields = append(dto.Fields, ResultDTOField{
+			Name:            exportedFieldName(fieldName),
+			JSONName:        toSnake(fieldName),
+			GoType:          r.GoType,
+			QualifiedGoType: r.QualifiedGoType,
+			Index:           r.Index,
+			OriginalName:    r.Name,
+		})
+	}
+	return dto
+}
+
+// isJSONCodableResultType returns true if the Go type string represents a
+// type that can be packed into a JSON DTO. Channels, function types, sync
+// primitives, and io.Reader/Writer types cannot.
+func isJSONCodableResultType(goType string) bool {
+	lower := strings.ToLower(goType)
+	switch {
+	case strings.Contains(lower, "chan "):
+		return false
+	case strings.Contains(lower, "io.reader"),
+		strings.Contains(lower, "io.writer"),
+		strings.Contains(lower, "io.readcloser"),
+		strings.Contains(lower, "io.writecloser"),
+		strings.Contains(lower, "io.readwriter"):
+		return false
+	case strings.Contains(lower, "sync."):
+		return false
+	case strings.HasPrefix(strings.TrimPrefix(goType, "*"), "func("),
+		strings.HasPrefix(strings.TrimPrefix(goType, "*"), "func ("):
+		return false
+	case strings.Contains(lower, "http.responsewriter"):
+		return false
+	}
+	return true
 }
 
 func classifyCodec(typ types.Type) (activation.BoundaryDataClass, Codec) {

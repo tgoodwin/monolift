@@ -42,6 +42,15 @@ type serverView struct {
 	CutPackageAlias                string
 	AdapterFunc                    string
 
+	// ResultDTO support: when HasDTO is true, the response carries multiple
+	// non-error fields packed into a single struct.
+	HasDTO    bool
+	DTOFields []fieldView
+	// DTOCallVars are the LHS variable names for the multi-return call.
+	DTOCallVars string
+	// DTORespLiteral is the struct literal packing call vars into invokeResponse.
+	DTORespLiteral string
+
 	// Receiver support
 	HasReceiver         bool
 	ReceiverRequestType string // qualified type for invokeRequest field (ReceiverBoundary only)
@@ -139,9 +148,15 @@ func serverTemplateView(plan *Plan) serverView {
 	hasErrorResult := false
 	localized := false
 	primitive := false
+	var dtoFields []fieldView
+	hasDTO := plan.ResultDTO != nil
 	for _, result := range plan.Results {
 		if result.Codec == CodecError {
 			hasErrorResult = true
+			continue
+		}
+		if hasDTO {
+			hasNonErrorResult = true
 			continue
 		}
 		if !hasNonErrorResult {
@@ -158,6 +173,42 @@ func serverTemplateView(plan *Plan) serverView {
 			primitive = result.Codec != CodecLocalizedErrorWrapper
 			hasNonErrorResult = true
 		}
+	}
+	// Build DTO field views and call/response metadata.
+	var dtoCallVars, dtoRespLiteral string
+	if hasDTO {
+		for _, f := range plan.ResultDTO.Fields {
+			dtoFields = append(dtoFields, fieldView{
+				Name:         f.Name,
+				JSONName:     f.JSONName,
+				Type:         f.QualifiedGoType,
+				OriginalName: f.OriginalName,
+				ZeroValue:    zeroValue(f.GoType),
+			})
+			if f.QualifiedGoType != f.GoType {
+				// May need an import for the qualified type.
+				for _, r := range plan.Results {
+					if r.Index == f.Index && r.TypePackagePath != "" && r.TypePackagePath != plan.CutPoint.PackagePath {
+						imports = append(imports, importSpec{Path: r.TypePackagePath})
+					}
+				}
+			}
+		}
+		// Build the LHS vars for multi-value call: r0, r1, ..., resultErr
+		var callVars []string
+		for i := range plan.ResultDTO.Fields {
+			callVars = append(callVars, "r"+string(rune('0'+i)))
+		}
+		if hasErrorResult {
+			callVars = append(callVars, "resultErr")
+		}
+		dtoCallVars = strings.Join(callVars, ", ")
+		// Build resp literal: invokeResponse{ Field0: r0, Field1: r1 }
+		var litParts []string
+		for i, f := range plan.ResultDTO.Fields {
+			litParts = append(litParts, f.Name+": r"+string(rune('0'+i)))
+		}
+		dtoRespLiteral = strings.Join(litParts, ", ")
 	}
 	baseCallArgs := strings.Join(callArgs(plan.BoundaryParams, plan.ReconstructedParams, "state."), ", ")
 	requestValidationLines := rootRelativePathValidationLines(plan)
@@ -184,6 +235,10 @@ func serverTemplateView(plan *Plan) serverView {
 		PrimitiveResult:                primitive,
 		CutPackageAlias:                plan.CutPoint.PackageName,
 		AdapterFunc:                    adapterFuncName(plan.CutPoint.FuncName),
+		HasDTO:                         hasDTO,
+		DTOFields:                      dtoFields,
+		DTOCallVars:                    dtoCallVars,
+		DTORespLiteral:                 dtoRespLiteral,
 	}
 
 	// Receiver support: compute request field, construction, and call arg.
@@ -439,6 +494,13 @@ type invokeRequest struct {
 type invokeResponse struct {
 {{- if .LocalizedResult }}
 	Error *localizedError ` + "`json:\"error,omitempty\"`" + `
+{{- else if .HasDTO }}
+{{- range .DTOFields }}
+	{{ .Name }} {{ .Type }} ` + "`json:\"{{ .JSONName }}\"`" + `
+{{- end }}
+{{- if .HasErrorResult }}
+	Error string ` + "`json:\"error,omitempty\"`" + `
+{{- end }}
 {{- else }}
 {{- if .HasResult }}
 	{{ .ResponseField.Name }} {{ .ResponseField.Type }} ` + "`json:\"{{ .ResponseField.JSONName }}\"`" + `
@@ -626,6 +688,14 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			}
 			resp.Error = &localizedError{Error: errText, Message: result.Translate("en_US")}
 		}
+{{- else if .HasDTO }}
+		{{ .DTOCallVars }} := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		resp := invokeResponse{ {{ .DTORespLiteral }} }
+{{- if .HasErrorResult }}
+		if resultErr != nil {
+			resp.Error = resultErr.Error()
+		}
+{{- end }}
 {{- else if .HasErrorResult }}
 {{- if .HasResult }}
 		result, resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})

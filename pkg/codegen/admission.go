@@ -97,13 +97,11 @@ func AdmitPlan(plan *Plan, base AdmissionVerdict) AdmissionVerdict {
 	if len(plan.Results) == 0 {
 		verdict = refused(verdict, "void_side_effect", "void function with no return value cannot be verified over HTTP/JSON", "")
 	}
-	// Multi-return (T, error) is supported. Refuse only if there are more
-	// than two results or if the last result of a multi-return is not error.
-	if len(plan.Results) > 2 {
-		verdict = refused(verdict, "unsupported_result_shape", "more than two return values are not supported by the HTTP/JSON generator", "")
-	} else if len(plan.Results) == 2 && plan.Results[1].Codec != CodecError {
-		verdict = refused(verdict, "unsupported_result_shape", "multi-return must have error as the last result", plan.Results[1].GoType)
-	}
+	// Multi-return admission with DTO normalization (SPRINT-0051 Phase 2).
+	// (T, error) is supported directly. For > 2 results, attempt to pack
+	// non-error returns into a ResultDTO. This is generic and runs for
+	// every boundary, not just adapter-eligible ones.
+	verdict = admitResultShape(plan, verdict)
 	for _, result := range plan.Results {
 		if result.Codec == CodecError {
 			continue
@@ -193,6 +191,56 @@ func isSerializableReceiverType(goType string) bool {
 func refused(verdict AdmissionVerdict, code, message, typ string) AdmissionVerdict {
 	verdict.Accepted = false
 	verdict.Refusals = append(verdict.Refusals, AdmissionRefusal{Code: code, Message: message, Type: typ})
+	return verdict
+}
+
+// admitResultShape checks the result shape and, for multi-return functions,
+// attempts DTO normalization. For <= 2 results, the existing logic applies.
+// For > 2 results, all non-error returns must be JSON-codable; if so, a
+// ResultDTO is built and attached to the plan.
+func admitResultShape(plan *Plan, verdict AdmissionVerdict) AdmissionVerdict {
+	nonErrorCount := 0
+	hasError := false
+	for _, r := range plan.Results {
+		if r.Codec == CodecError {
+			hasError = true
+		} else {
+			nonErrorCount++
+		}
+	}
+	// Single result: error-only or single non-error — admitted as-is.
+	if len(plan.Results) <= 1 {
+		return verdict
+	}
+	// (T, error): standard two-result shape — admitted as-is.
+	if len(plan.Results) == 2 && nonErrorCount == 1 && hasError {
+		return verdict
+	}
+	// Resolve funcName for DTO naming.
+	funcName := plan.CutPoint.FuncName
+	if funcName == "" {
+		funcName = plan.CutPoint.Key.FuncName
+	}
+	// Two results, second is not error — attempt DTO.
+	if len(plan.Results) == 2 && !hasError {
+		dto := BuildResultDTO(funcName, plan.Results)
+		if dto == nil {
+			return refused(verdict, "unsupported_result_shape", "multi-return with no error must have all JSON-codable types", plan.Results[1].GoType)
+		}
+		plan.ResultDTO = dto
+		plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: dto.Name}
+		return verdict
+	}
+	// > 2 results: attempt DTO normalization.
+	if len(plan.Results) > 2 {
+		dto := BuildResultDTO(funcName, plan.Results)
+		if dto == nil {
+			return refused(verdict, "unsupported_result_shape", "multi-return values contain non-JSON-codable types", "")
+		}
+		plan.ResultDTO = dto
+		plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: dto.Name}
+		return verdict
+	}
 	return verdict
 }
 

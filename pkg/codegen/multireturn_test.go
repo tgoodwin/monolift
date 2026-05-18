@@ -194,6 +194,315 @@ func TestRenderServerVoidGolden(t *testing.T) {
 	}
 }
 
+// --- DTO golden-file plan constructors (SPRINT-0051 Phase 2) ---
+
+// (T, U, error) shape: two non-error results + error, needs DTO.
+func dtoTUErrorServerPlan() *Plan {
+	plan := &Plan{
+		ServiceName:      "monolift-parse",
+		EnvServiceName:   "PARSE",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/parser",
+			PackageName: "parser",
+			FuncName:    "Parse",
+		},
+		BoundaryParams: []Param{
+			{Name: "input", JSONName: "input", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		Results: []Result{
+			{Name: "name", JSONName: "name", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "count", JSONName: "count", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 2},
+		},
+		ServerPath: "/tmp/test/cmd/monolift-parse/main.go",
+	}
+	plan.ResultDTO = BuildResultDTO("Parse", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+func dtoTUErrorClientPlan() *Plan {
+	plan := &Plan{
+		ServiceName:      "monolift-parse",
+		EnvServiceName:   "PARSE",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/parser",
+			PackageName: "parser",
+			FuncName:    "Parse",
+		},
+		BoundaryParams: []Param{
+			{Name: "input", JSONName: "input", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		Results: []Result{
+			{Name: "name", JSONName: "name", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "count", JSONName: "count", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 2},
+		},
+		ClientPath: "/tmp/test/internal/parser/monolift_lift_PARSE.go",
+	}
+	plan.ResultDTO = BuildResultDTO("Parse", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+// ([]byte, int, int, error) shape: the M-4 processImage shape.
+func dtoM4ServerPlan() *Plan {
+	plan := &Plan{
+		ServiceName:      "monolift-processimage",
+		EnvServiceName:   "PROCESSIMAGE",
+		SourceModulePath: "example.com/listmonk",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/listmonk/internal/media",
+			PackageName: "media",
+			FuncName:    "ProcessImage",
+		},
+		BoundaryParams: []Param{
+			{Name: "srcData", JSONName: "src_data", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "typ", JSONName: "typ", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 1},
+		},
+		Results: []Result{
+			{Name: "data", JSONName: "data", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "width", JSONName: "width", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "height", JSONName: "height", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		},
+		ServerPath: "/tmp/test/cmd/monolift-processimage/main.go",
+	}
+	plan.ResultDTO = BuildResultDTO("ProcessImage", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+func dtoM4ClientPlan() *Plan {
+	plan := &Plan{
+		ServiceName:      "monolift-processimage",
+		EnvServiceName:   "PROCESSIMAGE",
+		SourceModulePath: "example.com/listmonk",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/listmonk/internal/media",
+			PackageName: "media",
+			FuncName:    "ProcessImage",
+		},
+		BoundaryParams: []Param{
+			{Name: "srcData", JSONName: "src_data", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "typ", JSONName: "typ", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 1},
+		},
+		Results: []Result{
+			{Name: "data", JSONName: "data", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "width", JSONName: "width", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "height", JSONName: "height", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		},
+		ClientPath: "/tmp/test/internal/media/monolift_lift_PROCESSIMAGE.go",
+	}
+	plan.ResultDTO = BuildResultDTO("ProcessImage", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+// (T, T) shape: two non-error results, no error.
+func dtoTwoNonErrorServerPlan() *Plan {
+	plan := &Plan{
+		ServiceName:      "monolift-split",
+		EnvServiceName:   "SPLIT",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/util",
+			PackageName: "util",
+			FuncName:    "Split",
+		},
+		BoundaryParams: []Param{
+			{Name: "input", JSONName: "input", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		Results: []Result{
+			{Name: "first", JSONName: "first", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "second", JSONName: "second", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 1},
+		},
+		ServerPath: "/tmp/test/cmd/monolift-split/main.go",
+	}
+	plan.ResultDTO = BuildResultDTO("Split", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+func dtoTwoNonErrorClientPlan() *Plan {
+	plan := &Plan{
+		ServiceName:      "monolift-split",
+		EnvServiceName:   "SPLIT",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/util",
+			PackageName: "util",
+			FuncName:    "Split",
+		},
+		BoundaryParams: []Param{
+			{Name: "input", JSONName: "input", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		Results: []Result{
+			{Name: "first", JSONName: "first", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "second", JSONName: "second", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 1},
+		},
+		ClientPath: "/tmp/test/internal/util/monolift_lift_SPLIT.go",
+	}
+	plan.ResultDTO = BuildResultDTO("Split", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+// --- DTO golden-file tests ---
+
+func TestRenderServerDTOTUErrorGolden(t *testing.T) {
+	plan := dtoTUErrorServerPlan()
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ServerPath]
+	goldenPath := filepath.Join("testdata", "dto_tu_error_server.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered server does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
+func TestRenderClientDTOTUErrorGolden(t *testing.T) {
+	plan := dtoTUErrorClientPlan()
+	files, err := RenderClient(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ClientPath]
+	goldenPath := filepath.Join("testdata", "dto_tu_error_client.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered client does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
+func TestRenderServerDTOM4Golden(t *testing.T) {
+	plan := dtoM4ServerPlan()
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ServerPath]
+	goldenPath := filepath.Join("testdata", "dto_m4_processimage_server.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered server does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
+func TestRenderClientDTOM4Golden(t *testing.T) {
+	plan := dtoM4ClientPlan()
+	files, err := RenderClient(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ClientPath]
+	goldenPath := filepath.Join("testdata", "dto_m4_processimage_client.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered client does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
+func TestRenderServerDTOTwoNonErrorGolden(t *testing.T) {
+	plan := dtoTwoNonErrorServerPlan()
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ServerPath]
+	goldenPath := filepath.Join("testdata", "dto_two_nonerror_server.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered server does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
+func TestRenderClientDTOTwoNonErrorGolden(t *testing.T) {
+	plan := dtoTwoNonErrorClientPlan()
+	files, err := RenderClient(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := files[plan.ClientPath]
+	goldenPath := filepath.Join("testdata", "dto_two_nonerror_client.go.golden")
+	if os.Getenv("MONOLIFT_UPDATE_GOLDEN") == "1" {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("rendered client does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
 // --- Round-trip tests (2D.11-2D.12) ---
 
 // multiReturnResponse mirrors the generated invokeResponse for (string, error).

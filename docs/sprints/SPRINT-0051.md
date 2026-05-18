@@ -18,7 +18,7 @@ This is an **implementation sprint with a narrow Phase 0 evidence-and-decision g
 - [ ] Add `AdapterClass` enum + `AdapterPlan` IR to the compiler, orthogonal to existing `BoundaryDataClass`.
 - [ ] Implement the six static feasibility obligations as named proof checks with explicit refusal codes.
 - [ ] Implement two adapter patterns: `multipart_file_read_all` (input) and `bytes_reader_return` (output).
-- [ ] Land generic multi-result-DTO normalization in codegen, independent of `AdapterClass`.
+- [x] Land generic multi-result-DTO normalization in codegen, independent of `AdapterClass`.
 - [ ] Wire the adapter pass as a recovery branch in `admitCutCandidates` after refusal of the preferred semantic cut, before the pipeline commits to a broader parent.
 - [ ] Guarantee admission recovery selects `processImage` and **does not climb to `(*App).UploadMedia`** for `listmonk/M-4`.
 - [ ] Reach stage 10 on `listmonk/M-4` with declared oracle policy (direct PNG byte comparison by default; declared normalizer if Phase 0 finds nondeterminism).
@@ -87,14 +87,14 @@ Phase 1 does not start until tasks 0.1–0.9 are checked off and the decisions a
 
 This phase unblocks `processImage` before the multipart input becomes a concern, and benefits any future trace with `(T, U, ..., error)` shape. The work runs for every boundary, not just adapter-eligible ones — that is the whole point, but it is also the regression risk.
 
-- [ ] 2.1: Audit `pkg/codegen/multireturn_test.go`, `client.go`, `server.go` for current behavior on multi-result returns. Save audit summary in the decision doc.
-- [ ] 2.2: Add `ResultDTO` representation to `pkg/codegen/types.go` alongside `Result`. Each multi-return function with > 1 non-error return generates a synthetic `<FuncName>Result` struct with named fields (declared return names if available, else `Result0..N`).
-- [ ] 2.3: Update `AdmitPlan` (`pkg/codegen/admission.go`) so the `unsupported_result_shape` refusal becomes conditional: if all non-error returns can be packed into a single DTO with JSON-codable fields, allow with codec `CodecResultDTO`; otherwise refuse as before.
-- [ ] 2.4: Update the affected functions to thread the DTO through both directions: `ReturnCodecFor`, `computeStubReturnSig`, `computeRemoteReturnSig`, `computeTransportErrZeros`, plus server response rendering and client unpacking.
-- [ ] 2.5: Preserve app-facing signatures in generated host stubs (e.g. `(*bytes.Reader, int, int, error)` is unchanged on the call-site side).
-- [ ] 2.6: Unit tests for return shapes: `(T, error)` unchanged, `(T)` unchanged, `(T, U, error)`, `([]byte, int, int, error)` (the M-4 shape), `(T, T)`, void. Plus negative cases for non-JSON-codable result types.
-- [ ] 2.7: Regression test fixture: run SPRINT-0049/0050 stage-10 targets (`miniflux/M-1`, `pocketbase/M-1`) through admission with the new DTO code path and confirm result envelopes are unchanged or intentionally migrated with refreshed goldens.
-- [ ] 2.8: Bump `GeneratorVersion` to `SPRINT-0051` with the first codegen output change; refresh affected goldens in the same patch.
+- [x] 2.1: Audit `pkg/codegen/multireturn_test.go`, `client.go`, `server.go` for current behavior on multi-result returns. Save audit summary in the decision doc.
+- [x] 2.2: Add `ResultDTO` representation to `pkg/codegen/types.go` alongside `Result`. Each multi-return function with > 1 non-error return generates a synthetic `<FuncName>Result` struct with named fields (declared return names if available, else `Result0..N`).
+- [x] 2.3: Update `AdmitPlan` (`pkg/codegen/admission.go`) so the `unsupported_result_shape` refusal becomes conditional: if all non-error returns can be packed into a single DTO with JSON-codable fields, allow with codec `CodecResultDTO`; otherwise refuse as before.
+- [x] 2.4: Update the affected functions to thread the DTO through both directions: `ReturnCodecFor`, `computeStubReturnSig`, `computeRemoteReturnSig`, `computeTransportErrZeros`, plus server response rendering and client unpacking.
+- [x] 2.5: Preserve app-facing signatures in generated host stubs (e.g. `(*bytes.Reader, int, int, error)` is unchanged on the call-site side).
+- [x] 2.6: Unit tests for return shapes: `(T, error)` unchanged, `(T)` unchanged, `(T, U, error)`, `([]byte, int, int, error)` (the M-4 shape), `(T, T)`, void. Plus negative cases for non-JSON-codable result types.
+- [x] 2.7: Regression test fixture: run SPRINT-0049/0050 stage-10 targets (`miniflux/M-1`, `pocketbase/M-1`) through admission with the new DTO code path and confirm result envelopes are unchanged or intentionally migrated with refreshed goldens.
+- [x] 2.8: Bump `GeneratorVersion` to `SPRINT-0051` with the first codegen output change; refresh affected goldens in the same patch.
 
 ## Phase 3: Pattern library and proofs
 

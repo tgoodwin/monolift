@@ -181,6 +181,211 @@ func TestAdmitPlanRefusesIOWriterResult(t *testing.T) {
 	}
 }
 
+// --- DTO normalization admission tests (SPRINT-0051 Phase 2, requirement 6) ---
+
+// Shape 1: (T, error) — standard two-result, admitted as-is without DTO.
+func TestAdmitPlanTErrorShapeNoDTO(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Fetch"},
+		Results: []Result{
+			{Name: "result", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 1},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T, error) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("(T, error) shape should not produce a ResultDTO")
+	}
+}
+
+// Shape 2: (T) — single non-error result, admitted as-is without DTO.
+func TestAdmitPlanSingleResultNoDTO(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Validate"},
+		Results: []Result{
+			{Name: "result", GoType: "bool", Codec: CodecPrimitive, Index: 0},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("(T) shape should not produce a ResultDTO")
+	}
+}
+
+// Shape 3: (T, U, error) — three results with error, admitted via DTO.
+func TestAdmitPlanTUErrorShapeDTO(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Parse"},
+		Results: []Result{
+			{Name: "name", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "count", GoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 2},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T, U, error) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO == nil {
+		t.Fatal("(T, U, error) shape should produce a ResultDTO")
+	}
+	if len(plan.ResultDTO.Fields) != 2 {
+		t.Fatalf("expected 2 DTO fields, got %d", len(plan.ResultDTO.Fields))
+	}
+	if plan.ReturnCodec.Kind != CodecResultDTO {
+		t.Fatalf("expected ReturnCodec.Kind = %s, got %s", CodecResultDTO, plan.ReturnCodec.Kind)
+	}
+}
+
+// Shape 4: ([]byte, int, int, error) — the M-4 processImage shape, admitted via DTO.
+func TestAdmitPlanM4ProcessImageShapeDTO(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "ProcessImage"},
+		Results: []Result{
+			{Name: "data", GoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "width", GoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "height", GoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 3},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("([]byte, int, int, error) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO == nil {
+		t.Fatal("M-4 shape should produce a ResultDTO")
+	}
+	if len(plan.ResultDTO.Fields) != 3 {
+		t.Fatalf("expected 3 DTO fields, got %d", len(plan.ResultDTO.Fields))
+	}
+	if plan.ResultDTO.Name != "processImageResult" {
+		t.Fatalf("expected DTO name processImageResult, got %s", plan.ResultDTO.Name)
+	}
+}
+
+// Shape 5: (T, T) — two non-error results, admitted via DTO.
+func TestAdmitPlanTwoNonErrorShapeDTO(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Split"},
+		Results: []Result{
+			{Name: "first", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "second", GoType: "string", Codec: CodecPrimitive, Index: 1},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T, T) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO == nil {
+		t.Fatal("(T, T) shape should produce a ResultDTO")
+	}
+	if len(plan.ResultDTO.Fields) != 2 {
+		t.Fatalf("expected 2 DTO fields, got %d", len(plan.ResultDTO.Fields))
+	}
+}
+
+// Shape 6: void — no results, refused with void_side_effect.
+func TestAdmitPlanVoidRefused(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Fire"},
+		Results:  nil,
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("void shape should be refused")
+	}
+	found := false
+	for _, r := range verdict.Refusals {
+		if r.Code == "void_side_effect" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected void_side_effect refusal, got: %s", verdict.Error())
+	}
+}
+
+// Negative: channel result in multi-return refuses with streaming_type.
+func TestAdmitPlanRefusesChanResult(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Stream"},
+		Results: []Result{
+			{Name: "ch", GoType: "chan int", Codec: CodecJSON, Index: 0},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 1},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("chan result should be refused")
+	}
+	found := false
+	for _, r := range verdict.Refusals {
+		if r.Code == "streaming_type" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected streaming_type refusal for chan, got: %s", verdict.Error())
+	}
+}
+
+// Negative: func() error in multi-return refuses with unsupported_result_shape
+// (not JSON-codable, so DTO normalization fails).
+func TestAdmitPlanRefusesFuncResultInMultiReturn(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "BadMulti"},
+		Results: []Result{
+			{Name: "callback", GoType: "func() error", Codec: CodecJSON, Index: 0},
+			{Name: "count", GoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 2},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("func() error in multi-return should be refused")
+	}
+	found := false
+	for _, r := range verdict.Refusals {
+		if r.Code == "unsupported_result_shape" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected unsupported_result_shape refusal, got: %s", verdict.Error())
+	}
+}
+
+// Negative: io.Writer in multi-return refuses with streaming_type (per-result loop).
+func TestAdmitPlanRefusesIOWriterInMultiReturn(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "BadIO"},
+		Results: []Result{
+			{Name: "w", GoType: "io.Writer", Codec: CodecJSON, Index: 0},
+			{Name: "count", GoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 2},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("io.Writer in multi-return should be refused")
+	}
+	found := false
+	for _, r := range verdict.Refusals {
+		if r.Code == "streaming_type" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected streaming_type refusal for io.Writer, got: %s", verdict.Error())
+	}
+}
+
 func emptyReport(t *testing.T) reportv2.Report {
 	t.Helper()
 	return reportv2.Report{}

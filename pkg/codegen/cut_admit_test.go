@@ -368,15 +368,18 @@ func TestIsAdapterEligibleRefusal(t *testing.T) {
 func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 	// With MONOLIFT_BOUNDARY_ADAPTER=0, the admission loop should behave
 	// identically to the SPRINT-0050 baseline — demotion proceeds without
-	// any adapter recovery attempt. This test uses a candidate that would
-	// produce an adapter-eligible refusal (unsupported_result_shape) and
-	// confirms it still demotes to the next candidate.
+	// any adapter recovery attempt. This test uses a candidate with a
+	// non-DTO-normalizable multi-return (chan int is not JSON-codable) to
+	// trigger unsupported_result_shape, which is both retryable and
+	// adapter-eligible.
+	// Note: (*bytes.Reader, int, int, error) is now admitted via DTO
+	// normalization (SPRINT-0051 Phase 2).
 	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "0")
 
 	awkward := admissibleTestCandidate()
 	awkward.Step = 2
-	awkward.NodeKey.FuncName = "ProcessImage"
-	awkward.NodeName = "ProcessImage"
+	awkward.NodeKey.FuncName = "StreamResults"
+	awkward.NodeName = "StreamResults"
 	clean := admissibleTestCandidate()
 	clean.Step = 3
 	clean.NodeKey.FuncName = "UploadMedia"
@@ -389,13 +392,15 @@ func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 
 	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
 		switch cut.Recommended.NodeKey.FuncName {
-		case "ProcessImage":
-			// Return a plan with >2 results to trigger unsupported_result_shape.
+		case "StreamResults":
+			// 3 results with non-JSON-codable func type → DTO fails →
+			// unsupported_result_shape refusal. func() error is not caught
+			// by the per-result streaming_type check but fails the DTO
+			// JSON-codability check.
 			return &Plan{
 				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
 				Results: []Result{
-					{GoType: "*bytes.Reader", Codec: CodecJSON},
-					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "func() error", Codec: CodecJSON},
 					{GoType: "int", Codec: CodecPrimitive},
 					{GoType: "error", Codec: CodecError},
 				},
@@ -418,7 +423,7 @@ func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 	if !verdict.Accepted {
 		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
 	}
-	// With flag off, ProcessImage should be demoted and UploadMedia selected.
+	// With flag off, StreamResults should be demoted and UploadMedia selected.
 	if cut.Recommended == nil || cut.Recommended.NodeName != "UploadMedia" {
 		t.Fatalf("Recommended = %+v, want UploadMedia (flag-off parity)", cut.Recommended)
 	}
@@ -430,17 +435,58 @@ func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 	}
 }
 
+// TestAdmitCutCandidatesDTONormalizationAcceptsProcessImage verifies that
+// the DTO normalization (SPRINT-0051 Phase 2) accepts processImage's
+// (*bytes.Reader, int, int, error) shape directly, without demotion.
+func TestAdmitCutCandidatesDTONormalizationAcceptsProcessImage(t *testing.T) {
+	processImage := admissibleTestCandidate()
+	processImage.Step = 2
+	processImage.NodeKey.FuncName = "ProcessImage"
+	processImage.NodeName = "ProcessImage"
+	cut := &activation.CutResult{
+		Candidates: []activation.CutCandidate{processImage},
+	}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		return &Plan{
+			CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+			Results: []Result{
+				{Name: "reader", GoType: "*bytes.Reader", QualifiedGoType: "*bytes.Reader", Codec: CodecJSON, Index: 0},
+				{Name: "width", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+				{Name: "height", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+				{Name: "err", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+			},
+		}, nil
+	})
+
+	verdict, chain, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("admitCutCandidates refused ProcessImage with DTO normalization: %s", verdict.Error())
+	}
+	if cut.Recommended == nil || cut.Recommended.NodeName != "ProcessImage" {
+		t.Fatalf("Recommended = %+v, want ProcessImage", cut.Recommended)
+	}
+	if len(chain) != 0 {
+		t.Fatalf("demotion chain = %+v, want empty (ProcessImage should be accepted)", chain)
+	}
+}
+
 func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
-	// With MONOLIFT_BOUNDARY_ADAPTER=1 (or unset), the admission loop
-	// should mark adapter-eligible candidates with AdapterUnknown before
-	// demoting them. This proves the flag gate is not a no-op: the
-	// candidate's AdapterClass is updated when the branch fires.
+	// With MONOLIFT_BOUNDARY_ADAPTER=1, the admission loop marks
+	// adapter-eligible candidates with AdapterUnknown before demoting them.
+	// This uses a non-DTO-normalizable multi-return (func() error is not
+	// JSON-codable) to trigger unsupported_result_shape, which is both
+	// retryable and adapter-eligible.
 	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
 
 	awkward := admissibleTestCandidate()
 	awkward.Step = 2
-	awkward.NodeKey.FuncName = "ProcessImage"
-	awkward.NodeName = "ProcessImage"
+	awkward.NodeKey.FuncName = "ProcessStream"
+	awkward.NodeName = "ProcessStream"
 	clean := admissibleTestCandidate()
 	clean.Step = 3
 	clean.NodeKey.FuncName = "UploadMedia"
@@ -453,13 +499,11 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 
 	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
 		switch cut.Recommended.NodeKey.FuncName {
-		case "ProcessImage":
-			// Return a plan with >2 results to trigger unsupported_result_shape.
+		case "ProcessStream":
 			return &Plan{
 				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
 				Results: []Result{
-					{GoType: "*bytes.Reader", Codec: CodecJSON},
-					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "func() error", Codec: CodecJSON},
 					{GoType: "int", Codec: CodecPrimitive},
 					{GoType: "error", Codec: CodecError},
 				},
@@ -482,9 +526,6 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 	if !verdict.Accepted {
 		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
 	}
-	// With flag on, ProcessImage should still be demoted (Phase 5 hasn't
-	// wired tryAdapterPass yet), but the candidate should be marked with
-	// AdapterUnknown to prove the branch fired.
 	if cut.Recommended == nil || cut.Recommended.NodeName != "UploadMedia" {
 		t.Fatalf("Recommended = %+v, want UploadMedia", cut.Recommended)
 	}
@@ -494,13 +535,13 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 	// Verify the demoted candidate was marked by the adapter branch.
 	var demoted *activation.CutCandidate
 	for i := range cut.Candidates {
-		if cut.Candidates[i].NodeKey.FuncName == "ProcessImage" {
+		if cut.Candidates[i].NodeKey.FuncName == "ProcessStream" {
 			demoted = &cut.Candidates[i]
 			break
 		}
 	}
 	if demoted == nil {
-		t.Fatal("ProcessImage candidate not found in cut.Candidates")
+		t.Fatal("ProcessStream candidate not found in cut.Candidates")
 	}
 	if demoted.AdapterClass != activation.AdapterUnknown {
 		t.Fatalf("demoted candidate AdapterClass = %s, want %s", demoted.AdapterClass, activation.AdapterUnknown)
@@ -513,12 +554,13 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 func TestAdmitCutCandidatesFlagOffDoesNotMarkAdapterEligibility(t *testing.T) {
 	// With MONOLIFT_BOUNDARY_ADAPTER=0, the adapter branch should NOT fire,
 	// so the candidate's AdapterClass should remain at its default value.
+	// Uses a non-DTO-normalizable multi-return to trigger demotion.
 	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "0")
 
 	awkward := admissibleTestCandidate()
 	awkward.Step = 2
-	awkward.NodeKey.FuncName = "ProcessImage"
-	awkward.NodeName = "ProcessImage"
+	awkward.NodeKey.FuncName = "ProcessStream"
+	awkward.NodeName = "ProcessStream"
 	clean := admissibleTestCandidate()
 	clean.Step = 3
 	clean.NodeKey.FuncName = "UploadMedia"
@@ -531,12 +573,11 @@ func TestAdmitCutCandidatesFlagOffDoesNotMarkAdapterEligibility(t *testing.T) {
 
 	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
 		switch cut.Recommended.NodeKey.FuncName {
-		case "ProcessImage":
+		case "ProcessStream":
 			return &Plan{
 				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
 				Results: []Result{
-					{GoType: "*bytes.Reader", Codec: CodecJSON},
-					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "func() error", Codec: CodecJSON},
 					{GoType: "int", Codec: CodecPrimitive},
 					{GoType: "error", Codec: CodecError},
 				},
@@ -562,13 +603,13 @@ func TestAdmitCutCandidatesFlagOffDoesNotMarkAdapterEligibility(t *testing.T) {
 	// Verify the demoted candidate was NOT marked by the adapter branch.
 	var demoted *activation.CutCandidate
 	for i := range cut.Candidates {
-		if cut.Candidates[i].NodeKey.FuncName == "ProcessImage" {
+		if cut.Candidates[i].NodeKey.FuncName == "ProcessStream" {
 			demoted = &cut.Candidates[i]
 			break
 		}
 	}
 	if demoted == nil {
-		t.Fatal("ProcessImage candidate not found in cut.Candidates")
+		t.Fatal("ProcessStream candidate not found in cut.Candidates")
 	}
 	// With flag off, AdapterClass should remain at its initial value (empty
 	// string, since admissibleTestCandidate doesn't set it).

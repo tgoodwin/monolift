@@ -52,6 +52,14 @@ type clientView struct {
 	NeedsErrorsImport    bool
 	StreamingBytesParams []streamingByteParam
 
+	// ResultDTO support
+	HasDTO         bool
+	DTOFields      []fieldView
+	DTORemoteVars  string // LHS of monoliftRemote call: "r0, r1, appErr, transportErr"
+	DTOStubVars    string // LHS of monoliftRemote call in stub: "r0, r1, appErr, transportErr"
+	DTOReturnVars  string // "r0, r1, appErr" — what the stub returns on success
+	DTODecodeExprs string // "decoded.Field0, decoded.Field1"
+
 	// Receiver support
 	HasReceiver            bool
 	ReceiverDecl           string // e.g. "(t TemplateContext) " or "(h *Argon2Hasher) "
@@ -121,9 +129,18 @@ func clientTemplateView(plan *Plan) clientView {
 	resultType := ""
 	resultZero := ""
 	needsErrors := false
+	hasDTO := plan.ResultDTO != nil
 	for _, result := range plan.Results {
 		if result.Codec == CodecError {
 			hasErrorResult = true
+			continue
+		}
+		if hasDTO {
+			// ResultDTO handles multi-value; add imports for all result types.
+			if result.TypePackagePath != "" && result.TypePackagePath != plan.CutPoint.PackagePath {
+				imports = append(imports, importSpec{Path: result.TypePackagePath})
+			}
+			hasNonErrorResult = true
 			continue
 		}
 		if !hasNonErrorResult {
@@ -147,6 +164,40 @@ func clientTemplateView(plan *Plan) clientView {
 		imports = append(imports, importSpec{Path: "fmt"})
 		needsErrors = true // errors.New for reconstructing app errors
 	}
+
+	// Build DTO field views and call/return metadata.
+	var dtoFields []fieldView
+	var dtoRemoteVars, dtoStubVars, dtoReturnVars, dtoDecodeExprs string
+	if hasDTO {
+		for _, f := range plan.ResultDTO.Fields {
+			dtoFields = append(dtoFields, fieldView{
+				Name:         f.Name,
+				JSONName:     f.JSONName,
+				Type:         f.GoType,
+				OriginalName: f.OriginalName,
+				ZeroValue:    zeroValue(f.GoType),
+			})
+		}
+		// Build LHS vars: r0, r1, ..., appErr, transportErr
+		var remoteVars, returnVars []string
+		var decodeExprs []string
+		for i, f := range plan.ResultDTO.Fields {
+			v := "r" + string(rune('0'+i))
+			remoteVars = append(remoteVars, v)
+			returnVars = append(returnVars, v)
+			decodeExprs = append(decodeExprs, "decoded."+f.Name)
+		}
+		if hasErrorResult {
+			remoteVars = append(remoteVars, "appErr")
+			returnVars = append(returnVars, "appErr")
+		}
+		dtoStubVars = strings.Join(remoteVars, ", ") + ", transportErr"
+		remoteVars = append(remoteVars, "transportErr") // for remote function LHS (not needed separately)
+		dtoRemoteVars = strings.Join(remoteVars, ", ")
+		dtoReturnVars = strings.Join(returnVars, ", ")
+		dtoDecodeExprs = strings.Join(decodeExprs, ", ")
+	}
+
 	hasVoidReturn := !hasNonErrorResult && !hasErrorResult
 	view := clientView{
 		Plan:                 plan,
@@ -175,6 +226,12 @@ func clientTemplateView(plan *Plan) clientView {
 		DefaultEndpoint:      "http://127.0.0.1:8081/invoke",
 		NeedsErrorsImport:    needsErrors,
 		StreamingBytesParams: streamingParams,
+		HasDTO:               hasDTO,
+		DTOFields:            dtoFields,
+		DTORemoteVars:        dtoRemoteVars,
+		DTOStubVars:          dtoStubVars,
+		DTOReturnVars:        dtoReturnVars,
+		DTODecodeExprs:       dtoDecodeExprs,
 	}
 
 	// Receiver support: generate method stubs when a receiver is present.
@@ -327,6 +384,13 @@ type monoliftInvokeRequest struct {
 type monoliftInvokeResponse struct {
 {{- if .LocalizedResult }}
 	Error *monoliftLocalizedError ` + "`json:\"error,omitempty\"`" + `
+{{- else if .HasDTO }}
+{{- range .DTOFields }}
+	{{ .Name }} {{ .Type }} ` + "`json:\"{{ .JSONName }}\"`" + `
+{{- end }}
+{{- if .HasErrorResult }}
+	Error string ` + "`json:\"error,omitempty\"`" + `
+{{- end }}
 {{- else }}
 {{- if .HasResult }}
 	{{ .ResponseField.Name }} {{ .ResponseField.Type }} ` + "`json:\"{{ .ResponseField.JSONName }}\"`" + `
@@ -353,6 +417,18 @@ func {{ .ReceiverDecl }}{{ .StubName }}({{ .ParamList }}){{ if .StubReturnSig }}
 			{{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
 		}
 	}
+{{- else if .HasDTO }}
+	if os.Getenv("{{ .EnabledEnv }}") != "on" {
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
+	}
+	{{ .DTOStubVars }} := {{ .CallPrefix }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .OriginalArgs }})
+	if transportErr != nil {
+		if os.Getenv("MONOLIFT_LIFT_FAILMODE") == "closed" {
+			return {{ .FailClosedReturn }}
+		}
+		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
+	}
+	return {{ .DTOReturnVars }}
 {{- else if .HasErrorResult }}
 	if os.Getenv("{{ .EnabledEnv }}") != "on" {
 		return {{ .CallPrefix }}{{ .OriginalFuncName }}({{ .OriginalArgs }})
@@ -434,6 +510,16 @@ func {{ .ReceiverDecl }}monoliftRemote{{ .Plan.CutPoint.FuncName }}({{ .ParamLis
 		return locale.NewLocalizedErrorWrapper(errors.New(decoded.Error.Error), message), nil
 	}
 	return nil, nil
+{{- else if .HasDTO }}
+{{- if .HasErrorResult }}
+	var appErr error
+	if decoded.Error != "" {
+		appErr = errors.New(decoded.Error)
+	}
+	return {{ .DTODecodeExprs }}, appErr, nil
+{{- else }}
+	return {{ .DTODecodeExprs }}, nil
+{{- end }}
 {{- else if .HasErrorResult }}
 	var appErr error
 	if decoded.Error != "" {

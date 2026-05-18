@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GeneratorVersion = "SPRINT-0050"
+	GeneratorVersion = "SPRINT-0051"
 	ManifestName     = "monolift_lift_manifest.json"
 )
 
@@ -25,6 +25,7 @@ type Plan struct {
 	BoundaryParams      []Param
 	ReconstructedParams []ReconstructedParam
 	Results             []Result
+	ResultDTO           *ResultDTO
 	ReturnCodec         ReturnCodec
 
 	ServerPath   string
@@ -184,7 +185,36 @@ const (
 	CodecError                 Codec = "error"
 	CodecLocalizedErrorWrapper Codec = "localized_error_wrapper"
 	CodecStreamingBytes        Codec = "streaming_bytes"
+	CodecResultDTO             Codec = "result_dto"
 )
+
+// ResultDTO represents a synthetic struct that packs multiple non-error
+// return values into a single JSON-codable type for transport. Generated
+// for any function with > 1 non-error return where all non-error types
+// are JSON-codable. The DTO is a transport-layer detail; app-facing
+// signatures in generated host stubs are preserved unchanged.
+type ResultDTO struct {
+	// Name is the Go struct name, e.g. "processImageResult".
+	Name string `json:"name"`
+	// Fields are the non-error return values packed into the struct.
+	Fields []ResultDTOField `json:"fields"`
+}
+
+// ResultDTOField is one field in a ResultDTO struct.
+type ResultDTOField struct {
+	// Name is the exported Go field name.
+	Name string `json:"name"`
+	// JSONName is the JSON tag for the field.
+	JSONName string `json:"json_name"`
+	// GoType is the Go type string (e.g. "[]byte", "int").
+	GoType string `json:"go_type"`
+	// QualifiedGoType includes the package qualifier if needed.
+	QualifiedGoType string `json:"qualified_go_type"`
+	// Index is the position in the original return list (0-based among all results).
+	Index int `json:"index"`
+	// OriginalName is the declared return name from the function signature.
+	OriginalName string `json:"original_name"`
+}
 
 type ReturnCodec struct {
 	Kind     Codec

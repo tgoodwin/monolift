@@ -120,3 +120,48 @@ Single call site at `cmd/media.go:99` inside `(*App).UploadMedia`. No address-of
 - `.moab/runs/sprint-0051-baseline/admission-processimage.log` — admission refusal log
 - `.moab/runs/sprint-0051-baseline/baseline-summary.md` — narrative summary
 - `.moab/runs/sprint-0051-baseline/listmonk-callsites.md` — call-site scan
+
+---
+
+## Phase 2: Multi-Result-DTO Normalization Audit
+
+### Current Behavior (pre-DTO)
+
+**Admission (`pkg/codegen/admission.go:102-106`):** `AdmitPlan` enforces a strict two-result gate:
+- `len(plan.Results) > 2` → refuses with `unsupported_result_shape` ("more than two return values")
+- `len(plan.Results) == 2 && plan.Results[1].Codec != CodecError` → refuses with `unsupported_result_shape` ("multi-return must have error as last result")
+
+This means only three shapes are admitted today:
+1. `(T, error)` — standard case, supported
+2. `(T)` — single non-error return, supported
+3. `()` — void, refused separately as `void_side_effect`
+
+Any function with `(T, U, error)` or `(T, U, V, error)` is unconditionally refused. This is the primary blocker for `processImage` which returns `(*bytes.Reader, int, int, error)`.
+
+**Server rendering (`pkg/codegen/server.go:136-161`):** The server template assumes at most one non-error result. The `serverTemplateView` iterates over `plan.Results`, takes the first non-error result as the single `ResponseField`, and sets `HasResult`/`HasErrorResult` flags. The `invokeResponse` struct has one non-error field and one `Error` field. Multi-value packing is not supported.
+
+**Client rendering (`pkg/codegen/client.go:124-145`):** Same single-result assumption. The `clientTemplateView` picks the first non-error result and records `ResultType`/`ResultZero`. The `computeStubReturnSig`, `computeRemoteReturnSig`, `computeTransportErrZeros`, and `computeFailClosedReturn` functions all iterate over results but only to form comma-separated lists of the declared return types — they do not pack multiple non-error results into a DTO.
+
+**ReturnCodecFor (`pkg/codegen/typemap.go:49-59`):** Takes `results[0]` and records its codec, nullability, and type. Does not consider results beyond index 0.
+
+**Golden tests (`pkg/codegen/multireturn_test.go`):** Four golden tests exist:
+- `TestRenderServerStringErrorGolden` — `(string, error)`
+- `TestRenderClientStringErrorGolden` — `(string, error)` client side
+- `TestRenderServerBoolGolden` — `(bool)` single non-error
+- `TestRenderServerVoidGolden` — void (no results)
+
+No golden test exists for multi-value returns because they are refused before reaching rendering.
+
+### DTO Design
+
+A synthetic `ResultDTO` type will be generated for any plan with > 1 non-error return. The DTO packs all non-error returns into a single struct with named JSON-tagged fields, which is used as the single non-error result for both server response rendering and client unpacking. The generated struct name follows the pattern `<funcName>Result`.
+
+**Field naming:** Use declared return names if present (`result`, `err`, etc. from the function signature). If absent, generate `Result0`, `Result1`, etc. The error return is never packed into the DTO — it remains the separate error channel.
+
+**JSON codability check:** All non-error return types must be JSON-codable (primitives, structs, slices, maps, pointers to these). Channel types, function types, sync primitives, and io.Reader/Writer types cannot be packed into a DTO and trigger the existing `unsupported_result_shape` refusal.
+
+**App-facing signature preservation:** The DTO is a transport-layer detail. Generated host stubs (client.go) preserve the original multi-value return signature. The stub unpacks the DTO fields into individual return values. On the server side, the handler packs individual call results into the DTO for transport.
+
+### Impact on Existing Targets
+
+The DTO normalization changes admission behavior for ALL boundaries, not just adapter-eligible ones. Existing `(T, error)` and `(T)` shapes must pass through unchanged. The `unsupported_result_shape` refusal continues to fire for genuinely non-codable shapes.
