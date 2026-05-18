@@ -317,6 +317,119 @@ func TestAdmissionAwareRankingPreservesSprint0048HandPickedRecommendations(t *te
 	}
 }
 
+func TestBoundaryAdapterEnabledReadsEnvVar(t *testing.T) {
+	// Default (unset): enabled.
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "")
+	if !boundaryAdapterEnabled() {
+		t.Fatal("boundaryAdapterEnabled() = false with empty env, want true")
+	}
+
+	// Explicit "1": enabled.
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
+	if !boundaryAdapterEnabled() {
+		t.Fatal("boundaryAdapterEnabled() = false with env=1, want true")
+	}
+
+	// Explicit "0": disabled.
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "0")
+	if boundaryAdapterEnabled() {
+		t.Fatal("boundaryAdapterEnabled() = true with env=0, want false")
+	}
+
+	// Whitespace around "0": disabled.
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", " 0 ")
+	if boundaryAdapterEnabled() {
+		t.Fatal("boundaryAdapterEnabled() = true with env=' 0 ', want false")
+	}
+}
+
+func TestIsAdapterEligibleRefusal(t *testing.T) {
+	eligible := []string{"unsupported_boundary_data", "unsupported_result_shape", "unsupported_param_shape"}
+	for _, code := range eligible {
+		if !isAdapterEligibleRefusal(AdmissionRefusal{Code: code}) {
+			t.Errorf("isAdapterEligibleRefusal(%q) = false, want true", code)
+		}
+	}
+
+	ineligible := []string{
+		"receiver_requires_reconstruction",
+		"non_serializable_receiver",
+		"missing_reconstructor",
+		"plan_build_timeout",
+		"streaming_type",
+	}
+	for _, code := range ineligible {
+		if isAdapterEligibleRefusal(AdmissionRefusal{Code: code}) {
+			t.Errorf("isAdapterEligibleRefusal(%q) = true, want false", code)
+		}
+	}
+}
+
+func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
+	// With MONOLIFT_BOUNDARY_ADAPTER=0, the admission loop should behave
+	// identically to the SPRINT-0050 baseline — demotion proceeds without
+	// any adapter recovery attempt. This test uses a candidate that would
+	// produce an adapter-eligible refusal (unsupported_result_shape) and
+	// confirms it still demotes to the next candidate.
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "0")
+
+	awkward := admissibleTestCandidate()
+	awkward.Step = 2
+	awkward.NodeKey.FuncName = "ProcessImage"
+	awkward.NodeName = "ProcessImage"
+	clean := admissibleTestCandidate()
+	clean.Step = 3
+	clean.NodeKey.FuncName = "UploadMedia"
+	clean.NodeName = "UploadMedia"
+	clean.Surface = activation.Small
+	cut := &activation.CutResult{
+		Candidates: []activation.CutCandidate{awkward, clean},
+	}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		switch cut.Recommended.NodeKey.FuncName {
+		case "ProcessImage":
+			// Return a plan with >2 results to trigger unsupported_result_shape.
+			return &Plan{
+				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+				Results: []Result{
+					{GoType: "*bytes.Reader", Codec: CodecJSON},
+					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "error", Codec: CodecError},
+				},
+			}, nil
+		case "UploadMedia":
+			return &Plan{
+				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+				Results:  []Result{{GoType: "string", Codec: CodecPrimitive}},
+			}, nil
+		default:
+			t.Fatalf("unexpected candidate %s", cut.Recommended.NodeKey.FuncName)
+			return nil, nil
+		}
+	})
+
+	verdict, chain, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
+	}
+	// With flag off, ProcessImage should be demoted and UploadMedia selected.
+	if cut.Recommended == nil || cut.Recommended.NodeName != "UploadMedia" {
+		t.Fatalf("Recommended = %+v, want UploadMedia (flag-off parity)", cut.Recommended)
+	}
+	if len(chain) != 1 {
+		t.Fatalf("demotion chain length = %d, want 1", len(chain))
+	}
+	if chain[0].RefusalCode != "unsupported_result_shape" {
+		t.Fatalf("demotion refusal code = %q, want unsupported_result_shape", chain[0].RefusalCode)
+	}
+}
+
 func admissibleTestCandidate() activation.CutCandidate {
 	return activation.CutCandidate{
 		Step:         1,

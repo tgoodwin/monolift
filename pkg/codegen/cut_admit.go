@@ -35,6 +35,17 @@ var retryableAdmissionRefusals = map[string]struct{}{
 	"missing_reconstructor":            {},
 }
 
+// adapterEligibleRefusals are the shape-compatible refusal codes that can
+// trigger the boundary-adapter recovery pass (SPRINT-0051 §0.4). On candidate
+// refusal with one of these codes and MONOLIFT_BOUNDARY_ADAPTER enabled,
+// tryAdapterPass fires before demotion. Phase 5 wires the actual adapter
+// planning; Phase 1 reads the flag and marks eligible candidates.
+var adapterEligibleRefusals = map[string]struct{}{
+	"unsupported_boundary_data": {},
+	"unsupported_result_shape":  {},
+	"unsupported_param_shape":   {},
+}
+
 func admissionAwareRankEnabled() bool {
 	return strings.TrimSpace(os.Getenv("MONOLIFT_ADMISSION_AWARE_RANK")) != "0"
 }
@@ -60,6 +71,12 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 	if maxAttempts == 0 {
 		maxAttempts = 1
 	}
+
+	// Read the boundary-adapter feature flag at loop entry. When disabled,
+	// the adapter recovery branch is skipped entirely (flag-off parity with
+	// the SPRINT-0050 admission baseline). Phase 5 wires tryAdapterPass
+	// behind this gate; Phase 1 establishes the read point.
+	adapterEnabled := boundaryAdapterEnabled()
 
 	var last AdmissionVerdict
 	var demotionChain []CandidateDemotion
@@ -89,6 +106,17 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 		if !ok {
 			return verdict, demotionChain, nil
 		}
+
+		// Boundary-adapter recovery branch (SPRINT-0051 §0.4).
+		// When enabled and the refusal is shape-compatible, the adapter
+		// pass attempts to normalize the boundary before demotion.
+		// Phase 5 wires tryAdapterPass here; Phase 1 gates eligibility.
+		if adapterEnabled && isAdapterEligibleRefusal(refusal) {
+			// Phase 5 insertion point: tryAdapterPass(report, candidate)
+			// On success: attach AdapterPlan and return accepted verdict.
+			// On failure: mark AdapterClass and fall through to demotion.
+		}
+
 		demotionChain = append(demotionChain, CandidateDemotion{
 			Step:        candidate.Step,
 			NodeKey:     candidate.NodeKey,
@@ -180,6 +208,15 @@ func retryableRefusal(verdict AdmissionVerdict) (AdmissionRefusal, bool) {
 		}
 	}
 	return AdmissionRefusal{}, false
+}
+
+// isAdapterEligibleRefusal returns true when the refusal code is one of the
+// shape-compatible codes that can trigger boundary-adapter recovery per
+// SPRINT-0051 §0.4. Receiver reconstruction failures, shared-state receivers,
+// and infrastructure-handle reconstructor failures are explicitly excluded.
+func isAdapterEligibleRefusal(refusal AdmissionRefusal) bool {
+	_, ok := adapterEligibleRefusals[refusal.Code]
+	return ok
 }
 
 func demotionReason(refusal AdmissionRefusal) string {
