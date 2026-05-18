@@ -391,6 +391,120 @@ func (s *Store) target() {}
 	}
 }
 
+// TestAdapterClassSyntheticBoundary verifies that the default AdapterClass
+// label propagation from defaultAdapterClass correctly classifies synthetic
+// boundary types. This is Phase 1 label propagation — the adapter recovery
+// pass in Phase 3 may refine AdapterUnknown to AdapterPossible,
+// LiveProxyRequired, or AdapterImpossible based on pattern matching.
+func TestAdapterClassSyntheticBoundary(t *testing.T) {
+	tests := []struct {
+		name             string
+		source           string
+		function         string
+		wantBoundary     BoundaryDataClass
+		wantAdapterClass AdapterClass
+	}{
+		{
+			name: "multipart.FileHeader param is serializable, adapter direct",
+			source: `
+package main
+
+import "mime/multipart"
+
+func entry() {}
+func target(file *multipart.FileHeader) {}
+`,
+			function:         "target",
+			wantBoundary:     Serializable,
+			wantAdapterClass: DirectBoundary,
+		},
+		{
+			name: "bytes.Reader param is serializable, adapter direct",
+			source: `
+package main
+
+import "bytes"
+
+func entry() {}
+func target(r *bytes.Reader) {}
+`,
+			function:         "target",
+			wantBoundary:     Serializable,
+			wantAdapterClass: DirectBoundary,
+		},
+		{
+			name: "io.Writer param is boundary-infeasible, adapter unknown",
+			source: `
+package main
+
+import "io"
+
+func entry() {}
+func target(w io.Writer) {}
+`,
+			function:         "target",
+			wantBoundary:     BoundaryInfeasible,
+			wantAdapterClass: AdapterUnknown,
+		},
+		{
+			name: "http.ResponseWriter param is boundary-infeasible, adapter unknown",
+			source: `
+package main
+
+import "net/http"
+
+func entry() {}
+func target(w http.ResponseWriter) {}
+`,
+			function:         "target",
+			wantBoundary:     BoundaryInfeasible,
+			wantAdapterClass: AdapterUnknown,
+		},
+		{
+			name: "channel param is boundary-infeasible, adapter unknown",
+			source: `
+package main
+
+func entry() {}
+func target(ch chan int) {}
+`,
+			function:         "target",
+			wantBoundary:     BoundaryInfeasible,
+			wantAdapterClass: AdapterUnknown,
+		},
+		{
+			name: "os.File param is boundary-infeasible, adapter unknown",
+			source: `
+package main
+
+import "os"
+
+func entry() {}
+func target(f *os.File) {}
+`,
+			function:         "target",
+			wantBoundary:     BoundaryInfeasible,
+			wantAdapterClass: AdapterUnknown,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cut := analyzeSyntheticCut(t, tt.source, []syntheticStep{
+				{name: "entry"},
+				{name: tt.function, edge: DirectCall},
+			})
+			candidate := candidateByStep(t, cut.Candidates, 1)
+			if candidate.BoundaryData != tt.wantBoundary {
+				t.Errorf("BoundaryData = %s, want %s", candidate.BoundaryData, tt.wantBoundary)
+			}
+			if candidate.AdapterClass != tt.wantAdapterClass {
+				t.Errorf("AdapterClass = %s, want %s", candidate.AdapterClass, tt.wantAdapterClass)
+			}
+		})
+	}
+}
+
 func analyzeSyntheticCut(t *testing.T, source string, steps []syntheticStep) *CutResult {
 	t.Helper()
 	program := loadSyntheticProgram(t, source)

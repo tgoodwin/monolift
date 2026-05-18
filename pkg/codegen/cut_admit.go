@@ -39,6 +39,15 @@ func admissionAwareRankEnabled() bool {
 	return strings.TrimSpace(os.Getenv("MONOLIFT_ADMISSION_AWARE_RANK")) != "0"
 }
 
+// boundaryAdapterEnabled returns true when the boundary-adapter recovery
+// pass is allowed to fire. Controlled by MONOLIFT_BOUNDARY_ADAPTER:
+// absent or "1" enables the pass (default-on locally); "0" disables it.
+// Flag-off parity with the SPRINT-0050 baseline is an acceptance criterion.
+func boundaryAdapterEnabled() bool {
+	v := strings.TrimSpace(os.Getenv("MONOLIFT_BOUNDARY_ADAPTER"))
+	return v != "0"
+}
+
 func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (AdmissionVerdict, []CandidateDemotion, error) {
 	if cut == nil {
 		return refused(AdmissionVerdict{}, "missing_cut", "cut analysis did not produce a cut result", ""), nil, nil

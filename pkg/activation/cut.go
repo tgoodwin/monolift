@@ -41,6 +41,8 @@ type CutCandidate struct {
 	Surface      SurfaceClass      `json:"surface"`
 	ErrorSem     ErrorSemClass     `json:"error_sem"`
 	EdgeAlign    EdgeAlignClass    `json:"edge_align"`
+	AdapterClass AdapterClass      `json:"adapter_class,omitempty"`
+	AdapterReason string           `json:"adapter_reason,omitempty"`
 	Reason       string            `json:"reason"`
 }
 
@@ -131,6 +133,8 @@ func buildCutCandidates(path *Path, cut *CutResult) []CutCandidate {
 			boundaryReasons = append(boundaryReasons, "function is outside the project module ("+projectModule+")")
 		}
 
+		adapterClass := defaultAdapterClass(boundary)
+
 		candidate := CutCandidate{
 			Step:         stepIndex,
 			NodeKey:      node.Key,
@@ -143,6 +147,7 @@ func buildCutCandidates(path *Path, cut *CutResult) []CutCandidate {
 			Surface:      classifySurface(stepIndex, len(path.Steps)),
 			ErrorSem:     classifyErrorSemantics(node.Func),
 			EdgeAlign:    classifyEdgeAlignment(incoming),
+			AdapterClass: adapterClass,
 		}
 		if boundary == BoundaryInfeasible {
 			candidate.Reason = "rejected by boundary-data hard gate: " + strings.Join(boundaryReasons, "; ")

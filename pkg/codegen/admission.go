@@ -9,6 +9,23 @@ import (
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 )
 
+// Adapter refusal codes. These are the ten refusal codes produced by the
+// boundary-adapter recovery pass (SPRINT-0051). The first six are the
+// static feasibility obligations from the adapter strategy spec; the
+// remaining four are classification or policy refusals.
+const (
+	RefusalAdapterFiniteInput       = "adapter_finite_input"
+	RefusalAdapterLocalLifecycle    = "adapter_local_lifecycle"
+	RefusalAdapterUseShape          = "adapter_use_shape"
+	RefusalAdapterReturnRehydration = "adapter_return_rehydration"
+	RefusalAdapterErrorOrder        = "adapter_error_order"
+	RefusalAdapterCallSite          = "adapter_call_site"
+	RefusalAdapterPayloadTooLarge   = "adapter_payload_too_large"
+	RefusalAdapterUnknown           = "adapter_unknown"
+	RefusalAdapterImpossible        = "adapter_impossible"
+	RefusalLiveProxyRequired        = "live_proxy_required"
+)
+
 func AdmitCut(_ reportv2.Report, cut activation.CutResult) AdmissionVerdict {
 	verdict := AdmissionVerdict{Accepted: true, Reasons: []string{"recommended cut passed generator hard gates"}}
 	if cut.Recommended == nil {

@@ -41,6 +41,11 @@ type Plan struct {
 	SharedVolumeClaimPath   string
 
 	Admission AdmissionVerdict
+
+	// AdapterPlan is non-nil when the cut was admitted through boundary
+	// adapter recovery. When set, codegen renders the adapter host wrapper
+	// and normalized remote helper instead of the direct path.
+	AdapterPlan *AdapterPlan `json:"adapter_plan,omitempty"`
 }
 
 type DeployOptions struct {
@@ -204,6 +209,58 @@ type Reconstructor struct {
 	ExtractedEnvVars         []EnvVar
 	SharedVolumeMounts       []SharedVolumeMount
 	RootRelativePathSuffixes []string
+}
+
+// AdapterTransport describes how adapted payloads are carried across the
+// network boundary. inline_json_bytes is the only transport with a renderer
+// in SPRINT-0051; staged_object is reserved for future use.
+type AdapterTransport string
+
+const (
+	AdapterTransportInlineJSONBytes AdapterTransport = "inline_json_bytes"
+	AdapterTransportStagedObject    AdapterTransport = "staged_object"
+)
+
+// AdapterPattern describes a single input or output transform in an
+// AdapterPlan. The pattern name identifies the adapter library entry
+// (e.g. "multipart_file_read_all", "bytes_reader_return") and the
+// fields record what was matched.
+type AdapterPattern struct {
+	Name      string `json:"name"`
+	ParamName string `json:"param_name,omitempty"`
+	FromType  string `json:"from_type"`
+	ToType    string `json:"to_type"`
+}
+
+// AdapterBodyRewrite describes the AST prologue replacement applied to
+// the helper body when the adapter normalizes the remote signature.
+type AdapterBodyRewrite struct {
+	Description string `json:"description"`
+	FromPattern string `json:"from_pattern,omitempty"`
+	ToPattern   string `json:"to_pattern,omitempty"`
+}
+
+// AdapterProof records the discharge of one static feasibility obligation.
+type AdapterProof struct {
+	Obligation string `json:"obligation"`
+	Satisfied  bool   `json:"satisfied"`
+	Detail     string `json:"detail,omitempty"`
+}
+
+// AdapterPlan is the explicit IR for a boundary-normalized cut. When
+// attached to a Plan, codegen renders a host wrapper preserving the
+// original signature and a normalized remote helper with finite-value
+// parameters and returns. The plan is JSON-tagged for manifest/debug
+// emission and carries the proof obligations that justified admission.
+type AdapterPlan struct {
+	SourceFunction   string             `json:"source_function"`
+	HostSignature    string             `json:"host_signature"`
+	RemoteSignature  string             `json:"remote_signature"`
+	InputTransforms  []AdapterPattern   `json:"input_transforms,omitempty"`
+	BodyRewrite      AdapterBodyRewrite `json:"body_rewrite"`
+	OutputTransforms []AdapterPattern   `json:"output_transforms,omitempty"`
+	Proofs           []AdapterProof     `json:"proofs,omitempty"`
+	TransportPolicy  AdapterTransport   `json:"transport_policy"`
 }
 
 type Artifact struct {

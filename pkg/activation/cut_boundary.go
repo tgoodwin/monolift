@@ -371,6 +371,23 @@ func boundaryClassRank(class BoundaryDataClass) int {
 	}
 }
 
+// defaultAdapterClass maps a BoundaryDataClass to the initial AdapterClass.
+// Trivial and Serializable boundaries are DirectBoundary — they already
+// present a clean network boundary and need no adapter. Reconstructible is
+// DirectBoundary because the reconstructor handles the type. ProxyRequired
+// and BoundaryInfeasible map to AdapterUnknown — the adapter pass may
+// later refine these to AdapterPossible, LiveProxyRequired, or
+// AdapterImpossible based on pattern matching. This is label propagation
+// only; no behavior changes.
+func defaultAdapterClass(boundary BoundaryDataClass) AdapterClass {
+	switch boundary {
+	case Trivial, Serializable, Reconstructible:
+		return DirectBoundary
+	default:
+		return AdapterUnknown
+	}
+}
+
 func cutTypeString(typ types.Type) string {
 	if typ == nil {
 		return "<nil>"
