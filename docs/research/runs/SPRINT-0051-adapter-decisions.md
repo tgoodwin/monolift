@@ -33,6 +33,7 @@ A candidate can be `Reconstructible` on the boundary-data axis and simultaneousl
 - Do NOT run adapter planning for `receiver_requires_reconstruction` refusals.
 - Do NOT run adapter planning for `non_serializable_receiver` refusals (shared-state receivers).
 - Do NOT run adapter planning for `missing_reconstructor` refusals that reference receiver types (as opposed to parameter types).
+- Do NOT run adapter planning for `missing_reconstructor` refusals that reference DB/filesystem types (`*sql.DB`, `*sql.Tx`, `*gorm.DB`, `*os.File`, `*bolt.DB`, and similar infrastructure handles). These are dependency-injection concerns, not boundary-shape problems; the adapter pass cannot synthesize a reconstructor for a live database connection or filesystem handle.
 - Do NOT run adapter planning for candidates with `VeryLarge` or `Large` surface class (broad parent cuts).
 - Do NOT run adapter planning for candidates where `Callbacks` is `Moderate` or `Many`.
 
