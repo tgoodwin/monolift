@@ -168,7 +168,47 @@ The DTO normalization changes admission behavior for ALL boundaries, not just ad
 
 ### CloudLab Regression Evidence (Phase 2)
 
-Both SPRINT-0049/0050 stage-10 regression targets pass on CloudLab (tgoodwin-305638, c220g5) with the new DTO code path. Four regression runs performed across two sessions; the reviewer-triggered Run 4 on 2026-05-18 independently confirms the results after Runs 1-3 were rejected due to CloudLab DNS unreachability from the review session.
+Both SPRINT-0049/0050 stage-10 regression targets pass on CloudLab (tgoodwin-305638, c220g5) with the new DTO code path. Five regression runs performed across three sessions; Run 5 on 2026-05-18 is a fresh verification with a freshly deleted kind cluster at commit 3807516.
+
+**Run 5 (2026-05-18T23:07Z–23:24Z, fresh kind cluster, commit 3807516):**
+
+```
+Codegen unit tests:
+  Status: PASS (117 RUN, 115 PASS, 0 FAIL)
+  Duration: 337.9s
+  Command: go test ./pkg/codegen/... -count=1 -v -timeout 10m
+  Log: .moab/runs/sprint-0051-phase2-codegen-tests-run5.log
+
+miniflux/M-1 (activation-miniflux-refreshfeed):
+  Status: PASS
+  Stage: 10 (full proof path)
+  Duration: 4.4m (283.72s)
+  Node: c220g5-111307.wisc.cloudlab.us
+  Experiment: tgoodwin-305638
+  Commit: 3807516
+  MONOLIFT_BOUNDARY_ADAPTER: 1 (default)
+  MONOLIFT_E2E: 1
+  Build tag: e2e
+  Test command: go test -tags e2e ./test/e2e -run "^TestE2E/activation-miniflux-refreshfeed$" -count=1 -v -timeout 15m
+  Log: .moab/runs/sprint-0051-phase2-regression-miniflux-m1-run5.log
+  Kind cluster: freshly created (previous monolift-e2e cluster deleted before run)
+  Generated code: RefreshFeed returns (*locale.LocalizedErrorWrapper) — no DTO applied (correct)
+
+pocketbase/M-1 (activation-pocketbase-createthumb):
+  Status: PASS
+  Stage: 10 (full proof path)
+  Duration: 4.6m (300.28s)
+  Node: c220g5-111307.wisc.cloudlab.us
+  Experiment: tgoodwin-305638
+  Commit: 3807516
+  MONOLIFT_BOUNDARY_ADAPTER: 1 (default)
+  MONOLIFT_E2E: 1
+  Build tag: e2e
+  Test command: go test -tags e2e ./test/e2e -run "^TestE2E/activation-pocketbase-createthumb$" -count=1 -v -timeout 15m
+  Log: .moab/runs/sprint-0051-phase2-regression-pocketbase-m1-run5.log
+  Kind cluster: reused from miniflux run (harness manages namespace isolation)
+  Generated code: CreateThumb returns (error) — no DTO applied (correct)
+```
 
 **Run 4 (2026-05-18, independent reviewer-triggered fresh verification):**
 
