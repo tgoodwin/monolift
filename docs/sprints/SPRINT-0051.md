@@ -75,13 +75,13 @@ Phase 1 does not start until tasks 0.1–0.9 are checked off and the decisions a
 
 ## Phase 1: IR types and admission scaffolding
 
-- [ ] 1.1: Add `AdapterClass` enum to `pkg/activation/cut_types.go` with five values: `DirectBoundary`, `AdapterPossible`, `AdapterUnknown`, `LiveProxyRequired`, `AdapterImpossible`. Map existing `Trivial`/`Serializable` boundary classes to `DirectBoundary` by default in `classifyBoundaryData` (`pkg/activation/cut_boundary.go`) — label propagation only, no behavior change.
-- [ ] 1.2: Add `AdapterClass AdapterClass` field to `CutCandidate` (`pkg/activation/cut.go`) and `AdapterReason string`. `rankCutCandidates` records the field but does **not** use it for ranking (fallback framing).
-- [ ] 1.3: Add `AdapterPlan` type in `pkg/codegen/types.go` next to `Plan`. Fields: `SourceFunction`, `HostSignature`, `RemoteSignature`, `InputTransforms []AdapterPattern`, `BodyRewrite AdapterBodyRewrite`, `OutputTransforms []AdapterPattern`, `Proofs []AdapterProof`, `TransportPolicy AdapterTransport`. JSON-tagged for manifest/debug emission.
-- [ ] 1.4: Attach `*AdapterPlan` as an optional field on `Plan`. When non-nil, codegen rendering uses the adapter path; when nil, renders direct as today.
-- [ ] 1.5: Add the full refusal-code vocabulary to `pkg/codegen/admission.go` / `types.go`: `adapter_finite_input`, `adapter_local_lifecycle`, `adapter_use_shape`, `adapter_return_rehydration`, `adapter_error_order`, `adapter_call_site`, `adapter_payload_too_large`, `adapter_unknown`, `adapter_impossible`, `live_proxy_required`.
-- [ ] 1.6: Add `MONOLIFT_BOUNDARY_ADAPTER` env-var read at admission-loop entry. When `0`, `admitCutCandidates` skips the adapter branch entirely. Default `1` locally; default `0` for the first regression e2e sweep.
-- [ ] 1.7: Synthetic boundary classification tests (`pkg/activation/cut_synthetic_test.go`) for `*multipart.FileHeader`, `*bytes.Reader`, `io.Writer`, `http.ResponseWriter`, channel, and `*os.File`. Each maps to the expected `AdapterClass`.
+- [x] 1.1: Add `AdapterClass` enum to `pkg/activation/cut_types.go` with five values: `DirectBoundary`, `AdapterPossible`, `AdapterUnknown`, `LiveProxyRequired`, `AdapterImpossible`. Map existing `Trivial`/`Serializable` boundary classes to `DirectBoundary` by default in `classifyBoundaryData` (`pkg/activation/cut_boundary.go`) — label propagation only, no behavior change.
+- [x] 1.2: Add `AdapterClass AdapterClass` field to `CutCandidate` (`pkg/activation/cut.go`) and `AdapterReason string`. `rankCutCandidates` records the field but does **not** use it for ranking (fallback framing).
+- [x] 1.3: Add `AdapterPlan` type in `pkg/codegen/types.go` next to `Plan`. Fields: `SourceFunction`, `HostSignature`, `RemoteSignature`, `InputTransforms []AdapterPattern`, `BodyRewrite AdapterBodyRewrite`, `OutputTransforms []AdapterPattern`, `Proofs []AdapterProof`, `TransportPolicy AdapterTransport`. JSON-tagged for manifest/debug emission.
+- [x] 1.4: Attach `*AdapterPlan` as an optional field on `Plan`. When non-nil, codegen rendering uses the adapter path; when nil, renders direct as today.
+- [x] 1.5: Add the full refusal-code vocabulary to `pkg/codegen/admission.go` / `types.go`: `adapter_finite_input`, `adapter_local_lifecycle`, `adapter_use_shape`, `adapter_return_rehydration`, `adapter_error_order`, `adapter_call_site`, `adapter_payload_too_large`, `adapter_unknown`, `adapter_impossible`, `live_proxy_required`.
+- [x] 1.6: Add `MONOLIFT_BOUNDARY_ADAPTER` env-var read at admission-loop entry. When `0`, `admitCutCandidates` skips the adapter branch entirely. Default `1` locally; default `0` for the first regression e2e sweep.
+- [x] 1.7: Synthetic boundary classification tests (`pkg/activation/cut_synthetic_test.go`) for `*multipart.FileHeader`, `*bytes.Reader`, `io.Writer`, `http.ResponseWriter`, channel, and `*os.File`. Each maps to the expected `AdapterClass`.
 
 ## Phase 2: Generic multi-result-DTO normalization (NOT gated on AdapterClass)
 
