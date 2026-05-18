@@ -74,7 +74,7 @@ digraph SPRINT_0051 {
 
     p1_ir_review [
         shape=box,
-        llm_provider=gemini,
+        llm_provider=codex,
         max_iterations=10,
         timeout="2400s",
         label="P1: Verify IR",
@@ -123,7 +123,7 @@ digraph SPRINT_0051 {
 
     p3_patterns_review [
         shape=box,
-        llm_provider=gemini,
+        llm_provider=codex,
         max_iterations=12,
         timeout="2400s",
         label="P3: Verify Patterns",
@@ -172,7 +172,7 @@ digraph SPRINT_0051 {
 
     p5_recovery_review [
         shape=box,
-        llm_provider=gemini,
+        llm_provider=codex,
         max_iterations=12,
         timeout="2400s",
         label="P5: Verify Recovery",
@@ -217,10 +217,10 @@ digraph SPRINT_0051 {
 
     p5_audit_c [
         shape=box,
-        llm_provider=gemini,
+        llm_provider=codex,
         max_iterations=6,
         timeout="1800s",
-        label="P5-AUDIT C (gemini)",
+        label="P5-AUDIT C (codex)",
         prompt="{{goal}}\n\nYou are an independent auditor - Reviewer C. You do not coordinate with or defer to any other reviewer. Form your own judgment.\n\nRead the prepared evidence at {{run_dir}}/P5_EVIDENCE.md. Inspect source directly for code-level checks.\n\nAim for a Pareto-optimal outcome: FAIL only on issues that materially affect correctness, completeness, or quality.\n\nAudit the same six requirements as Reviewers A and B.\n\nOUTPUT: write {{run_dir}}/P5_AUDIT_C.md with per-requirement findings. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, list failed requirements.\n\nAlso emit the VERDICT line as the last line of your prompt response."
     ]
 
@@ -285,7 +285,7 @@ digraph SPRINT_0051 {
 
     p7_docs_review [
         shape=box,
-        llm_provider=gemini,
+        llm_provider=codex,
         max_iterations=6,
         timeout="1200s",
         label="P7: Verify Docs",
@@ -354,10 +354,10 @@ digraph SPRINT_0051 {
 
     p9_audit_c [
         shape=box,
-        llm_provider=gemini,
+        llm_provider=codex,
         max_iterations=6,
         timeout="1800s",
-        label="P9-AUDIT C (gemini)",
+        label="P9-AUDIT C (codex)",
         prompt="{{goal}}\n\nYou are an independent auditor - Reviewer C. You do not coordinate with or defer to any other reviewer.\n\nRead {{run_dir}}/P9_EVIDENCE.md and cross-check sources/artifacts directly.\n\nAim for a Pareto-optimal outcome.\n\nAudit the same criteria as Reviewers A and B.\n\nOUTPUT: write {{run_dir}}/P9_AUDIT_C.md. End the file with exactly one of:\n\nVERDICT: accept\nVERDICT: reject\n\nIf reject, list failed criteria.\n\nAlso emit the VERDICT line as the last line of your prompt response."
     ]
 
