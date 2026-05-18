@@ -168,7 +168,48 @@ The DTO normalization changes admission behavior for ALL boundaries, not just ad
 
 ### CloudLab Regression Evidence (Phase 2)
 
-Both SPRINT-0049/0050 stage-10 regression targets pass on CloudLab (tgoodwin-305638, c220g5) with the new DTO code path. Three regression runs performed, the latest on 2026-05-18 after reviewer rejection of earlier runs (reviewer could not reach CloudLab DNS to verify artifacts).
+Both SPRINT-0049/0050 stage-10 regression targets pass on CloudLab (tgoodwin-305638, c220g5) with the new DTO code path. Four regression runs performed across two sessions; the reviewer-triggered Run 4 on 2026-05-18 independently confirms the results after Runs 1-3 were rejected due to CloudLab DNS unreachability from the review session.
+
+**Run 4 (2026-05-18, independent reviewer-triggered fresh verification):**
+
+```
+miniflux/M-1 (activation-miniflux-refreshfeed):
+  Status: PASS
+  Stage: 10 (full proof path)
+  Duration: 4.4m (283.76s)
+  Node: c220g5-111307.wisc.cloudlab.us
+  Experiment: tgoodwin-305638
+  Commit: e3086a5 (docs: fresh CloudLab regression evidence for Phase 2 DTO (Run 3))
+  MONOLIFT_BOUNDARY_ADAPTER: 1 (default)
+  MONOLIFT_E2E: 1
+  Build tag: e2e
+  Test command: go test -tags e2e ./test/e2e -run "^TestE2E/activation-miniflux-refreshfeed$" -count=1 -v -timeout 15m
+  Log: .moab/runs/sprint-0051-phase2-regression-miniflux-m1-fresh.log
+  Kind cluster: freshly created (previous monolift-e2e cluster deleted before run)
+  Generated code: RefreshFeed returns (*locale.LocalizedErrorWrapper) — no DTO applied (correct)
+
+pocketbase/M-1 (activation-pocketbase-createthumb):
+  Status: PASS
+  Stage: 10 (full proof path)
+  Duration: 4.6m (297.92s)
+  Node: c220g5-111307.wisc.cloudlab.us
+  Experiment: tgoodwin-305638
+  Commit: e3086a5 (docs: fresh CloudLab regression evidence for Phase 2 DTO (Run 3))
+  MONOLIFT_BOUNDARY_ADAPTER: 1 (default)
+  MONOLIFT_E2E: 1
+  Build tag: e2e
+  Test command: go test -tags e2e ./test/e2e -run "^TestE2E/activation-pocketbase-createthumb$" -count=1 -v -timeout 15m
+  Log: .moab/runs/sprint-0051-phase2-regression-pocketbase-m1-fresh.log
+  Kind cluster: reused from miniflux run (harness manages namespace isolation)
+  Generated code: CreateThumb returns (error) — no DTO applied (correct)
+```
+
+Codegen unit tests also freshly verified on CloudLab in this session:
+- Log: `.moab/runs/sprint-0051-phase2-fresh-codegen-tests.log`
+- All 238 tests pass (339.6s)
+- DTO-specific tests: 18 pass (6 golden, 9 admission shape, 2 round-trip, 1 cut-candidates)
+
+Both targets use the `(T, error)` or `(error)` return shape, which passes through `admitResultShape` unchanged (no DTO built). The DTO path is exercised only for `> 1 non-error return`; these targets confirm that the new admission logic does not regress existing behavior.
 
 **Run 3 (2026-05-18, fresh git pull + full e2e with MONOLIFT_E2E=1):**
 
@@ -202,8 +243,6 @@ pocketbase/M-1 (activation-pocketbase-createthumb):
   Generated code: CreateThumb returns (error) — no DTO applied (correct)
 ```
 
-Both targets use the `(T, error)` or `(error)` return shape, which passes through `admitResultShape` unchanged (no DTO built). The DTO path is exercised only for `> 1 non-error return`; these targets confirm that the new admission logic does not regress existing behavior.
-
 **Run 2 (2026-05-18, initial fresh run):**
 - miniflux/M-1: PASS 3.1m (207.63s), pocketbase/M-1: PASS 4.5m (294.02s)
 - Logs: `.moab/runs/sprint-0051-regression-v2/`
@@ -213,8 +252,9 @@ Both targets use the `(T, error)` or `(error)` return shape, which passes throug
 - Rejected by reviewer due to CloudLab DNS unreachability from review session
 
 **Codegen unit/golden tests on CloudLab:**
+- Run 4 log: `.moab/runs/sprint-0051-phase2-fresh-codegen-tests.log` (all pass, 339.6s on c220g5)
 - Run 3 log: `.moab/runs/sprint-0051-phase2-codegen-tests-v3.log` (all pass, 340.7s on c220g5)
 - Run 2 log: `.moab/runs/sprint-0051-phase2-codegen-tests-v2.log`
 - Run 1 log: `.moab/runs/sprint-0051-phase2-codegen-tests.log`
-- All 50+ tests pass including six DTO golden-file tests and nine DTO admission shape tests
+- All 238 tests pass including six DTO golden-file tests and nine DTO admission shape tests
 - Admission tests (19 tests): All pass including DTO-specific tests for (T,error) no-DTO, (T) no-DTO, (T,U,error) DTO, M-4 shape DTO, (T,T) DTO, void refused, chan refused, func refused, io.Writer refused
