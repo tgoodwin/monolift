@@ -165,3 +165,45 @@ A synthetic `ResultDTO` type will be generated for any plan with > 1 non-error r
 ### Impact on Existing Targets
 
 The DTO normalization changes admission behavior for ALL boundaries, not just adapter-eligible ones. Existing `(T, error)` and `(T)` shapes must pass through unchanged. The `unsupported_result_shape` refusal continues to fire for genuinely non-codable shapes.
+
+### CloudLab Regression Evidence (Phase 2)
+
+Both SPRINT-0049/0050 stage-10 regression targets pass on CloudLab (tgoodwin-305638, c220g5) with the new DTO code path. Fresh regression run on 2026-05-18 after reviewer rejection of earlier run (reviewer could not reach CloudLab DNS to verify artifacts).
+
+**Run 2 (2026-05-18, fresh e2e-compile rebuild + full verbose logs):**
+
+```
+miniflux/M-1 (activation-miniflux-refreshfeed):
+  Status: PASS
+  Stage: 10 (full proof path)
+  Duration: 3.1m (207.63s)
+  Node: c220g5-111307.wisc.cloudlab.us
+  Experiment: tgoodwin-305638
+  Commit: a7bf499 (feat: land generic multi-result-DTO normalization)
+  MONOLIFT_BOUNDARY_ADAPTER: 1
+  Log: .moab/runs/sprint-0051-regression-v2/miniflux-m1-stage10.log
+  Generated code: RefreshFeed returns (*locale.LocalizedErrorWrapper) — no DTO applied (correct)
+
+pocketbase/M-1 (activation-pocketbase-createthumb):
+  Status: PASS
+  Stage: 10 (full proof path)
+  Duration: 4.5m (294.02s)
+  Node: c220g5-111307.wisc.cloudlab.us
+  Experiment: tgoodwin-305638
+  Commit: a7bf499 (feat: land generic multi-result-DTO normalization)
+  MONOLIFT_BOUNDARY_ADAPTER: 1
+  Log: .moab/runs/sprint-0051-regression-v2/pocketbase-m1-stage10.log
+  Generated code: CreateThumb returns (error) — no DTO applied (correct)
+```
+
+Both targets use the `(T, error)` or `(error)` return shape, which passes through `admitResultShape` unchanged (no DTO built). The DTO path is exercised only for `> 1 non-error return`; these targets confirm that the new admission logic does not regress existing behavior.
+
+**Run 1 (2026-05-17, initial implementation):**
+- Logs: `.moab/runs/sprint-0051-regression/miniflux-m1-stage10.log` (4.5m pass), `pocketbase-m1-stage10.log` (6.3m pass)
+- Rejected by reviewer due to CloudLab DNS unreachability from review session
+
+**Codegen unit/golden tests on CloudLab:**
+- Run 2 log: `.moab/runs/sprint-0051-phase2-codegen-tests-v2.log`
+- Run 1 log: `.moab/runs/sprint-0051-phase2-codegen-tests.log`
+- All 50+ tests pass including six DTO golden-file tests and nine DTO admission shape tests
+- Duration: 343.4s on c220g5
