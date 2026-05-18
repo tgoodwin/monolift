@@ -110,11 +110,25 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 		// Boundary-adapter recovery branch (SPRINT-0051 §0.4).
 		// When enabled and the refusal is shape-compatible, the adapter
 		// pass attempts to normalize the boundary before demotion.
-		// Phase 5 wires tryAdapterPass here; Phase 1 gates eligibility.
+		// Phase 5 wires tryAdapterPass here; Phase 1 marks eligibility
+		// and falls through to demotion.
 		if adapterEnabled && isAdapterEligibleRefusal(refusal) {
-			// Phase 5 insertion point: tryAdapterPass(report, candidate)
-			// On success: attach AdapterPlan and return accepted verdict.
-			// On failure: mark AdapterClass and fall through to demotion.
+			// Mark the candidate as adapter-eligible. Phase 5 will wire
+			// tryAdapterPass here; on success it attaches an AdapterPlan
+			// and returns an accepted verdict. For now (Phase 1), we mark
+			// the candidate and fall through to demotion so the branch is
+			// observable and the flag gate is not a no-op.
+			candidate.AdapterClass = activation.AdapterUnknown
+			candidate.AdapterReason = "adapter-eligible refusal (" + refusal.Code + "); adapter pass not yet wired (Phase 5)"
+			// Update the candidate in the cut's candidate list so the
+			// marking is visible to downstream consumers.
+			for i := range cut.Candidates {
+				if cut.Candidates[i].Step == candidate.Step && cut.Candidates[i].NodeKey == candidate.NodeKey {
+					cut.Candidates[i].AdapterClass = candidate.AdapterClass
+					cut.Candidates[i].AdapterReason = candidate.AdapterReason
+					break
+				}
+			}
 		}
 
 		demotionChain = append(demotionChain, CandidateDemotion{

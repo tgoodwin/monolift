@@ -430,6 +430,156 @@ func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 	}
 }
 
+func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
+	// With MONOLIFT_BOUNDARY_ADAPTER=1 (or unset), the admission loop
+	// should mark adapter-eligible candidates with AdapterUnknown before
+	// demoting them. This proves the flag gate is not a no-op: the
+	// candidate's AdapterClass is updated when the branch fires.
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
+
+	awkward := admissibleTestCandidate()
+	awkward.Step = 2
+	awkward.NodeKey.FuncName = "ProcessImage"
+	awkward.NodeName = "ProcessImage"
+	clean := admissibleTestCandidate()
+	clean.Step = 3
+	clean.NodeKey.FuncName = "UploadMedia"
+	clean.NodeName = "UploadMedia"
+	clean.Surface = activation.Small
+	cut := &activation.CutResult{
+		Candidates: []activation.CutCandidate{awkward, clean},
+	}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		switch cut.Recommended.NodeKey.FuncName {
+		case "ProcessImage":
+			// Return a plan with >2 results to trigger unsupported_result_shape.
+			return &Plan{
+				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+				Results: []Result{
+					{GoType: "*bytes.Reader", Codec: CodecJSON},
+					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "error", Codec: CodecError},
+				},
+			}, nil
+		case "UploadMedia":
+			return &Plan{
+				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+				Results:  []Result{{GoType: "string", Codec: CodecPrimitive}},
+			}, nil
+		default:
+			t.Fatalf("unexpected candidate %s", cut.Recommended.NodeKey.FuncName)
+			return nil, nil
+		}
+	})
+
+	verdict, chain, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
+	}
+	// With flag on, ProcessImage should still be demoted (Phase 5 hasn't
+	// wired tryAdapterPass yet), but the candidate should be marked with
+	// AdapterUnknown to prove the branch fired.
+	if cut.Recommended == nil || cut.Recommended.NodeName != "UploadMedia" {
+		t.Fatalf("Recommended = %+v, want UploadMedia", cut.Recommended)
+	}
+	if len(chain) != 1 {
+		t.Fatalf("demotion chain length = %d, want 1", len(chain))
+	}
+	// Verify the demoted candidate was marked by the adapter branch.
+	var demoted *activation.CutCandidate
+	for i := range cut.Candidates {
+		if cut.Candidates[i].NodeKey.FuncName == "ProcessImage" {
+			demoted = &cut.Candidates[i]
+			break
+		}
+	}
+	if demoted == nil {
+		t.Fatal("ProcessImage candidate not found in cut.Candidates")
+	}
+	if demoted.AdapterClass != activation.AdapterUnknown {
+		t.Fatalf("demoted candidate AdapterClass = %s, want %s", demoted.AdapterClass, activation.AdapterUnknown)
+	}
+	if demoted.AdapterReason == "" {
+		t.Fatal("demoted candidate AdapterReason is empty, want non-empty reason from adapter branch")
+	}
+}
+
+func TestAdmitCutCandidatesFlagOffDoesNotMarkAdapterEligibility(t *testing.T) {
+	// With MONOLIFT_BOUNDARY_ADAPTER=0, the adapter branch should NOT fire,
+	// so the candidate's AdapterClass should remain at its default value.
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "0")
+
+	awkward := admissibleTestCandidate()
+	awkward.Step = 2
+	awkward.NodeKey.FuncName = "ProcessImage"
+	awkward.NodeName = "ProcessImage"
+	clean := admissibleTestCandidate()
+	clean.Step = 3
+	clean.NodeKey.FuncName = "UploadMedia"
+	clean.NodeName = "UploadMedia"
+	clean.Surface = activation.Small
+	cut := &activation.CutResult{
+		Candidates: []activation.CutCandidate{awkward, clean},
+	}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		switch cut.Recommended.NodeKey.FuncName {
+		case "ProcessImage":
+			return &Plan{
+				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+				Results: []Result{
+					{GoType: "*bytes.Reader", Codec: CodecJSON},
+					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "int", Codec: CodecPrimitive},
+					{GoType: "error", Codec: CodecError},
+				},
+			}, nil
+		case "UploadMedia":
+			return &Plan{
+				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+				Results:  []Result{{GoType: "string", Codec: CodecPrimitive}},
+			}, nil
+		default:
+			t.Fatalf("unexpected candidate %s", cut.Recommended.NodeKey.FuncName)
+			return nil, nil
+		}
+	})
+
+	verdict, _, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
+	}
+	// Verify the demoted candidate was NOT marked by the adapter branch.
+	var demoted *activation.CutCandidate
+	for i := range cut.Candidates {
+		if cut.Candidates[i].NodeKey.FuncName == "ProcessImage" {
+			demoted = &cut.Candidates[i]
+			break
+		}
+	}
+	if demoted == nil {
+		t.Fatal("ProcessImage candidate not found in cut.Candidates")
+	}
+	// With flag off, AdapterClass should remain at its initial value (empty
+	// string, since admissibleTestCandidate doesn't set it).
+	if demoted.AdapterClass == activation.AdapterUnknown {
+		t.Fatalf("demoted candidate AdapterClass = %s with flag off; adapter branch should not have fired", demoted.AdapterClass)
+	}
+	if demoted.AdapterReason != "" {
+		t.Fatalf("demoted candidate AdapterReason = %q with flag off; should be empty", demoted.AdapterReason)
+	}
+}
+
 func admissibleTestCandidate() activation.CutCandidate {
 	return activation.CutCandidate{
 		Step:         1,
