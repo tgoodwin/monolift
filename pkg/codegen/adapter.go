@@ -149,7 +149,7 @@ func normalizedHelperFuncName(plan *Plan) string {
 }
 
 func renderNormalizedHelper(plan *Plan, path string) ([]byte, error) {
-	body, err := normalizedHelperBody(plan)
+	helper, err := buildNormalizedHelper(plan)
 	if err != nil {
 		return nil, err
 	}
@@ -162,14 +162,11 @@ func renderNormalizedHelper(plan *Plan, path string) ([]byte, error) {
 		Body        string
 	}{
 		PackageName: plan.CutPoint.PackageName,
-		Imports: []importSpec{
-			{Path: "bytes"},
-			{Path: "github.com/disintegration/imaging"},
-		},
-		FuncName:   normalizedHelperFuncName(plan),
-		ParamList:  adapterParamList(normalizedAdapterPlan(plan).BoundaryParams),
-		ResultList: computeStubReturnSig(normalizedAdapterPlan(plan).Results),
-		Body:       body,
+		Imports:     helper.Imports,
+		FuncName:    normalizedHelperFuncName(plan),
+		ParamList:   adapterParamList(normalizedAdapterPlan(plan).BoundaryParams),
+		ResultList:  computeStubReturnSig(normalizedAdapterPlan(plan).Results),
+		Body:        helper.Body,
 	}
 	tmpl, err := template.New("normalized").Parse(normalizedHelperTemplate)
 	if err != nil {
@@ -182,23 +179,34 @@ func renderNormalizedHelper(plan *Plan, path string) ([]byte, error) {
 	return formatGo(path, out.Bytes())
 }
 
-// normalizedHelperBody parses the cut function, applies each adapter
-// pattern's body rewrite (pattern-owned AST surgery — adapter.go names no
-// pattern), and re-prints the rewritten body. The rewrites are dispatched
-// from the AdapterPlan's input/output transforms; a pattern that needs no
-// body surgery simply does not implement the rewriter interface. A pattern
-// that reports it could not match its expected shape is a genuine codegen
-// mismatch and aborts helper rendering rather than emitting partial output.
-func normalizedHelperBody(plan *Plan) (string, error) {
+// normalizedHelper is the rendered normalized helper body together with the
+// external symbols it depends on: the cut-file imports it references and the
+// package-level constants it must carry into an extracted service. adapter.go
+// names no pattern and no symbol — the dependency set is derived structurally.
+type normalizedHelper struct {
+	Body       string
+	Imports    []importSpec
+	FreeConsts []string
+}
+
+// buildNormalizedHelper parses the cut function, applies each adapter
+// pattern's body rewrite (pattern-owned AST surgery), re-prints the rewritten
+// body, and scans it for the imports and free constants it depends on. The
+// rewrites are dispatched from the AdapterPlan's input/output transforms; a
+// pattern that needs no body surgery simply does not implement the rewriter
+// interface. A pattern that reports it could not match its expected shape is a
+// genuine codegen mismatch and aborts rendering rather than emitting partial
+// output.
+func buildNormalizedHelper(plan *Plan) (*normalizedHelper, error) {
 	cutFile := absoluteCutFile(plan)
 	src, err := os.ReadFile(cutFile)
 	if err != nil {
-		return "", fmt.Errorf("read cut file for normalized helper: %w", err)
+		return nil, fmt.Errorf("read cut file for normalized helper: %w", err)
 	}
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, cutFile, src, parser.SkipObjectResolution)
 	if err != nil {
-		return "", fmt.Errorf("parse cut file for normalized helper: %w", err)
+		return nil, fmt.Errorf("parse cut file for normalized helper: %w", err)
 	}
 	want := renamedOriginalFunc(plan)
 	var fn *ast.FuncDecl
@@ -213,21 +221,27 @@ func normalizedHelperBody(plan *Plan) (string, error) {
 		}
 	}
 	if fn == nil || fn.Body == nil {
-		return "", fmt.Errorf("codegen: function %s not found for normalized helper", plan.CutPoint.FuncName)
+		return nil, fmt.Errorf("codegen: function %s not found for normalized helper", plan.CutPoint.FuncName)
 	}
 	if plan.AdapterPlan != nil {
 		if err := rewriteHelperBodyAST(fn.Body, plan); err != nil {
-			return "", err
+			return nil, err
 		}
+	}
+	refs := scanHelperBodyRefs(fn.Body, helperBoundNames(plan, fn.Body))
+	imports := cutFileImportsFor(file, refs.pkgRefs)
+	freeConsts, err := cutFileFreeConsts(fset, file, refs.valueRefs)
+	if err != nil {
+		return nil, err
 	}
 	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, fset, fn.Body); err != nil {
-		return "", fmt.Errorf("print normalized helper body: %w", err)
+		return nil, fmt.Errorf("print normalized helper body: %w", err)
 	}
 	body := buf.String()
 	body = strings.TrimPrefix(strings.TrimSuffix(body, "}"), "{")
 	body = strings.TrimSpace(body)
-	return body, nil
+	return &normalizedHelper{Body: body, Imports: imports, FreeConsts: freeConsts}, nil
 }
 
 // rewriteHelperBodyAST applies each input/output transform's pattern-owned

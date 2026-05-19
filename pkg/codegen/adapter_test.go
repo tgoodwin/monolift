@@ -370,6 +370,164 @@ func processImageAdapterPlan(dir, cutFile string) *Plan {
 	return plan
 }
 
+// uploadAdapterPlan builds a main-package adapter plan for an arbitrary
+// multipart-upload resize function so the free-symbol/import scan can be
+// exercised without M-4-specific names. funcBody is the cut function source.
+func uploadAdapterPlan(t *testing.T, src string) *Plan {
+	t.Helper()
+	tmp := t.TempDir()
+	cutFile := filepath.Join(tmp, "main.go")
+	if err := os.WriteFile(cutFile, []byte(src), 0644); err != nil {
+		t.Fatal(err)
+	}
+	return &Plan{
+		SourceModuleRoot: "/tmp/test",
+		ServiceName:      "monolift-resizeupload",
+		EnvServiceName:   "RESIZEUPLOAD",
+		CutPoint: CutPoint{
+			PackageName: "main",
+			PackagePath: "example.com/app",
+			PackageDir:  tmp,
+			FuncName:    "resizeUpload",
+			File:        cutFile,
+		},
+		BoundaryParams: []Param{
+			{Name: "file", JSONName: "file", GoType: "*multipart.FileHeader", QualifiedGoType: "*mime/multipart.FileHeader", TypePackagePath: "mime/multipart", Codec: CodecJSON, Index: 0},
+		},
+		Results: []Result{
+			{Name: "result", JSONName: "result", GoType: "*bytes.Reader", QualifiedGoType: "*bytes.Reader", TypePackagePath: "bytes", Codec: CodecJSON, Index: 0},
+			{Name: "result1", JSONName: "result1", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "result2", JSONName: "result2", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		},
+		AdapterPlan: &AdapterPlan{
+			SourceFunction:  "resizeUpload",
+			HostSignature:   "(*multipart.FileHeader) (*bytes.Reader, int, int, error)",
+			RemoteSignature: "([]byte) ([]byte, int, int, error)",
+			InputTransforms: []AdapterPattern{{
+				Name:      "multipart_file_read_all",
+				ParamName: "file",
+				FromType:  "*multipart.FileHeader",
+				ToType:    "[]byte",
+			}},
+			OutputTransforms: []AdapterPattern{{
+				Name:     "bytes_reader_return",
+				FromType: "*bytes.Reader",
+				ToType:   "[]byte",
+			}},
+			TransportPolicy: AdapterTransportInlineJSONBytes,
+		},
+	}
+}
+
+// TestBuildNormalizedHelperFreeSymbols proves the free-symbol scan copies the
+// package-level constants the helper actually references — by name and value,
+// not single-constant-fitted to thumbnailSize/250 — and computes the helper's
+// import set from the rewritten body rather than hardcoding bytes/imaging.
+func TestBuildNormalizedHelperFreeSymbols(t *testing.T) {
+	const src = `package main
+
+import (
+	"bytes"
+	"mime/multipart"
+
+	"github.com/disintegration/imaging"
+)
+
+const maxWidth = 800
+const jpegQuality = 90
+
+func resizeUpload(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer src.Close()
+
+	img, err := imaging.Decode(src)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	thumb := imaging.Resize(img, maxWidth, 0, imaging.Lanczos)
+	var out bytes.Buffer
+	if err := imaging.Encode(&out, thumb, imaging.JPEG, imaging.JPEGQuality(jpegQuality)); err != nil {
+		return nil, 0, 0, err
+	}
+	b := img.Bounds().Max
+	return bytes.NewReader(out.Bytes()), b.X, b.Y, nil
+}
+`
+	helper, err := buildNormalizedHelper(uploadAdapterPlan(t, src))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	joinedConsts := strings.Join(helper.FreeConsts, "\n")
+	for _, want := range []string{"const maxWidth = 800", "const jpegQuality = 90"} {
+		if !strings.Contains(joinedConsts, want) {
+			t.Errorf("free consts missing %q:\n%s", want, joinedConsts)
+		}
+	}
+	if strings.Contains(joinedConsts, "thumbnailSize") || strings.Contains(joinedConsts, "250") {
+		t.Errorf("free-symbol scan is fitted to M-4 constants:\n%s", joinedConsts)
+	}
+
+	gotImports := map[string]bool{}
+	for _, imp := range helper.Imports {
+		gotImports[imp.Path] = true
+	}
+	for _, want := range []string{"bytes", "github.com/disintegration/imaging"} {
+		if !gotImports[want] {
+			t.Errorf("helper imports missing %q: %+v", want, helper.Imports)
+		}
+	}
+	if gotImports["mime/multipart"] {
+		t.Errorf("helper retained mime/multipart after input rewrite: %+v", helper.Imports)
+	}
+}
+
+// TestBuildNormalizedHelperRefusesFreeVar locks the scope boundary: a helper
+// that references a package-level var fails closed rather than emitting an
+// extracted service that cannot compile (relocating mutable package state
+// needs value analysis that is out of scope).
+func TestBuildNormalizedHelperRefusesFreeVar(t *testing.T) {
+	const src = `package main
+
+import (
+	"bytes"
+	"mime/multipart"
+
+	"github.com/disintegration/imaging"
+)
+
+var defaultFormat = imaging.JPEG
+
+func resizeUpload(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer src.Close()
+
+	img, err := imaging.Decode(src)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	var out bytes.Buffer
+	if err := imaging.Encode(&out, img, defaultFormat); err != nil {
+		return nil, 0, 0, err
+	}
+	b := img.Bounds().Max
+	return bytes.NewReader(out.Bytes()), b.X, b.Y, nil
+}
+`
+	if _, err := buildNormalizedHelper(uploadAdapterPlan(t, src)); err == nil {
+		t.Fatal("expected refusal for helper referencing a package-level var, got nil error")
+	} else if !strings.Contains(err.Error(), "defaultFormat") {
+		t.Errorf("refusal error should name the offending var, got: %v", err)
+	}
+}
+
 // TestBuildResultDTONoImplicitImageRenaming proves the removed
 // applyProcessImageResultNames M-4 fingerprint is gone: an arbitrary
 // ([]byte, int, int, error) return shape with generic names must yield

@@ -83,8 +83,10 @@ func serverTemplateView(plan *Plan) serverView {
 	}
 	var localAdapterCode string
 	if plan.CutPoint.PackageName == "main" && plan.AdapterPlan != nil {
-		imports = append(imports, importSpec{Path: "bytes"}, importSpec{Path: "github.com/disintegration/imaging"})
-		localAdapterCode = serverLocalAdapterCode(plan)
+		if helper, err := buildNormalizedHelper(plan); err == nil {
+			imports = append(imports, helper.Imports...)
+			localAdapterCode = renderLocalAdapterCode(plan, helper)
+		}
 	}
 	hasStreamingBytes := false
 	var requestFields []fieldView
@@ -299,15 +301,22 @@ func (v serverView) AdapterCall() string {
 	return v.CutPackageAlias + "." + v.AdapterFunc
 }
 
-func serverLocalAdapterCode(plan *Plan) string {
-	body, err := normalizedHelperBody(plan)
-	if err != nil {
-		return ""
-	}
+// renderLocalAdapterCode inlines the adapter wrapper and normalized helper into
+// the extracted service's main package (used when the cut function lives in
+// package main and cannot be imported). Any package-level constants the helper
+// references are copied in ahead of it, since the cut package is out of scope.
+func renderLocalAdapterCode(plan *Plan, helper *normalizedHelper) string {
 	transport := normalizedAdapterPlan(plan)
 	paramList := adapterParamList(transport.BoundaryParams)
 	resultList := computeStubReturnSig(transport.Results)
-	return "const thumbnailSize = 250\n\nfunc " + adapterFuncName(plan.CutPoint.FuncName) + "(" + paramList + ") " + resultList + " {\n\treturn " + normalizedHelperFuncName(plan) + "(" + clientOriginalArgs(fieldsFromParams(transport.BoundaryParams)) + ")\n}\n\nfunc " + normalizedHelperFuncName(plan) + "(" + paramList + ") " + resultList + " {\n" + body + "\n}\n"
+	var b strings.Builder
+	for _, decl := range helper.FreeConsts {
+		b.WriteString(decl)
+		b.WriteString("\n\n")
+	}
+	b.WriteString("func " + adapterFuncName(plan.CutPoint.FuncName) + "(" + paramList + ") " + resultList + " {\n\treturn " + normalizedHelperFuncName(plan) + "(" + clientOriginalArgs(fieldsFromParams(transport.BoundaryParams)) + ")\n}\n\n")
+	b.WriteString("func " + normalizedHelperFuncName(plan) + "(" + paramList + ") " + resultList + " {\n" + helper.Body + "\n}\n")
+	return b.String()
 }
 
 func planNeedsMinifluxConfigInit(plan *Plan) bool {
