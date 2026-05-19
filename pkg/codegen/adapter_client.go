@@ -59,7 +59,7 @@ func adapterClientTemplateView(plan *Plan) adapterClientView {
 		{Path: "os"},
 		{Path: "time"},
 	}
-	for _, param := range plan.BoundaryParams {
+	for _, param := range originalAdapterParams(plan) {
 		if param.TypePackagePath != "" && param.TypePackagePath != plan.CutPoint.PackagePath {
 			imports = append(imports, importSpec{Path: param.TypePackagePath})
 		}
