@@ -344,7 +344,13 @@ func TestBoundaryAdapterEnabledReadsEnvVar(t *testing.T) {
 }
 
 func TestIsAdapterEligibleRefusal(t *testing.T) {
-	eligible := []string{"unsupported_boundary_data", "unsupported_result_shape", "unsupported_param_shape", "callable_boundary_values"}
+	eligible := []string{
+		"unsupported_boundary_data",
+		"unsupported_result_shape",
+		"unsupported_param_shape",
+		"callable_boundary_values",
+		"missing_reconstructor",
+	}
 	for _, code := range eligible {
 		if !isAdapterEligibleRefusal(AdmissionRefusal{Code: code}) {
 			t.Errorf("isAdapterEligibleRefusal(%q) = false, want true", code)
@@ -354,7 +360,6 @@ func TestIsAdapterEligibleRefusal(t *testing.T) {
 	ineligible := []string{
 		"receiver_requires_reconstruction",
 		"non_serializable_receiver",
-		"missing_reconstructor",
 		"plan_build_timeout",
 		"streaming_type",
 	}

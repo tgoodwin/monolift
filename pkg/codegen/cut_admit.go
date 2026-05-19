@@ -343,9 +343,9 @@ func retryableRefusal(verdict AdmissionVerdict) (AdmissionRefusal, bool) {
 }
 
 // isAdapterEligibleRefusal returns true when the refusal code is one of the
-// shape-compatible codes that can trigger boundary-adapter recovery per
-// SPRINT-0051 §0.4. Receiver reconstruction failures, shared-state receivers,
-// and infrastructure-handle reconstructor failures are explicitly excluded.
+// shape-compatible codes that can trigger boundary-adapter recovery. Broader
+// exclusions such as receivers, shared state, broad surfaces, and function
+// boundaries are enforced by adapterRecoveryAllowed after plan construction.
 func isAdapterEligibleRefusal(refusal AdmissionRefusal) bool {
 	_, ok := adapterEligibleRefusals[refusal.Code]
 	return ok
