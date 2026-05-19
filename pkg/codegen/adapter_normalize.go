@@ -78,7 +78,7 @@ func normalizedAdapterResults(plan *Plan) []Result {
 		if !ok {
 			continue
 		}
-		results[i].Name = adapterOutputName(transform, results[i])
+		results[i].Name = adapterOutputName(results[i])
 		results[i].JSONName = toSnake(results[i].Name)
 		results[i].GoType = transform.ToType
 		results[i].QualifiedGoType = transform.ToType
@@ -86,7 +86,6 @@ func normalizedAdapterResults(plan *Plan) []Result {
 		results[i].TypePackageAlias = ""
 		results[i].Codec = CodecJSON
 	}
-	applyProcessImageResultNames(results)
 	return results
 }
 
@@ -100,26 +99,11 @@ func adapterInputName(transform AdapterPattern, param Param) string {
 	return param.Name + "Value"
 }
 
-func adapterOutputName(transform AdapterPattern, result Result) string {
-	if transform.Name == "bytes_reader_return" {
-		return "thumbnail"
-	}
+func adapterOutputName(result Result) string {
 	if result.Name == "" || result.Name == "result" {
 		return "result0"
 	}
 	return result.Name
-}
-
-func applyProcessImageResultNames(results []Result) {
-	if len(results) != 4 || results[0].GoType != "[]byte" || results[1].GoType != "int" || results[2].GoType != "int" || results[3].Codec != CodecError {
-		return
-	}
-	if results[0].Name == "thumbnail" {
-		results[1].Name = "originalWidth"
-		results[1].JSONName = "original_width"
-		results[2].Name = "originalHeight"
-		results[2].JSONName = "original_height"
-	}
 }
 
 func firstResultSlotByType(results []Result, typ string) int {

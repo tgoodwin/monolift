@@ -24,9 +24,9 @@ func (Oracle) Invoke(args map[string]any) (any, error) {
 		return nil, err
 	}
 	return map[string]any{
-		"thumbnail":       base64.StdEncoding.EncodeToString(thumb),
-		"original_width":  float64(width),
-		"original_height": float64(height),
+		"result0": base64.StdEncoding.EncodeToString(thumb),
+		"result1": float64(width),
+		"result2": float64(height),
 	}, nil
 }
 

@@ -298,7 +298,7 @@ func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
 	if !strings.Contains(server, "Input []byte `json:\"input\"`") {
 		t.Fatalf("server request was not normalized:\n%s", server)
 	}
-	if !strings.Contains(server, "Thumbnail      []byte `json:\"thumbnail\"`") {
+	if !strings.Contains(server, "Result0 []byte `json:\"result0\"`") {
 		t.Fatalf("server response DTO was not normalized:\n%s", server)
 	}
 	adapterFiles, err := RenderAdapter(plan)
@@ -368,4 +368,72 @@ func processImageAdapterPlan(dir, cutFile string) *Plan {
 	normalized := normalizedAdapterPlan(plan)
 	plan.ResultDTO = normalized.ResultDTO
 	return plan
+}
+
+// TestBuildResultDTONoImplicitImageRenaming proves the removed
+// applyProcessImageResultNames M-4 fingerprint is gone: an arbitrary
+// ([]byte, int, int, error) return shape with generic names must yield
+// positional Result0..N fields, never thumbnail/originalWidth/originalHeight.
+// A second case confirms meaningful return names are preserved verbatim.
+func TestBuildResultDTONoImplicitImageRenaming(t *testing.T) {
+	t.Run("generic names map to positional fields", func(t *testing.T) {
+		results := []Result{
+			{Name: "result", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "result1", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "result2", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		}
+		dto := BuildResultDTO("computeStats", results)
+		if dto == nil {
+			t.Fatal("expected DTO for >1 non-error result")
+		}
+		wantName := []string{"Result0", "Result1", "Result2"}
+		wantJSON := []string{"result0", "result1", "result2"}
+		if len(dto.Fields) != len(wantName) {
+			t.Fatalf("got %d fields, want %d: %+v", len(dto.Fields), len(wantName), dto.Fields)
+		}
+		for i, f := range dto.Fields {
+			if f.Name != wantName[i] {
+				t.Errorf("field %d name = %q, want %q", i, f.Name, wantName[i])
+			}
+			if f.JSONName != wantJSON[i] {
+				t.Errorf("field %d json = %q, want %q", i, f.JSONName, wantJSON[i])
+			}
+			switch f.Name {
+			case "Thumbnail", "OriginalWidth", "OriginalHeight":
+				t.Errorf("M-4 result renaming leaked into generic shape: field %q", f.Name)
+			}
+			switch f.JSONName {
+			case "thumbnail", "original_width", "original_height":
+				t.Errorf("M-4 JSON renaming leaked into generic shape: json %q", f.JSONName)
+			}
+		}
+	})
+
+	t.Run("meaningful names are preserved", func(t *testing.T) {
+		results := []Result{
+			{Name: "payload", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "width", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "height", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		}
+		dto := BuildResultDTO("measure", results)
+		if dto == nil {
+			t.Fatal("expected DTO for >1 non-error result")
+		}
+		want := map[string]string{"Payload": "payload", "Width": "width", "Height": "height"}
+		if len(dto.Fields) != len(want) {
+			t.Fatalf("got %d fields, want %d: %+v", len(dto.Fields), len(want), dto.Fields)
+		}
+		for _, f := range dto.Fields {
+			wantJSON, ok := want[f.Name]
+			if !ok {
+				t.Errorf("unexpected field name %q", f.Name)
+				continue
+			}
+			if f.JSONName != wantJSON {
+				t.Errorf("field %q json = %q, want %q", f.Name, f.JSONName, wantJSON)
+			}
+		}
+	})
 }

@@ -69,7 +69,7 @@ type AdapterPatternImpl interface {
 	// RenderRemoteReconstruction returns a single Go expression that rebuilds
 	// the awkward return value from the DTO field. Only meaningful for output
 	// patterns. The argument is the Go expression referencing the field on
-	// the DTO (e.g. "out.Thumbnail"). Phase 4 wires this into the host
+	// the DTO (e.g. "out.Result0"). Phase 4 wires this into the host
 	// wrapper template.
 	RenderRemoteReconstruction(remoteFieldExpr string) string
 }
