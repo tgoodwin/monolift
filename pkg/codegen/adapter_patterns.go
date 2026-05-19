@@ -10,9 +10,12 @@ package codegen
 
 import (
 	"fmt"
+	"go/ast"
+	"go/token"
 	"go/types"
 	"strings"
 
+	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -194,6 +197,46 @@ func (p multipartFileReadAllPattern) Discharge(fn *ssa.Function, paramIndex int)
 	return []AdapterProof{useShape}
 }
 
+// rewriteInputBody removes the awkward-input prologue for the
+// multipart_file_read_all pattern and rewrites uses of the opened reader to
+// reference the normalized []byte input. The matched prologue is:
+//
+//	<readerVar>, <errVar> := <paramName>.Open()
+//	if <errVar> != nil { ... }
+//	defer <readerVar>.Close()    // anywhere in the block
+//
+// Uses of <readerVar> are replaced with bytes.NewReader(<normName>). Returns
+// false (refusing, never partial-applying) when the prologue shape does not
+// match — the Discharge proof guarantees the shape for accepted plans, so a
+// false here is a genuine codegen mismatch the caller surfaces as an error.
+func (multipartFileReadAllPattern) rewriteInputBody(body *ast.BlockStmt, paramName, normName string) bool {
+	openIdx, readerVar, errVar := findReceiverMethodAssignment(body, paramName, "Open")
+	if openIdx < 0 || readerVar == "" || errVar == "" {
+		return false
+	}
+	if openIdx+1 >= len(body.List) || !isErrNilGuard(body.List[openIdx+1], errVar) {
+		return false
+	}
+	drop := map[int]bool{openIdx: true, openIdx + 1: true}
+	if deferIdx := findDeferClose(body, readerVar); deferIdx >= 0 {
+		drop[deferIdx] = true
+	}
+	kept := make([]ast.Stmt, 0, len(body.List))
+	for i, stmt := range body.List {
+		if drop[i] {
+			continue
+		}
+		kept = append(kept, stmt)
+	}
+	body.List = kept
+	return replaceIdentUses(body, readerVar, func() ast.Expr {
+		return &ast.CallExpr{
+			Fun:  &ast.SelectorExpr{X: ast.NewIdent("bytes"), Sel: ast.NewIdent("NewReader")},
+			Args: []ast.Expr{ast.NewIdent(normName)},
+		}
+	})
+}
+
 func (multipartFileReadAllPattern) RenderInputExtraction(inVar, outVar, errReturnFmt string) []string {
 	srcVar := inVar + "Src"
 	return []string{
@@ -255,6 +298,29 @@ func (bytesReaderReturnPattern) Discharge(fn *ssa.Function, resultIndex int) []A
 	}
 	rehydration.Detail = "helper returns *bytes.Reader exclusively via bytes.NewReader"
 	return []AdapterProof{rehydration}
+}
+
+// rewriteOutputBody rewrites every return slot of the form bytes.NewReader(X)
+// into X for the bytes_reader_return pattern, so the normalized helper returns
+// the finite []byte the DTO carries. Returns false when no such return slot is
+// found — the Discharge proof guarantees the producer shape for accepted
+// plans, so a false here is a genuine codegen mismatch.
+func (bytesReaderReturnPattern) rewriteOutputBody(body *ast.BlockStmt) bool {
+	replaced := false
+	astutil.Apply(body, func(c *astutil.Cursor) bool {
+		ret, ok := c.Node().(*ast.ReturnStmt)
+		if !ok {
+			return true
+		}
+		for i, res := range ret.Results {
+			if inner, ok := bytesNewReaderArg(res); ok {
+				ret.Results[i] = inner
+				replaced = true
+			}
+		}
+		return true
+	}, nil)
+	return replaced
 }
 
 func (bytesReaderReturnPattern) RenderInputExtraction(string, string, string) []string {
@@ -490,6 +556,125 @@ func typeIsByteSliceFlow(v ssa.Value) bool {
 	}
 	basic, ok := types.Unalias(slice.Elem()).(*types.Basic)
 	return ok && basic.Kind() == types.Uint8
+}
+
+// inputBodyRewriter is implemented by input patterns whose normalized helper
+// body differs structurally from the original — they remove the awkward-input
+// prologue and rewrite uses of the awkward parameter to reference the
+// normalized value. Patterns that need no body surgery (the normalized input
+// is used identically) do not implement this interface.
+type inputBodyRewriter interface {
+	rewriteInputBody(body *ast.BlockStmt, paramName, normName string) bool
+}
+
+// outputBodyRewriter is implemented by output patterns whose normalized helper
+// body must rewrite return statements producing the awkward return value into
+// ones producing the normalized value.
+type outputBodyRewriter interface {
+	rewriteOutputBody(body *ast.BlockStmt) bool
+}
+
+// findReceiverMethodAssignment finds a top-level statement of the form
+// `<lhs0>, <lhs1> := <recvName>.<method>()` in the block. Returns the
+// statement index plus the two LHS identifier names, or (-1, "", "").
+func findReceiverMethodAssignment(body *ast.BlockStmt, recvName, method string) (int, string, string) {
+	for i, stmt := range body.List {
+		assign, ok := stmt.(*ast.AssignStmt)
+		if !ok || len(assign.Lhs) != 2 || len(assign.Rhs) != 1 {
+			continue
+		}
+		call, ok := assign.Rhs[0].(*ast.CallExpr)
+		if !ok {
+			continue
+		}
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok || sel.Sel.Name != method {
+			continue
+		}
+		recv, ok := sel.X.(*ast.Ident)
+		if !ok || recv.Name != recvName {
+			continue
+		}
+		lhs0, ok0 := assign.Lhs[0].(*ast.Ident)
+		lhs1, ok1 := assign.Lhs[1].(*ast.Ident)
+		if !ok0 || !ok1 {
+			continue
+		}
+		return i, lhs0.Name, lhs1.Name
+	}
+	return -1, "", ""
+}
+
+// isErrNilGuard reports whether stmt is `if <errVar> != nil { ... }` with no
+// init clause.
+func isErrNilGuard(stmt ast.Stmt, errVar string) bool {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	if !ok || ifStmt.Init != nil {
+		return false
+	}
+	bin, ok := ifStmt.Cond.(*ast.BinaryExpr)
+	if !ok || bin.Op != token.NEQ {
+		return false
+	}
+	left, ok := bin.X.(*ast.Ident)
+	if !ok || left.Name != errVar {
+		return false
+	}
+	right, ok := bin.Y.(*ast.Ident)
+	return ok && right.Name == "nil"
+}
+
+// findDeferClose returns the index of a top-level `defer <recvName>.Close()`
+// statement, or -1.
+func findDeferClose(body *ast.BlockStmt, recvName string) int {
+	for i, stmt := range body.List {
+		def, ok := stmt.(*ast.DeferStmt)
+		if !ok {
+			continue
+		}
+		sel, ok := def.Call.Fun.(*ast.SelectorExpr)
+		if !ok || sel.Sel.Name != "Close" {
+			continue
+		}
+		if recv, ok := sel.X.(*ast.Ident); ok && recv.Name == recvName {
+			return i
+		}
+	}
+	return -1
+}
+
+// replaceIdentUses replaces every *ast.Ident named name within root with a
+// freshly-built expression. Returns true if at least one was replaced.
+func replaceIdentUses(root ast.Node, name string, build func() ast.Expr) bool {
+	replaced := false
+	astutil.Apply(root, func(c *astutil.Cursor) bool {
+		id, ok := c.Node().(*ast.Ident)
+		if !ok || id.Name != name {
+			return true
+		}
+		c.Replace(build())
+		replaced = true
+		return true
+	}, nil)
+	return replaced
+}
+
+// bytesNewReaderArg returns the single argument X when expr is the call
+// bytes.NewReader(X), reporting ok=false otherwise.
+func bytesNewReaderArg(expr ast.Expr) (ast.Expr, bool) {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return nil, false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "NewReader" {
+		return nil, false
+	}
+	pkg, ok := sel.X.(*ast.Ident)
+	if !ok || pkg.Name != "bytes" {
+		return nil, false
+	}
+	return call.Args[0], true
 }
 
 // describeType returns a short type description for error messages.

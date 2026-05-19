@@ -182,6 +182,13 @@ func renderNormalizedHelper(plan *Plan, path string) ([]byte, error) {
 	return formatGo(path, out.Bytes())
 }
 
+// normalizedHelperBody parses the cut function, applies each adapter
+// pattern's body rewrite (pattern-owned AST surgery — adapter.go names no
+// pattern), and re-prints the rewritten body. The rewrites are dispatched
+// from the AdapterPlan's input/output transforms; a pattern that needs no
+// body surgery simply does not implement the rewriter interface. A pattern
+// that reports it could not match its expected shape is a genuine codegen
+// mismatch and aborts helper rendering rather than emitting partial output.
 func normalizedHelperBody(plan *Plan) (string, error) {
 	cutFile := absoluteCutFile(plan)
 	src, err := os.ReadFile(cutFile)
@@ -189,7 +196,7 @@ func normalizedHelperBody(plan *Plan) (string, error) {
 		return "", fmt.Errorf("read cut file for normalized helper: %w", err)
 	}
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, cutFile, src, parser.ParseComments)
+	file, err := parser.ParseFile(fset, cutFile, src, parser.SkipObjectResolution)
 	if err != nil {
 		return "", fmt.Errorf("parse cut file for normalized helper: %w", err)
 	}
@@ -208,6 +215,11 @@ func normalizedHelperBody(plan *Plan) (string, error) {
 	if fn == nil || fn.Body == nil {
 		return "", fmt.Errorf("codegen: function %s not found for normalized helper", plan.CutPoint.FuncName)
 	}
+	if plan.AdapterPlan != nil {
+		if err := rewriteHelperBodyAST(fn.Body, plan); err != nil {
+			return "", err
+		}
+	}
 	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, fset, fn.Body); err != nil {
 		return "", fmt.Errorf("print normalized helper body: %w", err)
@@ -215,34 +227,34 @@ func normalizedHelperBody(plan *Plan) (string, error) {
 	body := buf.String()
 	body = strings.TrimPrefix(strings.TrimSuffix(body, "}"), "{")
 	body = strings.TrimSpace(body)
-	body = rewriteMultipartFileReadAllBody(body)
-	body = rewriteBytesReaderReturnBody(body)
 	return body, nil
 }
 
-func rewriteMultipartFileReadAllBody(body string) string {
-	replacements := []struct {
-		old string
-		new string
-	}{
-		{
-			old: "src, err := file.Open()\n\tif err != nil {\n\t\treturn nil, 0, 0, err\n\t}\n\tdefer src.Close()\n\n\timg, err := imaging.Decode(src)",
-			new: "img, err := imaging.Decode(bytes.NewReader(input))",
-		},
-		{
-			old: "src, err := file.Open()\nif err != nil {\n\treturn nil, 0, 0, err\n}\ndefer src.Close()\n\nimg, err := imaging.Decode(src)",
-			new: "img, err := imaging.Decode(bytes.NewReader(input))",
-		},
+// rewriteHelperBodyAST applies each input/output transform's pattern-owned
+// rewrite to the parsed helper body, mutating it in place.
+func rewriteHelperBodyAST(body *ast.BlockStmt, plan *Plan) error {
+	for _, transform := range plan.AdapterPlan.InputTransforms {
+		pattern := adapterPatternByName(transform.Name)
+		rewriter, ok := pattern.(inputBodyRewriter)
+		if !ok {
+			continue
+		}
+		normName := adapterInputName(transform, Param{Name: transform.ParamName})
+		if !rewriter.rewriteInputBody(body, transform.ParamName, normName) {
+			return fmt.Errorf("codegen: %s input body rewrite did not match expected shape for parameter %q", transform.Name, transform.ParamName)
+		}
 	}
-	for _, repl := range replacements {
-		body = strings.Replace(body, repl.old, repl.new, 1)
+	for _, transform := range plan.AdapterPlan.OutputTransforms {
+		pattern := adapterPatternByName(transform.Name)
+		rewriter, ok := pattern.(outputBodyRewriter)
+		if !ok {
+			continue
+		}
+		if !rewriter.rewriteOutputBody(body) {
+			return fmt.Errorf("codegen: %s output body rewrite did not match expected shape for return type %s", transform.Name, transform.FromType)
+		}
 	}
-	return body
-}
-
-func rewriteBytesReaderReturnBody(body string) string {
-	body = strings.ReplaceAll(body, "return bytes.NewReader(out.Bytes()),", "return out.Bytes(),")
-	return body
+	return nil
 }
 
 func adapterParamList(params []Param) string {

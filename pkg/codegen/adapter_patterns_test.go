@@ -2,6 +2,10 @@ package codegen
 
 import (
 	"encoding/json"
+	"go/ast"
+	"go/parser"
+	"go/printer"
+	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +14,123 @@ import (
 	"github.com/tgoodwin/monolift/pkg/activation"
 	"golang.org/x/tools/go/ssa"
 )
+
+// parseFuncBody parses a standalone function declaration and returns its body
+// block plus the FileSet, for exercising the pattern body rewriters directly.
+func parseFuncBody(t *testing.T, funcSrc string) (*ast.BlockStmt, *token.FileSet) {
+	t.Helper()
+	src := "package p\n" + strings.TrimSpace(funcSrc) + "\n"
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "p.go", src, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parse func body: %v", err)
+	}
+	for _, decl := range file.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Body != nil {
+			return fn.Body, fset
+		}
+	}
+	t.Fatal("no function declaration found")
+	return nil, nil
+}
+
+func printBody(t *testing.T, body *ast.BlockStmt, fset *token.FileSet) string {
+	t.Helper()
+	var sb strings.Builder
+	if err := printer.Fprint(&sb, fset, body); err != nil {
+		t.Fatalf("print body: %v", err)
+	}
+	return sb.String()
+}
+
+// TestMultipartRewriteInputBody covers the pattern-owned AST rewrite for
+// multipart_file_read_all: the matched prologue is removed and uses of the
+// opened reader become bytes.NewReader(input); mismatched shapes refuse
+// rather than partial-apply. SPRINT-0052 task 1.2.
+func TestMultipartRewriteInputBody(t *testing.T) {
+	pattern := multipartFileReadAllPattern{}
+
+	t.Run("matched prologue rewrites and removes Open/guard/defer", func(t *testing.T) {
+		body, fset := parseFuncBody(t, `
+func f(file *multipart.FileHeader) ([]byte, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer src.Close()
+	return io.ReadAll(src)
+}`)
+		if !pattern.rewriteInputBody(body, "file", "input") {
+			t.Fatal("rewriteInputBody returned false on matched prologue")
+		}
+		out := printBody(t, body, fset)
+		if strings.Contains(out, "file.Open()") || strings.Contains(out, "src.Close()") {
+			t.Fatalf("prologue not removed:\n%s", out)
+		}
+		if !strings.Contains(out, "io.ReadAll(bytes.NewReader(input))") {
+			t.Fatalf("reader use not rewritten:\n%s", out)
+		}
+	})
+
+	t.Run("no Open call refuses", func(t *testing.T) {
+		body, _ := parseFuncBody(t, `
+func f(file *multipart.FileHeader) error {
+	_ = file.Filename
+	return nil
+}`)
+		if pattern.rewriteInputBody(body, "file", "input") {
+			t.Fatal("rewriteInputBody should refuse when there is no Open() prologue")
+		}
+	})
+
+	t.Run("Open without following err guard refuses", func(t *testing.T) {
+		body, _ := parseFuncBody(t, `
+func f(file *multipart.FileHeader) ([]byte, error) {
+	src, err := file.Open()
+	defer src.Close()
+	_ = err
+	return io.ReadAll(src)
+}`)
+		if pattern.rewriteInputBody(body, "file", "input") {
+			t.Fatal("rewriteInputBody should refuse when the Open() error guard is missing")
+		}
+	})
+}
+
+// TestBytesReaderRewriteOutputBody covers the pattern-owned AST rewrite for
+// bytes_reader_return: bytes.NewReader(X) return slots become X; absence of
+// such a slot refuses. SPRINT-0052 task 1.2.
+func TestBytesReaderRewriteOutputBody(t *testing.T) {
+	pattern := bytesReaderReturnPattern{}
+
+	t.Run("rewrites bytes.NewReader return slot", func(t *testing.T) {
+		body, fset := parseFuncBody(t, `
+func f() (*bytes.Reader, int, error) {
+	var out bytes.Buffer
+	return bytes.NewReader(out.Bytes()), 7, nil
+}`)
+		if !pattern.rewriteOutputBody(body) {
+			t.Fatal("rewriteOutputBody returned false on bytes.NewReader return")
+		}
+		out := printBody(t, body, fset)
+		if strings.Contains(out, "bytes.NewReader(") {
+			t.Fatalf("bytes.NewReader not unwrapped:\n%s", out)
+		}
+		if !strings.Contains(out, "return out.Bytes(), 7, nil") {
+			t.Fatalf("return slot not rewritten to []byte:\n%s", out)
+		}
+	})
+
+	t.Run("no bytes.NewReader return refuses", func(t *testing.T) {
+		body, _ := parseFuncBody(t, `
+func f(r *bytes.Reader) (*bytes.Reader, error) {
+	return r, nil
+}`)
+		if pattern.rewriteOutputBody(body) {
+			t.Fatal("rewriteOutputBody should refuse when no return slot is bytes.NewReader(...)")
+		}
+	})
+}
 
 // loadAdapterSSA loads Go source into an SSA program scoped to a single
 // package. Used by the adapter-pattern tests to feed synthetic helper
