@@ -114,7 +114,7 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 			return verdict, demotionChain, nil
 		}
 
-		if adapterEnabled && isAdapterEligibleRefusal(refusal) && adapterRecoveryAllowed(candidate, plan) {
+		if adapterEnabled && isAdapterEligibleRefusal(refusal) {
 			if plan == nil {
 				built, timedOut, buildErr := buildPlanWithTimeout(report, activation.CutResult{
 					Recommended: &candidate,
@@ -123,6 +123,9 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 				if buildErr == nil && !timedOut {
 					plan = built
 				}
+			}
+			if !adapterRecoveryAllowed(candidate, plan) {
+				goto demoteCandidate
 			}
 			adapterPlan, adapterRefusals := tryAdapterRecovery(report, candidate, plan)
 			if adapterPlan != nil && plan != nil {
@@ -147,6 +150,7 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 			markCandidateAdapter(cut, candidate)
 		}
 
+	demoteCandidate:
 		demotionChain = append(demotionChain, CandidateDemotion{
 			Step:        candidate.Step,
 			NodeKey:     candidate.NodeKey,
