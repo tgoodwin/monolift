@@ -382,8 +382,8 @@ func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 	awkward.NodeName = "StreamResults"
 	clean := admissibleTestCandidate()
 	clean.Step = 3
-	clean.NodeKey.FuncName = "UploadMedia"
-	clean.NodeName = "UploadMedia"
+	clean.NodeKey.FuncName = "CleanLeaf"
+	clean.NodeName = "CleanLeaf"
 	clean.Surface = activation.Small
 	cut := &activation.CutResult{
 		Candidates: []activation.CutCandidate{awkward, clean},
@@ -405,7 +405,7 @@ func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 					{GoType: "error", Codec: CodecError},
 				},
 			}, nil
-		case "UploadMedia":
+		case "CleanLeaf":
 			return &Plan{
 				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
 				Results:  []Result{{GoType: "string", Codec: CodecPrimitive}},
@@ -423,9 +423,9 @@ func TestAdmitCutCandidatesFlagOffParitySkipsAdapterBranch(t *testing.T) {
 	if !verdict.Accepted {
 		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
 	}
-	// With flag off, StreamResults should be demoted and UploadMedia selected.
-	if cut.Recommended == nil || cut.Recommended.NodeName != "UploadMedia" {
-		t.Fatalf("Recommended = %+v, want UploadMedia (flag-off parity)", cut.Recommended)
+	// With flag off, StreamResults should be demoted and the next clean candidate selected.
+	if cut.Recommended == nil || cut.Recommended.NodeName != "CleanLeaf" {
+		t.Fatalf("Recommended = %+v, want CleanLeaf (flag-off parity)", cut.Recommended)
 	}
 	if len(chain) != 1 {
 		t.Fatalf("demotion chain length = %d, want 1", len(chain))
@@ -489,8 +489,8 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 	awkward.NodeName = "ProcessStream"
 	clean := admissibleTestCandidate()
 	clean.Step = 3
-	clean.NodeKey.FuncName = "UploadMedia"
-	clean.NodeName = "UploadMedia"
+	clean.NodeKey.FuncName = "CleanLeaf"
+	clean.NodeName = "CleanLeaf"
 	clean.Surface = activation.Small
 	cut := &activation.CutResult{
 		Candidates: []activation.CutCandidate{awkward, clean},
@@ -508,7 +508,7 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 					{GoType: "error", Codec: CodecError},
 				},
 			}, nil
-		case "UploadMedia":
+		case "CleanLeaf":
 			return &Plan{
 				CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
 				Results:  []Result{{GoType: "string", Codec: CodecPrimitive}},
@@ -526,8 +526,8 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 	if !verdict.Accepted {
 		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
 	}
-	if cut.Recommended == nil || cut.Recommended.NodeName != "UploadMedia" {
-		t.Fatalf("Recommended = %+v, want UploadMedia", cut.Recommended)
+	if cut.Recommended == nil || cut.Recommended.NodeName != "CleanLeaf" {
+		t.Fatalf("Recommended = %+v, want CleanLeaf", cut.Recommended)
 	}
 	if len(chain) != 1 {
 		t.Fatalf("demotion chain length = %d, want 1", len(chain))

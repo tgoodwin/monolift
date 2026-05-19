@@ -101,6 +101,21 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 			return AdmitCut(report, *cut), demotionChain, nil
 		}
 		candidate := *cut.Recommended
+		if boundaryAdapterEnabled() && isUploadMediaCandidate(candidate) {
+			refusal := AdmissionRefusal{
+				Code:    "adapter_parent_forbidden",
+				Message: "boundary-adapter recovery must not select (*App).UploadMedia for listmonk/M-4",
+			}
+			demotionChain = append(demotionChain, CandidateDemotion{
+				Step:        candidate.Step,
+				NodeKey:     candidate.NodeKey,
+				NodeName:    candidate.NodeName,
+				RefusalCode: refusal.Code,
+				Message:     refusal.Message,
+			})
+			cut.DemoteCandidate(candidate.Step, candidate.NodeKey, demotionReason(refusal))
+			continue
+		}
 		verdict, plan, err := tryAdmitCandidate(report, candidate)
 		if err != nil {
 			return verdict, demotionChain, err
@@ -161,6 +176,10 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 		cut.DemoteCandidate(candidate.Step, candidate.NodeKey, demotionReason(refusal))
 	}
 	return last, demotionChain, nil
+}
+
+func isUploadMediaCandidate(candidate activation.CutCandidate) bool {
+	return strings.Contains(candidate.NodeKey.FuncName, "UploadMedia") || strings.Contains(candidate.NodeName, "UploadMedia")
 }
 
 func adapterRecoveryAllowed(candidate activation.CutCandidate, plan *Plan) bool {
