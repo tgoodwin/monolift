@@ -168,8 +168,7 @@ func adapterRecoveryAllowed(candidate activation.CutCandidate, plan *Plan) bool 
 		return false
 	}
 	switch candidate.State {
-	case activation.Stateless, activation.ConfigOnly:
-	default:
+	case activation.SharedState:
 		return false
 	}
 	if (candidate.Callbacks == activation.Moderate || candidate.Callbacks == activation.Many) && planHasFunctionBoundary(plan) {
