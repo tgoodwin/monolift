@@ -68,15 +68,15 @@ own corpus evaluator, cut-placement model, and e2e artifact pipeline.
   not liftable. The reconstructor families (`recon.go`), receiver
   policies (`types.go`), and admission-aware retry loop (`cut_admit.go`)
   are the entry points behind [Code extraction](extraction.md).
-- **`test/e2e/`** — the validation ladder for generated artifacts:
-  compile and verdict checks, image build, image load, deployment,
-  lifted workload execution, transcript comparison, and fail-mode
-  assertions. The target files describe which rung each corpus slice
-  is expected to reach. See
-  [Stages of evidence](validation-ladder.md) for the assertion attached
-  to each stage. The corpus manifest at
-  `test/e2e/activation_corpus_traces.yaml` records the latest stage
-  each trace cleared.
+- **`test/e2e/`** — the harness that runs each target through a
+  numbered sequence of rungs: compile and verdict checks, image
+  build, image load, deployment, lifted workload execution,
+  transcript comparison, and fail-mode assertions. Each target spec
+  declares the highest rung it currently clears via `StopAtStage`.
+  The corpus manifest at `test/e2e/activation_corpus_traces.yaml`
+  rolls those values up across the corpus. See
+  [Working backwards from real code](working-backwards.md) for how
+  that rolled-up view drives sprint-over-sprint priorities.
 - **`pkg/logging/`** — process-wide `slog` setup for opt-in compiler
   progress logs. `MONOLIFT_LOG_LEVEL=debug` surfaces e2e stages,
   codegen phases, and activation subphases without changing library

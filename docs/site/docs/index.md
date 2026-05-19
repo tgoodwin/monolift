@@ -105,9 +105,11 @@ where the network boundary belongs.
   admissible; and how admission feeds back into placement. The page
   describes the current long-running-pod backend, but the extraction
   phase is runtime-agnostic.
-- [**Stages of evidence**](validation-ladder.md) — the 0–10 e2e ladder
-  the harness uses to grade a lift, with each rung tied to a specific
-  claim (compile, deploy, reach, transcript-compare, fail-mode).
+- [**Working backwards from real code**](working-backwards.md) — the
+  research-and-development strategy: pick lift candidates from six
+  real codebases, let those candidates dictate which compiler
+  capabilities to build next, and treat per-target progress as a
+  capability map the project diffs sprint-over-sprint.
 - [**Finding your way around the code**](reading-guide.md) — how to map
   the narrative pages back to `pkg/compiler/`, `pkg/activation/`,
   `pkg/codegen/`, and the ADR log.

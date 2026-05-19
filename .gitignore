@@ -29,6 +29,7 @@ docs/site/site/
 
 # Local agent/editor/runtime scratch
 .claude/
+.codex/
 .tmp/
 .vscode/
 *.test

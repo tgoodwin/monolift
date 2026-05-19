@@ -19,7 +19,7 @@ codec is a small entry in a lookup table. The renderer reads those
 entries and emits Go code from them. It does not contain a separate
 code path for each family.
 
-## What "a lift" is, and is not
+## What a lift is, and is not
 
 The extraction phase produces a lift: a self-contained bundle of code
 and metadata that can run remotely. The bundle does not name a
@@ -47,14 +47,14 @@ two candidates without knowing whether a particular reconstructor
 exists. Extraction cannot. Keeping the phases separate is what lets
 admission act as feedback to placement instead of a hidden tax on it.
 
-The phrase that matters here is "the same code". The function body on
-the far side of the boundary is the same Go code that lived in the
-monolith: same package, same imports, same logic. Extraction does not
-synthesize new business logic. What it generates is the boundary. A
-handler that decodes a request and calls the original function. A
-client stub the host calls instead of the local symbol. Reconstructors
-that rebuild the function's non-serializable dependencies. Deployment
-metadata that wires the whole thing together.
+The function body on the far side of the boundary is the same Go
+code that lived in the monolith: same package, same imports, same
+logic. Extraction does not synthesize new business logic. What it
+generates is the boundary. A handler that decodes a request and
+calls the original function. A client stub the host calls instead
+of the local symbol. Reconstructors that rebuild the function's
+non-serializable dependencies. Deployment metadata that wires the
+whole thing together.
 
 ## How extraction proceeds
 

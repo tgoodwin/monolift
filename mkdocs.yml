@@ -67,5 +67,5 @@ nav:
   - Recovering activation paths: activation-paths.md
   - Drawing the network boundary: cut-placement.md
   - Code extraction: extraction.md
-  - Stages of evidence: validation-ladder.md
+  - Working backwards: working-backwards.md
   - Finding your way around the code: reading-guide.md
