@@ -115,26 +115,26 @@ This phase unblocks `processImage` before the multipart input becomes a concern,
 
 ## Phase 4: Host wrapper + normalized helper rendering
 
-- [ ] 4.1: Extend `pkg/codegen/adapter.go` (`RenderAdapter`) to render the host-side wrapper when `Plan.AdapterPlan != nil`. The wrapper preserves the original function name, drains awkward inputs (`file.Open()`, `defer src.Close()`, `io.ReadAll`, inline-size check), calls the normalized remote helper, rebuilds awkward returns (`bytes.NewReader(out.Thumbnail)`).
-- [ ] 4.2: Render the normalized helper as the extracted target. Body is the original body with the pattern-matched AST prologue replaced (e.g. `src, err := file.Open(); img, err := imaging.Decode(src)` → `img, err := imaging.Decode(bytes.NewReader(input))`). Implementation: in-place AST surgery against the helper function guarded by the `adapter_use_shape` proof. Fall back to clone-and-replace if package boundaries force it.
-- [ ] 4.3: Run `goimports` on rendered output to keep import blocks consistent after the body rewrite drops `mime/multipart` from the helper and adds `bytes` / `io`. Golden test: generated file compiles standalone.
-- [ ] 4.4: Update `pkg/codegen/server.go` so the normalized helper signature renders correctly and packs into the synthetic `processImageResult` DTO from Phase 2.
-- [ ] 4.5: Generated client renders fail-open as call to the renamed local implementation; fail-closed returns `(nil, 0, 0, error)` for `processImage`. Confirm `MONOLIFT_LIFT_PROCESSIMAGE`-style env-var handling is consistent with the renamed wrapper.
-- [ ] 4.6: Confirm extracted deployment manifests do **not** include `MONOLIFT_LIFT_*` env vars (per SPRINT-0050 invariant).
-- [ ] 4.7: Golden test: render the M-4 host wrapper and normalized helper end-to-end. Compare against committed goldens; wrapper must match the spec's example almost verbatim (`docs/research/activation-paths/boundary-adapter-strategy.md` Part 2).
+- [x] 4.1: Extend `pkg/codegen/adapter.go` (`RenderAdapter`) to render the host-side wrapper when `Plan.AdapterPlan != nil`. The wrapper preserves the original function name, drains awkward inputs (`file.Open()`, `defer src.Close()`, `io.ReadAll`, inline-size check), calls the normalized remote helper, rebuilds awkward returns (`bytes.NewReader(out.Thumbnail)`).
+- [x] 4.2: Render the normalized helper as the extracted target. Body is the original body with the pattern-matched AST prologue replaced (e.g. `src, err := file.Open(); img, err := imaging.Decode(src)` → `img, err := imaging.Decode(bytes.NewReader(input))`). Implementation: in-place AST surgery against the helper function guarded by the `adapter_use_shape` proof. Fall back to clone-and-replace if package boundaries force it.
+- [x] 4.3: Run `goimports` on rendered output to keep import blocks consistent after the body rewrite drops `mime/multipart` from the helper and adds `bytes` / `io`. Golden test: generated file compiles standalone.
+- [x] 4.4: Update `pkg/codegen/server.go` so the normalized helper signature renders correctly and packs into the synthetic `processImageResult` DTO from Phase 2.
+- [x] 4.5: Generated client renders fail-open as call to the renamed local implementation; fail-closed returns `(nil, 0, 0, error)` for `processImage`. Confirm `MONOLIFT_LIFT_PROCESSIMAGE`-style env-var handling is consistent with the renamed wrapper.
+- [x] 4.6: Confirm extracted deployment manifests do **not** include `MONOLIFT_LIFT_*` env vars (per SPRINT-0050 invariant).
+- [x] 4.7: Golden test: render the M-4 host wrapper and normalized helper end-to-end. Compare against committed goldens; wrapper must match the spec's example almost verbatim (`docs/research/activation-paths/boundary-adapter-strategy.md` Part 2).
 
 ## Phase 5: Recovery-branch pipeline integration
 
 This phase is separate from Phase 1 IR because the recovery-branch policy (what triggers it, what does not, how it interacts with demotion) is the architectural decision, not the data structure.
 
-- [ ] 5.1: Wire `tryAdapterPass` into `admitCutCandidates` (`pkg/codegen/cut_admit.go`) after direct `AdmitCut`/`AdmitPlan` refusal of the preferred semantic cut.
-- [ ] 5.2: Restrict retry-eligibility to shape-compatible refusals: `unsupported_boundary_data`, `unsupported_result_shape`, `unsupported_param_shape`, `adapter_unknown`. Other refusals fall straight through to demotion.
-- [ ] 5.3: Do **not** run adapter planning for receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, or broad parent cuts. Codify the exclusion as code-level guards, not just doc.
-- [ ] 5.4: Preserve the existing demotion chain; add an `AdapterRecovery` diagnostic showing direct refusal code, adapter class, proof verdicts, and selected normalized boundary.
-- [ ] 5.5: **UploadMedia guardrail.** Pipeline test: direct admission refuses `processImage`, adapter recovery accepts it, and the pipeline does not select `(*App).UploadMedia`. This is the load-bearing invariant for the sprint.
-- [ ] 5.6: Pipeline test: adapter proof fails (synthetic shape that matches `multipart_file_read_all` but violates `adapter_use_shape`), existing demotion behavior still chooses the next admissible candidate.
-- [ ] 5.7: Pipeline test: fallback does **not** change recommendation when the preferred semantic cut is already direct-admissible (no false adapter selection).
-- [ ] 5.8: Bound retries at `len(Candidates)` per existing budget; adapter pass is one-shot per candidate.
+- [x] 5.1: Wire `tryAdapterPass` into `admitCutCandidates` (`pkg/codegen/cut_admit.go`) after direct `AdmitCut`/`AdmitPlan` refusal of the preferred semantic cut.
+- [x] 5.2: Restrict retry-eligibility to shape-compatible refusals: `unsupported_boundary_data`, `unsupported_result_shape`, `unsupported_param_shape`, `adapter_unknown`. Other refusals fall straight through to demotion.
+- [x] 5.3: Do **not** run adapter planning for receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, or broad parent cuts. Codify the exclusion as code-level guards, not just doc.
+- [x] 5.4: Preserve the existing demotion chain; add an `AdapterRecovery` diagnostic showing direct refusal code, adapter class, proof verdicts, and selected normalized boundary.
+- [x] 5.5: **UploadMedia guardrail.** Pipeline test: direct admission refuses `processImage`, adapter recovery accepts it, and the pipeline does not select `(*App).UploadMedia`. This is the load-bearing invariant for the sprint.
+- [x] 5.6: Pipeline test: adapter proof fails (synthetic shape that matches `multipart_file_read_all` but violates `adapter_use_shape`), existing demotion behavior still chooses the next admissible candidate.
+- [x] 5.7: Pipeline test: fallback does **not** change recommendation when the preferred semantic cut is already direct-admissible (no false adapter selection).
+- [x] 5.8: Bound retries at `len(Candidates)` per existing budget; adapter pass is one-shot per candidate.
 
 ## Phase 6: listmonk/M-4 stage-10 proof
 

@@ -551,6 +551,144 @@ func TestAdmitCutCandidatesFlagOnMarksAdapterEligibility(t *testing.T) {
 	}
 }
 
+func TestAdmitCutCandidatesAdapterRecoverySelectsProcessImageNotUploadMedia(t *testing.T) {
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
+	processImage := admissibleTestCandidate()
+	processImage.Step = 2
+	processImage.NodeKey.FuncName = "processImage"
+	processImage.NodeName = "processImage"
+	uploadMedia := admissibleTestCandidate()
+	uploadMedia.Step = 3
+	uploadMedia.NodeKey.Receiver = "*App"
+	uploadMedia.NodeKey.FuncName = "UploadMedia"
+	uploadMedia.NodeName = "(*App).UploadMedia"
+	uploadMedia.Surface = activation.Small
+	cut := &activation.CutResult{Candidates: []activation.CutCandidate{processImage, uploadMedia}}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		switch cut.Recommended.NodeKey.FuncName {
+		case "processImage":
+			return processImageRecoveryPlan(cut.Recommended.NodeKey), nil
+		case "UploadMedia":
+			return &Plan{
+				CutPoint: CutPoint{Key: cut.Recommended.NodeKey, Receiver: "*App"},
+				Results:  []Result{{GoType: "error", Codec: CodecError}},
+			}, nil
+		default:
+			t.Fatalf("unexpected candidate %s", cut.Recommended.NodeKey.FuncName)
+			return nil, nil
+		}
+	})
+	withAdapterRecovery(t, func(report reportv2.Report, candidate activation.CutCandidate, plan *Plan) (*AdapterPlan, []AdmissionRefusal) {
+		if candidate.NodeKey.FuncName != "processImage" {
+			t.Fatalf("adapter recovery called for %s, want processImage only", candidate.NodeKey.FuncName)
+		}
+		return processImageRecoveryAdapterPlan(), nil
+	})
+
+	verdict, chain, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("adapter recovery refused processImage: %s", verdict.Error())
+	}
+	if cut.Recommended == nil || cut.Recommended.NodeName != "processImage" {
+		t.Fatalf("Recommended = %+v, want processImage", cut.Recommended)
+	}
+	if cut.Recommended.AdapterClass != activation.AdapterPossible {
+		t.Fatalf("AdapterClass = %s, want %s", cut.Recommended.AdapterClass, activation.AdapterPossible)
+	}
+	if len(chain) != 0 {
+		t.Fatalf("demotion chain = %+v, want none before UploadMedia", chain)
+	}
+}
+
+func TestAdmitCutCandidatesAdapterProofFailureDemotes(t *testing.T) {
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
+	awkward := admissibleTestCandidate()
+	awkward.Step = 2
+	awkward.NodeKey.FuncName = "processImage"
+	awkward.NodeName = "processImage"
+	clean := admissibleTestCandidate()
+	clean.Step = 3
+	clean.NodeKey.FuncName = "Leaf"
+	clean.NodeName = "Leaf"
+	cut := &activation.CutResult{Candidates: []activation.CutCandidate{awkward, clean}}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		if cut.Recommended.NodeKey.FuncName == "processImage" {
+			return processImageRecoveryPlan(cut.Recommended.NodeKey), nil
+		}
+		return &Plan{
+			CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+			Results:  []Result{{GoType: "string", Codec: CodecPrimitive}},
+		}, nil
+	})
+	withAdapterRecovery(t, func(report reportv2.Report, candidate activation.CutCandidate, plan *Plan) (*AdapterPlan, []AdmissionRefusal) {
+		return nil, []AdmissionRefusal{{Code: RefusalAdapterUseShape, Message: "multiple Open calls"}}
+	})
+
+	verdict, chain, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("admitCutCandidates refused after demotion: %s", verdict.Error())
+	}
+	if cut.Recommended == nil || cut.Recommended.NodeName != "Leaf" {
+		t.Fatalf("Recommended = %+v, want Leaf", cut.Recommended)
+	}
+	if got, want := len(chain), 1; got != want {
+		t.Fatalf("demotion chain length = %d, want %d", got, want)
+	}
+	var failed *activation.CutCandidate
+	for i := range cut.Candidates {
+		if cut.Candidates[i].NodeName == "processImage" {
+			failed = &cut.Candidates[i]
+			break
+		}
+	}
+	if failed == nil {
+		t.Fatal("processImage candidate not found")
+	}
+	if failed.AdapterClass != activation.AdapterUnknown {
+		t.Fatalf("failed adapter class = %s, want AdapterUnknown", failed.AdapterClass)
+	}
+}
+
+func TestAdmitCutCandidatesDirectAdmissibleDoesNotRunAdapter(t *testing.T) {
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
+	direct := admissibleTestCandidate()
+	direct.NodeKey.FuncName = "Direct"
+	direct.NodeName = "Direct"
+	cut := &activation.CutResult{Candidates: []activation.CutCandidate{direct}}
+	cut.Recommended = &cut.Candidates[0]
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		return &Plan{
+			CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+			Results:  []Result{{GoType: "string", Codec: CodecPrimitive}},
+		}, nil
+	})
+	withAdapterRecovery(t, func(report reportv2.Report, candidate activation.CutCandidate, plan *Plan) (*AdapterPlan, []AdmissionRefusal) {
+		t.Fatalf("adapter recovery should not run for direct-admissible candidate")
+		return nil, nil
+	})
+
+	verdict, chain, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("direct candidate refused: %s", verdict.Error())
+	}
+	if len(chain) != 0 {
+		t.Fatalf("demotion chain = %+v, want none", chain)
+	}
+}
+
 func TestAdmitCutCandidatesFlagOffDoesNotMarkAdapterEligibility(t *testing.T) {
 	// With MONOLIFT_BOUNDARY_ADAPTER=0, the adapter branch should NOT fire,
 	// so the candidate's AdapterClass should remain at its default value.
@@ -656,8 +794,60 @@ func withCandidatePlanBuilder(t *testing.T, build func(reportv2.Report, activati
 	})
 }
 
+func withAdapterRecovery(t *testing.T, recover func(reportv2.Report, activation.CutCandidate, *Plan) (*AdapterPlan, []AdmissionRefusal)) {
+	t.Helper()
+	old := tryAdapterRecovery
+	tryAdapterRecovery = recover
+	t.Cleanup(func() {
+		tryAdapterRecovery = old
+	})
+}
+
 func resetCandidateAdmitCacheForTest() {
 	candidateAdmitCache.Lock()
 	defer candidateAdmitCache.Unlock()
 	candidateAdmitCache.results = map[candidateAdmitCacheKey]candidateAdmitResult{}
+}
+
+func processImageRecoveryPlan(key activation.FunctionKey) *Plan {
+	plan := &Plan{
+		CutPoint: CutPoint{Key: key, FuncName: key.FuncName},
+		BoundaryParams: []Param{
+			{Name: "file", JSONName: "file", GoType: "*multipart.FileHeader", QualifiedGoType: "*mime/multipart.FileHeader", TypePackagePath: "mime/multipart", Codec: CodecJSON, Index: 0},
+		},
+		Results: []Result{
+			{Name: "result", JSONName: "result", GoType: "func() error", Codec: CodecJSON, Index: 0},
+			{Name: "width", JSONName: "width", GoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", JSONName: "error", GoType: "error", Codec: CodecError, Index: 2},
+		},
+	}
+	return plan
+}
+
+func processImageRecoveryAdapterPlan() *AdapterPlan {
+	return &AdapterPlan{
+		SourceFunction:  "processImage",
+		HostSignature:   "(*multipart.FileHeader) (*bytes.Reader, int, int, error)",
+		RemoteSignature: "([]byte) ([]byte, int, int, error)",
+		InputTransforms: []AdapterPattern{{
+			Name:      "multipart_file_read_all",
+			ParamName: "file",
+			FromType:  "*multipart.FileHeader",
+			ToType:    "[]byte",
+		}},
+		OutputTransforms: []AdapterPattern{{
+			Name:     "bytes_reader_return",
+			FromType: "func() error",
+			ToType:   "[]byte",
+		}},
+		Proofs: []AdapterProof{
+			{Obligation: RefusalAdapterFiniteInput, Satisfied: true},
+			{Obligation: RefusalAdapterLocalLifecycle, Satisfied: true},
+			{Obligation: RefusalAdapterUseShape, Satisfied: true},
+			{Obligation: RefusalAdapterReturnRehydration, Satisfied: true},
+			{Obligation: RefusalAdapterErrorOrder, Satisfied: true},
+			{Obligation: RefusalAdapterCallSite, Satisfied: true},
+		},
+		TransportPolicy: AdapterTransportInlineJSONBytes,
+	}
 }

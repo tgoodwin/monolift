@@ -8,6 +8,9 @@ import (
 )
 
 func RenderClient(plan *Plan) (map[string][]byte, error) {
+	if plan != nil && plan.AdapterPlan != nil {
+		return RenderAdapterClient(plan)
+	}
 	view := clientTemplateView(plan)
 	tmpl, err := template.New("client").Parse(clientTemplate)
 	if err != nil {

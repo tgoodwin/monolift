@@ -1,6 +1,8 @@
 package codegen
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -194,4 +196,142 @@ func TestAdapterFuncName(t *testing.T) {
 			t.Errorf("adapterFuncName(%q) = %q, want %q", tt.input, got, tt.want)
 		}
 	}
+}
+
+func TestRenderAdapterProcessImageWrapperAndNormalizedHelper(t *testing.T) {
+	tmp := t.TempDir()
+	cutFile := filepath.Join(tmp, "media.go")
+	if err := os.WriteFile(cutFile, []byte(`package media
+
+import (
+	"bytes"
+	"mime/multipart"
+
+	"github.com/disintegration/imaging"
+)
+
+const thumbnailSize = 250
+
+func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer src.Close()
+
+	img, err := imaging.Decode(src)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	var (
+		thumb = imaging.Resize(img, thumbnailSize, 0, imaging.Lanczos)
+		out   bytes.Buffer
+	)
+	if err := imaging.Encode(&out, thumb, imaging.PNG); err != nil {
+		return nil, 0, 0, err
+	}
+
+	b := img.Bounds().Max
+	return bytes.NewReader(out.Bytes()), b.X, b.Y, nil
+}
+`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	plan := processImageAdapterPlan(tmp, cutFile)
+	clientFiles, err := RenderClient(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := string(clientFiles[plan.ClientPath])
+	for _, want := range []string{
+		"func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error)",
+		"input, err := io.ReadAll(fileSrc)",
+		"if len(input) > 8*1024*1024",
+		"r0, r1, r2, appErr, transportErr := monoliftRemoteprocessImage(input)",
+		"return bytes.NewReader(r0), r1, r2, appErr",
+		"return nil, 0, 0, fmt.Errorf(\"monolift: extracted service unavailable\")",
+	} {
+		if !strings.Contains(client, want) {
+			t.Fatalf("client missing %q:\n%s", want, client)
+		}
+	}
+	serverFiles, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := string(serverFiles[plan.ServerPath])
+	if !strings.Contains(server, "Input []byte `json:\"input\"`") {
+		t.Fatalf("server request was not normalized:\n%s", server)
+	}
+	if !strings.Contains(server, "Thumbnail      []byte `json:\"thumbnail\"`") {
+		t.Fatalf("server response DTO was not normalized:\n%s", server)
+	}
+	adapterFiles, err := RenderAdapter(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter := string(adapterFiles[AdapterFilePath(plan)])
+	if !strings.Contains(adapter, "func MonoliftInvokeProcessImage(input []byte) ([]byte, int, int, error)") {
+		t.Fatalf("adapter invoke signature was not normalized:\n%s", adapter)
+	}
+	if !strings.Contains(adapter, "return monoliftNormalizedprocessImage(input)") {
+		t.Fatalf("adapter does not call normalized helper:\n%s", adapter)
+	}
+	helper := string(adapterFiles[NormalizedHelperFilePath(plan)])
+	if !strings.Contains(helper, "func monoliftNormalizedprocessImage(input []byte) ([]byte, int, int, error)") {
+		t.Fatalf("normalized helper signature missing:\n%s", helper)
+	}
+	if !strings.Contains(helper, "img, err := imaging.Decode(bytes.NewReader(input))") {
+		t.Fatalf("normalized helper did not rewrite decode prologue:\n%s", helper)
+	}
+	if strings.Contains(helper, "file.Open()") || strings.Contains(helper, "defer src.Close()") || strings.Contains(helper, "return bytes.NewReader(out.Bytes())") {
+		t.Fatalf("normalized helper still contains awkward boundary operations:\n%s", helper)
+	}
+}
+
+func processImageAdapterPlan(dir, cutFile string) *Plan {
+	plan := &Plan{
+		SourceModuleRoot: "/tmp/test",
+		ServiceName:      "monolift-processimage",
+		EnvServiceName:   "PROCESSIMAGE",
+		CutPoint: CutPoint{
+			PackageName: "media",
+			PackagePath: "example.com/listmonk/internal/media",
+			PackageDir:  dir,
+			FuncName:    "processImage",
+			File:        cutFile,
+		},
+		BoundaryParams: []Param{
+			{Name: "file", JSONName: "file", GoType: "*multipart.FileHeader", QualifiedGoType: "*mime/multipart.FileHeader", TypePackagePath: "mime/multipart", Codec: CodecJSON, Index: 0},
+		},
+		Results: []Result{
+			{Name: "result", JSONName: "result", GoType: "*bytes.Reader", QualifiedGoType: "*bytes.Reader", TypePackagePath: "bytes", Codec: CodecJSON, Index: 0},
+			{Name: "result1", JSONName: "result1", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "result2", JSONName: "result2", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		},
+		ClientPath: filepath.Join(dir, "monolift_lift_PROCESSIMAGE.go"),
+		ServerPath: filepath.Join(dir, "cmd", "monolift-processimage", "main.go"),
+		AdapterPlan: &AdapterPlan{
+			SourceFunction:  "processImage",
+			HostSignature:   "(*multipart.FileHeader) (*bytes.Reader, int, int, error)",
+			RemoteSignature: "([]byte) ([]byte, int, int, error)",
+			InputTransforms: []AdapterPattern{{
+				Name:      "multipart_file_read_all",
+				ParamName: "file",
+				FromType:  "*multipart.FileHeader",
+				ToType:    "[]byte",
+			}},
+			OutputTransforms: []AdapterPattern{{
+				Name:     "bytes_reader_return",
+				FromType: "*bytes.Reader",
+				ToType:   "[]byte",
+			}},
+			TransportPolicy: AdapterTransportInlineJSONBytes,
+		},
+	}
+	normalized := normalizedAdapterPlan(plan)
+	plan.ResultDTO = normalized.ResultDTO
+	return plan
 }

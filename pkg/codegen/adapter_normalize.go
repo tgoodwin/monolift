@@ -1,0 +1,103 @@
+package codegen
+
+func normalizedAdapterPlan(plan *Plan) *Plan {
+	if plan == nil || plan.AdapterPlan == nil {
+		return plan
+	}
+	clone := *plan
+	clone.BoundaryParams = normalizedAdapterParams(plan)
+	clone.Results = normalizedAdapterResults(plan)
+	clone.ResultDTO = BuildResultDTO(plan.CutPoint.FuncName, clone.Results)
+	if clone.ResultDTO != nil {
+		clone.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: clone.ResultDTO.Name}
+	} else {
+		clone.ReturnCodec = ReturnCodecFor(clone.Results)
+	}
+	return &clone
+}
+
+func normalizedAdapterParams(plan *Plan) []Param {
+	params := append([]Param(nil), plan.BoundaryParams...)
+	for _, transform := range plan.AdapterPlan.InputTransforms {
+		for i := range params {
+			if params[i].Name != transform.ParamName {
+				continue
+			}
+			params[i].Name = adapterInputName(transform, params[i])
+			params[i].JSONName = toSnake(params[i].Name)
+			params[i].GoType = transform.ToType
+			params[i].QualifiedGoType = transform.ToType
+			params[i].TypePackagePath = ""
+			params[i].TypePackageAlias = ""
+			params[i].Codec = CodecJSON
+		}
+	}
+	return params
+}
+
+func normalizedAdapterResults(plan *Plan) []Result {
+	results := append([]Result(nil), plan.Results...)
+	outputBySlot := map[int]AdapterPattern{}
+	for _, transform := range plan.AdapterPlan.OutputTransforms {
+		slot := firstResultSlotByType(results, transform.FromType)
+		if slot >= 0 {
+			outputBySlot[slot] = transform
+		}
+	}
+	for i := range results {
+		transform, ok := outputBySlot[results[i].Index]
+		if !ok {
+			continue
+		}
+		results[i].Name = adapterOutputName(transform, results[i])
+		results[i].JSONName = toSnake(results[i].Name)
+		results[i].GoType = transform.ToType
+		results[i].QualifiedGoType = transform.ToType
+		results[i].TypePackagePath = ""
+		results[i].TypePackageAlias = ""
+		results[i].Codec = CodecJSON
+	}
+	applyProcessImageResultNames(results)
+	return results
+}
+
+func adapterInputName(transform AdapterPattern, param Param) string {
+	if transform.Name == "multipart_file_read_all" {
+		return "input"
+	}
+	if param.Name == "" {
+		return "input"
+	}
+	return param.Name + "Value"
+}
+
+func adapterOutputName(transform AdapterPattern, result Result) string {
+	if transform.Name == "bytes_reader_return" {
+		return "thumbnail"
+	}
+	if result.Name == "" || result.Name == "result" {
+		return "result0"
+	}
+	return result.Name
+}
+
+func applyProcessImageResultNames(results []Result) {
+	if len(results) != 4 || results[0].GoType != "[]byte" || results[1].GoType != "int" || results[2].GoType != "int" || results[3].Codec != CodecError {
+		return
+	}
+	if results[0].Name == "thumbnail" {
+		results[1].Name = "originalWidth"
+		results[1].JSONName = "original_width"
+		results[2].Name = "originalHeight"
+		results[2].JSONName = "original_height"
+	}
+}
+
+func firstResultSlotByType(results []Result, typ string) int {
+	for _, result := range results {
+		if result.GoType == typ {
+			return result.Index
+		}
+	}
+	return -1
+}

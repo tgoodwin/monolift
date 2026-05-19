@@ -67,6 +67,9 @@ type fieldView struct {
 }
 
 func serverTemplateView(plan *Plan) serverView {
+	if plan != nil && plan.AdapterPlan != nil {
+		plan = normalizedAdapterPlan(plan)
+	}
 	imports := []importSpec{
 		{Path: "encoding/json"},
 		{Path: "log"},

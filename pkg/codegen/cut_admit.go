@@ -18,6 +18,7 @@ import (
 
 	"github.com/tgoodwin/monolift/pkg/activation"
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
+	"golang.org/x/tools/go/ssa"
 )
 
 const defaultCandidatePlanTimeout = 15 * time.Second
@@ -26,13 +27,17 @@ const candidateAdmissionBudget = 60 * time.Second
 var (
 	candidatePlanTimeout = defaultCandidatePlanTimeout
 	buildCandidatePlan   = BuildPlan
+	tryAdapterRecovery   = tryAdapterRecoveryFromPlan
 )
 
 var retryableAdmissionRefusals = map[string]struct{}{
 	"receiver_requires_reconstruction": {},
 	"non_serializable_receiver":        {},
+	"unsupported_boundary_data":        {},
 	"unsupported_result_shape":         {},
+	"unsupported_param_shape":          {},
 	"missing_reconstructor":            {},
+	"adapter_unknown":                  {},
 }
 
 // adapterEligibleRefusals are the shape-compatible refusal codes that can
@@ -94,7 +99,7 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 			return AdmitCut(report, *cut), demotionChain, nil
 		}
 		candidate := *cut.Recommended
-		verdict, _, err := tryAdmitCandidate(report, candidate)
+		verdict, plan, err := tryAdmitCandidate(report, candidate)
 		if err != nil {
 			return verdict, demotionChain, err
 		}
@@ -107,28 +112,37 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 			return verdict, demotionChain, nil
 		}
 
-		// Boundary-adapter recovery branch (SPRINT-0051 §0.4).
-		// When enabled and the refusal is shape-compatible, the adapter
-		// pass attempts to normalize the boundary before demotion.
-		// Phase 5 wires tryAdapterPass here; Phase 1 marks eligibility
-		// and falls through to demotion.
-		if adapterEnabled && isAdapterEligibleRefusal(refusal) {
-			// Mark the candidate as adapter-eligible. Phase 5 will wire
-			// tryAdapterPass here; on success it attaches an AdapterPlan
-			// and returns an accepted verdict. For now (Phase 1), we mark
-			// the candidate and fall through to demotion so the branch is
-			// observable and the flag gate is not a no-op.
-			candidate.AdapterClass = activation.AdapterUnknown
-			candidate.AdapterReason = "adapter-eligible refusal (" + refusal.Code + "); adapter pass not yet wired (Phase 5)"
-			// Update the candidate in the cut's candidate list so the
-			// marking is visible to downstream consumers.
-			for i := range cut.Candidates {
-				if cut.Candidates[i].Step == candidate.Step && cut.Candidates[i].NodeKey == candidate.NodeKey {
-					cut.Candidates[i].AdapterClass = candidate.AdapterClass
-					cut.Candidates[i].AdapterReason = candidate.AdapterReason
-					break
+		if adapterEnabled && isAdapterEligibleRefusal(refusal) && adapterRecoveryAllowed(candidate, plan) {
+			if plan == nil {
+				built, timedOut, buildErr := buildPlanWithTimeout(report, activation.CutResult{
+					Recommended: &candidate,
+					Candidates:  []activation.CutCandidate{candidate},
+				}, candidatePlanTimeout)
+				if buildErr == nil && !timedOut {
+					plan = built
 				}
 			}
+			adapterPlan, adapterRefusals := tryAdapterRecovery(report, candidate, plan)
+			if adapterPlan != nil && plan != nil {
+				candidate.AdapterClass = activation.AdapterPossible
+				candidate.AdapterReason = "adapter recovery accepted after direct refusal: " + refusal.Code
+				plan.AdapterPlan = adapterPlan
+				adapterVerdict := AdmitPlan(normalizedAdapterPlan(plan), AdmissionVerdict{
+					Accepted: true,
+					Reasons: []string{
+						"adapter recovery accepted after direct refusal: " + refusal.Code,
+						adapterRecoveryDiagnostic(refusal, adapterPlan),
+					},
+					Cut: &candidate,
+				})
+				if adapterVerdict.Accepted {
+					markCandidateAdapter(cut, candidate)
+					return adapterVerdict, demotionChain, nil
+				}
+				adapterRefusals = adapterVerdict.Refusals
+			}
+			candidate.AdapterClass, candidate.AdapterReason = adapterRefusalClass(adapterRefusals)
+			markCandidateAdapter(cut, candidate)
 		}
 
 		demotionChain = append(demotionChain, CandidateDemotion{
@@ -141,6 +155,70 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 		cut.DemoteCandidate(candidate.Step, candidate.NodeKey, demotionReason(refusal))
 	}
 	return last, demotionChain, nil
+}
+
+func adapterRecoveryAllowed(candidate activation.CutCandidate, plan *Plan) bool {
+	if candidate.NodeKey.Receiver != "" || (plan != nil && plan.CutPoint.Receiver != "") {
+		return false
+	}
+	switch candidate.State {
+	case activation.Stateless, activation.ConfigOnly:
+	default:
+		return false
+	}
+	switch candidate.Callbacks {
+	case activation.ZeroConfirmed, activation.ZeroEstimated, activation.Low:
+	default:
+		return false
+	}
+	switch candidate.Surface {
+	case "", activation.Minimal, activation.Small:
+		return true
+	default:
+		return false
+	}
+}
+
+func markCandidateAdapter(cut *activation.CutResult, candidate activation.CutCandidate) {
+	for i := range cut.Candidates {
+		if cut.Candidates[i].Step == candidate.Step && cut.Candidates[i].NodeKey == candidate.NodeKey {
+			cut.Candidates[i].AdapterClass = candidate.AdapterClass
+			cut.Candidates[i].AdapterReason = candidate.AdapterReason
+			cut.Recommended = &cut.Candidates[i]
+			return
+		}
+	}
+}
+
+func adapterRefusalClass(refusals []AdmissionRefusal) (activation.AdapterClass, string) {
+	if len(refusals) == 0 {
+		return activation.AdapterUnknown, "adapter recovery failed without a detailed refusal"
+	}
+	refusal := refusals[0]
+	class := activation.AdapterUnknown
+	switch refusal.Code {
+	case RefusalLiveProxyRequired:
+		class = activation.LiveProxyRequired
+	case RefusalAdapterImpossible:
+		class = activation.AdapterImpossible
+	}
+	reason := refusal.Code
+	if refusal.Message != "" {
+		reason += ": " + refusal.Message
+	}
+	return class, reason
+}
+
+func adapterRecoveryDiagnostic(direct AdmissionRefusal, plan *AdapterPlan) string {
+	proofs := make([]string, 0, len(plan.Proofs))
+	for _, proof := range plan.Proofs {
+		status := "refused"
+		if proof.Satisfied {
+			status = "satisfied"
+		}
+		proofs = append(proofs, proof.Obligation+"="+status)
+	}
+	return "AdapterRecovery direct_refusal=" + direct.Code + " adapter_class=" + string(activation.AdapterPossible) + " normalized_boundary=" + plan.RemoteSignature + " proofs=[" + strings.Join(proofs, ",") + "]"
 }
 
 func tryAdmitCandidate(report reportv2.Report, candidate activation.CutCandidate) (AdmissionVerdict, *Plan, error) {
@@ -231,6 +309,62 @@ func retryableRefusal(verdict AdmissionVerdict) (AdmissionRefusal, bool) {
 func isAdapterEligibleRefusal(refusal AdmissionRefusal) bool {
 	_, ok := adapterEligibleRefusals[refusal.Code]
 	return ok
+}
+
+func tryAdapterRecoveryFromPlan(report reportv2.Report, candidate activation.CutCandidate, plan *Plan) (*AdapterPlan, []AdmissionRefusal) {
+	if plan == nil {
+		built, _, err := buildPlanWithTimeout(report, activation.CutResult{
+			Recommended: &candidate,
+			Candidates:  []activation.CutCandidate{candidate},
+		}, candidatePlanTimeout)
+		if err != nil {
+			return nil, []AdmissionRefusal{{Code: RefusalAdapterUnknown, Message: err.Error()}}
+		}
+		plan = built
+	}
+	fn, err := loadAdapterSSAFunction(plan)
+	if err != nil {
+		return nil, []AdmissionRefusal{{Code: RefusalAdapterUnknown, Message: err.Error()}}
+	}
+	return TryAdapterPass(AdapterContext{
+		Fn:                    fn,
+		MaxInlinePayloadBytes: defaultInlinePayloadBytes,
+		FunctionExported:      isExportedIdentifier(plan.CutPoint.FuncName),
+	})
+}
+
+func loadAdapterSSAFunction(plan *Plan) (*ssa.Function, error) {
+	if plan == nil {
+		return nil, fmt.Errorf("adapter recovery requires a built plan")
+	}
+	cfg := activation.Config{
+		Dir:      plan.SourceModuleRoot,
+		Packages: []string{plan.CutPoint.PackagePath},
+	}
+	program, err := cfg.LoadProgram()
+	if err != nil {
+		return nil, fmt.Errorf("load SSA for adapter recovery: %w", err)
+	}
+	program.BuildSSA()
+	for _, pkg := range program.SSAProgram.AllPackages() {
+		if pkg == nil || pkg.Pkg == nil || pkg.Pkg.Path() != plan.CutPoint.PackagePath {
+			continue
+		}
+		for _, member := range pkg.Members {
+			fn, ok := member.(*ssa.Function)
+			if ok && fn.Name() == plan.CutPoint.FuncName {
+				return fn, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("adapter recovery could not find SSA function %s in %s", plan.CutPoint.FuncName, plan.CutPoint.PackagePath)
+}
+
+func isExportedIdentifier(name string) bool {
+	if name == "" {
+		return false
+	}
+	return strings.ToUpper(name[:1]) == name[:1]
 }
 
 func demotionReason(refusal AdmissionRefusal) string {
