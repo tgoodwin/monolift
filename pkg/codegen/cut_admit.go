@@ -51,6 +51,7 @@ var adapterEligibleRefusals = map[string]struct{}{
 	"unsupported_result_shape":  {},
 	"unsupported_param_shape":   {},
 	"callable_boundary_values":  {},
+	"missing_reconstructor":     {},
 }
 
 func admissionAwareRankEnabled() bool {
