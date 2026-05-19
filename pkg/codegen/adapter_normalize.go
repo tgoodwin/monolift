@@ -6,6 +6,7 @@ func normalizedAdapterPlan(plan *Plan) *Plan {
 	}
 	clone := *plan
 	clone.BoundaryParams = normalizedAdapterParams(plan)
+	clone.ReconstructedParams = normalizedAdapterReconstructedParams(plan)
 	clone.Results = normalizedAdapterResults(plan)
 	clone.ResultDTO = BuildResultDTO(plan.CutPoint.FuncName, clone.Results)
 	if clone.ResultDTO != nil {
@@ -18,6 +19,11 @@ func normalizedAdapterPlan(plan *Plan) *Plan {
 
 func normalizedAdapterParams(plan *Plan) []Param {
 	params := append([]Param(nil), plan.BoundaryParams...)
+	for _, rp := range plan.ReconstructedParams {
+		if adapterInputTransformForParam(plan, rp.Param.Name) != nil {
+			params = append(params, rp.Param)
+		}
+	}
 	for _, transform := range plan.AdapterPlan.InputTransforms {
 		for i := range params {
 			if params[i].Name != transform.ParamName {
@@ -33,6 +39,29 @@ func normalizedAdapterParams(plan *Plan) []Param {
 		}
 	}
 	return params
+}
+
+func normalizedAdapterReconstructedParams(plan *Plan) []ReconstructedParam {
+	reconstructed := make([]ReconstructedParam, 0, len(plan.ReconstructedParams))
+	for _, param := range plan.ReconstructedParams {
+		if adapterInputTransformForParam(plan, param.Param.Name) != nil {
+			continue
+		}
+		reconstructed = append(reconstructed, param)
+	}
+	return reconstructed
+}
+
+func adapterInputTransformForParam(plan *Plan, name string) *AdapterPattern {
+	if plan == nil || plan.AdapterPlan == nil {
+		return nil
+	}
+	for i := range plan.AdapterPlan.InputTransforms {
+		if plan.AdapterPlan.InputTransforms[i].ParamName == name {
+			return &plan.AdapterPlan.InputTransforms[i]
+		}
+	}
+	return nil
 }
 
 func normalizedAdapterResults(plan *Plan) []Result {
