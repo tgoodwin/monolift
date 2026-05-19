@@ -344,7 +344,7 @@ func TestBoundaryAdapterEnabledReadsEnvVar(t *testing.T) {
 }
 
 func TestIsAdapterEligibleRefusal(t *testing.T) {
-	eligible := []string{"unsupported_boundary_data", "unsupported_result_shape", "unsupported_param_shape"}
+	eligible := []string{"unsupported_boundary_data", "unsupported_result_shape", "unsupported_param_shape", "callable_boundary_values"}
 	for _, code := range eligible {
 		if !isAdapterEligibleRefusal(AdmissionRefusal{Code: code}) {
 			t.Errorf("isAdapterEligibleRefusal(%q) = false, want true", code)

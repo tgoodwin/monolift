@@ -36,6 +36,7 @@ var retryableAdmissionRefusals = map[string]struct{}{
 	"unsupported_boundary_data":        {},
 	"unsupported_result_shape":         {},
 	"unsupported_param_shape":          {},
+	"callable_boundary_values":         {},
 	"missing_reconstructor":            {},
 	"adapter_unknown":                  {},
 }
@@ -49,6 +50,7 @@ var adapterEligibleRefusals = map[string]struct{}{
 	"unsupported_boundary_data": {},
 	"unsupported_result_shape":  {},
 	"unsupported_param_shape":   {},
+	"callable_boundary_values":  {},
 }
 
 func admissionAwareRankEnabled() bool {
@@ -166,9 +168,7 @@ func adapterRecoveryAllowed(candidate activation.CutCandidate, plan *Plan) bool 
 	default:
 		return false
 	}
-	switch candidate.Callbacks {
-	case activation.ZeroConfirmed, activation.ZeroEstimated, activation.Low:
-	default:
+	if (candidate.Callbacks == activation.Moderate || candidate.Callbacks == activation.Many) && planHasFunctionBoundary(plan) {
 		return false
 	}
 	switch candidate.Surface {
@@ -177,6 +177,23 @@ func adapterRecoveryAllowed(candidate activation.CutCandidate, plan *Plan) bool 
 	default:
 		return false
 	}
+}
+
+func planHasFunctionBoundary(plan *Plan) bool {
+	if plan == nil {
+		return true
+	}
+	for _, param := range plan.BoundaryParams {
+		if strings.HasPrefix(strings.TrimSpace(param.GoType), "func(") || strings.HasPrefix(strings.TrimSpace(param.GoType), "func (") {
+			return true
+		}
+	}
+	for _, result := range plan.Results {
+		if strings.HasPrefix(strings.TrimSpace(result.GoType), "func(") || strings.HasPrefix(strings.TrimSpace(result.GoType), "func (") {
+			return true
+		}
+	}
+	return false
 }
 
 func markCandidateAdapter(cut *activation.CutResult, candidate activation.CutCandidate) {
