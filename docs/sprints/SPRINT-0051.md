@@ -167,7 +167,7 @@ This phase is separate from Phase 1 IR because the recovery-branch policy (what 
 - [x] 8.6: Confirm generated artifacts contain no `MONOLIFT_LIFT_*` env vars in extracted deployments.
 - [x] 8.7: Confirm `GeneratorVersion`, goldens, manifest, ADR, analysis note, evolution note, and corpus row all agree on the SPRINT-0051 changes.
 - [x] 8.8: Confirm no full e2e sweep, broad multi-target `-run` regex, or whole-repository focused admission was used as proof.
-- [ ] 8.9: Update sprint ledger to `status: done` with executor recorded.
+- [x] 8.9: Update sprint ledger to `status: done` with executor recorded.
 
 ## Remote Test Discipline
 
