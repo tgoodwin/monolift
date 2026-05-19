@@ -336,11 +336,13 @@ traces:
     function: processImage
     file_line: "cmd/media.go:212"
     state_class: Client-reconstructible
-    boundary_class: Reconstructible
-    status: admission-skip
-    phase: "5"
-    skip_reason: "provider-level filesystem Delete/GetBlob probes were narrow and fast but selected cuts climbed back to UploadMedia$1 or *Manager shared state; do not count as media-provider proof"
-    e2e_package: ""
+    boundary_class: AdapterPossible
+    status: pass
+    phase: "10"
+    selected_cut: processImage
+    proof_kind: adapter-direct-compare
+    skip_reason: ""
+    e2e_package: "test/e2e/targets/activation_listmonk_processimage"
 
   - trace_id: listmonk/M-5
     project: listmonk

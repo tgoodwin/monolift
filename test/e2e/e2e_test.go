@@ -29,6 +29,7 @@ import (
 	activation_gitea_argon2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_argon2hash"
 	activation_gitea_pathescapesegments "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_pathescapesegments"
 	activation_gitea_rpmrepo "github.com/tgoodwin/monolift/test/e2e/targets/activation_gitea_rpmrepo"
+	activation_listmonk_processimage "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_processimage"
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
 	activation_mattermost_pbkdf2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_pbkdf2hash"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
@@ -75,6 +76,7 @@ func TestE2E(t *testing.T) {
 		activation_gitea_argon2hash.Target(),
 		activation_gitea_pathescapesegments.Target(),
 		activation_gitea_rpmrepo.Target(),
+		activation_listmonk_processimage.Target(),
 		activation_listmonk_sanitizeuri.Target(),
 		activation_pocketbase_columnify.Target(),
 		activation_pocketbase_createthumb.Target(),
@@ -1502,7 +1504,10 @@ func postInvoke(ctx context.Context, serviceURL string, payload map[string]any) 
 	if value, ok := out["reading_time"]; ok {
 		return value, nil
 	}
-	return out["result"], nil
+	if value, ok := out["result"]; ok {
+		return value, nil
+	}
+	return out, nil
 }
 
 func invokePayload(target harness.TargetCase, symbol string) map[string]any {

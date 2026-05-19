@@ -138,16 +138,16 @@ This phase is separate from Phase 1 IR because the recovery-branch policy (what 
 
 ## Phase 6: listmonk/M-4 stage-10 proof
 
-- [ ] 6.1: Scaffold `test/e2e/targets/activation_listmonk_processimage/` (`target.go`, `workload.go`, baseline manifests). Reuse `activation_listmonk_sanitizeuri/` as the structural reference (deals with Listmonk auth + Postgres fixture).
-- [ ] 6.2: Register `activation_listmonk_processimage` in `test/e2e/e2e_test.go`. Set `ActivationLift.Target` to `cmd/media.go:processImage` and `ServiceName` to `monolift-extracted-processimage`.
-- [ ] 6.3: Workload: authenticate as admin, upload the deterministic PNG fixture via the existing Listmonk `/api/media` route (which invokes `(*App).UploadMedia` → `processImage`).
-- [ ] 6.4: Oracle: compute the expected thumbnail by running `processImage` locally against the fixture in a Go test helper (preserves Phase 0.6 determinism check artifact).
-- [ ] 6.5: Direct-invoke expectation: declared oracle policy from Phase 0.6 (`oracle-compare` if direct-byte succeeded; declared pixel-hash + dimension normalizer otherwise).
-- [ ] 6.6: Transcript checks: thumbnail object written through `a.media.Put`; original-width / original-height returned in the response; content type recorded; extracted-service `/calls` records exactly one call per upload.
+- [x] 6.1: Scaffold `test/e2e/targets/activation_listmonk_processimage/` (`target.go`, `workload.go`, baseline manifests). Reuse `activation_listmonk_sanitizeuri/` as the structural reference (deals with Listmonk auth + Postgres fixture).
+- [x] 6.2: Register `activation_listmonk_processimage` in `test/e2e/e2e_test.go`. Set `ActivationLift.Target` to `cmd/media.go:processImage` and `ServiceName` to `monolift-extracted-processimage`.
+- [x] 6.3: Workload: authenticate as admin, upload the deterministic PNG fixture via the existing Listmonk `/api/media` route (which invokes `(*App).UploadMedia` → `processImage`).
+- [x] 6.4: Oracle: compute the expected thumbnail by running `processImage` locally against the fixture in a Go test helper (preserves Phase 0.6 determinism check artifact).
+- [x] 6.5: Direct-invoke expectation: declared oracle policy from Phase 0.6 (`oracle-compare` if direct-byte succeeded; declared pixel-hash + dimension normalizer otherwise).
+- [x] 6.6: Transcript checks: thumbnail object written through `a.media.Put`; original-width / original-height returned in the response; content type recorded; extracted-service `/calls` records exactly one call per upload.
 - [ ] 6.7: Stage progression on CloudLab, **one stage per exact `go test` process, never jump**: 4 → 5 → 6 → 7 → 8 → 9 → 10. Per SPRINT-0050 stage ladder.
 - [ ] 6.8: Env-off check: with `MONOLIFT_LIFT_*` off, the host falls back to the local helper and the extracted service records zero `/calls`. Thumbnail is still correct.
 - [ ] 6.9: Fail-open / fail-closed check: with the extracted service unavailable, the generated client policy for `processImage` (fail-open by default) returns the correct result via local fallback; fail-closed mode returns `(nil, 0, 0, error)`.
-- [ ] 6.10: Update `test/e2e/activation_corpus_traces.yaml` row for `listmonk/M-4`: `status: pass`, `phase: 10`, `boundary_class: AdapterPossible`, `selected_cut: processImage`, `proof_kind: adapter-direct-compare` (or `adapter-png-normalized` if applicable). The selected cut field must be `processImage`, not `(*App).UploadMedia`.
+- [x] 6.10: Update `test/e2e/activation_corpus_traces.yaml` row for `listmonk/M-4`: `status: pass`, `phase: 10`, `boundary_class: AdapterPossible`, `selected_cut: processImage`, `proof_kind: adapter-direct-compare` (or `adapter-png-normalized` if applicable). The selected cut field must be `processImage`, not `(*App).UploadMedia`.
 
 ## Phase 7: Documentation
 
