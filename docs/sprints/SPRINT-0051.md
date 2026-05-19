@@ -151,11 +151,11 @@ This phase is separate from Phase 1 IR because the recovery-branch policy (what 
 
 ## Phase 7: Documentation
 
-- [ ] 7.1: Write `docs/decisions/0032-boundary-adapter-recovery.md`. Cover: the five-class taxonomy and why it is orthogonal to `BoundaryDataClass`; recovery-branch placement (not ranking) with falsifiability hook; the six obligations and their refusal codes; why multi-result-DTO normalization is independent of adapter classification; inline-only transport policy with the 8 MiB ceiling and `Transport: staged_object` as future enum; the `MONOLIFT_BOUNDARY_ADAPTER` flag rollout policy with a removal target (SPRINT-0053+ after two clean releases); explicit link to ADR-0028 explaining why `AdapterPossible` is *not* a resurrection of `FeasibleWithProxy`.
-- [ ] 7.2: Update `docs/evolution.md` with a paragraph on the adapter pass: what it does, what it does not (no ranking, no live proxy, no SSA rewrite), and the `listmonk/M-4` stage-10 result.
-- [ ] 7.3: Rewrite `docs/research/activation-paths/analyses/listmonk-M-4.md`. Replace the "Proxy-required / Feasible-with-proxy" column entries with `AdapterPossible`. Replace "Recommended Cut" with the adapted semantic unit. Reference ADR-0032.
-- [ ] 7.4: Update `docs/research/activation-paths/cut-placement-synthesis.md` "Framework Callback" archetype row: `listmonk/M-4` has migrated to adapter-recovered.
-- [ ] 7.5: Add `docs/research/runs/SPRINT-0051-coverage-report.md` with before/after M-4 status, exact commands, artifacts, oracle policy, and residual backlog (e.g. `reader_read_all`, staging transport).
+- [x] 7.1: Write `docs/decisions/0032-boundary-adapter-recovery.md`. Cover: the five-class taxonomy and why it is orthogonal to `BoundaryDataClass`; recovery-branch placement (not ranking) with falsifiability hook; the six obligations and their refusal codes; why multi-result-DTO normalization is independent of adapter classification; inline-only transport policy with the 8 MiB ceiling and `Transport: staged_object` as future enum; the `MONOLIFT_BOUNDARY_ADAPTER` flag rollout policy with a removal target (SPRINT-0053+ after two clean releases); explicit link to ADR-0028 explaining why `AdapterPossible` is *not* a resurrection of `FeasibleWithProxy`.
+- [x] 7.2: Update `docs/evolution.md` with a paragraph on the adapter pass: what it does, what it does not (no ranking, no live proxy, no SSA rewrite), and the `listmonk/M-4` stage-10 result.
+- [x] 7.3: Rewrite `docs/research/activation-paths/analyses/listmonk-M-4.md`. Replace the "Proxy-required / Feasible-with-proxy" column entries with `AdapterPossible`. Replace "Recommended Cut" with the adapted semantic unit. Reference ADR-0032.
+- [x] 7.4: Update `docs/research/activation-paths/cut-placement-synthesis.md` "Framework Callback" archetype row: `listmonk/M-4` has migrated to adapter-recovered.
+- [x] 7.5: Add `docs/research/runs/SPRINT-0051-coverage-report.md` with before/after M-4 status, exact commands, artifacts, oracle policy, and residual backlog (e.g. `reader_read_all`, staging transport).
 
 ## Phase 8: Verification and closeout
 

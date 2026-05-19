@@ -7,27 +7,58 @@
 - Region root: `cmd/media.go:212`
 - Path length: 4
 - Source trace: `projects/listmonk/traces/M-4.synthesis.md`
+- Decision: ADR-0032 boundary-adapter recovery
 
 ## Candidate Cut-Point Table
 
-| Step | Candidate cut point | Incoming edge | Extraction surface | Boundary data | State reconstruction | Callbacks | Error semantics | Edge alignment | Feasibility |
+| Step | Candidate cut point | Incoming edge | Extraction surface | Boundary data | Adapter class | State reconstruction | Callbacks | Error semantics | Selected |
 |---:|---|---|---|---|---|---|---|---|---|
-| 1 | `initHTTPServer` | `direct-function-call` | Very-large | Reconstructible | Shared-state | 0 (estimated) | Needs-wrapper | Anti | Feasible |
-| 2 | `initHTTPHandlers` | `direct-function-call` | Medium | Reconstructible | Shared-state | Low | Needs-wrapper | Anti | Feasible |
-| 3 | `(*App).UploadMedia` | `callback-registration` (method-value + closure-wrapper)` | Small | Reconstructible | Client-reconstructible | Low | OK | Strong | Feasible |
-| 4 | `processImage` | `direct-function-call` | Minimal | Proxy-required | Config-only | 0 (confirmed) | OK | Anti | Feasible-with-proxy |
+| 1 | `initHTTPServer` | `direct-function-call` | Very-large | Reconstructible | AdapterUnknown | Shared-state | 0 estimated | Needs-wrapper | No |
+| 2 | `initHTTPHandlers` | `direct-function-call` | Medium | Reconstructible | AdapterUnknown | Shared-state | Low | Needs-wrapper | No |
+| 3 | `(*App).UploadMedia` | `callback-registration` | Small | Reconstructible | DirectBoundary | Client-reconstructible | Low | OK | No |
+| 4 | `processImage` | `direct-function-call` | Minimal | Reconstructible | AdapterPossible | Client-reconstructible | 0 confirmed | OK | Yes |
 
-## Recommended Cut
+## Adapted Semantic Unit
 
-Cut at step 3, `(*App).UploadMedia`. This point keeps extraction surface at `Small`, avoids hard-gated boundary values, and leaves state reconstruction at `Client-reconstructible`. The inspected path reaches `cmd/media.go:212`, and this candidate is the latest feasible boundary before the region root or at the root itself.
+The selected cut is `processImage`, not `(*App).UploadMedia`.
 
-## Tension Notes
+The host wrapper preserves the application signature:
 
-The tradeoff is surface area versus state reconstruction. The cut avoids the large framework prefix, but the remote side must provide `Client-reconstructible` state for the extracted code.
+```go
+func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error)
+```
 
-## Observations
+It drains the multipart file locally into `[]byte`, calls the extracted
+normalized helper, and rehydrates the thumbnail with `bytes.NewReader`.
 
-- At least one candidate carries proxy-required data, most often an HTTP writer, stream, channel, or queue runtime object.
-- The trace contains at least one strong edge signal, but the recommendation also accounts for boundary data and state cost.
-- Recommended source evidence: `func (a *App) UploadMedia(c echo.Context) error`.
-- Listmonk's smaller codebase reduces surface-area pressure; boundary data and client reconstruction dominate the decision.
+The extracted boundary is finite:
+
+```go
+func monoliftNormalizedprocessImage(input []byte) ([]byte, int, int, error)
+```
+
+The first result is thumbnail PNG bytes; the integer results are the original
+image width and height.
+
+## Proof Summary
+
+`multipart_file_read_all` discharges finite input, local lifecycle, and
+use-shape checks: the helper opens the `*multipart.FileHeader` once and does
+not inspect filename, header, or mutable file state.
+
+`bytes_reader_return` discharges return rehydration: the helper returns a
+`*bytes.Reader` only via `bytes.NewReader` on thumbnail bytes.
+
+`adapter_error_order` records the accepted move of file read errors to the
+host side before RPC. `adapter_call_site` is bounded by the Listmonk call-site
+scan: `processImage` is called directly from `UploadMedia`.
+
+## Stage Result
+
+`activation-listmonk-processimage` reaches stage 10 on CloudLab through the
+4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 ladder. The oracle policy is direct PNG byte
+comparison for thumbnail bytes plus original dimension comparison.
+
+Retired terminology: this row no longer uses "Proxy-required" or
+"Feasible-with-proxy". `AdapterPossible` is finite local marshaling, not a live
+proxy.
