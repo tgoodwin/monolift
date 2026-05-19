@@ -46,7 +46,7 @@ func Target() harness.TargetCase {
 				HostBuildCommand:     "mkdir -p /out && CGO_ENABLED=0 go build -mod=mod -o /tmp/listmonk-patched ./cmd && go install github.com/knadh/stuffbin/...@v1.3.0 && stuffbin -a stuff -in /tmp/listmonk-patched -out /out/listmonk-patched config.toml.sample schema.sql queries:/queries permissions.json static/public:/public static/email-templates i18n:/i18n",
 				HostRuntimeImage:     "listmonk/listmonk:latest",
 				HostRuntimeSetup:     []string{"rm -f /listmonk/listmonk"},
-				HostArgs:             []string{"sh", "-c", "cd /listmonk && /listmonk-patched --install --idempotent --yes --config '' && /listmonk-patched --upgrade --yes --config '' && /listmonk-patched --config ''"},
+				HostArgs:             []string{"sh", "-c", "cd /listmonk && mkdir -p /listmonk/uploads && /listmonk-patched --install --idempotent --yes --config '' && /listmonk-patched --upgrade --yes --config '' && /listmonk-patched --config ''"},
 				HostEnvVars: []codegen.EnvVar{
 					{Name: "LISTMONK_app__address", Value: "0.0.0.0:9000"},
 					{Name: "LISTMONK_db__host", Value: "postgres"},

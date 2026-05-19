@@ -27,7 +27,7 @@ spec:
         - name: listmonk
           image: listmonk/listmonk:latest
           imagePullPolicy: IfNotPresent
-          args: ["sh", "-c", "./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''"]
+          args: ["sh", "-c", "mkdir -p /listmonk/uploads && ./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''"]
           ports:
             - containerPort: 9000
           readinessProbe:
