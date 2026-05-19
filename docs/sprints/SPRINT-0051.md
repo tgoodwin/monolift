@@ -144,9 +144,9 @@ This phase is separate from Phase 1 IR because the recovery-branch policy (what 
 - [x] 6.4: Oracle: compute the expected thumbnail by running `processImage` locally against the fixture in a Go test helper (preserves Phase 0.6 determinism check artifact).
 - [x] 6.5: Direct-invoke expectation: declared oracle policy from Phase 0.6 (`oracle-compare` if direct-byte succeeded; declared pixel-hash + dimension normalizer otherwise).
 - [x] 6.6: Transcript checks: thumbnail object written through `a.media.Put`; original-width / original-height returned in the response; content type recorded; extracted-service `/calls` records exactly one call per upload.
-- [ ] 6.7: Stage progression on CloudLab, **one stage per exact `go test` process, never jump**: 4 → 5 → 6 → 7 → 8 → 9 → 10. Per SPRINT-0050 stage ladder.
-- [ ] 6.8: Env-off check: with `MONOLIFT_LIFT_*` off, the host falls back to the local helper and the extracted service records zero `/calls`. Thumbnail is still correct.
-- [ ] 6.9: Fail-open / fail-closed check: with the extracted service unavailable, the generated client policy for `processImage` (fail-open by default) returns the correct result via local fallback; fail-closed mode returns `(nil, 0, 0, error)`.
+- [x] 6.7: Stage progression on CloudLab, **one stage per exact `go test` process, never jump**: 4 → 5 → 6 → 7 → 8 → 9 → 10. Per SPRINT-0050 stage ladder.
+- [x] 6.8: Env-off check: with `MONOLIFT_LIFT_*` off, the host falls back to the local helper and the extracted service records zero `/calls`. Thumbnail is still correct.
+- [x] 6.9: Fail-open / fail-closed check: with the extracted service unavailable, the generated client policy for `processImage` (fail-open by default) returns the correct result via local fallback; fail-closed mode returns `(nil, 0, 0, error)`.
 - [x] 6.10: Update `test/e2e/activation_corpus_traces.yaml` row for `listmonk/M-4`: `status: pass`, `phase: 10`, `boundary_class: AdapterPossible`, `selected_cut: processImage`, `proof_kind: adapter-direct-compare` (or `adapter-png-normalized` if applicable). The selected cut field must be `processImage`, not `(*App).UploadMedia`.
 
 ## Phase 7: Documentation
