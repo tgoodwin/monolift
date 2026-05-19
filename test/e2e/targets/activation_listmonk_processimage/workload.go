@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
 	"strings"
 	"time"
@@ -66,7 +67,10 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 	}
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("file", "monolift-processimage-fixture.png")
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", `form-data; name="file"; filename="monolift-processimage-fixture.png"`)
+	header.Set("Content-Type", "image/png")
+	part, err := writer.CreatePart(header)
 	if err != nil {
 		return harness.Step{}, err
 	}

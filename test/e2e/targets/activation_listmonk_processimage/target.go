@@ -57,6 +57,7 @@ func Target() harness.TargetCase {
 					{Name: "LISTMONK_db__ssl_mode", Value: "disable"},
 					{Name: "LISTMONK_app__admin_username", Value: "admin"},
 					{Name: "LISTMONK_app__admin_password", Value: "adminpass123"},
+					{Name: "LISTMONK_upload__extensions", Value: "png,jpg,jpeg,gif,svg,*"},
 				},
 			},
 		},

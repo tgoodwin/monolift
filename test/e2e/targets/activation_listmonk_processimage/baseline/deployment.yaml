@@ -54,3 +54,5 @@ spec:
               value: admin
             - name: LISTMONK_app__admin_password
               value: adminpass123
+            - name: LISTMONK_upload__extensions
+              value: "png,jpg,jpeg,gif,svg,*"
