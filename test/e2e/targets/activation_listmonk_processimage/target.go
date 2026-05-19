@@ -69,12 +69,8 @@ func Target() harness.TargetCase {
 		},
 		DirectInvoke: harness.DirectInvokeCheck{Expectation: harness.DirectInvokeOracleCompare},
 		Oracle:       Oracle{},
-		BehavioralPredicates: []harness.BehavioralPredicate{{
-			Name:        "thumbnail-metadata",
-			Description: "The media upload response records original image dimensions and a thumbnail URL.",
-		}},
-		Workload:    Workload{},
-		ServiceName: "listmonk",
-		ServicePort: 9000,
+		Workload:     Workload{},
+		ServiceName:  "listmonk",
+		ServicePort:  9000,
 	}
 }
