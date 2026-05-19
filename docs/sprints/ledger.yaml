@@ -207,3 +207,9 @@ sprints:
     executor: gpt-5.4
     created: "2026-05-17T21:17:53+00:00"
     updated: "2026-05-19T06:29:48+00:00"
+  - id: SPRINT-0052
+    title: Generalize boundary-adapter framework via 2+ new lifts
+    status: in-progress
+    executor: opus
+    created: "2026-05-19T19:50:05+00:00"
+    updated: "2026-05-19T20:45:26+00:00"

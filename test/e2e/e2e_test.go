@@ -1150,9 +1150,9 @@ func assertActivationFailModesForService(ctx context.Context, deployer harness.D
 		return err
 	}
 	slog.Debug("e2e fail mode", "target", target.Name, "service", service.Name, "mode", "closed", "event", "workload-done", "status", closedStep.Status)
-	if target.Name == "activation-listmonk-processimage" {
-		if closedStep.Status < 500 {
-			return fmt.Errorf("%s fail-closed status=%d want processImage error response", service.Name, closedStep.Status)
+	if target.FailClosedExpectedStatus > 0 {
+		if closedStep.Status < target.FailClosedExpectedStatus {
+			return fmt.Errorf("%s fail-closed status=%d want >= %d error response", service.Name, closedStep.Status, target.FailClosedExpectedStatus)
 		}
 	} else if closedStep.Status >= 500 {
 		return fmt.Errorf("%s fail-closed status=%d want non-5xx sentinel response", service.Name, closedStep.Status)

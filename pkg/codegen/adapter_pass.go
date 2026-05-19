@@ -101,14 +101,15 @@ func TryAdapterPass(ctx AdapterContext) (*AdapterPlan, []AdmissionRefusal) {
 	}
 
 	plan := &AdapterPlan{
-		SourceFunction:   ctx.Fn.Name(),
-		HostSignature:    signatureString(ctx.Fn.Signature, true),
-		RemoteSignature:  remoteSignatureString(ctx.Fn.Signature, inputTransforms, outputTransforms),
-		InputTransforms:  inputTransforms,
-		OutputTransforms: outputTransforms,
-		BodyRewrite:      bodyRewriteFor(inputTransforms),
-		Proofs:           allProofs,
-		TransportPolicy:  AdapterTransportInlineJSONBytes,
+		SourceFunction:        ctx.Fn.Name(),
+		HostSignature:         signatureString(ctx.Fn.Signature, true),
+		RemoteSignature:       remoteSignatureString(ctx.Fn.Signature, inputTransforms, outputTransforms),
+		InputTransforms:       inputTransforms,
+		OutputTransforms:      outputTransforms,
+		BodyRewrite:           bodyRewriteFor(inputTransforms),
+		Proofs:                allProofs,
+		TransportPolicy:       AdapterTransportInlineJSONBytes,
+		MaxInlinePayloadBytes: int64(ctx.MaxInlinePayloadBytes),
 	}
 	return plan, nil
 }

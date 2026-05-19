@@ -291,6 +291,11 @@ type AdapterPlan struct {
 	OutputTransforms []AdapterPattern   `json:"output_transforms,omitempty"`
 	Proofs           []AdapterProof     `json:"proofs,omitempty"`
 	TransportPolicy  AdapterTransport   `json:"transport_policy"`
+	// MaxInlinePayloadBytes is the per-payload ceiling rendered into the
+	// client extraction code. Zero falls back to defaultInlinePayloadBytes
+	// (8 MiB) so that legacy plans round-trip without changing output.
+	// SPRINT-0052 task 1.7 lifted this from a hardcoded literal.
+	MaxInlinePayloadBytes int64 `json:"max_inline_payload_bytes,omitempty"`
 }
 
 type Artifact struct {

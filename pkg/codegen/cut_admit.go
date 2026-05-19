@@ -102,10 +102,10 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 			return AdmitCut(report, *cut), demotionChain, nil
 		}
 		candidate := *cut.Recommended
-		if boundaryAdapterEnabled() && isUploadMediaCandidate(candidate) {
+		if adapterEnabled && adapterParentForbiddenForCandidate(candidate, cut) {
 			refusal := AdmissionRefusal{
-				Code:    "adapter_parent_forbidden",
-				Message: "boundary-adapter recovery must not select (*App).UploadMedia for listmonk/M-4",
+				Code:    RefusalAdapterParentForbidden,
+				Message: "candidate is an ancestor of a deeper candidate whose AdapterClass is not DirectBoundary; the adapter-shaped leaf must be tried instead of this parent",
 			}
 			demotionChain = append(demotionChain, CandidateDemotion{
 				Step:        candidate.Step,
@@ -179,8 +179,36 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 	return last, demotionChain, nil
 }
 
-func isUploadMediaCandidate(candidate activation.CutCandidate) bool {
-	return strings.Contains(candidate.NodeKey.FuncName, "UploadMedia") || strings.Contains(candidate.NodeName, "UploadMedia")
+// adapterParentForbiddenForCandidate refuses any candidate that is a strict
+// ancestor (lower Step on the same activation path) of a deeper candidate
+// whose AdapterClass is not DirectBoundary. The deeper candidate is either
+// currently a boundary-adapter consideration (AdapterUnknown,
+// AdapterPossible) or was already attempted by the adapter pass and
+// classified as LiveProxyRequired or AdapterImpossible. Either way, the
+// path has an adapter-shaped leaf and the broader parent must not be
+// admitted in its place — the structural property is that the leaf, not
+// the parent, is the intended cut even when the leaf refuses today.
+//
+// The predicate names no function and no type. Adapter eligibility is
+// expressed solely via the activation.AdapterClass label, which is
+// populated by defaultAdapterClass at cut-build time and refined by the
+// adapter pass during admission. New patterns extend the set of
+// AdapterUnknown/Possible-labeled candidates automatically.
+func adapterParentForbiddenForCandidate(candidate activation.CutCandidate, cut *activation.CutResult) bool {
+	if cut == nil {
+		return false
+	}
+	for _, other := range cut.Candidates {
+		if other.Step <= candidate.Step {
+			continue
+		}
+		switch other.AdapterClass {
+		case "", activation.DirectBoundary:
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func adapterRecoveryAllowed(candidate activation.CutCandidate, plan *Plan) bool {

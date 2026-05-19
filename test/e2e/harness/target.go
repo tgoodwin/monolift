@@ -52,6 +52,14 @@ type TargetCase struct {
 	InvokePayloads                map[string]map[string]any
 	ServiceName                   string
 	ServicePort                   int
+	// FailClosedExpectedStatus controls the fail-closed assertion in the
+	// activation fail-mode check. Zero (default) means the target's
+	// fail-closed response is a non-5xx sentinel (the generated client
+	// returns a benign fallback). A non-zero value means the fail-closed
+	// response must have an HTTP status >= FailClosedExpectedStatus — used
+	// by targets whose generated client propagates the remote error as a
+	// 5xx instead of a sentinel. Replaces the SPRINT-0051 target-name match.
+	FailClosedExpectedStatus int
 }
 
 type ActivationLiftSpec struct {

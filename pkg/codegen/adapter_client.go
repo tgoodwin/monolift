@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"text/template"
 )
@@ -136,6 +137,7 @@ func adapterExtractionLines(plan, transport *Plan) []string {
 	for _, param := range plan.BoundaryParams {
 		byOriginalName[param.Name] = param
 	}
+	limit := adapterInlinePayloadLimit(plan.AdapterPlan)
 	var lines []string
 	for _, transform := range plan.AdapterPlan.InputTransforms {
 		var out Param
@@ -151,12 +153,22 @@ func adapterExtractionLines(plan, transport *Plan) []string {
 		}
 		lines = append(lines, pattern.RenderInputExtraction(transform.ParamName, out.Name, "return "+zeroTupleWithErr(plan.Results, "%s"))...)
 		lines = append(lines,
-			"if len("+out.Name+") > 8*1024*1024 {",
-			"\treturn "+zeroTupleWithErr(plan.Results, `fmt.Errorf("monolift: adapter payload exceeds 8 MiB limit")`),
+			fmt.Sprintf("if len(%s) > %d {", out.Name, limit),
+			"\treturn "+zeroTupleWithErr(plan.Results, fmt.Sprintf(`fmt.Errorf("monolift: adapter payload exceeds %d byte limit")`, limit)),
 			"}",
 		)
 	}
 	return lines
+}
+
+// adapterInlinePayloadLimit returns the payload ceiling rendered into the
+// client extraction code. Zero on the plan falls back to the package-wide
+// default (8 MiB) so legacy plans round-trip without observable change.
+func adapterInlinePayloadLimit(plan *AdapterPlan) int64 {
+	if plan == nil || plan.MaxInlinePayloadBytes <= 0 {
+		return int64(defaultInlinePayloadBytes)
+	}
+	return plan.MaxInlinePayloadBytes
 }
 
 func adapterPatternByName(name string) AdapterPatternImpl {

@@ -9,10 +9,13 @@ import (
 	"github.com/tgoodwin/monolift/pkg/compiler/reportv2"
 )
 
-// Adapter refusal codes. These are the ten refusal codes produced by the
-// boundary-adapter recovery pass (SPRINT-0051). The first six are the
-// static feasibility obligations from the adapter strategy spec; the
-// remaining four are classification or policy refusals.
+// Adapter refusal codes produced by the boundary-adapter recovery pass.
+// The first six (SPRINT-0051) are the static feasibility obligations from
+// the adapter strategy spec; the remaining classification/policy refusals
+// are produced by the admission iteration and call-site selection logic.
+// Every active code is documented in docs/decisions/0032-boundary-adapter-
+// recovery.md; new codes must be added to the ADR vocabulary in the same
+// commit that introduces them. SPRINT-0052 task 1.8.
 const (
 	RefusalAdapterFiniteInput       = "adapter_finite_input"
 	RefusalAdapterLocalLifecycle    = "adapter_local_lifecycle"
@@ -24,6 +27,14 @@ const (
 	RefusalAdapterUnknown           = "adapter_unknown"
 	RefusalAdapterImpossible        = "adapter_impossible"
 	RefusalLiveProxyRequired        = "live_proxy_required"
+	// RefusalAdapterParentForbidden is produced by the admission iteration
+	// when a candidate is a strict ancestor (lower Step) of a deeper
+	// candidate whose AdapterClass is not DirectBoundary — see
+	// adapterParentForbiddenForCandidate in cut_admit.go. The structural
+	// property is: the path has an adapter-shaped leaf, so the broader
+	// parent must not be selected in its place. The code names no function
+	// and no target. Documented in ADR-0032 §"Admission iteration".
+	RefusalAdapterParentForbidden = "adapter_parent_forbidden"
 )
 
 func AdmitCut(_ reportv2.Report, cut activation.CutResult) AdmissionVerdict {

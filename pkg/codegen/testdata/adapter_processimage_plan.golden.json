@@ -54,5 +54,6 @@
       "detail": "no call-site set supplied; unexported helper bounded by its own package"
     }
   ],
-  "transport_policy": "inline_json_bytes"
+  "transport_policy": "inline_json_bytes",
+  "max_inline_payload_bytes": 8388608
 }

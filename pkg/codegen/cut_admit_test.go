@@ -856,3 +856,89 @@ func processImageRecoveryAdapterPlan() *AdapterPlan {
 		TransportPolicy: AdapterTransportInlineJSONBytes,
 	}
 }
+
+// TestAdapterParentForbiddenByStructure exercises the structural predicate
+// that replaces the SPRINT-0051 isUploadMediaCandidate string match. The
+// signal is purely the AdapterClass label on deeper candidates — no
+// function names, no types. Phase 1.1 of SPRINT-0052.
+func TestAdapterParentForbiddenByStructure(t *testing.T) {
+	tests := []struct {
+		name        string
+		candidates  []activation.CutCandidate
+		focusStep   int
+		wantForbid  bool
+	}{
+		{
+			name: "M-4 shape: deeper candidate has AdapterUnknown — parent forbidden",
+			candidates: []activation.CutCandidate{
+				{Step: 2, NodeKey: activation.FunctionKey{FuncName: "Parent"}, AdapterClass: activation.DirectBoundary},
+				{Step: 3, NodeKey: activation.FunctionKey{FuncName: "Leaf"}, AdapterClass: activation.AdapterUnknown},
+			},
+			focusStep:  2,
+			wantForbid: true,
+		},
+		{
+			name: "M-4 shape after adapter recovery refused: leaf labeled AdapterImpossible — parent still forbidden",
+			candidates: []activation.CutCandidate{
+				{Step: 2, NodeKey: activation.FunctionKey{FuncName: "Parent"}, AdapterClass: activation.DirectBoundary},
+				{Step: 3, NodeKey: activation.FunctionKey{FuncName: "Leaf"}, AdapterClass: activation.AdapterImpossible},
+			},
+			focusStep:  2,
+			wantForbid: true,
+		},
+		{
+			name: "Unrelated parent: deeper candidate is DirectBoundary — parent admits",
+			candidates: []activation.CutCandidate{
+				{Step: 2, NodeKey: activation.FunctionKey{FuncName: "Parent"}, AdapterClass: activation.DirectBoundary},
+				{Step: 3, NodeKey: activation.FunctionKey{FuncName: "Leaf"}, AdapterClass: activation.DirectBoundary},
+			},
+			focusStep:  2,
+			wantForbid: false,
+		},
+		{
+			name: "Descendant with no adapter classification (unset): parent admits",
+			candidates: []activation.CutCandidate{
+				{Step: 2, NodeKey: activation.FunctionKey{FuncName: "Parent"}, AdapterClass: activation.DirectBoundary},
+				{Step: 3, NodeKey: activation.FunctionKey{FuncName: "Leaf"}, AdapterClass: ""},
+			},
+			focusStep:  2,
+			wantForbid: false,
+		},
+		{
+			name: "Leaf itself never forbidden — no deeper candidates",
+			candidates: []activation.CutCandidate{
+				{Step: 2, NodeKey: activation.FunctionKey{FuncName: "Parent"}, AdapterClass: activation.DirectBoundary},
+				{Step: 3, NodeKey: activation.FunctionKey{FuncName: "Leaf"}, AdapterClass: activation.AdapterUnknown},
+			},
+			focusStep:  3,
+			wantForbid: false,
+		},
+		{
+			name: "Nil cut: predicate admits (degenerate)",
+			candidates: nil,
+			focusStep:  2,
+			wantForbid: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var cut *activation.CutResult
+			var candidate activation.CutCandidate
+			if tt.candidates != nil {
+				cut = &activation.CutResult{Candidates: tt.candidates}
+				for _, c := range tt.candidates {
+					if c.Step == tt.focusStep {
+						candidate = c
+						break
+					}
+				}
+			} else {
+				candidate = activation.CutCandidate{Step: tt.focusStep}
+			}
+			got := adapterParentForbiddenForCandidate(candidate, cut)
+			if got != tt.wantForbid {
+				t.Fatalf("adapterParentForbiddenForCandidate = %v, want %v", got, tt.wantForbid)
+			}
+		})
+	}
+}

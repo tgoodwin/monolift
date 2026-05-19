@@ -180,6 +180,39 @@ func TestRenderAdapterPointerReceiver(t *testing.T) {
 	}
 }
 
+// TestAdapterExtractionRespectsTransportPolicy proves that the rendered
+// inline-payload guard is read from plan.AdapterPlan.MaxInlinePayloadBytes
+// rather than a hardcoded literal. SPRINT-0052 task 1.7.
+func TestAdapterExtractionRespectsTransportPolicy(t *testing.T) {
+	tmp := t.TempDir()
+	plan := processImageAdapterPlan(tmp, filepath.Join(tmp, "media.go"))
+	plan.AdapterPlan.MaxInlinePayloadBytes = 1024 // intentionally non-default
+
+	limit := adapterInlinePayloadLimit(plan.AdapterPlan)
+	if limit != 1024 {
+		t.Fatalf("adapterInlinePayloadLimit = %d, want 1024", limit)
+	}
+	lines := adapterExtractionLines(plan, normalizedAdapterPlan(plan))
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "if len(input) > 1024 {") {
+		t.Fatalf("extraction lines did not honor MaxInlinePayloadBytes:\n%s", joined)
+	}
+	if !strings.Contains(joined, "1024 byte limit") {
+		t.Fatalf("extraction error message did not honor MaxInlinePayloadBytes:\n%s", joined)
+	}
+	if strings.Contains(joined, "8388608") || strings.Contains(joined, "8*1024*1024") {
+		t.Fatalf("extraction lines still contain the legacy 8 MiB literal:\n%s", joined)
+	}
+
+	// Zero on the plan falls back to defaultInlinePayloadBytes (8 MiB) so
+	// legacy plans round-trip identically.
+	plan.AdapterPlan.MaxInlinePayloadBytes = 0
+	limit = adapterInlinePayloadLimit(plan.AdapterPlan)
+	if limit != int64(defaultInlinePayloadBytes) {
+		t.Fatalf("adapterInlinePayloadLimit fallback = %d, want %d", limit, defaultInlinePayloadBytes)
+	}
+}
+
 func TestAdapterFuncName(t *testing.T) {
 	tests := []struct {
 		input string
@@ -247,7 +280,8 @@ func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
 	for _, want := range []string{
 		"func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error)",
 		"input, err := io.ReadAll(fileSrc)",
-		"if len(input) > 8*1024*1024",
+		"if len(input) > 8388608 {",
+		`fmt.Errorf("monolift: adapter payload exceeds 8388608 byte limit")`,
 		"r0, r1, r2, appErr, transportErr := monoliftRemoteprocessImage(input)",
 		"return bytes.NewReader(r0), r1, r2, appErr",
 		"return nil, 0, 0, fmt.Errorf(\"monolift: extracted service unavailable\")",

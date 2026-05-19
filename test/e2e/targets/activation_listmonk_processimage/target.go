@@ -14,6 +14,9 @@ func Target() harness.TargetCase {
 		ExpectedVerdict: "refuse-blocking",
 		ExpectedRoot:    "processImage",
 		StopAtStage:     10,
+		// processImage's generated client propagates the remote error as a
+		// 5xx under fail-closed rather than returning a benign sentinel.
+		FailClosedExpectedStatus: 500,
 		BaselineManifests: []string{
 			"test/e2e/fixtures/postgres.yaml",
 			"test/e2e/targets/activation_listmonk_processimage/baseline/deployment.yaml",
