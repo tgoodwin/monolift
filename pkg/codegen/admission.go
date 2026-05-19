@@ -44,7 +44,9 @@ func AdmitCut(_ reportv2.Report, cut activation.CutResult) AdmissionVerdict {
 	switch candidate.Callbacks {
 	case activation.ZeroConfirmed, activation.ZeroEstimated, activation.Low:
 	default:
-		verdict = refused(verdict, "callable_boundary_values", fmt.Sprintf("callback class %s would require callable values across the boundary", candidate.Callbacks), string(candidate.Callbacks))
+		if !boundaryAdapterEnabled() {
+			verdict = refused(verdict, "callable_boundary_values", fmt.Sprintf("callback class %s would require callable values across the boundary", candidate.Callbacks), string(candidate.Callbacks))
+		}
 	}
 	return verdict
 }
