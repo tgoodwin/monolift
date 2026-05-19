@@ -98,20 +98,20 @@ This phase unblocks `processImage` before the multipart input becomes a concern,
 
 ## Phase 3: Pattern library and proofs
 
-- [ ] 3.1: Define `AdapterPattern` and `AdapterProof` interfaces in `pkg/codegen/adapter_patterns.go`. Each pattern owns: `Name() string`, `Matches(param ssa.Value) bool`, `Discharge(ctx ProofContext) []AdapterProof`, `RenderInputExtraction(...) string`, `RenderRemoteReconstruction(...) string`.
-- [ ] 3.2: Implement `multipart_file_read_all`. Match: parameter type `*mime/multipart.FileHeader`. Discharge: `adapter_finite_input` (`Open + io.ReadAll`), `adapter_local_lifecycle` (host owns `Open`/`Close`/`defer`), `adapter_use_shape` (helper SSA references the parameter only through `Open()` then read; no `Filename`/`Header`/`Size` access, no multiple opens, no mutation, no alias escape).
-- [ ] 3.3: Implement `bytes_reader_return`. Match: declared return type `*bytes.Reader` whose value in helper SSA is `bytes.NewReader(byteSlice)` with no other producer. Discharge: `adapter_return_rehydration`. Render remote: return `[]byte`. Render host: `bytes.NewReader(out.<Field>)`.
-- [ ] 3.4: Implement the six proof checks (pattern-specific predicates where useful, generic SSA scans where required):
-  - [ ] 3.4.1: `adapter_finite_input` — every adapter-required param has a pattern with a finite-extraction renderer.
-  - [ ] 3.4.2: `adapter_local_lifecycle` — no helper SSA instruction calls `Close`, holds a `defer`, or escapes the awkward-typed value as a non-finite payload.
-  - [ ] 3.4.3: `adapter_use_shape` — pattern-specific predicate; refuse on unrecognized operations.
-  - [ ] 3.4.4: `adapter_return_rehydration` — every awkward return has a rehydration pattern.
-  - [ ] 3.4.5: `adapter_error_order` — read errors that would have occurred inside helper now occur host-side before RPC; record divergence in plan diagnostics but accept (per spec §5).
-  - [ ] 3.4.6: `adapter_call_site` — reverse-import-scope scan: function not used as a function value, address-of, or via reflection. Bound to the activation-path scope.
-- [ ] 3.5: `LiveProxyRequired` detectors for the full exclusion list from 0.8 (`http.ResponseWriter`, `io.Writer` output params, channels, transaction callbacks, function values, `*os.File`, mutable write-back). When matched, `tryAdapterPass` returns `live_proxy_required` immediately without attempting patterns.
-- [ ] 3.6: Negative pattern fixtures (must refuse): multiple `Open` calls on one `*multipart.FileHeader`, `file.Filename`/`Header`/`Size` use, returned `multipart.File`, `io.Writer` output parameters, function-value use, reflective access, `http.ResponseWriter` params.
-- [ ] 3.7: Golden JSON for the expected `AdapterPlan` for `processImage`, including `InputTransforms`, `OutputTransforms`, `BodyRewrite`, all six `Proofs`, and `TransportPolicy: inline_json_bytes`.
-- [ ] 3.8: Integration test: feed `processImage` SSA into `tryAdapterPass`; assert it produces the golden `AdapterPlan` end-to-end.
+- [x] 3.1: Define `AdapterPattern` and `AdapterProof` interfaces in `pkg/codegen/adapter_patterns.go`. Each pattern owns: `Name() string`, `Matches(param ssa.Value) bool`, `Discharge(ctx ProofContext) []AdapterProof`, `RenderInputExtraction(...) string`, `RenderRemoteReconstruction(...) string`.
+- [x] 3.2: Implement `multipart_file_read_all`. Match: parameter type `*mime/multipart.FileHeader`. Discharge: `adapter_finite_input` (`Open + io.ReadAll`), `adapter_local_lifecycle` (host owns `Open`/`Close`/`defer`), `adapter_use_shape` (helper SSA references the parameter only through `Open()` then read; no `Filename`/`Header`/`Size` access, no multiple opens, no mutation, no alias escape).
+- [x] 3.3: Implement `bytes_reader_return`. Match: declared return type `*bytes.Reader` whose value in helper SSA is `bytes.NewReader(byteSlice)` with no other producer. Discharge: `adapter_return_rehydration`. Render remote: return `[]byte`. Render host: `bytes.NewReader(out.<Field>)`.
+- [x] 3.4: Implement the six proof checks (pattern-specific predicates where useful, generic SSA scans where required):
+  - [x] 3.4.1: `adapter_finite_input` — every adapter-required param has a pattern with a finite-extraction renderer.
+  - [x] 3.4.2: `adapter_local_lifecycle` — no helper SSA instruction calls `Close`, holds a `defer`, or escapes the awkward-typed value as a non-finite payload.
+  - [x] 3.4.3: `adapter_use_shape` — pattern-specific predicate; refuse on unrecognized operations.
+  - [x] 3.4.4: `adapter_return_rehydration` — every awkward return has a rehydration pattern.
+  - [x] 3.4.5: `adapter_error_order` — read errors that would have occurred inside helper now occur host-side before RPC; record divergence in plan diagnostics but accept (per spec §5).
+  - [x] 3.4.6: `adapter_call_site` — reverse-import-scope scan: function not used as a function value, address-of, or via reflection. Bound to the activation-path scope.
+- [x] 3.5: `LiveProxyRequired` detectors for the full exclusion list from 0.8 (`http.ResponseWriter`, `io.Writer` output params, channels, transaction callbacks, function values, `*os.File`, mutable write-back). When matched, `tryAdapterPass` returns `live_proxy_required` immediately without attempting patterns.
+- [x] 3.6: Negative pattern fixtures (must refuse): multiple `Open` calls on one `*multipart.FileHeader`, `file.Filename`/`Header`/`Size` use, returned `multipart.File`, `io.Writer` output parameters, function-value use, reflective access, `http.ResponseWriter` params.
+- [x] 3.7: Golden JSON for the expected `AdapterPlan` for `processImage`, including `InputTransforms`, `OutputTransforms`, `BodyRewrite`, all six `Proofs`, and `TransportPolicy: inline_json_bytes`.
+- [x] 3.8: Integration test: feed `processImage` SSA into `tryAdapterPass`; assert it produces the golden `AdapterPlan` end-to-end.
 
 ## Phase 4: Host wrapper + normalized helper rendering
 

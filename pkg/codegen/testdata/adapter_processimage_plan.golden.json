@@ -1,0 +1,58 @@
+{
+  "source_function": "processImage",
+  "host_signature": "(*multipart.FileHeader) (*bytes.Reader, int, int, error)",
+  "remote_signature": "([]byte) ([]byte, int, int, error)",
+  "input_transforms": [
+    {
+      "name": "multipart_file_read_all",
+      "param_name": "file",
+      "from_type": "*multipart.FileHeader",
+      "to_type": "[]byte"
+    }
+  ],
+  "body_rewrite": {
+    "description": "replace per-input prologue: file: *multipart.FileHeader → []byte via multipart_file_read_all",
+    "from_pattern": "awkward-typed parameter operations",
+    "to_pattern": "finite-input equivalents"
+  },
+  "output_transforms": [
+    {
+      "name": "bytes_reader_return",
+      "from_type": "*bytes.Reader",
+      "to_type": "[]byte"
+    }
+  ],
+  "proofs": [
+    {
+      "obligation": "adapter_finite_input",
+      "satisfied": true,
+      "detail": "finite extraction provided by: multipart_file_read_all(*multipart.FileHeader→[]byte)"
+    },
+    {
+      "obligation": "adapter_local_lifecycle",
+      "satisfied": true,
+      "detail": "lifecycle of awkward inputs remains host-side"
+    },
+    {
+      "obligation": "adapter_use_shape",
+      "satisfied": true,
+      "detail": "helper opens *multipart.FileHeader exactly once and reads it"
+    },
+    {
+      "obligation": "adapter_return_rehydration",
+      "satisfied": true,
+      "detail": "helper returns *bytes.Reader exclusively via bytes.NewReader"
+    },
+    {
+      "obligation": "adapter_error_order",
+      "satisfied": true,
+      "detail": "host-side extraction errors occur before RPC; helper read errors moved to host-side ReadAll (accepted per spec §5)"
+    },
+    {
+      "obligation": "adapter_call_site",
+      "satisfied": true,
+      "detail": "no call-site set supplied; unexported helper bounded by its own package"
+    }
+  ],
+  "transport_policy": "inline_json_bytes"
+}
