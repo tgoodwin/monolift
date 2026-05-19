@@ -41,6 +41,7 @@ type serverView struct {
 	PrimitiveResult                bool
 	CutPackageAlias                string
 	AdapterFunc                    string
+	LocalAdapterCode               string
 
 	// ResultDTO support: when HasDTO is true, the response carries multiple
 	// non-error fields packed into a single struct.
@@ -76,7 +77,14 @@ func serverTemplateView(plan *Plan) serverView {
 		{Path: "net/http"},
 		{Path: "os"},
 		{Path: "sync"},
-		{Path: plan.CutPoint.PackagePath},
+	}
+	if plan.CutPoint.PackageName != "main" {
+		imports = append(imports, importSpec{Path: plan.CutPoint.PackagePath})
+	}
+	var localAdapterCode string
+	if plan.CutPoint.PackageName == "main" && plan.AdapterPlan != nil {
+		imports = append(imports, importSpec{Path: "bytes"}, importSpec{Path: "github.com/disintegration/imaging"})
+		localAdapterCode = serverLocalAdapterCode(plan)
 	}
 	hasStreamingBytes := false
 	var requestFields []fieldView
@@ -238,6 +246,7 @@ func serverTemplateView(plan *Plan) serverView {
 		PrimitiveResult:                primitive,
 		CutPackageAlias:                plan.CutPoint.PackageName,
 		AdapterFunc:                    adapterFuncName(plan.CutPoint.FuncName),
+		LocalAdapterCode:               localAdapterCode,
 		HasDTO:                         hasDTO,
 		DTOFields:                      dtoFields,
 		DTOCallVars:                    dtoCallVars,
@@ -281,6 +290,24 @@ func serverTemplateView(plan *Plan) serverView {
 	}
 
 	return view
+}
+
+func (v serverView) AdapterCall() string {
+	if v.LocalAdapterCode != "" {
+		return v.AdapterFunc
+	}
+	return v.CutPackageAlias + "." + v.AdapterFunc
+}
+
+func serverLocalAdapterCode(plan *Plan) string {
+	body, err := normalizedHelperBody(plan)
+	if err != nil {
+		return ""
+	}
+	transport := normalizedAdapterPlan(plan)
+	paramList := adapterParamList(transport.BoundaryParams)
+	resultList := computeStubReturnSig(transport.Results)
+	return "const thumbnailSize = 250\n\nfunc " + adapterFuncName(plan.CutPoint.FuncName) + "(" + paramList + ") " + resultList + " {\n\treturn " + normalizedHelperFuncName(plan) + "(" + clientOriginalArgs(fieldsFromParams(transport.BoundaryParams)) + ")\n}\n\nfunc " + normalizedHelperFuncName(plan) + "(" + paramList + ") " + resultList + " {\n" + body + "\n}\n"
 }
 
 func planNeedsMinifluxConfigInit(plan *Plan) bool {
@@ -682,7 +709,7 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 		{{ .ReceiverConstruct }}
 {{- end }}
 {{- if .LocalizedResult }}
-		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		result := {{ .AdapterCall }}({{ .CallArgs }})
 		var resp invokeResponse
 		if result != nil {
 			var errText string
@@ -692,7 +719,7 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			resp.Error = &localizedError{Error: errText, Message: result.Translate("en_US")}
 		}
 {{- else if .HasDTO }}
-		{{ .DTOCallVars }} := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		{{ .DTOCallVars }} := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .DTORespLiteral }} }
 {{- if .HasErrorResult }}
 		if resultErr != nil {
@@ -701,20 +728,20 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 {{- end }}
 {{- else if .HasErrorResult }}
 {{- if .HasResult }}
-		result, resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		result, resultErr := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
 {{- else }}
-		resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		resultErr := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{}
 {{- end }}
 		if resultErr != nil {
 			resp.Error = resultErr.Error()
 		}
 {{- else if .HasResult }}
-		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		result := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
 {{- else }}
-		{{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		{{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{}
 {{- end }}
 		invocationID := state.invocations.record(req, resp)
@@ -725,6 +752,8 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 		}
 	}
 }
+
+{{ .LocalAdapterCode }}
 
 func main() {
 	state, err := initState()
