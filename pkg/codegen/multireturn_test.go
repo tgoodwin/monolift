@@ -503,6 +503,105 @@ func TestRenderClientDTOTwoNonErrorGolden(t *testing.T) {
 	}
 }
 
+// --- DTO refusal-shadow gating (SPRINT-0052 task 2.1) ---
+//
+// After 2.1, DTO packing is no longer an unconditional pass over every
+// multi-return: it runs only as a recovery for a result shape the base
+// admission cannot represent (a would-be unsupported_result_shape refusal).
+// A successful pack shadows the refusal; a failed pack leaves it standing.
+// These tests pin that contract — the natively supported shapes must never
+// see the shape refusal, and an unpackable shape must.
+
+// (T, error): natively supported. No DTO, and the gate must not raise
+// unsupported_result_shape for it.
+func TestAdmitPlanTErrorNoShapeRefusal(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Fetch"},
+		Results: []Result{
+			{Name: "result", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 1},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T, error) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("(T, error) shape should not produce a ResultDTO")
+	}
+	if hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatal("(T, error) shape should not raise unsupported_result_shape")
+	}
+}
+
+// (T): natively supported. No DTO, no shape refusal.
+func TestAdmitPlanSingleResultNoShapeRefusal(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Validate"},
+		Results: []Result{
+			{Name: "result", GoType: "bool", Codec: CodecPrimitive, Index: 0},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("(T) shape should not produce a ResultDTO")
+	}
+	if hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatal("(T) shape should not raise unsupported_result_shape")
+	}
+}
+
+// (T, U, error): the base admission cannot represent this, so DTO packing
+// fires as a recovery and its success shadows the shape refusal — the
+// verdict is accepted and carries no unsupported_result_shape.
+func TestAdmitPlanMultiReturnPackShadowsRefusal(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Parse"},
+		Results: []Result{
+			{Name: "name", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "count", GoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 2},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T, U, error) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO == nil {
+		t.Fatal("(T, U, error) shape should produce a ResultDTO")
+	}
+	if hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatal("successful DTO pack should shadow the unsupported_result_shape refusal")
+	}
+}
+
+// (T, U) where U is non-JSON-codable: the shape would be refused and DTO
+// packing cannot recover it, so the unsupported_result_shape refusal stands
+// and no DTO is attached. func() escapes the streaming/sync/chan result loop,
+// isolating the shape refusal.
+func TestAdmitPlanUnpackableMultiReturnRefuses(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Hook"},
+		Results: []Result{
+			{Name: "value", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "callback", GoType: "func()", Codec: CodecJSON, Index: 1},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("(T, func()) shape should be refused — non-codable second return cannot be packed")
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("unpackable shape should not attach a ResultDTO")
+	}
+	if !hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatalf("expected unsupported_result_shape to stand, got: %s", verdict.Error())
+	}
+}
+
 // --- Round-trip tests (2D.11-2D.12) ---
 
 // multiReturnResponse mirrors the generated invokeResponse for (string, error).
