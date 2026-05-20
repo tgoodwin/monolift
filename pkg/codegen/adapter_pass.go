@@ -294,9 +294,31 @@ func dischargeLocalLifecycle(fn *ssa.Function, inputs []AdapterPattern) AdapterP
 					return proof
 				}
 			case *ssa.Call:
+				// callMethodName resolves both static (*T).Close(param) and
+				// interface-dispatch param.Close() (common.Method != nil &&
+				// common.Value == param && Method.Name() == "Close") to "Close".
 				if callMethodName(op, param) == "Close" {
 					proof.Satisfied = false
-					proof.Detail = fmt.Sprintf("parameter %q has Close() called directly; lifecycle is not adapter-local", param.Name())
+					proof.Detail = fmt.Sprintf("parameter %q has Close() called on it; lifecycle is not adapter-local", param.Name())
+					return proof
+				}
+			case *ssa.MakeInterface:
+				// Boxing the awkward input into an interface lets it escape the
+				// helper (stored, passed to an interface-typed sink, or
+				// Close()'d through the boxed value). The adapter swap replaces
+				// the value with a reconstructed one host-side, so any escape
+				// of the original is unsound.
+				if op.X == param {
+					proof.Satisfied = false
+					proof.Detail = fmt.Sprintf("parameter %q is boxed into an interface; the value may escape the helper and its lifecycle cannot move remote-side", param.Name())
+					return proof
+				}
+			case *ssa.Store:
+				// Storing the awkward input into a package-level global escapes
+				// the helper entirely.
+				if _, ok := op.Addr.(*ssa.Global); ok && op.Val == param {
+					proof.Satisfied = false
+					proof.Detail = fmt.Sprintf("parameter %q is stored into a package-level global; the value escapes the helper and its lifecycle cannot move remote-side", param.Name())
 					return proof
 				}
 			}
