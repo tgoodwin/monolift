@@ -362,6 +362,36 @@ func main() { _ = bad }
 			wantContains: "Open() 2 times",
 		},
 		{
+			// SPRINT-0052 task 2.6 (B-14): the param is captured by a goroutine
+			// closure. Before following the FreeVar this passed (the direct
+			// Open in the body satisfied the count and the MakeClosure was
+			// ignored); now the capture is detected and refused.
+			name: "goroutine capture of FileHeader refused",
+			source: `
+package main
+
+import (
+	"io"
+	"mime/multipart"
+)
+
+func bad(file *multipart.FileHeader) ([]byte, error) {
+	f, err := file.Open()
+	if err != nil { return nil, err }
+	defer f.Close()
+	go func() {
+		_, _ = file.Open()
+	}()
+	return io.ReadAll(f)
+}
+
+func main() { _ = bad }
+`,
+			funcName:     "bad",
+			wantRefusal:  RefusalAdapterUseShape,
+			wantContains: "closure or goroutine",
+		},
+		{
 			name: "Filename field access on FileHeader",
 			source: `
 package main

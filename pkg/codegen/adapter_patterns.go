@@ -152,6 +152,18 @@ func (p multipartFileReadAllPattern) Discharge(fn *ssa.Function, paramIndex int)
 		return []AdapterProof{useShape}
 	}
 	param := fn.Params[paramIndex]
+	// Capture check first: go/ssa spills a captured parameter into a local
+	// *ssa.Alloc and binds that alloc (not the parameter) into the closure, so
+	// the per-referrer switch below would otherwise see only the spill store
+	// (and misreport it as a mutation). Follow param -> spill -> alloc ->
+	// MakeClosure -> FreeVar; a capture means the awkward value is referenced
+	// inside an anonymous function or goroutine where the adapter-normalized
+	// value cannot stand in.
+	if fv := paramCaptureFreeVar(param); fv != nil {
+		useShape.Satisfied = false
+		useShape.Detail = "helper captures *multipart.FileHeader in a closure or goroutine; the normalized value cannot be shared into a captured context"
+		return []AdapterProof{useShape}
+	}
 	openCalls := 0
 	for _, ref := range valueReferrers(param) {
 		switch op := ref.(type) {
@@ -241,10 +253,10 @@ func (multipartFileReadAllPattern) RenderInputExtraction(inVar, outVar, errRetur
 	srcVar := inVar + "Src"
 	return []string{
 		fmt.Sprintf("%s, err := %s.Open()", srcVar, inVar),
-		fmt.Sprintf("if err != nil { " + errReturnFmt + " }", "err"),
+		fmt.Sprintf("if err != nil { "+errReturnFmt+" }", "err"),
 		fmt.Sprintf("defer %s.Close()", srcVar),
 		fmt.Sprintf("%s, err := io.ReadAll(%s)", outVar, srcVar),
-		fmt.Sprintf("if err != nil { " + errReturnFmt + " }", "err"),
+		fmt.Sprintf("if err != nil { "+errReturnFmt+" }", "err"),
 	}
 }
 
@@ -362,6 +374,60 @@ func namedPointerMatches(typ types.Type, pkgPath, name string) bool {
 
 // valueReferrers returns the SSA instructions that reference the given
 // value (parameters and returns expose Referrers via the Value interface).
+// paramCaptureFreeVar reports whether param is captured by a closure, returning
+// the *ssa.FreeVar the closure sees. It handles both the direct binding form
+// (param itself is a MakeClosure binding) and the usual spilled form, where
+// go/ssa stores the parameter into a local *ssa.Alloc and the MakeClosure binds
+// that alloc. Returns nil when param is not captured.
+func paramCaptureFreeVar(param ssa.Value) *ssa.FreeVar {
+	if param == nil {
+		return nil
+	}
+	for _, ref := range valueReferrers(param) {
+		switch op := ref.(type) {
+		case *ssa.MakeClosure:
+			if fv := closureFreeVarFor(op, param); fv != nil {
+				return fv
+			}
+		case *ssa.Store:
+			alloc, ok := op.Addr.(*ssa.Alloc)
+			if !ok || op.Val != param {
+				continue
+			}
+			for _, aref := range valueReferrers(alloc) {
+				mc, ok := aref.(*ssa.MakeClosure)
+				if !ok {
+					continue
+				}
+				if fv := closureFreeVarFor(mc, alloc); fv != nil {
+					return fv
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// closureFreeVarFor returns the *ssa.FreeVar in the closure's function that is
+// bound to value, or nil when the closure does not bind value. It pairs a
+// MakeClosure binding with the matching free variable by position so callers
+// can follow a captured value into the anonymous function or goroutine body.
+func closureFreeVarFor(mc *ssa.MakeClosure, value ssa.Value) *ssa.FreeVar {
+	if mc == nil || value == nil {
+		return nil
+	}
+	fn, ok := mc.Fn.(*ssa.Function)
+	if !ok || fn == nil {
+		return nil
+	}
+	for i, binding := range mc.Bindings {
+		if binding == value && i < len(fn.FreeVars) {
+			return fn.FreeVars[i]
+		}
+	}
+	return nil
+}
+
 func valueReferrers(v ssa.Value) []ssa.Instruction {
 	if v == nil {
 		return nil
