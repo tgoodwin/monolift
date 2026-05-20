@@ -344,12 +344,12 @@ func TestBoundaryAdapterEnabledReadsEnvVar(t *testing.T) {
 }
 
 func TestIsAdapterEligibleRefusal(t *testing.T) {
+	// Shape-compatible codes are eligible regardless of Type.
 	eligible := []string{
 		"unsupported_boundary_data",
 		"unsupported_result_shape",
 		"unsupported_param_shape",
 		"callable_boundary_values",
-		"missing_reconstructor",
 	}
 	for _, code := range eligible {
 		if !isAdapterEligibleRefusal(AdmissionRefusal{Code: code}) {
@@ -367,6 +367,37 @@ func TestIsAdapterEligibleRefusal(t *testing.T) {
 		if isAdapterEligibleRefusal(AdmissionRefusal{Code: code}) {
 			t.Errorf("isAdapterEligibleRefusal(%q) = true, want false", code)
 		}
+	}
+}
+
+// SPRINT-0052 task 2.3 (flag B-11): missing_reconstructor is adapter-eligible
+// only for a boundary parameter value type. Receiver / infrastructure-handle
+// reconstructor refusals (e.g. *sql.DB, filesystem) must not enter the
+// recovery branch. An empty Type fails closed.
+func TestMissingReconstructorAdapterEligibilityByType(t *testing.T) {
+	cases := []struct {
+		name string
+		typ  string
+		want bool
+	}{
+		{"parameter value type", "*multipart.FileHeader", true},
+		{"bytes reader param", "*bytes.Reader", true},
+		{"sql.DB handle", "*sql.DB", false},
+		{"sql.Tx handle", "*sql.Tx", false},
+		{"filesystem handle", "filesystem.System", false},
+		{"os.File handle", "*os.File", false},
+		{"empty type fails closed", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			refusal := AdmissionRefusal{Code: "missing_reconstructor", Type: tc.typ}
+			if got := isAdapterEligibleRefusal(refusal); got != tc.want {
+				t.Fatalf("isAdapterEligibleRefusal(missing_reconstructor, %q) = %v, want %v", tc.typ, got, tc.want)
+			}
+			if got := isParameterTypeReconstructorRefusal(refusal); got != tc.want {
+				t.Fatalf("isParameterTypeReconstructorRefusal(%q) = %v, want %v", tc.typ, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -909,10 +940,10 @@ func processImageRecoveryAdapterPlan() *AdapterPlan {
 // function names, no types. Phase 1.1 of SPRINT-0052.
 func TestAdapterParentForbiddenByStructure(t *testing.T) {
 	tests := []struct {
-		name        string
-		candidates  []activation.CutCandidate
-		focusStep   int
-		wantForbid  bool
+		name       string
+		candidates []activation.CutCandidate
+		focusStep  int
+		wantForbid bool
 	}{
 		{
 			name: "M-4 shape: deeper candidate has AdapterUnknown — parent forbidden",
@@ -960,7 +991,7 @@ func TestAdapterParentForbiddenByStructure(t *testing.T) {
 			wantForbid: false,
 		},
 		{
-			name: "Nil cut: predicate admits (degenerate)",
+			name:       "Nil cut: predicate admits (degenerate)",
 			candidates: nil,
 			focusStep:  2,
 			wantForbid: false,

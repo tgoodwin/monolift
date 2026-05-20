@@ -374,9 +374,54 @@ func retryableRefusal(verdict AdmissionVerdict) (AdmissionRefusal, bool) {
 // shape-compatible codes that can trigger boundary-adapter recovery. Broader
 // exclusions such as receivers, shared state, broad surfaces, and function
 // boundaries are enforced by adapterRecoveryAllowed after plan construction.
+//
+// missing_reconstructor is special-cased: only a refusal about a boundary
+// *parameter* value type is eligible. Receiver and infrastructure-handle
+// reconstructor refusals (database, transaction, connection, filesystem,
+// file) cannot be adapter-normalized and must not enter the recovery branch.
 func isAdapterEligibleRefusal(refusal AdmissionRefusal) bool {
-	_, ok := adapterEligibleRefusals[refusal.Code]
-	return ok
+	if _, ok := adapterEligibleRefusals[refusal.Code]; !ok {
+		return false
+	}
+	if refusal.Code == "missing_reconstructor" {
+		return isParameterTypeReconstructorRefusal(refusal)
+	}
+	return true
+}
+
+// isParameterTypeReconstructorRefusal reports whether a missing_reconstructor
+// refusal concerns a boundary parameter value type an adapter pattern could
+// normalize to a wire type — as opposed to an infrastructure handle (database,
+// transaction, connection, filesystem, file) or receiver that genuinely needs
+// host-side reconstruction and that no adapter pattern can serialize. The
+// check reads refusal.Type only and names no target; an empty Type fails
+// closed (not eligible).
+func isParameterTypeReconstructorRefusal(refusal AdmissionRefusal) bool {
+	if refusal.Code != "missing_reconstructor" || refusal.Type == "" {
+		return false
+	}
+	return !isInfrastructureHandleType(refusal.Type)
+}
+
+// isInfrastructureHandleType reports whether a Go type names a non-serializable
+// infrastructure resource handle that requires host-side reconstruction rather
+// than wire normalization. Generic type-string classification (no target
+// names), paralleling isSerializableReceiverType's database checks.
+func isInfrastructureHandleType(goType string) bool {
+	lower := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(goType), "*"))
+	switch {
+	case strings.Contains(lower, "sql.db"),
+		strings.Contains(lower, "sql.tx"),
+		strings.Contains(lower, "sql.conn"),
+		strings.Contains(lower, "sql.stmt"):
+		return true
+	case strings.Contains(lower, "filesystem.system"),
+		strings.Contains(lower, "afero."),
+		strings.Contains(lower, "os.file"),
+		strings.Contains(lower, "os.root"):
+		return true
+	}
+	return false
 }
 
 func tryAdapterRecoveryFromPlan(report reportv2.Report, candidate activation.CutCandidate, plan *Plan) (*AdapterPlan, []AdmissionRefusal) {
