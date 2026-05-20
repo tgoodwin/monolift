@@ -61,10 +61,12 @@ type AdapterPatternImpl interface {
 	// RenderInputExtraction returns the Go statements that drain the awkward
 	// input into a finite value. Only meaningful for input patterns. The
 	// caller passes the inbound parameter name, the desired output variable
-	// name, and a printf-style template for returning the wrapper's zero
-	// tuple with an error (e.g. "return nil, 0, 0, %s"). Phase 4 wires this
-	// into the host wrapper template.
-	RenderInputExtraction(inVar, outVar, errReturnFmt string) []string
+	// name, and a complete return statement for the error path with the error
+	// variable already substituted (e.g. "return nil, 0, 0, err"). The error
+	// return is inserted verbatim, never re-formatted, so zero-value
+	// expressions or types containing '%' cannot corrupt the output. Phase 4
+	// wires this into the host wrapper template.
+	RenderInputExtraction(inVar, outVar, errReturn string) []string
 
 	// RenderRemoteReconstruction returns a single Go expression that rebuilds
 	// the awkward return value from the DTO field. Only meaningful for output
@@ -74,9 +76,26 @@ type AdapterPatternImpl interface {
 	RenderRemoteReconstruction(remoteFieldExpr string) string
 }
 
-// adapterPatternRegistry is the closed library of patterns the compiler
-// will try in order. Insertion order is deterministic — first match wins
-// for a given parameter/return slot. New patterns are added here.
+// adapterPatternRegistry is the closed library of patterns the compiler tries,
+// in registration order.
+//
+// Ordering is LOAD-BEARING: matching is first-match-wins per slot. inputPatterns
+// and outputPatterns iterate this slice in order and pick the first whose
+// Matches(typ) returns true for a given parameter or return slot. When two
+// patterns can match the same type, the earlier one wins — so a more specific
+// pattern MUST be registered before any more general pattern it overlaps with,
+// or the general one will shadow it.
+//
+// Current order:
+//   - multipartFileReadAllPattern (input):  *multipart.FileHeader -> []byte
+//   - bytesReaderReturnPattern    (output): *bytes.Reader -> []byte
+//
+// These two do not overlap (different directions, disjoint FromType), so their
+// relative order is not yet significant — but the first-match-wins contract is.
+// New entries MUST declare, in a comment at their insertion point, why their
+// position is correct relative to every existing pattern they could co-match
+// (or state that they are disjoint). Append-at-end is only safe for a pattern
+// whose FromType/Direction overlaps nothing above it.
 var adapterPatternRegistry = []AdapterPatternImpl{
 	multipartFileReadAllPattern{},
 	bytesReaderReturnPattern{},
@@ -249,14 +268,18 @@ func (multipartFileReadAllPattern) rewriteInputBody(body *ast.BlockStmt, paramNa
 	})
 }
 
-func (multipartFileReadAllPattern) RenderInputExtraction(inVar, outVar, errReturnFmt string) []string {
+func (multipartFileReadAllPattern) RenderInputExtraction(inVar, outVar, errReturn string) []string {
 	srcVar := inVar + "Src"
+	// errReturn is a complete statement (error var already substituted) and is
+	// concatenated, not used as a format string, so a '%' in any zero-value
+	// expression cannot be misinterpreted as a verb.
+	errGuard := "if err != nil { " + errReturn + " }"
 	return []string{
 		fmt.Sprintf("%s, err := %s.Open()", srcVar, inVar),
-		fmt.Sprintf("if err != nil { "+errReturnFmt+" }", "err"),
+		errGuard,
 		fmt.Sprintf("defer %s.Close()", srcVar),
 		fmt.Sprintf("%s, err := io.ReadAll(%s)", outVar, srcVar),
-		fmt.Sprintf("if err != nil { "+errReturnFmt+" }", "err"),
+		errGuard,
 	}
 }
 
@@ -471,9 +494,6 @@ func callMethodName(call *ssa.Call, recv ssa.Value) string {
 		if recv != nil && len(common.Args) > 0 && common.Args[0] == recv {
 			return fn.Name()
 		}
-		// Also handle the case where recv is bound as the Value of a Call
-		// constructed from a selector like recv.Method(...) — this shows up
-		// as common.Value being the function and recv being the first arg.
 	}
 	return ""
 }
@@ -607,21 +627,6 @@ func isBytesNewReaderCall(v ssa.Value) bool {
 		return false
 	}
 	return pkg.Pkg.Path() == "bytes"
-}
-
-// typeIsByteSliceFlow reports whether the given value's type is []byte. Used
-// by adapter_pass.go to confirm that bytes.NewReader is producing from a
-// finite byte slice rather than (e.g.) an io.ReadSeeker.
-func typeIsByteSliceFlow(v ssa.Value) bool {
-	if v == nil || v.Type() == nil {
-		return false
-	}
-	slice, ok := types.Unalias(v.Type()).(*types.Slice)
-	if !ok {
-		return false
-	}
-	basic, ok := types.Unalias(slice.Elem()).(*types.Basic)
-	return ok && basic.Kind() == types.Uint8
 }
 
 // inputBodyRewriter is implemented by input patterns whose normalized helper

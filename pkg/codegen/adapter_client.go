@@ -151,7 +151,7 @@ func adapterExtractionLines(plan, transport *Plan) []string {
 		if pattern == nil {
 			continue
 		}
-		lines = append(lines, pattern.RenderInputExtraction(transform.ParamName, out.Name, "return "+zeroTupleWithErr(plan.Results, "%s"))...)
+		lines = append(lines, pattern.RenderInputExtraction(transform.ParamName, out.Name, "return "+zeroTupleWithErr(plan.Results, "err"))...)
 		lines = append(lines,
 			fmt.Sprintf("if len(%s) > %d {", out.Name, limit),
 			"\treturn "+zeroTupleWithErr(plan.Results, fmt.Sprintf(`fmt.Errorf("monolift: adapter payload exceeds %d byte limit")`, limit)),
