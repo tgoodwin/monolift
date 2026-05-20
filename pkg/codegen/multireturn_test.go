@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -599,6 +601,57 @@ func TestAdmitPlanUnpackableMultiReturnRefuses(t *testing.T) {
 	}
 	if !hasRefusal(verdict, "unsupported_result_shape") {
 		t.Fatalf("expected unsupported_result_shape to stand, got: %s", verdict.Error())
+	}
+}
+
+// --- DTO with >= 11 non-error fields (SPRINT-0052 task 8.5) ---
+
+// A DTO with 11 non-error returns forces the call-var generator past index 9.
+// The previous `"r" + string(rune('0'+i))` scheme produced the invalid
+// identifier "r:" at i == 10 (rune 0x3A), which gofmt rejects — so a passing
+// RenderServer that also emits "r10" pins the fmt.Sprintf("r%d", i) fix.
+func dtoElevenFieldsServerPlan() *Plan {
+	results := make([]Result, 0, 12)
+	for i := 0; i < 11; i++ {
+		results = append(results, Result{
+			Name:            fmt.Sprintf("field%d", i),
+			JSONName:        fmt.Sprintf("field%d", i),
+			GoType:          "string",
+			QualifiedGoType: "string",
+			Codec:           CodecPrimitive,
+			Index:           i,
+		})
+	}
+	results = append(results, Result{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 11})
+	plan := &Plan{
+		ServiceName:      "monolift-wide",
+		EnvServiceName:   "WIDE",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/wide",
+			PackageName: "wide",
+			FuncName:    "Wide",
+		},
+		BoundaryParams: []Param{
+			{Name: "input", JSONName: "input", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		Results:    results,
+		ServerPath: "/tmp/test/cmd/monolift-wide/main.go",
+	}
+	plan.ResultDTO = BuildResultDTO("Wide", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+func TestRenderServerDTOElevenFields(t *testing.T) {
+	plan := dtoElevenFieldsServerPlan()
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatalf("RenderServer failed for an 11-field DTO (regression: r-var generator must not emit invalid identifiers): %v", err)
+	}
+	got := string(files[plan.ServerPath])
+	if !strings.Contains(got, "r10") {
+		t.Fatalf("expected the 11th call var \"r10\" in rendered server, got:\n%s", got)
 	}
 }
 

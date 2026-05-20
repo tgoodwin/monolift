@@ -237,22 +237,24 @@ Same stage ladder as SPRINT-0051 §6.7 — one stage per `go test` invocation, n
 
 These should land *opportunistically* alongside the Phase 1–4 commits that already touch the same files. Phase 8 is the catch-up sweep for nits that didn't get cleared earlier.
 
-- [ ] 8.1 [flag #32 / E-41] Admin credentials duplicated as string literals in listmonk fixtures (`target.go:58-59`, `workload.go:88`). Add target-package constant.
-- [ ] 8.2 [flag #31 / E-40] `directInvokePayload()` in listmonk processimage oracle panics at test-registration time if fixture missing. Move file read inside function body so panic occurs at test run, not init.
-- [ ] 8.3 [flag #29 / E-38] Harmonize `image.Decode` (oracle) vs `imaging.Decode` (helper) in `test/e2e/targets/activation_listmonk_processimage/`. If divergence is intentional (oracle uses stdlib for independence), comment why.
-- [ ] 8.4 [flag #30 / E-39] Fixture path duplicated as string literal across `oracle.go` and `workload.go` in listmonk processimage target. Add a target-local `const fixturePath = "testdata/..."`.
-- [ ] 8.5 [flag #27 / E-32] Replace every `r` + `string(rune('0'+i))` variable generator in `pkg/codegen/server.go:208-221` and `pkg/codegen/adapter_client.go:191-223` with `fmt.Sprintf("r%d", i)` (or `strconv.Itoa(i)`). Add a DTO test with at least 11 non-error fields.
-- [ ] 8.6 [flag #25 / E-33] Make `serverLocalAdapterCode` return `(string, error)` and propagate `normalizedHelperBody` errors instead of swallowing at `pkg/codegen/server.go:302-306`.
-- [ ] 8.7 [flag #16 / E-28] (covered by Phase 3.3.)
-- [ ] 8.8 [flag #17 / E-29] (covered by Phase 3.4.)
-- [ ] 8.9 [flag #18 / E-30] (covered by Phase 3.5.)
-- [ ] 8.10 [flag #6 / E-26] In `pkg/codegen/cut_admit.go`, `boundaryAdapterEnabled()` is read twice in `admitCutCandidates` (line 87 and line 105). Cache once at loop entry.
-- [ ] 8.11 [flag #7 / E-27] In `pkg/codegen/cut_admit.go:adapterRecoveryAllowed:196-201`, Surface switch treats `""` (empty) as eligible. Decide: explicit refusal on empty, OR document intent. Recommend explicit refusal.
-- [ ] 8.12 [flag #34 / E-37] Document the SPRINT-0051 stage-4/8 flake source in `.moab/runs/sprint-0051-closeout/flake-notes.md`. If the source is reproducible (likely Kind cold-start or port-forward race in `harness.StartPortForward`), fix it; if not, record the symptom.
-- [ ] 8.13 [flag #14 / E-36] In `pkg/codegen/adapter_pass.go:planInputTransforms`/`planOutputTransforms` (lines 150-156, 197-204), collect all unsatisfied proofs and return them as the refusal trail, or document that "first failure" is intent.
-- [ ] 8.14 [flag #12 / E-34] In `pkg/codegen/adapter_pass.go:421-447`, `liveProxyClassify(typ, isResult)` accepts and discards `isResult`. Either use it (for io.Writer-only-as-result vs io.Writer-as-input distinction) or drop the parameter.
-- [ ] 8.15 [flag #13 / E-35] Document the gap between `isDirectlySerializableParam` (conservative — `pkg/codegen/adapter_pass.go:479`) and `AdmitPlan` (broader) with a file-comment paragraph stating the adapter pass defers to `AdmitPlan` for admission and uses a conservative gate only to skip unnecessary transforms.
-- [ ] 8.16 [flag #11 / E-42] In `pkg/codegen/adapter_pass.go:567-615`, `remoteSignatureString` builds `transformByParamIndex` and never uses it. Delete the dead map.
+> All Phase 8 nits land together in one commit; `go test ./pkg/codegen/...` (incl. golden files + the new 11-field DTO test + the 3.6 guard) passes and `go vet -tags=e2e ./test/e2e/...` is clean on CloudLab.
+
+- [x] 8.1 [flag #32 / E-41] Added package consts `adminUsername`/`adminPassword` in `activation_listmonk_processimage/target.go`; used in the host env vars and `workload.go`'s `SetBasicAuth`.
+- [x] 8.2 [flag #31 / E-40] Already satisfied — the file read is inside `directInvokePayload`'s body, and the targets slice is built function-locally in `TestE2E` (`e2e_test.go:66`, `:=`), so a missing fixture panics at test run, not package init. No change needed beyond the `fixturePath` const (8.4).
+- [x] 8.3 [flag #29 / E-38] Commented the intentional divergence in `oracle.go`: the oracle decodes with stdlib `image.Decode` for reference-independence (avoids `imaging`'s orientation-handling decode path); the fixture is a plain PNG so the decoders agree; resize/encode still use `imaging` since those define the compared thumbnail.
+- [x] 8.4 [flag #30 / E-39] Added `const fixturePath` in `target.go`; used in `oracle.go` and `workload.go`.
+- [x] 8.5 [flag #27 / E-32] Replaced both `"r"+string(rune('0'+i))` generators (`server.go` callVars + litParts) and the one in `adapter_client.go` with `fmt.Sprintf("r%d", i)`. The old scheme produced the invalid identifier `r:` at i==10. Added `TestRenderServerDTOElevenFields` (11 non-error fields) which renders cleanly and asserts `r10` is present — it fails under the old scheme since gofmt rejects `r:`.
+- [x] 8.6 [flag #25 / E-33] `serverTemplateView` now returns `(serverView, error)` and propagates the `buildNormalizedHelper` error (previously swallowed by an `err == nil` guard); `RenderServer` threads it. A failed helper build now fails loudly instead of silently rendering without the local adapter code.
+- [x] 8.7 [flag #16 / E-28] (covered by Phase 3.3.)
+- [x] 8.8 [flag #17 / E-29] (covered by Phase 3.4.)
+- [x] 8.9 [flag #18 / E-30] (covered by Phase 3.5.)
+- [x] 8.10 [flag #6 / E-26] Already satisfied — `admitCutCandidates` caches `adapterEnabled := boundaryAdapterEnabled()` once at line 87 and reuses it at the parent-forbidden check (line 105). No second read.
+- [x] 8.11 [flag #7 / E-27] `adapterRecoveryAllowed`'s Surface switch no longer treats `""` as eligible — only `Minimal`/`Small` admit; an unset (unclassified) surface is refused conservatively, with a comment. (M-4 has `Minimal`, so unaffected; the Phase 9.4 sweep confirms no flips.)
+- [x] 8.12 [flag #34 / E-37] Symptom recorded here rather than in the gitignored `.moab/runs/` artifacts dir: the SPRINT-0051 stage-4/8 flake was a Kind cold-start / `harness.StartPortForward` readiness race. **Not reproduced this sprint** — both new lifts passed, and ExtractContent's only stage-9 failure was a genuine workload bug (fail-closed marker assertion), not a flake. No fix landed; left as a watch item.
+- [x] 8.13 [flag #14 / E-36] Documented "first failure" as intentional fail-fast in both `planInputTransforms` and `planOutputTransforms` — admission surfaces one refusal code per candidate, matching the rest of the pipeline.
+- [x] 8.14 [flag #12 / E-34] Dropped the unused `isResult` parameter from `liveProxyClassify`; updated the call site and the doc comment (io.Writer/chan/func/`*os.File`/ResponseWriter are refused in either position, so the flag was dead).
+- [x] 8.15 [flag #13 / E-35] Expanded the `isDirectlySerializableParam` doc comment to state the adapter pass defers to `AdmitPlan` for admission and uses this narrower gate only to decide which params need a transform; being narrower is safe, broader would not be.
+- [x] 8.16 [flag #11 / E-42] Deleted the dead `transformByParamIndex` map (and its `_ =` discard) from `remoteSignatureString`.
 
 ## Phase 9: Verification and closeout
 

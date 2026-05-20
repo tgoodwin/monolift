@@ -31,7 +31,7 @@ func (Oracle) Invoke(args map[string]any) (any, error) {
 }
 
 func directInvokePayload() map[string]any {
-	data, err := os.ReadFile("targets/activation_listmonk_processimage/testdata/fixture.png")
+	data, err := os.ReadFile(fixturePath)
 	if err != nil {
 		panic(err)
 	}
@@ -39,6 +39,12 @@ func directInvokePayload() map[string]any {
 }
 
 func processImageBytes(input []byte) ([]byte, int, int, error) {
+	// Decode with the stdlib image.Decode rather than imaging.Decode on purpose:
+	// the oracle is an independent reference, so it avoids reusing the same
+	// orientation-handling decode path the lifted helper takes. The fixture is a
+	// plain PNG with no EXIF orientation, so the two decoders agree; the resize
+	// and PNG re-encode below intentionally do use imaging, since those define
+	// the thumbnail output being compared.
 	img, _, err := image.Decode(bytes.NewReader(input))
 	if err != nil {
 		return nil, 0, 0, err

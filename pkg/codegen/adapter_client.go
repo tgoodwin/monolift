@@ -205,7 +205,7 @@ func adapterReturnExpressions(plan, transport *Plan) (remoteVars, returnExprs, d
 		if result.Codec == CodecError {
 			continue
 		}
-		v := "r" + string(rune('0'+nonErrorIndex))
+		v := fmt.Sprintf("r%d", nonErrorIndex)
 		remote = append(remote, v)
 		decoded = append(decoded, "decoded."+transport.ResultDTO.Fields[nonErrorIndex].Name)
 		original := plan.Results[result.Index]

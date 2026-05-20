@@ -153,6 +153,9 @@ func planInputTransforms(fn *ssa.Function) ([]AdapterPattern, []AdapterProof, []
 		})
 	}
 	// Any failed pattern proof refuses with the corresponding obligation code.
+	// First-failure is intentional: admission surfaces a single refusal reason
+	// (the first unsatisfied obligation), matching how the rest of the pipeline
+	// reports one refusal code per candidate rather than an aggregate trail.
 	for _, p := range proofs {
 		if !p.Satisfied {
 			return nil, nil, []AdmissionRefusal{{
@@ -200,6 +203,7 @@ func planOutputTransforms(fn *ssa.Function) ([]AdapterPattern, []AdapterProof, [
 			ToType:    pattern.ToType(),
 		})
 	}
+	// First-failure is intentional, as in planInputTransforms.
 	for _, p := range proofs {
 		if !p.Satisfied {
 			return nil, nil, []AdmissionRefusal{{
@@ -455,7 +459,7 @@ func liveProxyOrImpossibleRefusal(sig *types.Signature) *AdmissionRefusal {
 		}
 		for i := 0; i < vars.Len(); i++ {
 			typ := vars.At(i).Type()
-			if refusal := liveProxyClassify(typ, kind == "result"); refusal != nil {
+			if refusal := liveProxyClassify(typ); refusal != nil {
 				refusal.Type = describeType(typ)
 				return refusal
 			}
@@ -466,9 +470,10 @@ func liveProxyOrImpossibleRefusal(sig *types.Signature) *AdmissionRefusal {
 
 // liveProxyClassify returns a refusal for one parameter or return type that
 // requires live-proxy semantics, or nil when the type is acceptable. The
-// isResult flag distinguishes io.Writer output parameters (which the spec
-// classifies as LiveProxyRequired) from other appearances.
-func liveProxyClassify(typ types.Type, isResult bool) *AdmissionRefusal {
+// classification does not depend on whether the type appears as a parameter or
+// a result: io.Writer, channels, function values, *os.File, and
+// http.ResponseWriter are refused in either position.
+func liveProxyClassify(typ types.Type) *AdmissionRefusal {
 	if typ == nil {
 		return nil
 	}
@@ -491,7 +496,6 @@ func liveProxyClassify(typ types.Type, isResult bool) *AdmissionRefusal {
 	// only as an input we still refuse — io.Writer is always remote-streamable
 	// rather than finite. (io.Reader is handled by reader_read_all in future.)
 	if isNamedFromPkg(bare, "io", "Writer") || isNamedFromPkg(bare, "io", "WriteCloser") {
-		_ = isResult
 		return &AdmissionRefusal{Code: RefusalLiveProxyRequired, Message: "io.Writer cannot be captured as a finite value; live proxy required"}
 	}
 	return nil
@@ -524,8 +528,16 @@ func isNamedFromPkg(typ types.Type, pkgPath, name string) bool {
 // isDirectlySerializableParam returns true for parameter/return types that
 // codegen can carry across the boundary today without an adapter. Primitive
 // types, strings, byte slices, and known reconstructible types are direct.
-// The actual admission logic lives elsewhere; this is a conservative gate
-// so the adapter pass doesn't synthesize unnecessary transforms.
+//
+// This is deliberately *narrower* than the real admission check in `AdmitPlan`:
+// the adapter pass defers to `AdmitPlan` for the authoritative decision of what
+// is liftable, and uses this conservative gate only to decide which parameters
+// need an adapter transform synthesized. A type this gate rejects as "not
+// directly serializable" may still be admitted by `AdmitPlan` through other
+// codecs; the only consequence of the gate being conservative is that the
+// adapter pass considers a transform for it, which the pattern registry then
+// either supplies or refuses. The gate must never be *broader* than `AdmitPlan`
+// (that would skip a needed transform), but being narrower is safe.
 func isDirectlySerializableParam(typ types.Type) bool {
 	if typ == nil {
 		return false
@@ -619,7 +631,6 @@ func remoteSignatureString(sig *types.Signature, inputs, outputs []AdapterPatter
 		return ""
 	}
 	paramStrs := make([]string, 0, sig.Params().Len())
-	transformByParamIndex := map[int]AdapterPattern{}
 	transformIdx := 0
 	for i := 0; i < sig.Params().Len(); i++ {
 		typ := sig.Params().At(i).Type()
@@ -628,7 +639,6 @@ func remoteSignatureString(sig *types.Signature, inputs, outputs []AdapterPatter
 			continue
 		}
 		if transformIdx < len(inputs) {
-			transformByParamIndex[i] = inputs[transformIdx]
 			paramStrs = append(paramStrs, inputs[transformIdx].ToType)
 			transformIdx++
 			continue
@@ -654,7 +664,6 @@ func remoteSignatureString(sig *types.Signature, inputs, outputs []AdapterPatter
 		}
 		resultStrs = append(resultStrs, describeType(typ))
 	}
-	_ = transformByParamIndex
 	out := "(" + strings.Join(paramStrs, ", ") + ")"
 	if len(resultStrs) == 1 {
 		out += " " + resultStrs[0]

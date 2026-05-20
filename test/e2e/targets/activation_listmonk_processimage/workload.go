@@ -61,7 +61,7 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 	if path != mediaPath {
 		return harness.Step{}, fmt.Errorf("unsupported listmonk workload path %s", path)
 	}
-	data, err := os.ReadFile("targets/activation_listmonk_processimage/testdata/fixture.png")
+	data, err := os.ReadFile(fixturePath)
 	if err != nil {
 		return harness.Step{}, err
 	}
@@ -85,7 +85,7 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 		return harness.Step{}, err
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.SetBasicAuth("admin", "adminpass123")
+	req.SetBasicAuth(adminUsername, adminPassword)
 	resp, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
 	if err != nil {
 		return harness.Step{}, fmt.Errorf("POST %s: %w", mediaPath, err)

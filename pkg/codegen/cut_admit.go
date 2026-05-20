@@ -225,8 +225,12 @@ func adapterRecoveryAllowed(candidate activation.CutCandidate, plan *Plan) bool 
 	if (candidate.Callbacks == activation.Moderate || candidate.Callbacks == activation.Many) && planHasFunctionBoundary(plan) {
 		return false
 	}
+	// An unset Surface ("") means the cut analysis did not classify the
+	// extraction surface; treat that as ineligible rather than eligible. The
+	// recovery branch only admits candidates with an affirmatively small
+	// surface (Minimal/Small); an unknown surface is refused conservatively.
 	switch candidate.Surface {
-	case "", activation.Minimal, activation.Small:
+	case activation.Minimal, activation.Small:
 		return true
 	default:
 		return false

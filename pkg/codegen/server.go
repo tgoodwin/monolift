@@ -2,13 +2,17 @@ package codegen
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"text/template"
 )
 
 func RenderServer(plan *Plan) (map[string][]byte, error) {
-	view := serverTemplateView(plan)
+	view, err := serverTemplateView(plan)
+	if err != nil {
+		return nil, err
+	}
 	tmpl, err := template.New("server").Parse(serverTemplate)
 	if err != nil {
 		return nil, err
@@ -67,7 +71,7 @@ type fieldView struct {
 	Reconstructor Reconstructor
 }
 
-func serverTemplateView(plan *Plan) serverView {
+func serverTemplateView(plan *Plan) (serverView, error) {
 	if plan != nil && plan.AdapterPlan != nil {
 		plan = normalizedAdapterPlan(plan)
 	}
@@ -83,10 +87,12 @@ func serverTemplateView(plan *Plan) serverView {
 	}
 	var localAdapterCode string
 	if plan.CutPoint.PackageName == "main" && plan.AdapterPlan != nil {
-		if helper, err := buildNormalizedHelper(plan); err == nil {
-			imports = append(imports, helper.Imports...)
-			localAdapterCode = renderLocalAdapterCode(plan, helper)
+		helper, err := buildNormalizedHelper(plan)
+		if err != nil {
+			return serverView{}, fmt.Errorf("build normalized adapter helper for %s: %w", plan.CutPoint.FuncName, err)
 		}
+		imports = append(imports, helper.Imports...)
+		localAdapterCode = renderLocalAdapterCode(plan, helper)
 	}
 	hasStreamingBytes := false
 	var requestFields []fieldView
@@ -210,7 +216,7 @@ func serverTemplateView(plan *Plan) serverView {
 		// Build the LHS vars for multi-value call: r0, r1, ..., resultErr
 		var callVars []string
 		for i := range plan.ResultDTO.Fields {
-			callVars = append(callVars, "r"+string(rune('0'+i)))
+			callVars = append(callVars, fmt.Sprintf("r%d", i))
 		}
 		if hasErrorResult {
 			callVars = append(callVars, "resultErr")
@@ -219,7 +225,7 @@ func serverTemplateView(plan *Plan) serverView {
 		// Build resp literal: invokeResponse{ Field0: r0, Field1: r1 }
 		var litParts []string
 		for i, f := range plan.ResultDTO.Fields {
-			litParts = append(litParts, f.Name+": r"+string(rune('0'+i)))
+			litParts = append(litParts, fmt.Sprintf("%s: r%d", f.Name, i))
 		}
 		dtoRespLiteral = strings.Join(litParts, ", ")
 	}
@@ -291,7 +297,7 @@ func serverTemplateView(plan *Plan) serverView {
 		}
 	}
 
-	return view
+	return view, nil
 }
 
 func (v serverView) AdapterCall() string {

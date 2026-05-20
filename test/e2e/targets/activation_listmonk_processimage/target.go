@@ -7,6 +7,14 @@ import (
 	"github.com/tgoodwin/monolift/test/e2e/harness"
 )
 
+const (
+	adminUsername = "admin"
+	adminPassword = "adminpass123"
+	// fixturePath is the deterministic PNG fed to both the workload upload and
+	// the oracle reference, relative to the e2e package working directory.
+	fixturePath = "targets/activation_listmonk_processimage/testdata/fixture.png"
+)
+
 func Target() harness.TargetCase {
 	payload := directInvokePayload()
 	return harness.TargetCase{
@@ -58,8 +66,8 @@ func Target() harness.TargetCase {
 					{Name: "LISTMONK_db__password", Value: "miniflux"},
 					{Name: "LISTMONK_db__database", Value: "miniflux"},
 					{Name: "LISTMONK_db__ssl_mode", Value: "disable"},
-					{Name: "LISTMONK_app__admin_username", Value: "admin"},
-					{Name: "LISTMONK_app__admin_password", Value: "adminpass123"},
+					{Name: "LISTMONK_app__admin_username", Value: adminUsername},
+					{Name: "LISTMONK_app__admin_password", Value: adminPassword},
 					{Name: "LISTMONK_upload__extensions", Value: "png,jpg,jpeg,gif,svg,*"},
 				},
 			},
