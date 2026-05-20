@@ -157,6 +157,9 @@ func admitCutCandidates(report reportv2.Report, cut *activation.CutResult) (Admi
 					Cut: &candidate,
 				})
 				if adapterVerdict.Accepted {
+					// Cache the recovered adapter plan so the build-plan phase
+					// reuses it instead of re-running tryAdapterRecovery.
+					storeCandidateAdapterPlan(candidateAdmitKey(candidate), adapterPlan)
 					markCandidateAdapter(cut, candidate)
 					return adapterVerdict, demotionChain, nil
 				}
@@ -563,6 +566,10 @@ type candidateAdmitResult struct {
 	verdict AdmissionVerdict
 	plan    *Plan
 	err     error
+	// adapterPlan is the recovery result, set after admitCutCandidates accepts
+	// an adapter-recovered candidate. The build-plan phase reuses it so
+	// tryAdapterRecovery runs exactly once per recovered candidate.
+	adapterPlan *AdapterPlan
 }
 
 var candidateAdmitCache = struct {
@@ -591,6 +598,34 @@ func storeCandidateAdmitResult(key candidateAdmitCacheKey, result candidateAdmit
 	candidateAdmitCache.Lock()
 	defer candidateAdmitCache.Unlock()
 	candidateAdmitCache.results[key] = result
+}
+
+// storeCandidateAdapterPlan attaches a recovered adapter plan to the cached
+// admit result for key, preserving the existing verdict/plan. The entry is
+// created if absent.
+func storeCandidateAdapterPlan(key candidateAdmitCacheKey, adapterPlan *AdapterPlan) {
+	candidateAdmitCache.Lock()
+	defer candidateAdmitCache.Unlock()
+	entry := candidateAdmitCache.results[key]
+	entry.adapterPlan = adapterPlan
+	candidateAdmitCache.results[key] = entry
+}
+
+// cachedAdapterPlanFor returns the adapter plan recovered for candidate during
+// admission, or nil when none is cached. The lookup enforces an invariant: the
+// cached plan's SourceFunction must match the candidate's function name (the
+// FunctionKey identity), guarding against a stale or mis-keyed entry. On
+// mismatch it returns nil so the caller recomputes rather than trusting a wrong
+// plan.
+func cachedAdapterPlanFor(candidate activation.CutCandidate) *AdapterPlan {
+	cached, ok := lookupCandidateAdmitResult(candidateAdmitKey(candidate))
+	if !ok || cached.adapterPlan == nil {
+		return nil
+	}
+	if cached.adapterPlan.SourceFunction != candidate.NodeKey.FuncName {
+		return nil
+	}
+	return cached.adapterPlan
 }
 
 type candidatePlanResult struct {

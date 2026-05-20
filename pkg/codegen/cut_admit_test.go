@@ -641,6 +641,64 @@ func TestAdmitCutCandidatesAdapterRecoverySelectsProcessImageNotUploadMedia(t *t
 	}
 }
 
+// TestAdmitCutCandidatesCachesAdapterPlanForReuse covers SPRINT-0052 task 2.7
+// (B-15): admission runs tryAdapterRecovery exactly once and caches the
+// resulting AdapterPlan, and the build-plan phase reuses it via
+// cachedAdapterPlanFor without re-running recovery.
+func TestAdmitCutCandidatesCachesAdapterPlanForReuse(t *testing.T) {
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
+	processImage := admissibleTestCandidate()
+	processImage.Step = 2
+	processImage.NodeKey.FuncName = "processImage"
+	processImage.NodeName = "processImage"
+	cut := &activation.CutResult{Candidates: []activation.CutCandidate{processImage}}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		return processImageRecoveryPlan(cut.Recommended.NodeKey), nil
+	})
+	recoveryCalls := 0
+	withAdapterRecovery(t, func(report reportv2.Report, candidate activation.CutCandidate, plan *Plan) (*AdapterPlan, []AdmissionRefusal) {
+		recoveryCalls++
+		return processImageRecoveryAdapterPlan(), nil
+	})
+
+	verdict, _, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if !verdict.Accepted {
+		t.Fatalf("adapter recovery refused processImage: %s", verdict.Error())
+	}
+	if recoveryCalls != 1 {
+		t.Fatalf("tryAdapterRecovery called %d times during admission, want exactly 1", recoveryCalls)
+	}
+
+	// Build-plan reuse: the cached plan is available and the invariant holds,
+	// and the lookup does not re-invoke recovery.
+	cached := cachedAdapterPlanFor(*cut.Recommended)
+	if cached == nil {
+		t.Fatal("expected cached adapter plan for build-plan reuse, got nil")
+	}
+	if cached.SourceFunction != "processImage" {
+		t.Fatalf("cached adapter plan SourceFunction = %q, want processImage", cached.SourceFunction)
+	}
+	if recoveryCalls != 1 {
+		t.Fatalf("cachedAdapterPlanFor must not invoke recovery; call count now %d", recoveryCalls)
+	}
+
+	// Invariant guard: a cache entry whose stored SourceFunction disagrees with
+	// the candidate's function name must not be reused (defends against a stale
+	// or mis-keyed entry). Store a plan for "processImage" under a "renamed"
+	// key and confirm the lookup refuses it.
+	renamed := processImage
+	renamed.NodeKey.FuncName = "renamed"
+	storeCandidateAdapterPlan(candidateAdmitKey(renamed), processImageRecoveryAdapterPlan())
+	if cachedAdapterPlanFor(renamed) != nil {
+		t.Fatal("invariant guard failed: reused a plan whose SourceFunction != candidate function name")
+	}
+}
+
 func TestAdmitCutCandidatesAdapterProofFailureDemotes(t *testing.T) {
 	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
 	awkward := admissibleTestCandidate()
