@@ -42,6 +42,7 @@ import (
 	activation_pocketbase_columnify "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_columnify"
 	activation_pocketbase_createthumb "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_createthumb"
 	activation_pocketbase_passwordvalidate "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_passwordvalidate"
+	activation_pocketbase_s256challenge "github.com/tgoodwin/monolift/test/e2e/targets/activation_pocketbase_s256challenge"
 	"github.com/tgoodwin/monolift/test/e2e/targets/caddy"
 	"github.com/tgoodwin/monolift/test/e2e/targets/gitea"
 	"github.com/tgoodwin/monolift/test/e2e/targets/listmonk"
@@ -83,6 +84,7 @@ func TestE2E(t *testing.T) {
 		activation_pocketbase_columnify.Target(),
 		activation_pocketbase_createthumb.Target(),
 		activation_pocketbase_passwordvalidate.Target(),
+		activation_pocketbase_s256challenge.Target(),
 		activation_mattermost_pbkdf2hash.Target(),
 		activation_mattermost_publiclinkhash.Target(),
 		mattermost.Target(),

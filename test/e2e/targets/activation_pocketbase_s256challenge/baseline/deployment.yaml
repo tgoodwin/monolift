@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pocketbase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pocketbase
+  template:
+    metadata:
+      labels:
+        app: pocketbase
+    spec:
+      containers:
+        - name: pocketbase
+          image: monolift-e2e/pocketbase:e2e
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8090
+          command:
+            - /bin/sh
+            - -c
+            - /pocketbase superuser upsert admin@example.com Monolift123! --dir=/pb_data && exec /pocketbase serve --http=0.0.0.0:8090 --dir=/pb_data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8090
+            periodSeconds: 2
+          volumeMounts:
+            - name: pb-data
+              mountPath: /pb_data
+      volumes:
+        - name: pb-data
+          emptyDir: {}
