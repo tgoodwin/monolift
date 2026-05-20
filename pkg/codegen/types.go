@@ -194,7 +194,7 @@ const (
 // are JSON-codable. The DTO is a transport-layer detail; app-facing
 // signatures in generated host stubs are preserved unchanged.
 type ResultDTO struct {
-	// Name is the Go struct name, e.g. "processImageResult".
+	// Name is the Go struct name, e.g. "parseResult".
 	Name string `json:"name"`
 	// Fields are the non-error return values packed into the struct.
 	Fields []ResultDTOField `json:"fields"`
