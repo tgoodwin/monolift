@@ -45,9 +45,14 @@ type AdapterContext struct {
 	CallSites             []*ssa.CallCommon
 	MaxInlinePayloadBytes int
 	// FunctionExported marks whether the helper function name is exported.
-	// Used by the call-site obligation when CallSites is nil — an unexported
-	// helper's call sites are bounded by its own package.
+	// Used by the call-site obligation when neither CallSiteIndex nor
+	// CallSites is supplied — an unexported helper's call sites are bounded
+	// by its own package.
 	FunctionExported bool
+	// CallSiteIndex is the reverse-import scan result. When present and
+	// scanned, it is authoritative for the adapter_call_site obligation; when
+	// nil, dischargeCallSite falls back to CallSites / FunctionExported.
+	CallSiteIndex *CallSiteIndex
 }
 
 const defaultInlinePayloadBytes = 8 * 1024 * 1024 // 8 MiB
@@ -305,6 +310,28 @@ func dischargeLocalLifecycle(fn *ssa.Function, inputs []AdapterPattern) AdapterP
 // would observe the adapter swap.
 func dischargeCallSite(ctx AdapterContext) AdapterProof {
 	proof := AdapterProof{Obligation: RefusalAdapterCallSite, Satisfied: true}
+	if ctx.CallSiteIndex != nil && ctx.CallSiteIndex.Scanned {
+		idx := ctx.CallSiteIndex
+		if idx.Disqualifier != "" {
+			proof.Satisfied = false
+			proof.Detail = idx.Disqualifier
+			return proof
+		}
+		if len(idx.DirectCalls) > 0 {
+			proof.Detail = fmt.Sprintf("%d reference(s) across the activation-path scope are direct calls; no function-value or reflective use", len(idx.DirectCalls))
+			return proof
+		}
+		// No references at all in the scoped program. An unexported helper is
+		// bounded by its own package (already scanned); an exported helper may
+		// be referenced from outside the scope, which the scan cannot observe.
+		if !ctx.FunctionExported {
+			proof.Detail = "no references in the activation-path scope; unexported helper bounded by its own package"
+			return proof
+		}
+		proof.Satisfied = false
+		proof.Detail = "exported helper has no observed references in the activation-path scope; cannot prove no function-value or reflective use"
+		return proof
+	}
 	if len(ctx.CallSites) == 0 {
 		if !ctx.FunctionExported {
 			proof.Detail = "no call-site set supplied; unexported helper bounded by its own package"

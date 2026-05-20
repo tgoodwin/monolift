@@ -887,8 +887,9 @@ func withAdapterRecovery(t *testing.T, recover func(reportv2.Report, activation.
 
 func resetCandidateAdmitCacheForTest() {
 	candidateAdmitCache.Lock()
-	defer candidateAdmitCache.Unlock()
 	candidateAdmitCache.results = map[candidateAdmitCacheKey]candidateAdmitResult{}
+	candidateAdmitCache.Unlock()
+	resetAdapterSSACache()
 }
 
 func processImageRecoveryPlan(key activation.FunctionKey) *Plan {

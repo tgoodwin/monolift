@@ -435,7 +435,7 @@ func tryAdapterRecoveryFromPlan(report reportv2.Report, candidate activation.Cut
 		}
 		plan = built
 	}
-	fn, err := loadAdapterSSAFunction(plan)
+	fn, index, err := loadAdapterSSAWithCallSites(plan)
 	if err != nil {
 		return nil, []AdmissionRefusal{{Code: RefusalAdapterUnknown, Message: err.Error()}}
 	}
@@ -443,20 +443,82 @@ func tryAdapterRecoveryFromPlan(report reportv2.Report, candidate activation.Cut
 		Fn:                    fn,
 		MaxInlinePayloadBytes: defaultInlinePayloadBytes,
 		FunctionExported:      isExportedIdentifier(plan.CutPoint.FuncName),
+		CallSiteIndex:         index,
 	})
 }
 
-func loadAdapterSSAFunction(plan *Plan) (*ssa.Function, error) {
+// adapterSSAKey identifies a cached adapter SSA load. The module root is part
+// of the key so synthetic per-test modules (each in its own temp dir) never
+// collide on a shared package/func name.
+type adapterSSAKey struct {
+	moduleRoot  string
+	packagePath string
+	funcName    string
+	receiver    string
+}
+
+type adapterSSAEntry struct {
+	fn    *ssa.Function
+	index *CallSiteIndex
+	err   error
+}
+
+var adapterSSACache = struct {
+	sync.Mutex
+	entries map[adapterSSAKey]adapterSSAEntry
+}{entries: map[adapterSSAKey]adapterSSAEntry{}}
+
+func resetAdapterSSACache() {
+	adapterSSACache.Lock()
+	defer adapterSSACache.Unlock()
+	adapterSSACache.entries = map[adapterSSAKey]adapterSSAEntry{}
+}
+
+// loadAdapterSSAWithCallSites loads the helper SSA function over the
+// activation-path scope (the cut package plus its reverse importers) and
+// builds the call-site index in the same pass. The result is cached per
+// candidate so the build-plan phase does not reload and rescan.
+func loadAdapterSSAWithCallSites(plan *Plan) (*ssa.Function, *CallSiteIndex, error) {
 	if plan == nil {
-		return nil, fmt.Errorf("adapter recovery requires a built plan")
+		return nil, nil, fmt.Errorf("adapter recovery requires a built plan")
+	}
+	key := adapterSSAKey{
+		moduleRoot:  plan.SourceModuleRoot,
+		packagePath: plan.CutPoint.PackagePath,
+		funcName:    plan.CutPoint.FuncName,
+		receiver:    plan.CutPoint.Receiver,
+	}
+	adapterSSACache.Lock()
+	if entry, ok := adapterSSACache.entries[key]; ok {
+		adapterSSACache.Unlock()
+		return entry.fn, entry.index, entry.err
+	}
+	adapterSSACache.Unlock()
+
+	fn, index, err := loadAdapterSSAUncached(plan)
+	adapterSSACache.Lock()
+	adapterSSACache.entries[key] = adapterSSAEntry{fn: fn, index: index, err: err}
+	adapterSSACache.Unlock()
+	return fn, index, err
+}
+
+func loadAdapterSSAUncached(plan *Plan) (*ssa.Function, *CallSiteIndex, error) {
+	// Scope to the reverse-import set so the call-site scan observes callers
+	// in importing packages, not just the cut package. Fall back to the cut
+	// package alone if scoping fails.
+	packages := []string{plan.CutPoint.PackagePath}
+	if plan.CutPoint.File != "" {
+		if scoped, err := activation.ReverseImportScope(plan.SourceModuleRoot, plan.CutPoint.File, nil); err == nil && len(scoped) > 0 {
+			packages = scoped
+		}
 	}
 	cfg := activation.Config{
 		Dir:      plan.SourceModuleRoot,
-		Packages: []string{plan.CutPoint.PackagePath},
+		Packages: packages,
 	}
 	program, err := cfg.LoadProgram()
 	if err != nil {
-		return nil, fmt.Errorf("load SSA for adapter recovery: %w", err)
+		return nil, nil, fmt.Errorf("load SSA for adapter recovery: %w", err)
 	}
 	program.BuildSSA()
 	for _, pkg := range program.SSAProgram.AllPackages() {
@@ -466,11 +528,11 @@ func loadAdapterSSAFunction(plan *Plan) (*ssa.Function, error) {
 		for _, member := range pkg.Members {
 			fn, ok := member.(*ssa.Function)
 			if ok && fn.Name() == plan.CutPoint.FuncName {
-				return fn, nil
+				return fn, buildCallSiteIndex(fn), nil
 			}
 		}
 	}
-	return nil, fmt.Errorf("adapter recovery could not find SSA function %s in %s", plan.CutPoint.FuncName, plan.CutPoint.PackagePath)
+	return nil, nil, fmt.Errorf("adapter recovery could not find SSA function %s in %s", plan.CutPoint.FuncName, plan.CutPoint.PackagePath)
 }
 
 func isExportedIdentifier(name string) bool {
