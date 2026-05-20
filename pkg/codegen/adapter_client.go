@@ -235,6 +235,14 @@ func adapterReturnExpressions(plan, transport *Plan) (remoteVars, returnExprs, d
 	return strings.Join(append(remote, "transportErr"), ", "), strings.Join(ret, ", "), strings.Join(decoded, ", ")
 }
 
+// adapterClientTemplate renders the boundary-adapter lift client. It is a
+// deliberate fork of clientTemplate (client.go) — see that comment for why a
+// single shared template was rejected. This variant always produces a
+// DTO-shaped response and adds host-side input extraction (ExtractionLines)
+// and return reconstruction (ReturnExprs/DecodeExprs) that the non-adapter
+// client has no notion of. The shared transport/plumbing block MUST stay
+// byte-identical with clientTemplate; TestClientTemplatesShareTransportPlumbing
+// asserts that.
 const adapterClientTemplate = `package {{ .Plan.CutPoint.PackageName }}
 
 import (
