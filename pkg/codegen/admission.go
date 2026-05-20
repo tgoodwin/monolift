@@ -55,9 +55,17 @@ func AdmitCut(_ reportv2.Report, cut activation.CutResult) AdmissionVerdict {
 	switch candidate.Callbacks {
 	case activation.ZeroConfirmed, activation.ZeroEstimated, activation.Low:
 	default:
-		if !boundaryAdapterEnabled() {
-			verdict = refused(verdict, "callable_boundary_values", fmt.Sprintf("callback class %s would require callable values across the boundary", candidate.Callbacks), string(candidate.Callbacks))
-		}
+		// Always report the callable-boundary refusal. The boundary-adapter
+		// feature flag does exactly one thing — enable the recovery branch in
+		// admitCutCandidates — and must not silently suppress this refusal
+		// (doing so admitted high-callback candidates directly as boundaries
+		// and skipped recovery entirely, since recovery is refusal-driven). A
+		// callable candidate is admitted only when adapter recovery succeeds
+		// and reclassifies it AdapterPossible; the recovered verdict is built
+		// from the normalized plan via AdmitPlan, which carries no callback
+		// check, so the refusal is shadowed there rather than here. Otherwise
+		// it stands. SPRINT-0052 task 2.2 (flag B-10).
+		verdict = refused(verdict, "callable_boundary_values", fmt.Sprintf("callback class %s would require callable values across the boundary", candidate.Callbacks), string(candidate.Callbacks))
 	}
 	return verdict
 }

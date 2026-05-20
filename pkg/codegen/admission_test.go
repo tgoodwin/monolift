@@ -34,6 +34,31 @@ func TestAdmitCutAcceptsLowCallbackEvidence(t *testing.T) {
 	}
 }
 
+// SPRINT-0052 task 2.2 (flag B-10): the MONOLIFT_BOUNDARY_ADAPTER flag must do
+// exactly one thing — enable the recovery branch in admitCutCandidates. It must
+// not silently suppress the callable_boundary_values refusal in the base
+// AdmitCut verdict. AdmitCut reports the refusal regardless of the flag; a
+// callable candidate is admitted only when adapter recovery later succeeds.
+func TestAdmitCutReportsCallableBoundaryRegardlessOfFlag(t *testing.T) {
+	for _, flag := range []string{"", "0", "1"} {
+		t.Run("flag="+flag, func(t *testing.T) {
+			t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", flag)
+			candidate := activation.CutCandidate{
+				Feasibility:  activation.Feasible,
+				BoundaryData: activation.Serializable,
+				Callbacks:    activation.Many,
+			}
+			verdict := AdmitCut(emptyReport(t), activation.CutResult{Recommended: &candidate})
+			if verdict.Accepted {
+				t.Fatalf("AdmitCut accepted a high-callback candidate with flag=%q; callable_boundary_values must be reported", flag)
+			}
+			if !hasRefusal(verdict, "callable_boundary_values") {
+				t.Fatalf("flag=%q: expected callable_boundary_values refusal, got: %s", flag, verdict.Error())
+			}
+		})
+	}
+}
+
 func TestAdmitPlanRefusesMissingReconstructor(t *testing.T) {
 	plan := &Plan{
 		ReconstructedParams: []ReconstructedParam{

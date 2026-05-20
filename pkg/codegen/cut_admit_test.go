@@ -764,6 +764,52 @@ func TestAdmitCutCandidatesFlagOffDoesNotMarkAdapterEligibility(t *testing.T) {
 	}
 }
 
+// SPRINT-0052 task 2.2 (flag B-10): with the flag ON, a callable candidate
+// that adapter recovery cannot rescue (high callback class + function-typed
+// boundary, which adapterRecoveryAllowed rejects) must still be refused with
+// callable_boundary_values. Before the fix, the flag silently suppressed the
+// refusal in AdmitCut and the candidate was admitted directly as a boundary.
+func TestAdmitCutCandidatesFlagOnCallableNotRecoverableStaysRefused(t *testing.T) {
+	t.Setenv("MONOLIFT_BOUNDARY_ADAPTER", "1")
+
+	callable := admissibleTestCandidate()
+	callable.Step = 2
+	callable.NodeKey.FuncName = "RegisterHook"
+	callable.NodeName = "RegisterHook"
+	callable.Callbacks = activation.Many
+	cut := &activation.CutResult{
+		Candidates: []activation.CutCandidate{callable},
+	}
+	cut.Recommended = &cut.Candidates[0]
+
+	withCandidatePlanBuilder(t, func(report reportv2.Report, cut activation.CutResult) (*Plan, error) {
+		// A function-typed boundary parameter makes adapterRecoveryAllowed
+		// return false for a Many-callback candidate, so recovery is declined
+		// and the callable refusal must stand.
+		return &Plan{
+			CutPoint: CutPoint{Key: cut.Recommended.NodeKey},
+			BoundaryParams: []Param{
+				{Name: "cb", JSONName: "cb", GoType: "func()", QualifiedGoType: "func()", Codec: CodecJSON, Index: 0},
+			},
+			Results: []Result{{GoType: "string", Codec: CodecPrimitive}},
+		}, nil
+	})
+
+	verdict, chain, err := admitCutCandidates(reportv2.Report{}, cut)
+	if err != nil {
+		t.Fatalf("admitCutCandidates returned error: %v", err)
+	}
+	if verdict.Accepted {
+		t.Fatal("flag-on callable candidate was admitted; callable_boundary_values must still be reported")
+	}
+	if !hasRefusal(verdict, "callable_boundary_values") {
+		t.Fatalf("expected callable_boundary_values to stand, got: %s", verdict.Error())
+	}
+	if len(chain) == 0 || chain[len(chain)-1].RefusalCode != "callable_boundary_values" {
+		t.Fatalf("demotion chain = %+v, want final refusal callable_boundary_values", chain)
+	}
+}
+
 func admissibleTestCandidate() activation.CutCandidate {
 	return activation.CutCandidate{
 		Step:         1,
