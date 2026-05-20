@@ -77,6 +77,18 @@ The flag-on current-manifest sweep produced `11 pass`, `9 admission-skip`,
 flag on. They were recorded as incidental adapter-enabled candidates, not e2e
 proofs.
 
+> **Reconciled in SPRINT-0052 (Phase 2.2 + 9.3).** That `M-5`/`M-11` flip was a
+> side-effect of `MONOLIFT_BOUNDARY_ADAPTER` carrying a *second* behavior — it
+> gated `callable_boundary_values` emission in addition to the recovery branch.
+> SPRINT-0052 Phase 2.2 removed that second behavior: `callable_boundary_values`
+> is now always emitted independent of the flag, and the flag's sole effect is
+> to gate the recovery branch (ADR-0032). `M-5`/`M-11` are `core.App`-interface
+> callback shapes (`live_proxy_required` territory), not drain-to-bytes adapter
+> candidates, so they are **not** adapter-eligible. After the fix they remain
+> `callable_boundary_values` admission-skips regardless of the flag, restoring
+> exact flag-off↔flag-on parity for these two traces against the SPRINT-0050
+> baseline. The SPRINT-0052 Phase 9.3 parity sweep verifies this.
+
 No generated extracted deployment YAML under the SPRINT-0051 CloudLab artifact
 directories contained `MONOLIFT_LIFT_*` environment variables.
 

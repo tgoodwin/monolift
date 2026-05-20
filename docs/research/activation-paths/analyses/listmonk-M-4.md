@@ -18,6 +18,22 @@
 | 3 | `(*App).UploadMedia` | `callback-registration` | Small | Reconstructible | DirectBoundary | Client-reconstructible | Low | OK | No |
 | 4 | `processImage` | `direct-function-call` | Minimal | Reconstructible | AdapterPossible | Client-reconstructible | 0 confirmed | OK | Yes |
 
+> **Footnote — `Reconstructible` vs. the `missing_reconstructor` admission
+> refusal.** Phase 0's flag-on admission sweep records `processImage` refusing
+> *direct* codegen with `missing_reconstructor`, which can look at odds with the
+> `Reconstructible` boundary-data column above. They describe different axes and
+> both are correct. `Reconstructible` is the `BoundaryDataClass` of the *source
+> value* — the bytes behind `*multipart.FileHeader` are finite and can be
+> reconstructed in principle. `missing_reconstructor` is an *admission* refusal
+> about whether the current **direct** pipeline has a registered reconstructor
+> for that specific awkward Go type; it does not. That refusal is precisely the
+> shape-compatible signal that triggers the adapter recovery branch (ADR-0032),
+> which then supplies the reconstructor via the `multipart_file_read_all` /
+> `bytes_reader_return` patterns. The source of truth for "is this liftable" is
+> the orthogonal `AdapterClass` axis (`AdapterPossible` here), not
+> `BoundaryDataClass` alone — the data being reconstructible is necessary but
+> not sufficient for *direct* admission, and the adapter pass closes the gap.
+
 ## Adapted Semantic Unit
 
 The selected cut is `processImage`, not `(*App).UploadMedia`.
