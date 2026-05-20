@@ -117,13 +117,22 @@ SPRINT-0051 shipped the boundary-adapter framework as a generalizable shape with
 > found **no** clean new-adapter candidate in a cost-feasible app — only
 > `listmonk/M-4` is classified `AdapterPossible` in the entire corpus. Decision:
 > **broaden the thesis** from "two new adapter patterns" to "two lifts proving the
-> framework's *generic* machinery generalizes beyond M-4." Final picks (both
-> listmonk, both confirmed admitted, both reuse the M-4 harness, zero new
-> `pkg/codegen` code): **Lift #1 `countLines(io.Reader)(int,error)`** (streaming-bytes
-> codec) and **Lift #2 `classifyBounce([]byte)(string,string)`** (multi-return DTO
-> packing). Full record + sweep table: `docs/research/runs/SPRINT-0052-target-survey.md`.
-> Phases 4-6 are re-scoped accordingly: **no new adapter pattern** (Phase 4 is a
-> no-op for this sprint), and Phases 5-6 land the two generic-machinery targets.
+> framework's *generic* machinery generalizes beyond M-4." Phases 4-6 re-scoped:
+> **no new adapter pattern** (Phase 4 is a no-op this sprint); Phases 5-6 land two
+> generic-machinery targets end-to-end.
+>
+> **FINAL picks (after a second re-selection).** Route-reachability is the binding
+> e2e constraint — an e2e must exercise the function through the host's real
+> request path to demonstrate the cross-network round-trip. An early reclassified
+> pair (`countLines`/`classifyBounce`) was discarded: `classifyBounce` is POP3-only
+> (no HTTP route), and the route-reachable listmonk alternatives are `SharedState`-
+> receiver methods that refuse with `receiver_requires_reconstruction`. Re-selected
+> across cost-feasible apps with route-reachability + free-function as the first
+> filter: **Lift #1 `miniflux/ExtractContent(io.Reader)(string,string,error)`**
+> (streaming-bytes **and** DTO, via `GET /v1/entries/{id}/fetch-content`) and **Lift #2
+> `pocketbase/S256Challenge(string) string`** (plain transform, via the auth-methods
+> route — a third app). Both confirmed admitted on CloudLab. Full record + sweep
+> tables: `docs/research/runs/SPRINT-0052-target-survey.md`.
 
 The brief proposes `pocketbase/M-7` and `gitea/M-13`. Phase 0 must independently confirm or refute these — both are *mailer* traces (`SMTPClient.send`, `sender.send`) per their analysis docs, so the "callback shape" and "reader shape" labels in the brief may be optimistic. Goal: enumerate adapter-shape-compatible corpus rows, classify them into pattern families, then *pick two whose patterns are distinct from each other and from `multipart_file_read_all`/`bytes_reader_return`*.
 

@@ -9,39 +9,57 @@ was **broadened** to "two lifts that prove the framework's *generic* machinery
 generalizes beyond M-4" (decision recorded below). Final picks are at the top;
 the original analytical pre-selection is retained underneath for the record.
 
-## Final picks (confirmed admitted on CloudLab, ~46s activation each)
+## Final picks (confirmed admitted on CloudLab)
 
-Both are **listmonk** (cost-feasible; gitea activation times out at 10m — see
-below) and **reuse the M-4 processimage e2e harness** (Postgres + listmonk
-container + direct-invoke). Neither needs a new adapter pattern or any new
-`pkg/codegen` code — they exercise mechanisms that already exist but that, today,
-**only `listmonk/M-4` exercises end-to-end**. None of the 9 passing corpus e2e
-targets use streaming-bytes or multi-return DTO.
+> **Re-selection note (route-reachability is the binding e2e constraint).** An
+> end-to-end test must *exercise the target function through the host's real
+> request path* so the cross-network round-trip (monolith → remote service →
+> back) is genuinely demonstrated. The first reclassified picks (`countLines`,
+> `classifyBounce`) failed this: `classifyBounce` is reachable *only* from the
+> POP3 bounce-mailbox scanner (no HTTP route at all), and a survey of fresh
+> listmonk candidates showed the route-reachable ones are nearly all methods on
+> `SharedState` receivers (`*App`, `*Campaign`) that refuse with
+> `receiver_requires_reconstruction`. Re-selected with route-reachability +
+> free-function (or trivial-receiver) as the first filter, across cost-feasible
+> apps. Both final picks are confirmed admitted **and** invoked synchronously on
+> an HTTP request path, so the workload can drive the real round-trip.
 
-### Lift #1: `listmonk/countLines(r io.Reader) (int, error)` — streaming-bytes codec
+### Lift #1: `miniflux/ExtractContent(page io.Reader) (baseURL, content string, err error)` — streaming-bytes + DTO
 
-- **Source:** `evaluation/listmonk/internal/subimporter/importer.go:717`
-- **Sweep result:** `ADMITTED: countLines (boundary params: 1, reconstructed: 0, results: 2)`.
-- **Mechanism proven:** the `io.Reader` parameter is classified `CodecStreamingBytes`
-  (`isStreamingReader` → true for `io.Reader/ReadSeeker/ReadCloser`) and admitted
-  directly — the client serializes the reader's content to `[]byte` in the JSON
-  request and the service rehydrates it. This is the **streaming-bytes codec**,
-  not an adapter. It is the reason the original `reader_read_all` adapter premise
-  was a mirage: `io.Reader` never reaches the adapter path.
-- **Oracle:** direct-equality on the returned `int` line count for fixed CSV byte input.
+- **Source:** `evaluation/miniflux/internal/reader/readability/readability.go:73`
+- **Sweep result:** `ADMITTED: ExtractContent (boundary params: 1, reconstructed: 0, results: 3)`.
+- **Route round-trip:** `GET /v1/entries/{id}/fetch-content` → `fetchContentHandler`
+  → `processor.ProcessEntryWebPage` → `scraper.ScrapeWebsite` → `ExtractContent`;
+  the returned `content` surfaces as `entry.Content` in the JSON response.
+- **Mechanisms proven (two at once):** `io.Reader` param → `CodecStreamingBytes`
+  (streaming-bytes), and two non-error string returns → ResultDTO packing (task
+  2.1 refusal-shadow gate). Free function (no receiver). Different app from M-4.
+- **Oracle:** direct-equality on the returned `(baseURL, content)` for a fixed HTML page.
 
-### Lift #2: `listmonk/classifyBounce(b []byte) (string, string)` — multi-return DTO packing
+### Lift #2: `pocketbase/S256Challenge(code string) string` — plain transform, third app
 
-- **Source:** `evaluation/listmonk/internal/bounce/mailbox/pop.go:214`
-- **Sweep result:** `ADMITTED: classifyBounce (boundary params: 1, reconstructed: 0, results: 2)`.
-- **Mechanism proven:** two non-error returns `(string, string)` trigger generic
-  **ResultDTO packing** — the path governed by the SPRINT-0052 task 2.1
-  refusal-shadow gate (`baseResultShapeRefusal`: `len==2 && !hasError` ⇒ pack).
-  Proves DTO result-shaping generalizes beyond M-4's `([]byte,int,int,error)`.
-- **Oracle:** direct-equality on the returned `(string, string)` tuple for fixed input.
-- **Alternative considered:** `GetTplSubject(string, []byte) (string, []byte)` (also
-  confirmed admitted, 2 params / 2 results) — same DTO mechanism; `classifyBounce`
-  chosen for the simpler signature.
+- **Source:** `evaluation/pocketbase/tools/security/crypto.go:18`
+- **Sweep result:** `ADMITTED: S256Challenge (boundary params: 1, reconstructed: 0, results: 1)`.
+- **Route round-trip:** `GET /api/collections/{collection}/auth-methods` →
+  `recordAuthMethods` calls `security.S256Challenge(info.CodeVerifier)` per
+  PKCE-enabled OAuth2 provider; result surfaces as `codeChallenge` in the JSON
+  response. (Workload must seed a PKCE OAuth2 provider in the fixture.)
+- **Mechanism proven:** a clean free-function pure transform (`string → string`)
+  lifting + round-tripping in a **third** app (pocketbase) — breadth across apps
+  and shapes (M-4 adapter / miniflux streaming+DTO / pocketbase plain).
+
+### Confirmed-but-not-chosen (kept as backups)
+
+- `listmonk/countLines(io.Reader)(int,error)` — streaming, route-reachable via
+  `POST /api/import/subscribers` → `importer.go:474`. Solid backup if either pick stalls.
+- `miniflux/EstimateReadingTime(string,int,int) int` — plain transform via `PUT /v1/entries/{id}`.
+
+### Refuted in re-selection (route-reachable but not liftable as-is)
+
+- `listmonk/exportSubscriberData` — method on `*App` (SharedState) → `receiver_requires_reconstruction`.
+- `listmonk/ConvertContent` — method on `*Campaign` (SharedState) → `receiver_requires_reconstruction`.
+- `listmonk/getI18nLang` — `missing recommended cut` (interface param / shape).
+- `listmonk/classifyBounce` — POP3-only, no HTTP route ⇒ cannot demonstrate the round-trip.
 
 ## CloudLab sweep results (2026-05-19, focused admission, `MONOLIFT_BOUNDARY_ADAPTER=1`)
 
