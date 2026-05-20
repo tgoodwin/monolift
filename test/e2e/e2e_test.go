@@ -33,6 +33,7 @@ import (
 	activation_listmonk_sanitizeuri "github.com/tgoodwin/monolift/test/e2e/targets/activation_listmonk_sanitizeuri"
 	activation_mattermost_pbkdf2hash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_pbkdf2hash"
 	activation_mattermost_publiclinkhash "github.com/tgoodwin/monolift/test/e2e/targets/activation_mattermost_publiclinkhash"
+	activation_miniflux_extractcontent "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_extractcontent"
 	activation_miniflux_feedicon "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_feedicon"
 	activation_miniflux_parsefeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_parsefeed"
 	activation_miniflux_refreshfeed "github.com/tgoodwin/monolift/test/e2e/targets/activation_miniflux_refreshfeed"
@@ -67,6 +68,7 @@ func TestE2E(t *testing.T) {
 		pocketbase.Target(),
 		miniflux.Target(),
 		activation_miniflux_feedicon.Target(),
+		activation_miniflux_extractcontent.Target(),
 		activation_miniflux_parsefeed.Target(),
 		activation_miniflux_refreshfeed.Target(),
 		activation_miniflux_sanitizehtml.Target(),
