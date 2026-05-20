@@ -187,13 +187,21 @@ Hygiene on the pattern interface and registry before Phase 4 writes new pattern 
 
 ## Phase 4: Pattern implementations (the *only* phase that grows `pkg/codegen/adapter*.go`)
 
-After this phase begins, no edits to `pkg/codegen/adapter*.go` outside `adapter_patterns.go`. The acceptance grep enforces this at closeout.
+> **NO-OP this sprint (maintainer-approved pivot).** The Phase 0 sweep found no
+> second adapter-*pattern* candidate in a cost-feasible app (only `listmonk/M-4`
+> is `AdapterPossible` corpus-wide). The thesis was broadened to prove the
+> framework's *generic* machinery generalizes — the two shipped lifts
+> (`ExtractContent` streaming-bytes+DTO, `S256Challenge` plain transform) use
+> existing generic mechanisms, not new adapter patterns, and added **zero**
+> `pkg/codegen/` code. The `adapterPatternRegistry` is unchanged from
+> SPRINT-0051. A genuinely new pattern remains a future-sprint item; the
+> sub-tasks below are intentionally not exercised.
 
-- [ ] 4.1 For each target picked in Phase 0, register a new `AdapterPatternImpl` in `adapter_patterns.go`'s `adapterPatternRegistry` (line 77). One pattern per target if shapes differ; one pattern serving both if a single shape generalizes. Implementations follow the existing two as a template: `Name`, `Direction`, `FromType`, `ToType`, `Matches`, `Discharge`, `RenderInputExtraction`/`RenderRemoteReconstruction`, plus the new `BodyPrologueMatcher` introduced in 1.2.
-- [ ] 4.2 If Phase 0 selected a reader target, implement `reader_read_all` as an input pattern: match bounded `io.Reader` / `io.ReadCloser`; render host-side `io.ReadAll`; preserve `Close` ownership for `ReadCloser`; refuse repeated reads, async reads, stores, interface escapes, and unbounded streaming loops.
-- [ ] 4.3 If Phase 0 selected a callback-shaped target with a verified finite contract, implement the callback pattern. Refuse transaction callbacks, app-continuation callbacks, callback values stored for later use, and callbacks requiring reverse invocation into the monolith.
-- [ ] 4.4 For each new pattern, add: a positive SSA fixture (Discharge passes), at least two negative fixtures including closure capture and goroutine capture, and a golden `AdapterPlan` JSON for the chosen target's helper.
-- [ ] 4.5 Integration test (analogous to SPRINT-0051 Phase 3.8): feed each target's real helper SSA into `TryAdapterPass`; assert the produced plan matches the golden.
+- [x] 4.1 N/A (no-op pivot) — no new `AdapterPatternImpl` registered; registry unchanged.
+- [x] 4.2 N/A — the reader target (`ExtractContent`) is handled by the existing streaming-bytes codec, not a new `reader_read_all` adapter pattern.
+- [x] 4.3 N/A — no callback-shaped target selected (corpus callback shapes are `live_proxy_required`, not adapter-eligible).
+- [x] 4.4 N/A — no new pattern, so no new pattern fixtures.
+- [x] 4.5 N/A — no new pattern, so no new integration golden.
 
 ## Phase 5: Target #2 end-to-end at stage 10
 
