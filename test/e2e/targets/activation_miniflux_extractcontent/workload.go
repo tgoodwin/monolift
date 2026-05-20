@@ -92,15 +92,15 @@ func (Workload) Request(ctx context.Context, host, path string) (harness.Step, e
 	// survived the cross-network round trip; the absence of <script proves
 	// ExtractContent/sanitize stripped it. Emit booleans rather than the raw
 	// HTML so baseline (miniflux:latest) and lifted (pinned source) compare
-	// equal regardless of incidental formatting differences.
+	// equal regardless of incidental formatting differences. Do NOT hard-error
+	// on a missing marker: in fail-closed mode the lifted shim returns the zero
+	// value, miniflux keeps the imported placeholder, and the route still
+	// returns 200 — which the fail-mode assertions require to be a non-5xx
+	// response. Correctness in env-on is gated by the stage-8 direct-invoke
+	// oracle-compare and the env-on/baseline transcript compare (both expect
+	// content_has_marker=true), so a broken lift is still caught there.
 	hasMarker := strings.Contains(content, contentMarker)
 	scriptStripped := !strings.Contains(content, "<script")
-	if !hasMarker {
-		return harness.Step{}, fmt.Errorf("fetch-content missing extracted marker; content=%q", trim(content))
-	}
-	if !scriptStripped {
-		return harness.Step{}, fmt.Errorf("fetch-content content still contains script: %q", trim(content))
-	}
 	return harness.Step{
 		Method: http.MethodGet,
 		Path:   fetchContentPath,
@@ -118,14 +118,6 @@ func (Workload) Verify(ctx context.Context, host string, expected harness.Transc
 		return err
 	}
 	return harness.Transcript{}.Compare(expected, got, nil)
-}
-
-func trim(s string) string {
-	s = strings.TrimSpace(s)
-	if len(s) > 200 {
-		return s[:200] + "..."
-	}
-	return s
 }
 
 type apiClient struct {
