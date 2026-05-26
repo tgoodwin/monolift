@@ -293,10 +293,14 @@ recoverable.
 --8<-- "docs/site/snippets/internal/cut-candidate-type.go.txt"
 ```
 
-Each field on `CutCandidate` is one of the six classification
-dimensions. `Feasibility` is the non-negotiable gate: if `Infeasible`,
-the candidate is rejected before ranking begins. The remaining five
-fields are compared in the priority order shown in the comparator.
+Each of the first six classification fields on `CutCandidate` is one of
+the ranking dimensions. `Feasibility` is the non-negotiable gate: if
+`Infeasible`, the candidate is rejected before ranking begins. The
+remaining five fields are compared in the priority order shown in the
+comparator. `AdapterClass` and `AdapterReason` are not ranking
+dimensions at all — they are an orthogonal recovery axis used only when
+no candidate admits directly, covered in
+[Adapting the network boundary](boundary-adapters.md).
 </div>
 
 </div>

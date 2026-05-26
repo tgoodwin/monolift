@@ -82,7 +82,7 @@ which paths it finds and where it gets stuck.
 With ground truth in hand, we built the algorithm one capability at a
 time. After each addition, we re-ran the full evaluation:
 
-- **Baseline**: a standard type-aware call graph (RTA) found 49 of 72
+- **Baseline**: a standard type-aware call graph (Rapid Type Analysis, RTA) found 49 of 72
   paths (68%). It handles direct calls and interface dispatch but
   misses everything that flows through stored values.
 
@@ -138,8 +138,8 @@ pattern that blocks the most paths, re-measure, repeat.
 The algorithm is a pipeline of static analysis passes over the
 program's intermediate representation:
 
-**1. Build a call graph.** Load the program, lower it to SSA, and run
-Rapid Type Analysis from `main()`. This produces a graph of which
+**1. Build a call graph.** Load the program, lower it to SSA (the compiler's
+static single-assignment form), and run Rapid Type Analysis from `main()`. This produces a graph of which
 functions can call which other functions, including calls through
 interfaces (where the compiler infers which concrete types could be on
 the other side).

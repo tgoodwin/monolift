@@ -1,0 +1,23 @@
+// AdapterClass describes whether the compiler can synthesize a local
+// wrapper to normalize the boundary shape. It is orthogonal to
+// BoundaryDataClass: BoundaryDataClass describes how hard boundary values
+// are to serialize; AdapterClass describes whether a pattern-based adapter
+// can bridge the gap. The two axes are never folded together.
+type AdapterClass string
+
+const (
+    // Source signature is already serializable/reconstructible — no adapter.
+    DirectBoundary AdapterClass = "DirectBoundary"
+
+    // Compiler can synthesize a local wrapper plus normalized remote payloads.
+    AdapterPossible AdapterClass = "AdapterPossible"
+
+    // Might be adaptable, but the required transforms are not yet proved.
+    AdapterUnknown AdapterClass = "AdapterUnknown"
+
+    // Remote code would need a host-owned live object — refuse, look elsewhere.
+    LiveProxyRequired AdapterClass = "LiveProxyRequired"
+
+    // Static proof fails, or preserving semantics would require changing the app.
+    AdapterImpossible AdapterClass = "AdapterImpossible"
+)

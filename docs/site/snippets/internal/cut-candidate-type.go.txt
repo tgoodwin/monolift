@@ -8,7 +8,9 @@ type CutCandidate struct {
 	Callbacks    CallbackClass     `json:"callbacks"`
 	State        StateClass        `json:"state"`
 	Surface      SurfaceClass      `json:"surface"`
-	ErrorSem     ErrorSemClass     `json:"error_sem"`
-	EdgeAlign    EdgeAlignClass    `json:"edge_align"`
-	Reason       string            `json:"reason"`
+	ErrorSem      ErrorSemClass     `json:"error_sem"`
+	EdgeAlign     EdgeAlignClass    `json:"edge_align"`
+	AdapterClass  AdapterClass      `json:"adapter_class,omitempty"`
+	AdapterReason string            `json:"adapter_reason,omitempty"`
+	Reason        string            `json:"reason"`
 }

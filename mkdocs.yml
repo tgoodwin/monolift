@@ -38,6 +38,7 @@ extra_css:
 
 markdown_extensions:
   - admonition
+  - pymdownx.details
   - attr_list
   - md_in_html
   - toc:
@@ -58,14 +59,19 @@ markdown_extensions:
       alternate_style: true
 
 nav:
-  - Home: index.md
-  - What's changing after the initial workshop paper: v1-to-v2.md
-  - Evaluation targets: evaluation-targets.md
-  - Reasoning about liftability: canonical-shapes.md
-  - Pattern matching on stateful code: state-class-inference.md
-  - Making the compiler opinionated: refusal-diagnostics.md
-  - Recovering activation paths: activation-paths.md
-  - Drawing the network boundary: cut-placement.md
-  - Code extraction: extraction.md
-  - Working backwards: working-backwards.md
-  - Finding your way around the code: reading-guide.md
+  - Start here:
+      - Home: index.md
+      - How Monolift works, in one example: walkthrough.md
+      - What's changing after the initial workshop paper: v1-to-v2.md
+  - The compiler, stage by stage:
+      - Reasoning about liftability: canonical-shapes.md
+      - Pattern matching on stateful code: state-class-inference.md
+      - Making the compiler opinionated: refusal-diagnostics.md
+      - Recovering activation paths: activation-paths.md
+      - Drawing the network boundary: cut-placement.md
+      - Adapting the network boundary: boundary-adapters.md
+      - Code extraction: extraction.md
+  - Project & reference:
+      - Working backwards: working-backwards.md
+      - Evaluation targets: evaluation-targets.md
+      - Finding your way around the code: reading-guide.md

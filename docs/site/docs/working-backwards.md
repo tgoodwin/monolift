@@ -67,17 +67,17 @@ currently takes it to. That tag is the project's standing claim
 about what the compiler can do for that specific symbol.
 
 Aggregated across the corpus, those per-candidate stage values form
-a capability map. The map is what the project diffs sprint-over-sprint:
-SPRINT-0049's coverage report, for example, is the difference between
-the SPRINT-0048 snapshot and the post-0049 snapshot of that map.
+a capability map. The map is what the project diffs sprint-over-sprint: each sprint's
+coverage report is the difference between the snapshot before it and the
+snapshot after.
 
 ## New capability lands, targets unlock
 
 Most sprints raise existing targets through the rungs that already
 exist, rather than adding new rungs to the ladder.
 
-Miniflux's `RefreshFeed` is the canonical example. Before
-SPRINT-0049 the compiler could take it through admission and produce
+Miniflux's `RefreshFeed` is the canonical example. Earlier in
+development the compiler could take it through admission and produce
 compile-clean extracted code, but no further. The blocker was a
 missing piece of compiler work: the SQL-wrapper reconstructor needed
 to know how to rebuild `*storage.Storage` on the lifted side from a
@@ -89,12 +89,19 @@ The capability itself was not built in the abstract. The existence
 of the target, plus another roughly fourteen queued candidates
 blocked on the same family, is what made it worth building.
 
-Adding a new rung to the ladder is rarer. SPRINT-0050's transcript
-comparison with declared substitutions is one example: it sets a
-new ceiling above the prior best, which was a deployed lift handling
-real workload traffic. Adding a rung is a bigger commitment because
+Adding a new rung to the ladder is rarer. Transcript comparison with
+declared substitutions — matching a lifted run against the original — is
+one example: it sets a new ceiling above the prior best, which was a
+deployed lift handling real workload traffic. Adding a rung is a bigger commitment because
 it changes the meaning of the capability map for every target at
 once. The default move is the smaller one.
+
+??? abstract "Sprint breadcrumbs (for maintainers)"
+    The milestones above map to the project's sprint history: the
+    capability-map diff is recomputed each sprint (the SPRINT-0048 →
+    SPRINT-0049 snapshot pair is one such diff); the SQL-wrapper
+    reconstruction that unblocked miniflux's `RefreshFeed` landed in
+    SPRINT-0049; and the transcript-comparison rung was added in SPRINT-0050.
 
 ## Refusal as evidence
 

@@ -13,7 +13,9 @@ sketch into a contract that real Go monoliths can satisfy.
 
 Extraction handles three concerns: what travels on the wire, what is
 rebuilt on the far side, and what the host call site looks like after
-the patch. New capabilities are added by registering them. A new
+the patch. (Values that cannot cross a network — a database handle, a
+logger — are rebuilt on the far side by generated code called a
+*reconstructor*.) New capabilities are added by registering them. A new
 reconstructor for a value type, a new receiver policy, or a new wire
 codec is a small entry in a lookup table. The renderer reads those
 entries and emits Go code from them. It does not contain a separate
@@ -35,8 +37,9 @@ artifacts and the lifecycle of the far-side process change.
 ## Why this needs to be a separate phase
 
 Cut placement
-([previous page](cut-placement.md)) asks whether a function should be
-a network boundary. Extraction asks whether the compiler can make it
+([drawing the network boundary](cut-placement.md)) asks whether a
+function should be the network boundary. Extraction asks whether the
+compiler can make it
 one with the materials at hand: a wire format, a reconstructor for
 each non-serializable input, a way to construct the receiver, a
 deployment shape that carries the right environment, and a patched
