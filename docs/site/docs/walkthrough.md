@@ -200,5 +200,5 @@ original and lifted versions on the same image and compares the output
 > both sides plus the safety net.
 
 Everything else on this site is one of these steps, in depth. The
-[glossary on the home page](index.md#terms-used-throughout) collects the terms
+[glossary on the home page](index.md) collects the terms
 introduced above.
