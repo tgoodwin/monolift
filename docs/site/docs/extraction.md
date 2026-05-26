@@ -84,7 +84,7 @@ shape fits the transport. Today that means `(T)`, `(T, error)`, or
 If admission refuses with a code in the *retryable* set, codegen
 demotes the candidate and reruns ranking against the remaining
 feasible candidates. That loop is described on
-[the cut-placement page](cut-placement.md#when-a-ranked-cut-cannot-be-extracted).
+[the cut-placement page](cut-placement.md).
 
 The retryable refusals are intentionally small:
 
