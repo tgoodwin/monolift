@@ -662,6 +662,19 @@ explicit target/importer package set, and `TestAdmission` refuses explicit
 
 ---
 
+## 2026-05-19 — Boundary-adapter recovery
+
+SPRINT-0051 adds boundary-adapter recovery for semantic cuts whose values are
+finite but exposed through awkward local types. The pass is a fallback after
+direct admission refusal, not a ranking model, and it emits local wrappers plus
+normalized helpers rather than live proxies or general SSA rewrites.
+`listmonk/M-4` now selects `processImage` with `AdapterPossible` and reaches
+stage 10 using direct PNG byte comparison.
+
+**Primary artifacts:** `docs/decisions/0032-boundary-adapter-recovery.md` · `pkg/codegen/adapter_pass.go` · `pkg/codegen/adapter_patterns.go` · `test/e2e/targets/activation_listmonk_processimage/`
+
+---
+
 ## Pending
 
 - **Full archetype catalog migration.** SPRINT-0017 migrates only

@@ -18,8 +18,10 @@ v2 **revises** the stateless rule
 under
 [ADR-0009](https://github.com/tgoodwin/monolift/blob/main/docs/decisions/0009-plos-claims-preserve-revise-retire.md)'s
 preserve / revise / retire discipline). The compiler now treats
-stateful regions as **archetype candidates**: named transform models
-whose preconditions are expressed as liftability properties. An
+stateful regions as **archetype candidates**. An *archetype* is a
+recurring, named shape of stateful code (such as `serialized-actor` or
+`keyed-partitioned-state`) — a model of how a region keeps and touches its
+state, whose preconditions are expressed as liftability properties. An
 archetype matches when its required property subset is satisfied by the
 region's property-fact set; when several archetypes match, ADR-0022
 requires the compiler to preserve the full candidate set, choose a

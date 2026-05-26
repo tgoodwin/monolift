@@ -1,6 +1,8 @@
 package codegen
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -178,6 +180,39 @@ func TestRenderAdapterPointerReceiver(t *testing.T) {
 	}
 }
 
+// TestAdapterExtractionRespectsTransportPolicy proves that the rendered
+// inline-payload guard is read from plan.AdapterPlan.MaxInlinePayloadBytes
+// rather than a hardcoded literal. SPRINT-0052 task 1.7.
+func TestAdapterExtractionRespectsTransportPolicy(t *testing.T) {
+	tmp := t.TempDir()
+	plan := processImageAdapterPlan(tmp, filepath.Join(tmp, "media.go"))
+	plan.AdapterPlan.MaxInlinePayloadBytes = 1024 // intentionally non-default
+
+	limit := adapterInlinePayloadLimit(plan.AdapterPlan)
+	if limit != 1024 {
+		t.Fatalf("adapterInlinePayloadLimit = %d, want 1024", limit)
+	}
+	lines := adapterExtractionLines(plan, normalizedAdapterPlan(plan))
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "if len(input) > 1024 {") {
+		t.Fatalf("extraction lines did not honor MaxInlinePayloadBytes:\n%s", joined)
+	}
+	if !strings.Contains(joined, "1024 byte limit") {
+		t.Fatalf("extraction error message did not honor MaxInlinePayloadBytes:\n%s", joined)
+	}
+	if strings.Contains(joined, "8388608") || strings.Contains(joined, "8*1024*1024") {
+		t.Fatalf("extraction lines still contain the legacy 8 MiB literal:\n%s", joined)
+	}
+
+	// Zero on the plan falls back to defaultInlinePayloadBytes (8 MiB) so
+	// legacy plans round-trip identically.
+	plan.AdapterPlan.MaxInlinePayloadBytes = 0
+	limit = adapterInlinePayloadLimit(plan.AdapterPlan)
+	if limit != int64(defaultInlinePayloadBytes) {
+		t.Fatalf("adapterInlinePayloadLimit fallback = %d, want %d", limit, defaultInlinePayloadBytes)
+	}
+}
+
 func TestAdapterFuncName(t *testing.T) {
 	tests := []struct {
 		input string
@@ -194,4 +229,369 @@ func TestAdapterFuncName(t *testing.T) {
 			t.Errorf("adapterFuncName(%q) = %q, want %q", tt.input, got, tt.want)
 		}
 	}
+}
+
+func TestRenderAdapterProcessImageWrapperAndNormalizedHelper(t *testing.T) {
+	tmp := t.TempDir()
+	cutFile := filepath.Join(tmp, "media.go")
+	if err := os.WriteFile(cutFile, []byte(`package media
+
+import (
+	"bytes"
+	"mime/multipart"
+
+	"github.com/disintegration/imaging"
+)
+
+const thumbnailSize = 250
+
+func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer src.Close()
+
+	img, err := imaging.Decode(src)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	var (
+		thumb = imaging.Resize(img, thumbnailSize, 0, imaging.Lanczos)
+		out   bytes.Buffer
+	)
+	if err := imaging.Encode(&out, thumb, imaging.PNG); err != nil {
+		return nil, 0, 0, err
+	}
+
+	b := img.Bounds().Max
+	return bytes.NewReader(out.Bytes()), b.X, b.Y, nil
+}
+`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	plan := processImageAdapterPlan(tmp, cutFile)
+	clientFiles, err := RenderClient(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := string(clientFiles[plan.ClientPath])
+	for _, want := range []string{
+		"func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error)",
+		"input, err := io.ReadAll(fileSrc)",
+		"if len(input) > 8388608 {",
+		`fmt.Errorf("monolift: adapter payload exceeds 8388608 byte limit")`,
+		"r0, r1, r2, appErr, transportErr := monoliftRemoteprocessImage(input)",
+		"return bytes.NewReader(r0), r1, r2, appErr",
+		"return nil, 0, 0, fmt.Errorf(\"monolift: extracted service unavailable\")",
+	} {
+		if !strings.Contains(client, want) {
+			t.Fatalf("client missing %q:\n%s", want, client)
+		}
+	}
+	serverFiles, err := RenderServer(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := string(serverFiles[plan.ServerPath])
+	if !strings.Contains(server, "Input []byte `json:\"input\"`") {
+		t.Fatalf("server request was not normalized:\n%s", server)
+	}
+	if !strings.Contains(server, "Result0 []byte `json:\"result0\"`") {
+		t.Fatalf("server response DTO was not normalized:\n%s", server)
+	}
+	adapterFiles, err := RenderAdapter(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter := string(adapterFiles[AdapterFilePath(plan)])
+	if !strings.Contains(adapter, "func MonoliftInvokeProcessImage(input []byte) ([]byte, int, int, error)") {
+		t.Fatalf("adapter invoke signature was not normalized:\n%s", adapter)
+	}
+	if !strings.Contains(adapter, "return monoliftNormalizedprocessImage(input)") {
+		t.Fatalf("adapter does not call normalized helper:\n%s", adapter)
+	}
+	helper := string(adapterFiles[NormalizedHelperFilePath(plan)])
+	if !strings.Contains(helper, "func monoliftNormalizedprocessImage(input []byte) ([]byte, int, int, error)") {
+		t.Fatalf("normalized helper signature missing:\n%s", helper)
+	}
+	if !strings.Contains(helper, "img, err := imaging.Decode(bytes.NewReader(input))") {
+		t.Fatalf("normalized helper did not rewrite decode prologue:\n%s", helper)
+	}
+	if strings.Contains(helper, "file.Open()") || strings.Contains(helper, "defer src.Close()") || strings.Contains(helper, "return bytes.NewReader(out.Bytes())") {
+		t.Fatalf("normalized helper still contains awkward boundary operations:\n%s", helper)
+	}
+}
+
+func processImageAdapterPlan(dir, cutFile string) *Plan {
+	plan := &Plan{
+		SourceModuleRoot: "/tmp/test",
+		ServiceName:      "monolift-processimage",
+		EnvServiceName:   "PROCESSIMAGE",
+		CutPoint: CutPoint{
+			PackageName: "media",
+			PackagePath: "example.com/listmonk/internal/media",
+			PackageDir:  dir,
+			FuncName:    "processImage",
+			File:        cutFile,
+		},
+		BoundaryParams: []Param{
+			{Name: "file", JSONName: "file", GoType: "*multipart.FileHeader", QualifiedGoType: "*mime/multipart.FileHeader", TypePackagePath: "mime/multipart", Codec: CodecJSON, Index: 0},
+		},
+		Results: []Result{
+			{Name: "result", JSONName: "result", GoType: "*bytes.Reader", QualifiedGoType: "*bytes.Reader", TypePackagePath: "bytes", Codec: CodecJSON, Index: 0},
+			{Name: "result1", JSONName: "result1", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "result2", JSONName: "result2", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		},
+		ClientPath: filepath.Join(dir, "monolift_lift_PROCESSIMAGE.go"),
+		ServerPath: filepath.Join(dir, "cmd", "monolift-processimage", "main.go"),
+		AdapterPlan: &AdapterPlan{
+			SourceFunction:  "processImage",
+			HostSignature:   "(*multipart.FileHeader) (*bytes.Reader, int, int, error)",
+			RemoteSignature: "([]byte) ([]byte, int, int, error)",
+			InputTransforms: []AdapterPattern{{
+				Name:      "multipart_file_read_all",
+				ParamName: "file",
+				FromType:  "*multipart.FileHeader",
+				ToType:    "[]byte",
+			}},
+			OutputTransforms: []AdapterPattern{{
+				Name:     "bytes_reader_return",
+				FromType: "*bytes.Reader",
+				ToType:   "[]byte",
+			}},
+			TransportPolicy: AdapterTransportInlineJSONBytes,
+		},
+	}
+	normalized := normalizedAdapterPlan(plan)
+	plan.ResultDTO = normalized.ResultDTO
+	return plan
+}
+
+// uploadAdapterPlan builds a main-package adapter plan for an arbitrary
+// multipart-upload resize function so the free-symbol/import scan can be
+// exercised without M-4-specific names. funcBody is the cut function source.
+func uploadAdapterPlan(t *testing.T, src string) *Plan {
+	t.Helper()
+	tmp := t.TempDir()
+	cutFile := filepath.Join(tmp, "main.go")
+	if err := os.WriteFile(cutFile, []byte(src), 0644); err != nil {
+		t.Fatal(err)
+	}
+	return &Plan{
+		SourceModuleRoot: "/tmp/test",
+		ServiceName:      "monolift-resizeupload",
+		EnvServiceName:   "RESIZEUPLOAD",
+		CutPoint: CutPoint{
+			PackageName: "main",
+			PackagePath: "example.com/app",
+			PackageDir:  tmp,
+			FuncName:    "resizeUpload",
+			File:        cutFile,
+		},
+		BoundaryParams: []Param{
+			{Name: "file", JSONName: "file", GoType: "*multipart.FileHeader", QualifiedGoType: "*mime/multipart.FileHeader", TypePackagePath: "mime/multipart", Codec: CodecJSON, Index: 0},
+		},
+		Results: []Result{
+			{Name: "result", JSONName: "result", GoType: "*bytes.Reader", QualifiedGoType: "*bytes.Reader", TypePackagePath: "bytes", Codec: CodecJSON, Index: 0},
+			{Name: "result1", JSONName: "result1", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "result2", JSONName: "result2", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		},
+		AdapterPlan: &AdapterPlan{
+			SourceFunction:  "resizeUpload",
+			HostSignature:   "(*multipart.FileHeader) (*bytes.Reader, int, int, error)",
+			RemoteSignature: "([]byte) ([]byte, int, int, error)",
+			InputTransforms: []AdapterPattern{{
+				Name:      "multipart_file_read_all",
+				ParamName: "file",
+				FromType:  "*multipart.FileHeader",
+				ToType:    "[]byte",
+			}},
+			OutputTransforms: []AdapterPattern{{
+				Name:     "bytes_reader_return",
+				FromType: "*bytes.Reader",
+				ToType:   "[]byte",
+			}},
+			TransportPolicy: AdapterTransportInlineJSONBytes,
+		},
+	}
+}
+
+// TestBuildNormalizedHelperFreeSymbols proves the free-symbol scan copies the
+// package-level constants the helper actually references — by name and value,
+// not single-constant-fitted to thumbnailSize/250 — and computes the helper's
+// import set from the rewritten body rather than hardcoding bytes/imaging.
+func TestBuildNormalizedHelperFreeSymbols(t *testing.T) {
+	const src = `package main
+
+import (
+	"bytes"
+	"mime/multipart"
+
+	"github.com/disintegration/imaging"
+)
+
+const maxWidth = 800
+const jpegQuality = 90
+
+func resizeUpload(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer src.Close()
+
+	img, err := imaging.Decode(src)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	thumb := imaging.Resize(img, maxWidth, 0, imaging.Lanczos)
+	var out bytes.Buffer
+	if err := imaging.Encode(&out, thumb, imaging.JPEG, imaging.JPEGQuality(jpegQuality)); err != nil {
+		return nil, 0, 0, err
+	}
+	b := img.Bounds().Max
+	return bytes.NewReader(out.Bytes()), b.X, b.Y, nil
+}
+`
+	helper, err := buildNormalizedHelper(uploadAdapterPlan(t, src))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	joinedConsts := strings.Join(helper.FreeConsts, "\n")
+	for _, want := range []string{"const maxWidth = 800", "const jpegQuality = 90"} {
+		if !strings.Contains(joinedConsts, want) {
+			t.Errorf("free consts missing %q:\n%s", want, joinedConsts)
+		}
+	}
+	if strings.Contains(joinedConsts, "thumbnailSize") || strings.Contains(joinedConsts, "250") {
+		t.Errorf("free-symbol scan is fitted to M-4 constants:\n%s", joinedConsts)
+	}
+
+	gotImports := map[string]bool{}
+	for _, imp := range helper.Imports {
+		gotImports[imp.Path] = true
+	}
+	for _, want := range []string{"bytes", "github.com/disintegration/imaging"} {
+		if !gotImports[want] {
+			t.Errorf("helper imports missing %q: %+v", want, helper.Imports)
+		}
+	}
+	if gotImports["mime/multipart"] {
+		t.Errorf("helper retained mime/multipart after input rewrite: %+v", helper.Imports)
+	}
+}
+
+// TestBuildNormalizedHelperRefusesFreeVar locks the scope boundary: a helper
+// that references a package-level var fails closed rather than emitting an
+// extracted service that cannot compile (relocating mutable package state
+// needs value analysis that is out of scope).
+func TestBuildNormalizedHelperRefusesFreeVar(t *testing.T) {
+	const src = `package main
+
+import (
+	"bytes"
+	"mime/multipart"
+
+	"github.com/disintegration/imaging"
+)
+
+var defaultFormat = imaging.JPEG
+
+func resizeUpload(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer src.Close()
+
+	img, err := imaging.Decode(src)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	var out bytes.Buffer
+	if err := imaging.Encode(&out, img, defaultFormat); err != nil {
+		return nil, 0, 0, err
+	}
+	b := img.Bounds().Max
+	return bytes.NewReader(out.Bytes()), b.X, b.Y, nil
+}
+`
+	if _, err := buildNormalizedHelper(uploadAdapterPlan(t, src)); err == nil {
+		t.Fatal("expected refusal for helper referencing a package-level var, got nil error")
+	} else if !strings.Contains(err.Error(), "defaultFormat") {
+		t.Errorf("refusal error should name the offending var, got: %v", err)
+	}
+}
+
+// TestBuildResultDTONoImplicitImageRenaming proves the removed
+// applyProcessImageResultNames M-4 fingerprint is gone: an arbitrary
+// ([]byte, int, int, error) return shape with generic names must yield
+// positional Result0..N fields, never thumbnail/originalWidth/originalHeight.
+// A second case confirms meaningful return names are preserved verbatim.
+func TestBuildResultDTONoImplicitImageRenaming(t *testing.T) {
+	t.Run("generic names map to positional fields", func(t *testing.T) {
+		results := []Result{
+			{Name: "result", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "result1", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "result2", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		}
+		dto := BuildResultDTO("computeStats", results)
+		if dto == nil {
+			t.Fatal("expected DTO for >1 non-error result")
+		}
+		wantName := []string{"Result0", "Result1", "Result2"}
+		wantJSON := []string{"result0", "result1", "result2"}
+		if len(dto.Fields) != len(wantName) {
+			t.Fatalf("got %d fields, want %d: %+v", len(dto.Fields), len(wantName), dto.Fields)
+		}
+		for i, f := range dto.Fields {
+			if f.Name != wantName[i] {
+				t.Errorf("field %d name = %q, want %q", i, f.Name, wantName[i])
+			}
+			if f.JSONName != wantJSON[i] {
+				t.Errorf("field %d json = %q, want %q", i, f.JSONName, wantJSON[i])
+			}
+			switch f.Name {
+			case "Thumbnail", "OriginalWidth", "OriginalHeight":
+				t.Errorf("M-4 result renaming leaked into generic shape: field %q", f.Name)
+			}
+			switch f.JSONName {
+			case "thumbnail", "original_width", "original_height":
+				t.Errorf("M-4 JSON renaming leaked into generic shape: json %q", f.JSONName)
+			}
+		}
+	})
+
+	t.Run("meaningful names are preserved", func(t *testing.T) {
+		results := []Result{
+			{Name: "payload", GoType: "[]byte", QualifiedGoType: "[]byte", Codec: CodecJSON, Index: 0},
+			{Name: "width", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "height", GoType: "int", QualifiedGoType: "int", Codec: CodecPrimitive, Index: 2},
+			{Name: "err", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 3},
+		}
+		dto := BuildResultDTO("measure", results)
+		if dto == nil {
+			t.Fatal("expected DTO for >1 non-error result")
+		}
+		want := map[string]string{"Payload": "payload", "Width": "width", "Height": "height"}
+		if len(dto.Fields) != len(want) {
+			t.Fatalf("got %d fields, want %d: %+v", len(dto.Fields), len(want), dto.Fields)
+		}
+		for _, f := range dto.Fields {
+			wantJSON, ok := want[f.Name]
+			if !ok {
+				t.Errorf("unexpected field name %q", f.Name)
+				continue
+			}
+			if f.JSONName != wantJSON {
+				t.Errorf("field %q json = %q, want %q", f.Name, f.JSONName, wantJSON)
+			}
+		}
+	})
 }

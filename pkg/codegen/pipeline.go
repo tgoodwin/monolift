@@ -115,7 +115,24 @@ func RunLiftWithResult(ctx context.Context, opts LiftOptions) (*LiftResult, erro
 			return nil, err
 		}
 		applyLiftOptions(plan, opts)
+		if cutAdmission.Cut != nil && cutAdmission.Cut.AdapterClass == activation.AdapterPossible {
+			// Reuse the adapter plan recovered during admission; only re-run
+			// recovery if the cache lost it (so tryAdapterRecovery runs exactly
+			// once per recovered candidate).
+			adapterPlan := cachedAdapterPlanFor(*cutAdmission.Cut)
+			if adapterPlan == nil {
+				var refusals []AdmissionRefusal
+				adapterPlan, refusals = tryAdapterRecovery(report, *cutAdmission.Cut, plan)
+				if adapterPlan == nil {
+					return nil, fmt.Errorf("adapter recovery disappeared during final plan build: %+v", refusals)
+				}
+			}
+			plan.AdapterPlan = adapterPlan
+		}
 		plan.Admission = AdmitPlan(plan, cutAdmission)
+		if plan.AdapterPlan != nil {
+			plan.Admission = AdmitPlan(normalizedAdapterPlan(plan), cutAdmission)
+		}
 		if !plan.Admission.Accepted {
 			return nil, errors.New(plan.Admission.Error())
 		}

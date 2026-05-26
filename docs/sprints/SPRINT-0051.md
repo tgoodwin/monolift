@@ -15,15 +15,15 @@ This is an **implementation sprint with a narrow Phase 0 evidence-and-decision g
 
 ## Goals
 
-- [ ] Add `AdapterClass` enum + `AdapterPlan` IR to the compiler, orthogonal to existing `BoundaryDataClass`.
-- [ ] Implement the six static feasibility obligations as named proof checks with explicit refusal codes.
-- [ ] Implement two adapter patterns: `multipart_file_read_all` (input) and `bytes_reader_return` (output).
+- [x] Add `AdapterClass` enum + `AdapterPlan` IR to the compiler, orthogonal to existing `BoundaryDataClass`.
+- [x] Implement the six static feasibility obligations as named proof checks with explicit refusal codes.
+- [x] Implement two adapter patterns: `multipart_file_read_all` (input) and `bytes_reader_return` (output).
 - [x] Land generic multi-result-DTO normalization in codegen, independent of `AdapterClass`.
-- [ ] Wire the adapter pass as a recovery branch in `admitCutCandidates` after refusal of the preferred semantic cut, before the pipeline commits to a broader parent.
-- [ ] Guarantee admission recovery selects `processImage` and **does not climb to `(*App).UploadMedia`** for `listmonk/M-4`.
-- [ ] Reach stage 10 on `listmonk/M-4` with declared oracle policy (direct PNG byte comparison by default; declared normalizer if Phase 0 finds nondeterminism).
-- [ ] Add a `MONOLIFT_BOUNDARY_ADAPTER` feature flag and prove flag-off parity with the SPRINT-0050 admission baseline.
-- [ ] Publish ADR-0032 `boundary-adapter-recovery`, update `docs/evolution.md`, and refresh `analyses/listmonk-M-4.md` to retire "Proxy-required"/"Feasible-with-proxy" terminology.
+- [x] Wire the adapter pass as a recovery branch in `admitCutCandidates` after refusal of the preferred semantic cut, before the pipeline commits to a broader parent.
+- [x] Guarantee admission recovery selects `processImage` and **does not climb to `(*App).UploadMedia`** for `listmonk/M-4`.
+- [x] Reach stage 10 on `listmonk/M-4` with declared oracle policy (direct PNG byte comparison by default; declared normalizer if Phase 0 finds nondeterminism).
+- [x] Add a `MONOLIFT_BOUNDARY_ADAPTER` feature flag and prove flag-off parity with the SPRINT-0050 admission baseline.
+- [x] Publish ADR-0032 `boundary-adapter-recovery`, update `docs/evolution.md`, and refresh `analyses/listmonk-M-4.md` to retire "Proxy-required"/"Feasible-with-proxy" terminology.
 
 ## Scope
 
@@ -98,89 +98,89 @@ This phase unblocks `processImage` before the multipart input becomes a concern,
 
 ## Phase 3: Pattern library and proofs
 
-- [ ] 3.1: Define `AdapterPattern` and `AdapterProof` interfaces in `pkg/codegen/adapter_patterns.go`. Each pattern owns: `Name() string`, `Matches(param ssa.Value) bool`, `Discharge(ctx ProofContext) []AdapterProof`, `RenderInputExtraction(...) string`, `RenderRemoteReconstruction(...) string`.
-- [ ] 3.2: Implement `multipart_file_read_all`. Match: parameter type `*mime/multipart.FileHeader`. Discharge: `adapter_finite_input` (`Open + io.ReadAll`), `adapter_local_lifecycle` (host owns `Open`/`Close`/`defer`), `adapter_use_shape` (helper SSA references the parameter only through `Open()` then read; no `Filename`/`Header`/`Size` access, no multiple opens, no mutation, no alias escape).
-- [ ] 3.3: Implement `bytes_reader_return`. Match: declared return type `*bytes.Reader` whose value in helper SSA is `bytes.NewReader(byteSlice)` with no other producer. Discharge: `adapter_return_rehydration`. Render remote: return `[]byte`. Render host: `bytes.NewReader(out.<Field>)`.
-- [ ] 3.4: Implement the six proof checks (pattern-specific predicates where useful, generic SSA scans where required):
-  - [ ] 3.4.1: `adapter_finite_input` — every adapter-required param has a pattern with a finite-extraction renderer.
-  - [ ] 3.4.2: `adapter_local_lifecycle` — no helper SSA instruction calls `Close`, holds a `defer`, or escapes the awkward-typed value as a non-finite payload.
-  - [ ] 3.4.3: `adapter_use_shape` — pattern-specific predicate; refuse on unrecognized operations.
-  - [ ] 3.4.4: `adapter_return_rehydration` — every awkward return has a rehydration pattern.
-  - [ ] 3.4.5: `adapter_error_order` — read errors that would have occurred inside helper now occur host-side before RPC; record divergence in plan diagnostics but accept (per spec §5).
-  - [ ] 3.4.6: `adapter_call_site` — reverse-import-scope scan: function not used as a function value, address-of, or via reflection. Bound to the activation-path scope.
-- [ ] 3.5: `LiveProxyRequired` detectors for the full exclusion list from 0.8 (`http.ResponseWriter`, `io.Writer` output params, channels, transaction callbacks, function values, `*os.File`, mutable write-back). When matched, `tryAdapterPass` returns `live_proxy_required` immediately without attempting patterns.
-- [ ] 3.6: Negative pattern fixtures (must refuse): multiple `Open` calls on one `*multipart.FileHeader`, `file.Filename`/`Header`/`Size` use, returned `multipart.File`, `io.Writer` output parameters, function-value use, reflective access, `http.ResponseWriter` params.
-- [ ] 3.7: Golden JSON for the expected `AdapterPlan` for `processImage`, including `InputTransforms`, `OutputTransforms`, `BodyRewrite`, all six `Proofs`, and `TransportPolicy: inline_json_bytes`.
-- [ ] 3.8: Integration test: feed `processImage` SSA into `tryAdapterPass`; assert it produces the golden `AdapterPlan` end-to-end.
+- [x] 3.1: Define `AdapterPattern` and `AdapterProof` interfaces in `pkg/codegen/adapter_patterns.go`. Each pattern owns: `Name() string`, `Matches(param ssa.Value) bool`, `Discharge(ctx ProofContext) []AdapterProof`, `RenderInputExtraction(...) string`, `RenderRemoteReconstruction(...) string`.
+- [x] 3.2: Implement `multipart_file_read_all`. Match: parameter type `*mime/multipart.FileHeader`. Discharge: `adapter_finite_input` (`Open + io.ReadAll`), `adapter_local_lifecycle` (host owns `Open`/`Close`/`defer`), `adapter_use_shape` (helper SSA references the parameter only through `Open()` then read; no `Filename`/`Header`/`Size` access, no multiple opens, no mutation, no alias escape).
+- [x] 3.3: Implement `bytes_reader_return`. Match: declared return type `*bytes.Reader` whose value in helper SSA is `bytes.NewReader(byteSlice)` with no other producer. Discharge: `adapter_return_rehydration`. Render remote: return `[]byte`. Render host: `bytes.NewReader(out.<Field>)`.
+- [x] 3.4: Implement the six proof checks (pattern-specific predicates where useful, generic SSA scans where required):
+  - [x] 3.4.1: `adapter_finite_input` — every adapter-required param has a pattern with a finite-extraction renderer.
+  - [x] 3.4.2: `adapter_local_lifecycle` — no helper SSA instruction calls `Close`, holds a `defer`, or escapes the awkward-typed value as a non-finite payload.
+  - [x] 3.4.3: `adapter_use_shape` — pattern-specific predicate; refuse on unrecognized operations.
+  - [x] 3.4.4: `adapter_return_rehydration` — every awkward return has a rehydration pattern.
+  - [x] 3.4.5: `adapter_error_order` — read errors that would have occurred inside helper now occur host-side before RPC; record divergence in plan diagnostics but accept (per spec §5).
+  - [x] 3.4.6: `adapter_call_site` — reverse-import-scope scan: function not used as a function value, address-of, or via reflection. Bound to the activation-path scope.
+- [x] 3.5: `LiveProxyRequired` detectors for the full exclusion list from 0.8 (`http.ResponseWriter`, `io.Writer` output params, channels, transaction callbacks, function values, `*os.File`, mutable write-back). When matched, `tryAdapterPass` returns `live_proxy_required` immediately without attempting patterns.
+- [x] 3.6: Negative pattern fixtures (must refuse): multiple `Open` calls on one `*multipart.FileHeader`, `file.Filename`/`Header`/`Size` use, returned `multipart.File`, `io.Writer` output parameters, function-value use, reflective access, `http.ResponseWriter` params.
+- [x] 3.7: Golden JSON for the expected `AdapterPlan` for `processImage`, including `InputTransforms`, `OutputTransforms`, `BodyRewrite`, all six `Proofs`, and `TransportPolicy: inline_json_bytes`.
+- [x] 3.8: Integration test: feed `processImage` SSA into `tryAdapterPass`; assert it produces the golden `AdapterPlan` end-to-end.
 
 ## Phase 4: Host wrapper + normalized helper rendering
 
-- [ ] 4.1: Extend `pkg/codegen/adapter.go` (`RenderAdapter`) to render the host-side wrapper when `Plan.AdapterPlan != nil`. The wrapper preserves the original function name, drains awkward inputs (`file.Open()`, `defer src.Close()`, `io.ReadAll`, inline-size check), calls the normalized remote helper, rebuilds awkward returns (`bytes.NewReader(out.Thumbnail)`).
-- [ ] 4.2: Render the normalized helper as the extracted target. Body is the original body with the pattern-matched AST prologue replaced (e.g. `src, err := file.Open(); img, err := imaging.Decode(src)` → `img, err := imaging.Decode(bytes.NewReader(input))`). Implementation: in-place AST surgery against the helper function guarded by the `adapter_use_shape` proof. Fall back to clone-and-replace if package boundaries force it.
-- [ ] 4.3: Run `goimports` on rendered output to keep import blocks consistent after the body rewrite drops `mime/multipart` from the helper and adds `bytes` / `io`. Golden test: generated file compiles standalone.
-- [ ] 4.4: Update `pkg/codegen/server.go` so the normalized helper signature renders correctly and packs into the synthetic `processImageResult` DTO from Phase 2.
-- [ ] 4.5: Generated client renders fail-open as call to the renamed local implementation; fail-closed returns `(nil, 0, 0, error)` for `processImage`. Confirm `MONOLIFT_LIFT_PROCESSIMAGE`-style env-var handling is consistent with the renamed wrapper.
-- [ ] 4.6: Confirm extracted deployment manifests do **not** include `MONOLIFT_LIFT_*` env vars (per SPRINT-0050 invariant).
-- [ ] 4.7: Golden test: render the M-4 host wrapper and normalized helper end-to-end. Compare against committed goldens; wrapper must match the spec's example almost verbatim (`docs/research/activation-paths/boundary-adapter-strategy.md` Part 2).
+- [x] 4.1: Extend `pkg/codegen/adapter.go` (`RenderAdapter`) to render the host-side wrapper when `Plan.AdapterPlan != nil`. The wrapper preserves the original function name, drains awkward inputs (`file.Open()`, `defer src.Close()`, `io.ReadAll`, inline-size check), calls the normalized remote helper, rebuilds awkward returns (`bytes.NewReader(out.Thumbnail)`).
+- [x] 4.2: Render the normalized helper as the extracted target. Body is the original body with the pattern-matched AST prologue replaced (e.g. `src, err := file.Open(); img, err := imaging.Decode(src)` → `img, err := imaging.Decode(bytes.NewReader(input))`). Implementation: in-place AST surgery against the helper function guarded by the `adapter_use_shape` proof. Fall back to clone-and-replace if package boundaries force it.
+- [x] 4.3: Run `goimports` on rendered output to keep import blocks consistent after the body rewrite drops `mime/multipart` from the helper and adds `bytes` / `io`. Golden test: generated file compiles standalone.
+- [x] 4.4: Update `pkg/codegen/server.go` so the normalized helper signature renders correctly and packs into the synthetic `processImageResult` DTO from Phase 2.
+- [x] 4.5: Generated client renders fail-open as call to the renamed local implementation; fail-closed returns `(nil, 0, 0, error)` for `processImage`. Confirm `MONOLIFT_LIFT_PROCESSIMAGE`-style env-var handling is consistent with the renamed wrapper.
+- [x] 4.6: Confirm extracted deployment manifests do **not** include `MONOLIFT_LIFT_*` env vars (per SPRINT-0050 invariant).
+- [x] 4.7: Golden test: render the M-4 host wrapper and normalized helper end-to-end. Compare against committed goldens; wrapper must match the spec's example almost verbatim (`docs/research/activation-paths/boundary-adapter-strategy.md` Part 2).
 
 ## Phase 5: Recovery-branch pipeline integration
 
 This phase is separate from Phase 1 IR because the recovery-branch policy (what triggers it, what does not, how it interacts with demotion) is the architectural decision, not the data structure.
 
-- [ ] 5.1: Wire `tryAdapterPass` into `admitCutCandidates` (`pkg/codegen/cut_admit.go`) after direct `AdmitCut`/`AdmitPlan` refusal of the preferred semantic cut.
-- [ ] 5.2: Restrict retry-eligibility to shape-compatible refusals: `unsupported_boundary_data`, `unsupported_result_shape`, `unsupported_param_shape`, `adapter_unknown`. Other refusals fall straight through to demotion.
-- [ ] 5.3: Do **not** run adapter planning for receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, or broad parent cuts. Codify the exclusion as code-level guards, not just doc.
-- [ ] 5.4: Preserve the existing demotion chain; add an `AdapterRecovery` diagnostic showing direct refusal code, adapter class, proof verdicts, and selected normalized boundary.
-- [ ] 5.5: **UploadMedia guardrail.** Pipeline test: direct admission refuses `processImage`, adapter recovery accepts it, and the pipeline does not select `(*App).UploadMedia`. This is the load-bearing invariant for the sprint.
-- [ ] 5.6: Pipeline test: adapter proof fails (synthetic shape that matches `multipart_file_read_all` but violates `adapter_use_shape`), existing demotion behavior still chooses the next admissible candidate.
-- [ ] 5.7: Pipeline test: fallback does **not** change recommendation when the preferred semantic cut is already direct-admissible (no false adapter selection).
-- [ ] 5.8: Bound retries at `len(Candidates)` per existing budget; adapter pass is one-shot per candidate.
+- [x] 5.1: Wire `tryAdapterPass` into `admitCutCandidates` (`pkg/codegen/cut_admit.go`) after direct `AdmitCut`/`AdmitPlan` refusal of the preferred semantic cut.
+- [x] 5.2: Restrict retry-eligibility to shape-compatible refusals: `unsupported_boundary_data`, `unsupported_result_shape`, `unsupported_param_shape`, `adapter_unknown`. Other refusals fall straight through to demotion.
+- [x] 5.3: Do **not** run adapter planning for receiver reconstruction failures, shared-state receivers, missing DB/filesystem reconstructors, or broad parent cuts. Codify the exclusion as code-level guards, not just doc.
+- [x] 5.4: Preserve the existing demotion chain; add an `AdapterRecovery` diagnostic showing direct refusal code, adapter class, proof verdicts, and selected normalized boundary.
+- [x] 5.5: **UploadMedia guardrail.** Pipeline test: direct admission refuses `processImage`, adapter recovery accepts it, and the pipeline does not select `(*App).UploadMedia`. This is the load-bearing invariant for the sprint.
+- [x] 5.6: Pipeline test: adapter proof fails (synthetic shape that matches `multipart_file_read_all` but violates `adapter_use_shape`), existing demotion behavior still chooses the next admissible candidate.
+- [x] 5.7: Pipeline test: fallback does **not** change recommendation when the preferred semantic cut is already direct-admissible (no false adapter selection).
+- [x] 5.8: Bound retries at `len(Candidates)` per existing budget; adapter pass is one-shot per candidate.
 
 ## Phase 6: listmonk/M-4 stage-10 proof
 
-- [ ] 6.1: Scaffold `test/e2e/targets/activation_listmonk_processimage/` (`target.go`, `workload.go`, baseline manifests). Reuse `activation_listmonk_sanitizeuri/` as the structural reference (deals with Listmonk auth + Postgres fixture).
-- [ ] 6.2: Register `activation_listmonk_processimage` in `test/e2e/e2e_test.go`. Set `ActivationLift.Target` to `cmd/media.go:processImage` and `ServiceName` to `monolift-extracted-processimage`.
-- [ ] 6.3: Workload: authenticate as admin, upload the deterministic PNG fixture via the existing Listmonk `/api/media` route (which invokes `(*App).UploadMedia` → `processImage`).
-- [ ] 6.4: Oracle: compute the expected thumbnail by running `processImage` locally against the fixture in a Go test helper (preserves Phase 0.6 determinism check artifact).
-- [ ] 6.5: Direct-invoke expectation: declared oracle policy from Phase 0.6 (`oracle-compare` if direct-byte succeeded; declared pixel-hash + dimension normalizer otherwise).
-- [ ] 6.6: Transcript checks: thumbnail object written through `a.media.Put`; original-width / original-height returned in the response; content type recorded; extracted-service `/calls` records exactly one call per upload.
-- [ ] 6.7: Stage progression on CloudLab, **one stage per exact `go test` process, never jump**: 4 → 5 → 6 → 7 → 8 → 9 → 10. Per SPRINT-0050 stage ladder.
-- [ ] 6.8: Env-off check: with `MONOLIFT_LIFT_*` off, the host falls back to the local helper and the extracted service records zero `/calls`. Thumbnail is still correct.
-- [ ] 6.9: Fail-open / fail-closed check: with the extracted service unavailable, the generated client policy for `processImage` (fail-open by default) returns the correct result via local fallback; fail-closed mode returns `(nil, 0, 0, error)`.
-- [ ] 6.10: Update `test/e2e/activation_corpus_traces.yaml` row for `listmonk/M-4`: `status: pass`, `phase: 10`, `boundary_class: AdapterPossible`, `selected_cut: processImage`, `proof_kind: adapter-direct-compare` (or `adapter-png-normalized` if applicable). The selected cut field must be `processImage`, not `(*App).UploadMedia`.
+- [x] 6.1: Scaffold `test/e2e/targets/activation_listmonk_processimage/` (`target.go`, `workload.go`, baseline manifests). Reuse `activation_listmonk_sanitizeuri/` as the structural reference (deals with Listmonk auth + Postgres fixture).
+- [x] 6.2: Register `activation_listmonk_processimage` in `test/e2e/e2e_test.go`. Set `ActivationLift.Target` to `cmd/media.go:processImage` and `ServiceName` to `monolift-extracted-processimage`.
+- [x] 6.3: Workload: authenticate as admin, upload the deterministic PNG fixture via the existing Listmonk `/api/media` route (which invokes `(*App).UploadMedia` → `processImage`).
+- [x] 6.4: Oracle: compute the expected thumbnail by running `processImage` locally against the fixture in a Go test helper (preserves Phase 0.6 determinism check artifact).
+- [x] 6.5: Direct-invoke expectation: declared oracle policy from Phase 0.6 (`oracle-compare` if direct-byte succeeded; declared pixel-hash + dimension normalizer otherwise).
+- [x] 6.6: Transcript checks: thumbnail object written through `a.media.Put`; original-width / original-height returned in the response; content type recorded; extracted-service `/calls` records exactly one call per upload.
+- [x] 6.7: Stage progression on CloudLab, **one stage per exact `go test` process, never jump**: 4 → 5 → 6 → 7 → 8 → 9 → 10. Per SPRINT-0050 stage ladder.
+- [x] 6.8: Env-off check: with `MONOLIFT_LIFT_*` off, the host falls back to the local helper and the extracted service records zero `/calls`. Thumbnail is still correct.
+- [x] 6.9: Fail-open / fail-closed check: with the extracted service unavailable, the generated client policy for `processImage` (fail-open by default) returns the correct result via local fallback; fail-closed mode returns `(nil, 0, 0, error)`.
+- [x] 6.10: Update `test/e2e/activation_corpus_traces.yaml` row for `listmonk/M-4`: `status: pass`, `phase: 10`, `boundary_class: AdapterPossible`, `selected_cut: processImage`, `proof_kind: adapter-direct-compare` (or `adapter-png-normalized` if applicable). The selected cut field must be `processImage`, not `(*App).UploadMedia`.
 
 ## Phase 7: Documentation
 
-- [ ] 7.1: Write `docs/decisions/0032-boundary-adapter-recovery.md`. Cover: the five-class taxonomy and why it is orthogonal to `BoundaryDataClass`; recovery-branch placement (not ranking) with falsifiability hook; the six obligations and their refusal codes; why multi-result-DTO normalization is independent of adapter classification; inline-only transport policy with the 8 MiB ceiling and `Transport: staged_object` as future enum; the `MONOLIFT_BOUNDARY_ADAPTER` flag rollout policy with a removal target (SPRINT-0053+ after two clean releases); explicit link to ADR-0028 explaining why `AdapterPossible` is *not* a resurrection of `FeasibleWithProxy`.
-- [ ] 7.2: Update `docs/evolution.md` with a paragraph on the adapter pass: what it does, what it does not (no ranking, no live proxy, no SSA rewrite), and the `listmonk/M-4` stage-10 result.
-- [ ] 7.3: Rewrite `docs/research/activation-paths/analyses/listmonk-M-4.md`. Replace the "Proxy-required / Feasible-with-proxy" column entries with `AdapterPossible`. Replace "Recommended Cut" with the adapted semantic unit. Reference ADR-0032.
-- [ ] 7.4: Update `docs/research/activation-paths/cut-placement-synthesis.md` "Framework Callback" archetype row: `listmonk/M-4` has migrated to adapter-recovered.
-- [ ] 7.5: Add `docs/research/runs/SPRINT-0051-coverage-report.md` with before/after M-4 status, exact commands, artifacts, oracle policy, and residual backlog (e.g. `reader_read_all`, staging transport).
+- [x] 7.1: Write `docs/decisions/0032-boundary-adapter-recovery.md`. Cover: the five-class taxonomy and why it is orthogonal to `BoundaryDataClass`; recovery-branch placement (not ranking) with falsifiability hook; the six obligations and their refusal codes; why multi-result-DTO normalization is independent of adapter classification; inline-only transport policy with the 8 MiB ceiling and `Transport: staged_object` as future enum; the `MONOLIFT_BOUNDARY_ADAPTER` flag rollout policy with a removal target (SPRINT-0053+ after two clean releases); explicit link to ADR-0028 explaining why `AdapterPossible` is *not* a resurrection of `FeasibleWithProxy`.
+- [x] 7.2: Update `docs/evolution.md` with a paragraph on the adapter pass: what it does, what it does not (no ranking, no live proxy, no SSA rewrite), and the `listmonk/M-4` stage-10 result.
+- [x] 7.3: Rewrite `docs/research/activation-paths/analyses/listmonk-M-4.md`. Replace the "Proxy-required / Feasible-with-proxy" column entries with `AdapterPossible`. Replace "Recommended Cut" with the adapted semantic unit. Reference ADR-0032.
+- [x] 7.4: Update `docs/research/activation-paths/cut-placement-synthesis.md` "Framework Callback" archetype row: `listmonk/M-4` has migrated to adapter-recovered.
+- [x] 7.5: Add `docs/research/runs/SPRINT-0051-coverage-report.md` with before/after M-4 status, exact commands, artifacts, oracle policy, and residual backlog (e.g. `reader_read_all`, staging transport).
 
 ## Phase 8: Verification and closeout
 
-- [ ] 8.1: Run `go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...` on CloudLab; store logs under `.moab/runs/sprint-0051-closeout/`.
-- [ ] 8.2: Focused e2e for `activation_listmonk_processimage` per Phase 6.7 stage ladder. One stage, one `go test` process at a time.
-- [ ] 8.3: Regression e2e on adjacent and result-shape-affected targets: `activation_listmonk_sanitizeuri` (closest in shape, shared codegen path), `activation_miniflux_refreshfeed` and `activation_pocketbase_createthumb` (SPRINT-0050 stage-10 winners — confirm flag-on does not regress them).
-- [ ] 8.4: Flag-off parity sweep: admission-only corpus sweep with `MONOLIFT_BOUNDARY_ADAPTER=0`, compare to SPRINT-0050 admission baseline. Save under `.moab/runs/sprint-0051-admission-flag-off/`. Differences must be zero.
-- [ ] 8.5: Flag-on admission-only corpus sweep with `MONOLIFT_BOUNDARY_ADAPTER=1`, save under `.moab/runs/sprint-0051-admission-flag-on/`. Differences from baseline should be limited to the M-4 row flip plus any incidental adapter-recovered candidates (record each one).
-- [ ] 8.6: Confirm generated artifacts contain no `MONOLIFT_LIFT_*` env vars in extracted deployments.
-- [ ] 8.7: Confirm `GeneratorVersion`, goldens, manifest, ADR, analysis note, evolution note, and corpus row all agree on the SPRINT-0051 changes.
-- [ ] 8.8: Confirm no full e2e sweep, broad multi-target `-run` regex, or whole-repository focused admission was used as proof.
-- [ ] 8.9: Update sprint ledger to `status: done` with executor recorded.
+- [x] 8.1: Run `go test ./pkg/activation/... ./pkg/codegen/... ./test/e2e/harness/...` on CloudLab; store logs under `.moab/runs/sprint-0051-closeout/`.
+- [x] 8.2: Focused e2e for `activation_listmonk_processimage` per Phase 6.7 stage ladder. One stage, one `go test` process at a time.
+- [x] 8.3: Regression e2e on adjacent and result-shape-affected targets: `activation_listmonk_sanitizeuri` (closest in shape, shared codegen path), `activation_miniflux_refreshfeed` and `activation_pocketbase_createthumb` (SPRINT-0050 stage-10 winners — confirm flag-on does not regress them).
+- [x] 8.4: Flag-off parity sweep: admission-only corpus sweep with `MONOLIFT_BOUNDARY_ADAPTER=0`, compare to SPRINT-0050 admission baseline. Save under `.moab/runs/sprint-0051-admission-flag-off/`. Differences must be zero.
+- [x] 8.5: Flag-on admission-only corpus sweep with `MONOLIFT_BOUNDARY_ADAPTER=1`, save under `.moab/runs/sprint-0051-admission-flag-on/`. Differences from baseline should be limited to the M-4 row flip plus any incidental adapter-recovered candidates (record each one).
+- [x] 8.6: Confirm generated artifacts contain no `MONOLIFT_LIFT_*` env vars in extracted deployments.
+- [x] 8.7: Confirm `GeneratorVersion`, goldens, manifest, ADR, analysis note, evolution note, and corpus row all agree on the SPRINT-0051 changes.
+- [x] 8.8: Confirm no full e2e sweep, broad multi-target `-run` regex, or whole-repository focused admission was used as proof.
+- [x] 8.9: Update sprint ledger to `status: done` with executor recorded.
 
 ## Remote Test Discipline
 
 Same rules as SPRINT-0050. Highlights:
 
-- [ ] R.1: Before heavy work, run `cl ls` / `cl status <experiment>` locally. If no experiment exists, ask the user to start the `monolift-buildserver` profile.
-- [ ] R.2: All `go test ./pkg/...`, e2e, Kind/Docker image builds, `cmd/activation-path` against real corpus targets, and corpus sweeps run on CloudLab.
-- [ ] R.3: Local work is limited to editing, source reading, docs, and small codegen/unit/golden tests that do not touch `evaluation/*`.
-- [ ] R.4: No `make e2e`, no multi-target `-run` regex, no `scripts/run_activation_corpus_sweep.sh --phases all`.
-- [ ] R.5: Use focused target/importer package scope for research; do not use timeout failures from broad package loading as viability evidence.
-- [ ] R.6: Stage escalation one target, one stage, one `go test` process at a time. Never jump stages.
-- [ ] R.7: If an e2e run is aborted before cleanup, delete `kind` cluster `monolift-e2e` or orphaned `mlv2-*` namespaces before the next run.
-- [ ] R.8: Stage all artifacts under `.moab/runs/sprint-0051-*` on the build node.
+- [x] R.1: Before heavy work, run `cl ls` / `cl status <experiment>` locally. If no experiment exists, ask the user to start the `monolift-buildserver` profile.
+- [x] R.2: All `go test ./pkg/...`, e2e, Kind/Docker image builds, `cmd/activation-path` against real corpus targets, and corpus sweeps run on CloudLab.
+- [x] R.3: Local work is limited to editing, source reading, docs, and small codegen/unit/golden tests that do not touch `evaluation/*`.
+- [x] R.4: No `make e2e`, no multi-target `-run` regex, no `scripts/run_activation_corpus_sweep.sh --phases all`.
+- [x] R.5: Use focused target/importer package scope for research; do not use timeout failures from broad package loading as viability evidence.
+- [x] R.6: Stage escalation one target, one stage, one `go test` process at a time. Never jump stages.
+- [x] R.7: If an e2e run is aborted before cleanup, delete `kind` cluster `monolift-e2e` or orphaned `mlv2-*` namespaces before the next run.
+- [x] R.8: Stage all artifacts under `.moab/runs/sprint-0051-*` on the build node.
 
 ## Risks and Mitigations
 
@@ -205,29 +205,29 @@ Same rules as SPRINT-0050. Highlights:
 
 **Minimum (framework lands cleanly):**
 
-- [ ] `docs/research/runs/SPRINT-0051-adapter-decisions.md` exists with explicit decisions on the three open questions and the determinism-verification artifact.
-- [ ] `AdapterClass` enum, `AdapterPlan` IR, and all ten refusal codes land in `pkg/activation/` and `pkg/codegen/` with unit tests.
-- [ ] Generic multi-result-DTO normalization (Phase 2) lands and is exercised by golden tests for `(T, U, error)`, `(T, int, int, error)` (the M-4 shape), and unchanged passthrough for `(T, error)`/`(T)`.
-- [ ] `multipart_file_read_all` and `bytes_reader_return` patterns are implemented with proof discharge and negative fixtures.
-- [ ] **Direct admission refusal of `processImage` recovers through adapter planning rather than selecting `(*App).UploadMedia`** (Phase 5.5 pipeline test green).
-- [ ] Generated host wrapper preserves the original `processImage` signature `(*bytes.Reader, int, int, error)` and call-site compatibility.
-- [ ] ADR-0032 lands; `analyses/listmonk-M-4.md` no longer uses retired proxy terminology; `docs/evolution.md` updated.
-- [ ] `MONOLIFT_BOUNDARY_ADAPTER=0` admission sweep produces zero-delta parity with the SPRINT-0050 baseline.
+- [x] `docs/research/runs/SPRINT-0051-adapter-decisions.md` exists with explicit decisions on the three open questions and the determinism-verification artifact.
+- [x] `AdapterClass` enum, `AdapterPlan` IR, and all ten refusal codes land in `pkg/activation/` and `pkg/codegen/` with unit tests.
+- [x] Generic multi-result-DTO normalization (Phase 2) lands and is exercised by golden tests for `(T, U, error)`, `(T, int, int, error)` (the M-4 shape), and unchanged passthrough for `(T, error)`/`(T)`.
+- [x] `multipart_file_read_all` and `bytes_reader_return` patterns are implemented with proof discharge and negative fixtures.
+- [x] **Direct admission refusal of `processImage` recovers through adapter planning rather than selecting `(*App).UploadMedia`** (Phase 5.5 pipeline test green).
+- [x] Generated host wrapper preserves the original `processImage` signature `(*bytes.Reader, int, int, error)` and call-site compatibility.
+- [x] ADR-0032 lands; `analyses/listmonk-M-4.md` no longer uses retired proxy terminology; `docs/evolution.md` updated.
+- [x] `MONOLIFT_BOUNDARY_ADAPTER=0` admission sweep produces zero-delta parity with the SPRINT-0050 baseline.
 
 **Target (the sprint's actual claim):**
 
-- [ ] `activation-listmonk-processimage` reaches stage 10 on CloudLab via the strict 4→5→6→7→8→9→10 ladder.
-- [ ] Stage 10 uses direct PNG byte comparison, or a declared pixel-hash + dimension normalizer justified under SPRINT-0050 stage-binding.
-- [ ] Env-off and fail-mode checks pass per the generated client policy.
-- [ ] `test/e2e/activation_corpus_traces.yaml` records `listmonk/M-4` as `status: pass`, `phase: 10`, `selected_cut: processImage`, `boundary_class: AdapterPossible`.
-- [ ] SPRINT-0050 stage-10 winners (`miniflux/M-1`, `pocketbase/M-1`) pass unchanged with the flag on.
-- [ ] CloudLab artifacts stored under `.moab/runs/sprint-0051-*`.
+- [x] `activation-listmonk-processimage` reaches stage 10 on CloudLab via the strict 4→5→6→7→8→9→10 ladder.
+- [x] Stage 10 uses direct PNG byte comparison, or a declared pixel-hash + dimension normalizer justified under SPRINT-0050 stage-binding.
+- [x] Env-off and fail-mode checks pass per the generated client policy.
+- [x] `test/e2e/activation_corpus_traces.yaml` records `listmonk/M-4` as `status: pass`, `phase: 10`, `selected_cut: processImage`, `boundary_class: AdapterPossible`.
+- [x] SPRINT-0050 stage-10 winners (`miniflux/M-1`, `pocketbase/M-1`) pass unchanged with the flag on.
+- [x] CloudLab artifacts stored under `.moab/runs/sprint-0051-*`.
 
 **Stretch:**
 
 - [ ] `reader_read_all` pattern lands as a bonus (`io.Reader` / `io.ReadCloser` input → `[]byte`).
 - [ ] Lightweight diagnostic for "deeper adapter-enabled cut existed" is emitted on at least one corpus row (per open-question (c) evidence collection).
-- [ ] One additional corpus candidate flips classification under `MONOLIFT_BOUNDARY_ADAPTER=1` without breaking its existing admission result.
+- [x] One additional corpus candidate flips classification under `MONOLIFT_BOUNDARY_ADAPTER=1` without breaking its existing admission result.
 - [ ] Manifest output includes the serialized `AdapterPlan` for every adapter-normalized lift.
 
 ## References

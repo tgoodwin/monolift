@@ -2,13 +2,17 @@ package codegen
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"text/template"
 )
 
 func RenderServer(plan *Plan) (map[string][]byte, error) {
-	view := serverTemplateView(plan)
+	view, err := serverTemplateView(plan)
+	if err != nil {
+		return nil, err
+	}
 	tmpl, err := template.New("server").Parse(serverTemplate)
 	if err != nil {
 		return nil, err
@@ -41,6 +45,7 @@ type serverView struct {
 	PrimitiveResult                bool
 	CutPackageAlias                string
 	AdapterFunc                    string
+	LocalAdapterCode               string
 
 	// ResultDTO support: when HasDTO is true, the response carries multiple
 	// non-error fields packed into a single struct.
@@ -66,14 +71,28 @@ type fieldView struct {
 	Reconstructor Reconstructor
 }
 
-func serverTemplateView(plan *Plan) serverView {
+func serverTemplateView(plan *Plan) (serverView, error) {
+	if plan != nil && plan.AdapterPlan != nil {
+		plan = normalizedAdapterPlan(plan)
+	}
 	imports := []importSpec{
 		{Path: "encoding/json"},
 		{Path: "log"},
 		{Path: "net/http"},
 		{Path: "os"},
 		{Path: "sync"},
-		{Path: plan.CutPoint.PackagePath},
+	}
+	if plan.CutPoint.PackageName != "main" {
+		imports = append(imports, importSpec{Path: plan.CutPoint.PackagePath})
+	}
+	var localAdapterCode string
+	if plan.CutPoint.PackageName == "main" && plan.AdapterPlan != nil {
+		helper, err := buildNormalizedHelper(plan)
+		if err != nil {
+			return serverView{}, fmt.Errorf("build normalized adapter helper for %s: %w", plan.CutPoint.FuncName, err)
+		}
+		imports = append(imports, helper.Imports...)
+		localAdapterCode = renderLocalAdapterCode(plan, helper)
 	}
 	hasStreamingBytes := false
 	var requestFields []fieldView
@@ -197,7 +216,7 @@ func serverTemplateView(plan *Plan) serverView {
 		// Build the LHS vars for multi-value call: r0, r1, ..., resultErr
 		var callVars []string
 		for i := range plan.ResultDTO.Fields {
-			callVars = append(callVars, "r"+string(rune('0'+i)))
+			callVars = append(callVars, fmt.Sprintf("r%d", i))
 		}
 		if hasErrorResult {
 			callVars = append(callVars, "resultErr")
@@ -206,7 +225,7 @@ func serverTemplateView(plan *Plan) serverView {
 		// Build resp literal: invokeResponse{ Field0: r0, Field1: r1 }
 		var litParts []string
 		for i, f := range plan.ResultDTO.Fields {
-			litParts = append(litParts, f.Name+": r"+string(rune('0'+i)))
+			litParts = append(litParts, fmt.Sprintf("%s: r%d", f.Name, i))
 		}
 		dtoRespLiteral = strings.Join(litParts, ", ")
 	}
@@ -235,6 +254,7 @@ func serverTemplateView(plan *Plan) serverView {
 		PrimitiveResult:                primitive,
 		CutPackageAlias:                plan.CutPoint.PackageName,
 		AdapterFunc:                    adapterFuncName(plan.CutPoint.FuncName),
+		LocalAdapterCode:               localAdapterCode,
 		HasDTO:                         hasDTO,
 		DTOFields:                      dtoFields,
 		DTOCallVars:                    dtoCallVars,
@@ -277,7 +297,32 @@ func serverTemplateView(plan *Plan) serverView {
 		}
 	}
 
-	return view
+	return view, nil
+}
+
+func (v serverView) AdapterCall() string {
+	if v.LocalAdapterCode != "" {
+		return v.AdapterFunc
+	}
+	return v.CutPackageAlias + "." + v.AdapterFunc
+}
+
+// renderLocalAdapterCode inlines the adapter wrapper and normalized helper into
+// the extracted service's main package (used when the cut function lives in
+// package main and cannot be imported). Any package-level constants the helper
+// references are copied in ahead of it, since the cut package is out of scope.
+func renderLocalAdapterCode(plan *Plan, helper *normalizedHelper) string {
+	transport := normalizedAdapterPlan(plan)
+	paramList := adapterParamList(transport.BoundaryParams)
+	resultList := computeStubReturnSig(transport.Results)
+	var b strings.Builder
+	for _, decl := range helper.FreeConsts {
+		b.WriteString(decl)
+		b.WriteString("\n\n")
+	}
+	b.WriteString("func " + adapterFuncName(plan.CutPoint.FuncName) + "(" + paramList + ") " + resultList + " {\n\treturn " + normalizedHelperFuncName(plan) + "(" + clientOriginalArgs(fieldsFromParams(transport.BoundaryParams)) + ")\n}\n\n")
+	b.WriteString("func " + normalizedHelperFuncName(plan) + "(" + paramList + ") " + resultList + " {\n" + helper.Body + "\n}\n")
+	return b.String()
 }
 
 func planNeedsMinifluxConfigInit(plan *Plan) bool {
@@ -679,7 +724,7 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 		{{ .ReceiverConstruct }}
 {{- end }}
 {{- if .LocalizedResult }}
-		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		result := {{ .AdapterCall }}({{ .CallArgs }})
 		var resp invokeResponse
 		if result != nil {
 			var errText string
@@ -689,7 +734,7 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 			resp.Error = &localizedError{Error: errText, Message: result.Translate("en_US")}
 		}
 {{- else if .HasDTO }}
-		{{ .DTOCallVars }} := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		{{ .DTOCallVars }} := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .DTORespLiteral }} }
 {{- if .HasErrorResult }}
 		if resultErr != nil {
@@ -698,20 +743,20 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 {{- end }}
 {{- else if .HasErrorResult }}
 {{- if .HasResult }}
-		result, resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		result, resultErr := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
 {{- else }}
-		resultErr := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		resultErr := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{}
 {{- end }}
 		if resultErr != nil {
 			resp.Error = resultErr.Error()
 		}
 {{- else if .HasResult }}
-		result := {{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		result := {{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{ {{ .ResponseField.Name }}: result }
 {{- else }}
-		{{ .CutPackageAlias }}.{{ .AdapterFunc }}({{ .CallArgs }})
+		{{ .AdapterCall }}({{ .CallArgs }})
 		resp := invokeResponse{}
 {{- end }}
 		invocationID := state.invocations.record(req, resp)
@@ -722,6 +767,8 @@ func invokeHandler(state *serverState) http.HandlerFunc {
 		}
 	}
 }
+
+{{ .LocalAdapterCode }}
 
 func main() {
 	state, err := initState()

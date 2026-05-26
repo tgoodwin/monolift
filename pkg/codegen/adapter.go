@@ -2,6 +2,12 @@ package codegen
 
 import (
 	"bytes"
+	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/printer"
+	"go/token"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -39,7 +45,11 @@ type adapterView struct {
 // methods the adapter flattens the receiver into a regular function parameter.
 // For unexported functions/methods the adapter provides an exported entry point.
 func RenderAdapter(plan *Plan) (map[string][]byte, error) {
-	view := adapterTemplateView(plan)
+	viewPlan := plan
+	if plan != nil && plan.AdapterPlan != nil {
+		viewPlan = normalizedAdapterPlan(plan)
+	}
+	view := adapterTemplateView(viewPlan)
 	tmpl, err := template.New("adapter").Parse(adapterTemplate)
 	if err != nil {
 		return nil, err
@@ -53,7 +63,16 @@ func RenderAdapter(plan *Plan) (map[string][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string][]byte{adapterPath: rendered}, nil
+	files := map[string][]byte{adapterPath: rendered}
+	if plan != nil && plan.AdapterPlan != nil {
+		helperPath := NormalizedHelperFilePath(plan)
+		helper, err := renderNormalizedHelper(plan, helperPath)
+		if err != nil {
+			return nil, err
+		}
+		files[helperPath] = helper
+	}
+	return files, nil
 }
 
 func adapterTemplateView(plan *Plan) adapterView {
@@ -100,6 +119,9 @@ func adapterTemplateView(plan *Plan) adapterView {
 
 	args := strings.Join(argParts, ", ")
 	callTarget := renamedOriginalFunc(plan)
+	if plan.AdapterPlan != nil {
+		callTarget = normalizedHelperFuncName(plan)
+	}
 	var callExpr string
 	if plan.ReceiverParam != nil {
 		callExpr = "recv." + callTarget + "(" + args + ")"
@@ -117,6 +139,158 @@ func adapterTemplateView(plan *Plan) adapterView {
 		CallExpr:    callExpr,
 	}
 }
+
+func NormalizedHelperFilePath(plan *Plan) string {
+	return filepath.Join(plan.CutPoint.PackageDir, "monolift_normalized_"+plan.EnvServiceName+".go")
+}
+
+func normalizedHelperFuncName(plan *Plan) string {
+	return "monoliftNormalized" + plan.CutPoint.FuncName
+}
+
+func renderNormalizedHelper(plan *Plan, path string) ([]byte, error) {
+	helper, err := buildNormalizedHelper(plan)
+	if err != nil {
+		return nil, err
+	}
+	view := struct {
+		PackageName string
+		Imports     []importSpec
+		FuncName    string
+		ParamList   string
+		ResultList  string
+		Body        string
+	}{
+		PackageName: plan.CutPoint.PackageName,
+		Imports:     helper.Imports,
+		FuncName:    normalizedHelperFuncName(plan),
+		ParamList:   adapterParamList(normalizedAdapterPlan(plan).BoundaryParams),
+		ResultList:  computeStubReturnSig(normalizedAdapterPlan(plan).Results),
+		Body:        helper.Body,
+	}
+	tmpl, err := template.New("normalized").Parse(normalizedHelperTemplate)
+	if err != nil {
+		return nil, err
+	}
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, view); err != nil {
+		return nil, err
+	}
+	return formatGo(path, out.Bytes())
+}
+
+// normalizedHelper is the rendered normalized helper body together with the
+// external symbols it depends on: the cut-file imports it references and the
+// package-level constants it must carry into an extracted service. adapter.go
+// names no pattern and no symbol — the dependency set is derived structurally.
+type normalizedHelper struct {
+	Body       string
+	Imports    []importSpec
+	FreeConsts []string
+}
+
+// buildNormalizedHelper parses the cut function, applies each adapter
+// pattern's body rewrite (pattern-owned AST surgery), re-prints the rewritten
+// body, and scans it for the imports and free constants it depends on. The
+// rewrites are dispatched from the AdapterPlan's input/output transforms; a
+// pattern that needs no body surgery simply does not implement the rewriter
+// interface. A pattern that reports it could not match its expected shape is a
+// genuine codegen mismatch and aborts rendering rather than emitting partial
+// output.
+func buildNormalizedHelper(plan *Plan) (*normalizedHelper, error) {
+	cutFile := absoluteCutFile(plan)
+	src, err := os.ReadFile(cutFile)
+	if err != nil {
+		return nil, fmt.Errorf("read cut file for normalized helper: %w", err)
+	}
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, cutFile, src, parser.SkipObjectResolution)
+	if err != nil {
+		return nil, fmt.Errorf("parse cut file for normalized helper: %w", err)
+	}
+	want := renamedOriginalFunc(plan)
+	var fn *ast.FuncDecl
+	for _, decl := range file.Decls {
+		candidate, ok := decl.(*ast.FuncDecl)
+		if !ok || candidate.Name == nil {
+			continue
+		}
+		if candidate.Name.Name == want || candidate.Name.Name == plan.CutPoint.FuncName {
+			fn = candidate
+			break
+		}
+	}
+	if fn == nil || fn.Body == nil {
+		return nil, fmt.Errorf("codegen: function %s not found for normalized helper", plan.CutPoint.FuncName)
+	}
+	if plan.AdapterPlan != nil {
+		if err := rewriteHelperBodyAST(fn.Body, plan); err != nil {
+			return nil, err
+		}
+	}
+	refs := scanHelperBodyRefs(fn.Body, helperBoundNames(plan, fn.Body))
+	imports := cutFileImportsFor(file, refs.pkgRefs)
+	freeConsts, err := cutFileFreeConsts(fset, file, refs.valueRefs)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	if err := printer.Fprint(&buf, fset, fn.Body); err != nil {
+		return nil, fmt.Errorf("print normalized helper body: %w", err)
+	}
+	body := buf.String()
+	body = strings.TrimPrefix(strings.TrimSuffix(body, "}"), "{")
+	body = strings.TrimSpace(body)
+	return &normalizedHelper{Body: body, Imports: imports, FreeConsts: freeConsts}, nil
+}
+
+// rewriteHelperBodyAST applies each input/output transform's pattern-owned
+// rewrite to the parsed helper body, mutating it in place.
+func rewriteHelperBodyAST(body *ast.BlockStmt, plan *Plan) error {
+	for _, transform := range plan.AdapterPlan.InputTransforms {
+		pattern := adapterPatternByName(transform.Name)
+		rewriter, ok := pattern.(inputBodyRewriter)
+		if !ok {
+			continue
+		}
+		normName := adapterInputName(transform, Param{Name: transform.ParamName})
+		if !rewriter.rewriteInputBody(body, transform.ParamName, normName) {
+			return fmt.Errorf("codegen: %s input body rewrite did not match expected shape for parameter %q", transform.Name, transform.ParamName)
+		}
+	}
+	for _, transform := range plan.AdapterPlan.OutputTransforms {
+		pattern := adapterPatternByName(transform.Name)
+		rewriter, ok := pattern.(outputBodyRewriter)
+		if !ok {
+			continue
+		}
+		if !rewriter.rewriteOutputBody(body) {
+			return fmt.Errorf("codegen: %s output body rewrite did not match expected shape for return type %s", transform.Name, transform.FromType)
+		}
+	}
+	return nil
+}
+
+func adapterParamList(params []Param) string {
+	parts := make([]string, 0, len(params))
+	for _, param := range params {
+		parts = append(parts, param.Name+" "+param.GoType)
+	}
+	return strings.Join(parts, ", ")
+}
+
+const normalizedHelperTemplate = `package {{ .PackageName }}
+
+import (
+{{- range .Imports }}
+	{{ if .Alias }}{{ .Alias }} {{ end }}"{{ .Path }}"
+{{- end }}
+)
+
+func {{ .FuncName }}({{ .ParamList }}) {{ .ResultList }} {
+{{ .Body }}
+}
+`
 
 const adapterTemplate = `package {{ .PackageName }}
 {{- if .Imports }}

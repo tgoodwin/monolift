@@ -32,7 +32,7 @@ Primary artifacts:
 | Interface Contract | `caddy/M-4`, `gitea/M-16`, `miniflux/M-14`, `pocketbase/M-10` | Strong interface edge plus serializable/reconstructible data. |
 | Queue Handler | `gitea/M-1`, `gitea/M-2`, `gitea/M-10`, `gitea/M-12`, `gitea/M-15` | Serializable queue payloads, preserved retry/batch semantics, client-reconstructible state. |
 | HTTP/Request Shell Escape | `caddy/M-2`, `caddy/M-5`, `listmonk/M-5`, `gitea/M-19` | Move below request/writer objects, or accept proxy when middleware is the target. |
-| Framework Callback | `gitea/M-13`, `listmonk/M-4`, `pocketbase/M-7`, `pocketbase/M-9` | Avoid sending continuation functions across the network. |
+| Framework Callback | `gitea/M-13`, `pocketbase/M-7`, `pocketbase/M-9` | Avoid sending continuation functions across the network. `listmonk/M-4` migrated to adapter-recovered `processImage` in SPRINT-0051. |
 | Shared-State App Receiver | `mattermost/M-6`, `mattermost/M-7`, `mattermost/M-8`, `mattermost/M-12`, `mattermost/M-13` | Deep cut still requires coordinating app/server state. |
 
 ## Anti-Boundary Catalog

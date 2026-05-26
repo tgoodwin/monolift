@@ -71,6 +71,12 @@ Multi-model parallel research on distribution archetypes, the auto-lift-vs-sugge
 - `runs/gemini-run-1/` — first gemini attempt; sampled rather than exhaustive (violated the sprint's no-sampling fence). Preserved for transparency.
 - `runs/gemini-run-2/` — second gemini attempt; MCP tool-infrastructure failure blocked subagent delegation. Preserved for transparency.
 
+## Inspiration research (post-sprint, May 2026)
+
+Targeted research into the industry shift back toward modular monoliths, focusing on economic and operational virtues identified in the 2016–2026 decade. These findings ground the Monolift "extraction path" philosophy.
+
+- `modular-monolith-virtues-v1.md` — Synthesis of virtues, case studies (Amazon, Segment), and DDD technical blueprints.
+
 ---
 
 ## How to add a new research effort

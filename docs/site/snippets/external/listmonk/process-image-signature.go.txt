@@ -1,0 +1,15 @@
+// processImage decodes an uploaded image, resizes it to a thumbnail,
+// and returns the thumbnail reader plus the original dimensions.
+func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error) {
+    src, err := file.Open() // *multipart.FileHeader: a live HTTP-upload handle
+    if err != nil {
+        return nil, 0, 0, err
+    }
+    defer src.Close()
+
+    img, err := imaging.Decode(src)
+    // ... resize to a thumbnail, PNG-encode into out ...
+
+    b := img.Bounds().Max
+    return bytes.NewReader(out.Bytes()), b.X, b.Y, nil // *bytes.Reader + two ints
+}

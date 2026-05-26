@@ -15,6 +15,25 @@ data:
         </item>
       </channel>
     </rss>
+  article.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <base href="https://example.org/base/">
+    <title>Monolift Readability Fixture</title>
+    </head>
+    <body>
+    <nav>navigation chrome that readability should discard</nav>
+    <article>
+    <h1>Monolift Readability Article</h1>
+    <p>Monolift extracts the main article content from a web page using the readability algorithm. This paragraph is intentionally long enough to be scored as meaningful content by the candidate selection heuristics that drive content extraction across the lifted boundary.</p>
+    <p>The second paragraph reinforces the article body so the readability scorer keeps this block as the dominant content region, well above the surrounding navigation and footer chrome that should be discarded during extraction.</p>
+    <p>A third paragraph ensures the extracted marker MONOLIFT-EXTRACT-MARKER survives the round trip through the lifted ExtractContent service and back into the host response.</p>
+    <script>alert('xss-should-be-stripped');</script>
+    </article>
+    <footer>footer chrome that readability should discard</footer>
+    </body>
+    </html>
 ---
 apiVersion: apps/v1
 kind: Deployment

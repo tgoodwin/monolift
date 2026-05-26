@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -500,6 +502,156 @@ func TestRenderClientDTOTwoNonErrorGolden(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("rendered client does not match %s\ngot:\n%s", goldenPath, got)
+	}
+}
+
+// --- DTO refusal-shadow gating (SPRINT-0052 task 2.1) ---
+//
+// After 2.1, DTO packing is no longer an unconditional pass over every
+// multi-return: it runs only as a recovery for a result shape the base
+// admission cannot represent (a would-be unsupported_result_shape refusal).
+// A successful pack shadows the refusal; a failed pack leaves it standing.
+// These tests pin that contract — the natively supported shapes must never
+// see the shape refusal, and an unpackable shape must.
+
+// (T, error): natively supported. No DTO, and the gate must not raise
+// unsupported_result_shape for it.
+func TestAdmitPlanTErrorNoShapeRefusal(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Fetch"},
+		Results: []Result{
+			{Name: "result", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 1},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T, error) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("(T, error) shape should not produce a ResultDTO")
+	}
+	if hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatal("(T, error) shape should not raise unsupported_result_shape")
+	}
+}
+
+// (T): natively supported. No DTO, no shape refusal.
+func TestAdmitPlanSingleResultNoShapeRefusal(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Validate"},
+		Results: []Result{
+			{Name: "result", GoType: "bool", Codec: CodecPrimitive, Index: 0},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("(T) shape should not produce a ResultDTO")
+	}
+	if hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatal("(T) shape should not raise unsupported_result_shape")
+	}
+}
+
+// (T, U, error): the base admission cannot represent this, so DTO packing
+// fires as a recovery and its success shadows the shape refusal — the
+// verdict is accepted and carries no unsupported_result_shape.
+func TestAdmitPlanMultiReturnPackShadowsRefusal(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Parse"},
+		Results: []Result{
+			{Name: "name", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "count", GoType: "int", Codec: CodecPrimitive, Index: 1},
+			{Name: "err", GoType: "error", Codec: CodecError, Index: 2},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if !verdict.Accepted {
+		t.Fatalf("(T, U, error) shape refused: %s", verdict.Error())
+	}
+	if plan.ResultDTO == nil {
+		t.Fatal("(T, U, error) shape should produce a ResultDTO")
+	}
+	if hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatal("successful DTO pack should shadow the unsupported_result_shape refusal")
+	}
+}
+
+// (T, U) where U is non-JSON-codable: the shape would be refused and DTO
+// packing cannot recover it, so the unsupported_result_shape refusal stands
+// and no DTO is attached. func() escapes the streaming/sync/chan result loop,
+// isolating the shape refusal.
+func TestAdmitPlanUnpackableMultiReturnRefuses(t *testing.T) {
+	plan := &Plan{
+		CutPoint: CutPoint{FuncName: "Hook"},
+		Results: []Result{
+			{Name: "value", GoType: "string", Codec: CodecPrimitive, Index: 0},
+			{Name: "callback", GoType: "func()", Codec: CodecJSON, Index: 1},
+		},
+	}
+	verdict := AdmitPlan(plan, AdmissionVerdict{Accepted: true})
+	if verdict.Accepted {
+		t.Fatal("(T, func()) shape should be refused — non-codable second return cannot be packed")
+	}
+	if plan.ResultDTO != nil {
+		t.Fatal("unpackable shape should not attach a ResultDTO")
+	}
+	if !hasRefusal(verdict, "unsupported_result_shape") {
+		t.Fatalf("expected unsupported_result_shape to stand, got: %s", verdict.Error())
+	}
+}
+
+// --- DTO with >= 11 non-error fields (SPRINT-0052 task 8.5) ---
+
+// A DTO with 11 non-error returns forces the call-var generator past index 9.
+// The previous `"r" + string(rune('0'+i))` scheme produced the invalid
+// identifier "r:" at i == 10 (rune 0x3A), which gofmt rejects — so a passing
+// RenderServer that also emits "r10" pins the fmt.Sprintf("r%d", i) fix.
+func dtoElevenFieldsServerPlan() *Plan {
+	results := make([]Result, 0, 12)
+	for i := 0; i < 11; i++ {
+		results = append(results, Result{
+			Name:            fmt.Sprintf("field%d", i),
+			JSONName:        fmt.Sprintf("field%d", i),
+			GoType:          "string",
+			QualifiedGoType: "string",
+			Codec:           CodecPrimitive,
+			Index:           i,
+		})
+	}
+	results = append(results, Result{Name: "err", JSONName: "error", GoType: "error", QualifiedGoType: "error", Codec: CodecError, Index: 11})
+	plan := &Plan{
+		ServiceName:      "monolift-wide",
+		EnvServiceName:   "WIDE",
+		SourceModulePath: "example.com/test",
+		CutPoint: CutPoint{
+			PackagePath: "example.com/test/internal/wide",
+			PackageName: "wide",
+			FuncName:    "Wide",
+		},
+		BoundaryParams: []Param{
+			{Name: "input", JSONName: "input", GoType: "string", QualifiedGoType: "string", Codec: CodecPrimitive, Index: 0},
+		},
+		Results:    results,
+		ServerPath: "/tmp/test/cmd/monolift-wide/main.go",
+	}
+	plan.ResultDTO = BuildResultDTO("Wide", plan.Results)
+	plan.ReturnCodec = ReturnCodec{Kind: CodecResultDTO, GoType: plan.ResultDTO.Name}
+	return plan
+}
+
+func TestRenderServerDTOElevenFields(t *testing.T) {
+	plan := dtoElevenFieldsServerPlan()
+	files, err := RenderServer(plan)
+	if err != nil {
+		t.Fatalf("RenderServer failed for an 11-field DTO (regression: r-var generator must not emit invalid identifiers): %v", err)
+	}
+	got := string(files[plan.ServerPath])
+	if !strings.Contains(got, "r10") {
+		t.Fatalf("expected the 11th call var \"r10\" in rendered server, got:\n%s", got)
 	}
 }
 

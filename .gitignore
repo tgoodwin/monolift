@@ -18,6 +18,8 @@ docs/research/runs/**
 !docs/research/runs/SPRINT-0050-candidates.md
 !docs/research/runs/SPRINT-0050-stage-binding.md
 !docs/research/runs/SPRINT-0051-adapter-decisions.md
+!docs/research/runs/SPRINT-0052-target-survey.md
+!docs/research/runs/SPRINT-0052-coverage-report.md
 
 # Local external target checkouts; evaluation/MANIFEST.yaml is tracked.
 evaluation/*/
@@ -29,6 +31,7 @@ docs/site/site/
 
 # Local agent/editor/runtime scratch
 .claude/
+.codex/
 .tmp/
 .vscode/
 *.test

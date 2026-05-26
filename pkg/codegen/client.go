@@ -8,6 +8,9 @@ import (
 )
 
 func RenderClient(plan *Plan) (map[string][]byte, error) {
+	if plan != nil && plan.AdapterPlan != nil {
+		return RenderAdapterClient(plan)
+	}
 	view := clientTemplateView(plan)
 	tmpl, err := template.New("client").Parse(clientTemplate)
 	if err != nil {
@@ -364,6 +367,18 @@ func ClientPackageDir(plan *Plan) string {
 	return filepath.Dir(plan.ClientPath)
 }
 
+// clientTemplate renders the non-adapter lift client. It is intentionally
+// kept separate from adapterClientTemplate (adapter_client.go): the two render
+// from different view types (clientView vs adapterClientView) and handle
+// different result-shape families — this one branches across void / single /
+// (T,error) / DTO / localized-error returns, while the adapter client always
+// emits a DTO-shaped response plus host-side input extraction and return
+// reconstruction. Unifying them behind {{ if .HasAdapter }} would force a
+// single merged view and interleave two unrelated branch sets, so they are
+// forked deliberately. The shared transport/plumbing (endpoint env lookup,
+// HTTP POST headers, client timeout, status check, fail-mode handling) MUST
+// stay byte-identical between the two; TestClientTemplatesShareTransportPlumbing
+// is the golden cross-check guarding that invariant against drift.
 const clientTemplate = `package {{ .Plan.CutPoint.PackageName }}
 
 import (

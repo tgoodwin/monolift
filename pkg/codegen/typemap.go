@@ -91,7 +91,7 @@ func BuildResultDTO(funcName string, results []Result) *ResultDTO {
 	}
 	for i, r := range nonError {
 		fieldName := r.Name
-		if fieldName == "" || fieldName == "result" {
+		if isGenericResultName(fieldName) {
 			fieldName = "Result" + string(rune('0'+i))
 		}
 		dto.Fields = append(dto.Fields, ResultDTOField{
@@ -104,6 +104,35 @@ func BuildResultDTO(funcName string, results []Result) *ResultDTO {
 		})
 	}
 	return dto
+}
+
+// isGenericResultName reports whether a result name is a positional
+// placeholder (e.g. "result", "result2", "r0") rather than a meaningful
+// source identifier. Generic names are replaced with DTO-position field
+// names so the wire shape never leaks an index-derived placeholder and a
+// meaningful return name is preserved verbatim.
+func isGenericResultName(name string) bool {
+	if name == "" || name == "result" {
+		return true
+	}
+	for _, prefix := range []string{"result", "r"} {
+		if rest, ok := strings.CutPrefix(name, prefix); ok && isAllDigits(rest) {
+			return true
+		}
+	}
+	return false
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
 }
 
 // isJSONCodableResultType returns true if the Go type string represents a

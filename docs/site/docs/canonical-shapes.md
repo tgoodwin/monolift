@@ -20,10 +20,12 @@ under
 [ADR-0009](https://github.com/tgoodwin/monolift/blob/main/docs/decisions/0009-plos-claims-preserve-revise-retire.md)'s
 preserve / revise / retire discipline). The compiler no longer admits
 a lift because its root function resembles a framework archetype. It
-admits a lift when named **liftability properties** hold: boundary
-properties such as `boundary.no-streaming-values`, effect properties
-such as `effects.no-param-heap-mutation`, lifecycle properties such
-as `lifecycle.execution-profile`, and contract properties such as
+admits a lift when named **liftability properties** hold. A liftability
+property is a single, machine-checkable fact about a code region, named
+`namespace.fact` so the prefix says what kind of fact it is: boundary
+properties such as `boundary.no-streaming-values`, effect properties such
+as `effects.no-param-heap-mutation`, lifecycle properties such as
+`lifecycle.execution-profile`, and contract properties such as
 `contract.error-last`. Canonical shapes survive, but in the narrower
 role ADR-0006 always needed downstream: they are named signature and
 framework patterns used for transport selection and adapter derivation

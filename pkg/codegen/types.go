@@ -194,7 +194,7 @@ const (
 // are JSON-codable. The DTO is a transport-layer detail; app-facing
 // signatures in generated host stubs are preserved unchanged.
 type ResultDTO struct {
-	// Name is the Go struct name, e.g. "processImageResult".
+	// Name is the Go struct name, e.g. "parseResult".
 	Name string `json:"name"`
 	// Fields are the non-error return values packed into the struct.
 	Fields []ResultDTOField `json:"fields"`
@@ -291,6 +291,11 @@ type AdapterPlan struct {
 	OutputTransforms []AdapterPattern   `json:"output_transforms,omitempty"`
 	Proofs           []AdapterProof     `json:"proofs,omitempty"`
 	TransportPolicy  AdapterTransport   `json:"transport_policy"`
+	// MaxInlinePayloadBytes is the per-payload ceiling rendered into the
+	// client extraction code. Zero falls back to defaultInlinePayloadBytes
+	// (8 MiB) so that legacy plans round-trip without changing output.
+	// SPRINT-0052 task 1.7 lifted this from a hardcoded literal.
+	MaxInlinePayloadBytes int64 `json:"max_inline_payload_bytes,omitempty"`
 }
 
 type Artifact struct {
