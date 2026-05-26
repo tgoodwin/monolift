@@ -105,15 +105,11 @@ func processImage(file *multipart.FileHeader) (*bytes.Reader, int, int, error)
 One *good* aspect of this signature is that `processImage` returns an `error`, i.e. the code anticipates the possibility of failure. This is an important semantic detail when reasoning about [liftability](canonical-shapes.md): a remote call can fail where a local one could not (the service may be unreachable), and an existing `error` return gives that failure a place to surface — so callers handle it the way they already did.
 
 So we have identified the right function to lift, but its *shape* is wrong. An
-earlier version of Monolift would give up here and settle for a worse cut. This
-is exactly the gap the recent work closes.
+earlier version of Monolift would give up here and settle for a worse cut. But Monolift can be smarter!
 
 ## Step 4 — Manufacture a clean boundary (the new part)
 
-If no function on the path has a shippable shape, Monolift can **build one**.
-This is a **boundary adapter**: a small amount of generated code that wraps the
-awkward function in a clean, network-friendly boundary the source never had. It
-comes in two halves:
+If no function on the path has a liftable shape, Monolift can add a new one. This is a **boundary adapter**: a small amount of generated code added to the activation path that provides a clean, serialization-friendly place to make the network cut. It comes in two halves:
 
 - A **host wrapper** stays in the monolith, *under the original function's
   name*, so every existing call site is unchanged. It drains the awkward inputs
