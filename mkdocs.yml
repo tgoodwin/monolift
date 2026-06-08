@@ -71,6 +71,11 @@ nav:
       - Drawing the network boundary: cut-placement.md
       - Adapting the network boundary: boundary-adapters.md
       - Code extraction: extraction.md
+  - Evaluation questions:
+      - evaluation-questions/index.md
+      - Does the compiler generalizes to real, production codebases?: evaluation-questions/generalizes-to-real-codebases.md
+      - Can the compiler's refusal codes can guide refactoring?: evaluation-questions/refusal-codes-guide-refactoring.md
+      - Can Monolift improve application performance?: evaluation-questions/performance-analysis.md
   - Project & reference:
       - Working backwards: working-backwards.md
       - Evaluation targets: evaluation-targets.md

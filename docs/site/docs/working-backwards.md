@@ -2,20 +2,19 @@
 
 ## Research question and result
 
-Building a Go-monolith-to-microservices compiler in the abstract is a research
+Building a fully general compiler in the abstract is a research
 project with boundless scope. There is no end to the language features, framework
 patterns, and runtime contracts a fully general compiler would have to
-handle. The workshop paper sidestepped that by shipping a deliberately
-narrow prototype. Now the compiler needs to grow into a tool that
-handles production codebases without trying to handle every language
+handle. You'd effectively be building an arbitrary deterministic refactoring machine (at that point, it'd probably be cheaper to just train an LLM!). The workshop paper sidestepped this issue by shipping a deliberately
+narrow prototype. The V2 compiler needs to land somewhere in the middle: a a tool that handles production codebases without trying to handle every language
 feature at once.
 
-The strategy the project actually runs on is the inverse of the naive
-prototype direction. With the high-level design goals already in place, we now pick real lift candidates from six open-source Go monoliths and lets those candidates dictate what compiler features need to be developed next. Each candidate is a forcing function for a specific capability. Some land. Some prove infeasible on closer inspection, and we update our design goals accordingly.
+The strategy we're taking with V2 is the inverse of the naive
+prototype direction. With the high-level design goals already in place, we now pick real lift candidates from six open-source Go monoliths and lets those candidates dictate what compiler features need to be developed next. Each candidate is a forcing function for a specific capability. Some land (we commit to supporting them). Some prove highly expensive or infeasible on closer inspection; we consult our priorities and and update our design goals accordingly.
 
 ## What becomes of a candidate
 
-We start with a corpus of 72 hand-traced lift candidates drawn from six
+We started with a corpus of 72 hand picked code regions drawn from six
 open-source Go monoliths (roughly 1.5M lines of Go in total). See
 [Evaluation targets](evaluation-targets.md) for the survey itself.
 

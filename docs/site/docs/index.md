@@ -2,10 +2,9 @@
 
 **Monolift is a compiler-based technique for automatically refactoring applications into distributed, cloud-native architectures.** The core abstraction of Monolift's approach is the *lift*, which is region of application code that can run locally or remotely. Developers create lifts declaratively by adding annotations to their application code. Monolift's compiler then extracts the annotated code regions into independently deployable artifacts that enable the application to run as a distributed system to more effectively leverage the compute resources available in the cloud.
 
-The key feature of Monolift's design is that it supports *existing* applications, and does not require users to first adopt a new framework or programming model in order to reap Monolift's benefits. Consequently, Monolift cannot rely on assumptions about the structure of the code it seeks to support, creating a slew of interesting design challenges for Monolift's compiler.
+The key feature of Monolift's design is that it readily supports *existing* application code: users do not need to first adopt a new framework or programming model in order to reap Monolift's benefits. Consequently, Monolift must support arbitrary applications and cannot rely on assumptions about code structure. This constraint creates a slew of interesting design challenges for Monolift's compiler.
 
 We presented an early prototype of Monolift in our PLOS '25 workshop paper, which articulated these challenges but left many of them unsolved. This website serves as a follow up to our workshop paper, documenting the research process of solving these design challenges to fully realize our Monolift vision (we'll call the fully realized vision "V2").
-
 
 !!! tip "Completely new here? Start with the walkthrough"
     **[How Monolift works, in one example](walkthrough.md)** presents an end-to-end 
@@ -13,15 +12,11 @@ We presented an early prototype of Monolift in our PLOS '25 workshop paper, whic
 
 ## The original idea, and what's changing in V2
 
-The workshop paper's prototype (V1) demonstrated the core idea that a monolithic codebase could be transformed into a distributed architecture. The prototype implemented **lifts** and demonstrated that the "lifted" architecture could get the best of both worlds in terms of the monolith-vs-distributed tradeoff. However, the application we used to evaluate the prototype was excessively simplistic. We "de-distributed" one of the toy apps from the DeathStarBench suite to serve as a monolithic application baseline. As a result, our toy app already contained sufficient modularity, the code was largely stateless, and calling conventions at module boundaries were already friendly to wire formats (pass by value etc).
+The workshop paper's prototype (let's call it "V1") demonstrated the core idea that a monolithic codebase could be automatically transformed into a distributed architecture. The prototype implemented lifts and demonstrated that the "lifted" architecture could get the best of both monolithic and distributed architectures. However, the application we used to evaluate our prototype was excessively simplistic. We "de-distributed" one of the toy apps from the DeathStarBench suite to serve as a monolithic application baseline. As a result, our toy monolith already contained sufficient modularity, the code was largely stateless, and calling conventions at module boundaries were already friendly to wire formats (pass by value etc).
 
-The evaluation target of V1 was insufficiently realistic, so the first step I took with V2 was to look at some [real-world Go monoliths](evaluation-targets.md). This exercise revealed that most code worth lifting is messier to extract (i.e. less modularity, complex parameter types, local state). The primary objetive of V2 is to uphold the core claims from V1, but replace its's simplifying assumptions with support for **real-world code**. Where V1 was hardcoded to a single application shape, V2 is designed around a set of general questions: can this region of computation safely cross a network, what state does it carry, how does the program
-reach it, and if we want to lift it, where should we insert the network boundary? 
+Because V1's evaluation target was not representative of an actual production codebase, the first step we took with V2 was to look at some [real-world Go monoliths](evaluation-targets.md). This exercise revealed that most code worth lifting is messier to extract (i.e. less modularity, complex parameter types, local state). The primary objetive of V2 is to uphold the core claims from V1 while replacing V1's simplifying assumptions with true support for **real-world code**. Where V1 was effectively hardcoded to a single application "shape", V2 achieves generality in its ability to answer a set of general questions: can this region of computation safely cross a network, what state does it carry, how does the program reach it, and where should we insert the network boundary in order to lift it? 
 
-Each main page of this site takes one of those questions, shows the design
-pressure that motivated the answer, shows the compiler code that now handles
-it, and pairs it with a code excerpt from one of the open-source Go monoliths the V2 compiler
-is being developed against.
+Each main page of this site takes one of those questions, shows the compiler code that handles it, and pairs it with a code excerpt from one of the open-source Go monoliths the V2 compiler is [being developed against](working-backwards.md).
 
 ??? abstract "Background: the workshop paper's pitch and the prototype's limits"
     The initial workshop paper, *Monolift: automating distribution with the tools
@@ -79,6 +74,9 @@ the program reaches the lift target and deciding where the network boundary belo
   infeasible under v1 and is admitted under v2.
 - [**Evaluation targets**](evaluation-targets.md) — the pinned
   open-source Go monoliths the v2 compiler is being developed against.
+- [**Evaluation questions**](evaluation-questions/index.md) — the
+  claims a Monolift paper has to substantiate; one subpage per claim
+  (to be filled in).
 - [**Reasoning about liftability**](canonical-shapes.md) —
   describes a named liftability-property vocabulary the compiler uses to evaluate what code regions can be extracted for distribution.
 - [**Pattern matching on stateful code**](state-class-inference.md) —
