@@ -1,43 +1,27 @@
-# Monolift — design story
+# Monolift 
 
-**Monolift takes a piece of a Go monolith and runs it as its own service —
-without rewriting the program.** Suppose your app has a CPU-heavy image-resize
-helper buried inside a web handler, and you would like it to run on its own
-machines. Doing that by hand means writing a network layer, serializing the
-arguments, deploying a service, and threading failures back through the call
-site. Monolift does it for you: you mark the code, and the compiler generates the
-network boundary while the call site — and the rest of the program — stays
-exactly as it was.
+**Monolift is a compiler-based technique for automatically refactoring applications into distributed, cloud-native architectures.** The core abstraction of Monolift's approach is the *lift*, which is region of application code that can run locally or remotely. Developers create lifts declaratively by adding annotations to their application code. Monolift's compiler then extracts the annotated code regions into independently deployable artifacts that enable the application to run as a distributed system to more effectively leverage the compute resources available in the cloud.
 
-!!! tip "New here? Start with the walkthrough"
-    **[How Monolift works, in one example](walkthrough.md)** follows one real
-    function — listmonk's `processImage` — from monolith to lifted service, and
-    introduces every term used across the rest of this site.
+The key feature of Monolift's design is that it supports *existing* applications, and does not require users to first adopt a new framework or programming model in order to reap Monolift's benefits. Consequently, Monolift cannot rely on assumptions about the structure of the code it seeks to support, creating a slew of interesting design challenges for Monolift's compiler.
 
-## The idea, and what changed
+We presented an early prototype of Monolift in our PLOS '25 workshop paper, which articulated these challenges but left many of them unsolved. This website serves as a follow up to our workshop paper, documenting the research process of solving these design challenges to fully realize our Monolift vision (we'll call the fully realized vision "V2").
 
-The initial workshop paper demonstrated the core idea: ordinary Go code could
-stay a monolith by default while selected calls became remote invocations under a
-compiler-and-runtime policy — using only the Go toolchain and the Kubernetes
-cluster the developer already has. The prototype that shipped with the paper
-proved this on a narrow slice: stateless, HTTP-handler-shaped functions wired
-close to `main()`.
 
-Inspecting [real-world Go monoliths](evaluation-targets.md) showed that most code
-worth lifting falls outside that slice. It may be ordinary domain functions,
-methods on stateful receivers, callbacks registered with frameworks, or handlers
-hidden behind application-specific dispatch. The reboot keeps the core claim but
-replaces those simplifying assumptions, moving Monolift from recognizing *one
-hardcoded shape* to asking a general set of questions: can this region of
-computation safely cross a network, what state does it carry, how does the program
-reach it, and where should the network boundary actually go? The result is a
-stricter compiler contract for making the paper's claims hold against production
-Go monoliths.
+!!! tip "Completely new here? Start with the walkthrough"
+    **[How Monolift works, in one example](walkthrough.md)** presents an end-to-end 
+    example of using Monolift — extracting a `processImage` function from a real-world monolithic codebase to standalone service. In the process, it introduces every term used across the rest of this site.
+
+## The original idea, and what's changing in V2
+
+The workshop paper's prototype (V1) demonstrated the core idea that a monolithic codebase could be transformed into a distributed architecture. The prototype implemented **lifts** and demonstrated that the "lifted" architecture could get the best of both worlds in terms of the monolith-vs-distributed tradeoff. However, the application we used to evaluate the prototype was excessively simplistic. We "de-distributed" one of the toy apps from the DeathStarBench suite to serve as a monolithic application baseline. As a result, our toy app already contained sufficient modularity, the code was largely stateless, and calling conventions at module boundaries were already friendly to wire formats (pass by value etc).
+
+The evaluation target of V1 was insufficiently realistic, so the first step I took with V2 was to look at some [real-world Go monoliths](evaluation-targets.md). This exercise revealed that most code worth lifting is messier to extract (i.e. less modularity, complex parameter types, local state). The primary objetive of V2 is to uphold the core claims from V1, but replace its's simplifying assumptions with support for **real-world code**. Where V1 was hardcoded to a single application shape, V2 is designed around a set of general questions: can this region of computation safely cross a network, what state does it carry, how does the program
+reach it, and if we want to lift it, where should we insert the network boundary? 
 
 Each main page of this site takes one of those questions, shows the design
-pressure that motivated the answer, and shows the compiler code that now handles
-it — paired with an excerpt from one of the open-source Go monoliths the compiler
-is developed against.
+pressure that motivated the answer, shows the compiler code that now handles
+it, and pairs it with a code excerpt from one of the open-source Go monoliths the V2 compiler
+is being developed against.
 
 ??? abstract "Background: the workshop paper's pitch and the prototype's limits"
     The initial workshop paper, *Monolift: automating distribution with the tools
