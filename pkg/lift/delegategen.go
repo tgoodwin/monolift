@@ -10,6 +10,7 @@ import (
 
 	_ "embed"
 
+	"github.com/tgoodwin/monolift/pkg/pragma"
 	"github.com/tgoodwin/monolift/pkg/util"
 	"golang.org/x/tools/go/packages"
 )
@@ -27,6 +28,8 @@ type DelegateTemplateData struct {
 	RemoteClientStructName string // e.g., "client"
 	Methods                []MethodConfig
 	Imports                map[string]string
+	IPSMonitoringEnabled   bool
+	ServiceName            string
 }
 
 // ExecuteDelegateTemplate generates the delegate client code for a service.
@@ -58,7 +61,7 @@ func ExecuteDelegateTemplate(entrypointDir string, data DelegateTemplateData) er
 }
 
 // GetDelegateTemplateData gathers all necessary information to generate a delegate for a given interface.
-func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Package) (*DelegateTemplateData, error) {
+func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Package, p *pragma.Pragma) (*DelegateTemplateData, error) {
 	imports := make(map[string]string)
 
 	methodConfigs, err := GetMethodConfigsForInterface(ifaceNameIdent, definingPkg, imports)
@@ -68,6 +71,11 @@ func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pa
 
 	// Add the pragma package to imports, as the delegate will use the Decider interface.
 	imports["github.com/tgoodwin/monolift/pkg/pragma"] = "pragma"
+
+	ipsEnabled := p != nil && p.SignalType == pragma.IPSTrigger
+	if ipsEnabled {
+		imports["github.com/tgoodwin/monolift/pkg/ips"] = "ips"
+	}
 
 	fmt.Println("Generating delegate for interface:", definingPkg.Name)
 
@@ -79,6 +87,8 @@ func GetDelegateTemplateData(ifaceNameIdent *ast.Ident, definingPkg *packages.Pa
 		InterfaceTypeName:      ifaceNameIdent.Name,
 		Methods:                methodConfigs,
 		Imports:                imports,
+		IPSMonitoringEnabled:   ipsEnabled,
+		ServiceName:            definingPkg.Name + "." + ifaceNameIdent.Name,
 	}
 
 	return data, nil
