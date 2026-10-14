@@ -79,6 +79,10 @@ Targeted research into the industry shift back toward modular monoliths, focusin
 
 ---
 
+## Partitioning research agenda (October 2026)
+
+- [2026-10-13-partitioning-research-agenda-v1.md](2026-10-13-partitioning-research-agenda-v1.md) — high-level reframing around semantically admissible network boundaries, alternative application partitionings, and development and deployment policies. Connects the workshop and spring v2 work and identifies questions for subsequent research sessions.
+
 ## How to add a new research effort
 
 When a sprint or research pass produces outputs here:
