@@ -79,8 +79,12 @@ if [ -d "${REPO_DIR}" ]; then
     REPO_DIR="${REPO_DIR}" "${REPO_DIR}/cloudlab/clone-targets.sh"
 
     # Hand the clones back to the swapper user so they can build without sudo.
+    # Use the repo's actual group, not the username — on CloudLab the primary
+    # group is the project group (e.g. dvm-PG0), so "${OWNER}:${OWNER}" fails
+    # with "invalid group".
     OWNER=$(stat -c '%U' "${REPO_DIR}")
-    chown -R "${OWNER}:${OWNER}" "${REPO_DIR}/evaluation"
+    GROUP=$(stat -c '%G' "${REPO_DIR}")
+    chown -R "${OWNER}:${GROUP}" "${REPO_DIR}/evaluation"
 fi
 
 # Pre-fetch Go module cache — run as the swapper user so the cache lands
