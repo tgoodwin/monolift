@@ -1,7 +1,9 @@
 # monolift
-monolith modernizer
 
-Design story and ADR tour: <https://tgoodwin.github.io/monolift/>.
+Monolift is a research compiler for deriving alternative Kubernetes deployments from an existing Go application. The goal is to establish which boundaries are valid and let a control plane choose among supported deployments as demand and available resources change.
+
+- [Thesis direction](docs/research/thesis-direction.md) — the PLOS ’25 experiments and plots, the proposed compiler guarantees, and the adaptive deployment control plan.
+- [Design and implementation tour](https://tgoodwin.github.io/monolift/) — walkthrough, compiler internals, and design history.
 
 ## Dev workflow — test memory budget
 

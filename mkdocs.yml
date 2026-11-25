@@ -61,6 +61,7 @@ markdown_extensions:
 nav:
   - Start here:
       - Home: index.md
+      - Thesis direction: thesis-direction.md
       - How Monolift works, in one example: walkthrough.md
       - What's changing after the initial workshop paper: v1-to-v2.md
   - The compiler, stage by stage:
