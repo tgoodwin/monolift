@@ -86,6 +86,7 @@ Targeted research into the industry shift back toward modular monoliths, focusin
 ## Thesis direction
 
 - [Thesis direction](thesis-direction.md) — the PLOS ’25 experiments, proposed partitioning and transformation semantics, adaptive deployment control, and scope.
+- [Full thesis proposal](thesis-proposal-2026-11-11.pdf) — the 24-page November 2026 proposal, including the Kamera context and the complete Monolift sections.
 - `thesis-figures/` — PNG renderings of the two preliminary Monolift experiment figures used by that note.
 
 ## How to add a new research effort
