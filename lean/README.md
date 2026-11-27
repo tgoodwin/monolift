@@ -4,6 +4,8 @@ This directory contains the first formal model for the thesis's liftability
 contract. It is an independent Lean model, not a Go compiler and not a network
 transport model.
 
+The broader component boundaries and exploratory roadmap are in [`docs/research/monolift-liftability-architecture.md`](../docs/research/monolift-liftability-architecture.md).
+
 ## What it models
 
 `MonoliftLean.Liftability` defines:
