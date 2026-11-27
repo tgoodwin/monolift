@@ -8,8 +8,12 @@ rev = "9b84b590de541bf0b675badabc000fbb0f2e12b7"
 
 [[lean_lib]]
 name = "MonoliftLean"
-globs = ["MonoliftLean.SingleAttempt"]
+globs = ["MonoliftLean.SingleAttempt", "MonoliftLean.Liftability"]
 
 [[lean_exe]]
 name = "lean-experiment"
 root = "Main"
+
+[[lean_exe]]
+name = "liftability-check"
+root = "LiftabilityMain"

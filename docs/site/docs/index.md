@@ -10,6 +10,8 @@ We presented an early prototype of Monolift in our PLOS '25 workshop paper, whic
     **[How Monolift works, in one example](walkthrough.md)** presents an end-to-end 
     example of using Monolift — extracting a `processImage` function from a real-world monolithic codebase to standalone service. In the process, it introduces every term used across the rest of this site.
 
+The [thesis direction](https://github.com/tgoodwin/monolift/blob/main/docs/research/thesis-direction.md) collects the preliminary experiments, proposed compiler semantics, and adaptive control plane plan.
+
 ## The original idea, and what's changing in V2
 
 The workshop paper's prototype (let's call it "V1") demonstrated the core idea that a monolithic codebase could be automatically transformed into a distributed architecture. The prototype implemented lifts and demonstrated that the "lifted" architecture could get the best of both monolithic and distributed architectures. However, the application we used to evaluate our prototype was excessively simplistic. We "de-distributed" one of the toy apps from the DeathStarBench suite to serve as a monolithic application baseline. As a result, our toy monolith already contained sufficient modularity, the code was largely stateless, and calling conventions at module boundaries were already friendly to wire formats (pass by value etc).

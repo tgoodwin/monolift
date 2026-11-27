@@ -5,7 +5,9 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd "$root"
 
 lake update
-lake build lean-experiment
+lake build lean-experiment liftability-check
+
+.lake/build/bin/liftability-check
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/monolift-lean-run.XXXXXX")
 work=$(cd -- "$work" && pwd)

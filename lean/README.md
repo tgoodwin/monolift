@@ -1,12 +1,26 @@
 # GoLean liftability experiment
 
-This opt-in experiment explores the proposal's §5 contract for value-only
-boundaries and explicit communication failures. It is research for a newer
-Monolift, independent of the existing compiler and runtime.
+This opt-in experiment explores the proposal's §5 contract for liftability. It
+is research for a newer Monolift, independent of the existing compiler and
+runtime.
 
 ## What it checks
 
-`testdata/negate/main.go` is a real Go value-only operation:
+The experiment has two deliberately separate layers.
+
+`MonoliftLean.Liftability` is the first formal model for §5. It uses a small
+trace of reads, writes, and alias escapes rather than a network model. A
+placement mode distinguishes stateless operations, singleton-owned state, and
+external state. Lean proves that an admitted trace cannot modify caller-owned
+state. The examples cover a pure operation, caller mutation, an escaping alias,
+singleton state, external state, and a missing error channel.
+
+The corresponding small Go examples are in `testdata/liftability/main.go`.
+They are fixtures for the next `go/types` and SSA summary adapter; the current
+Lean file supplies their abstract traces by hand.
+
+`testdata/negate/main.go` is a separate GoLean smoke test. It is a real Go
+value-only operation:
 
 ```go
 negate(bool) (bool, error)
@@ -33,13 +47,16 @@ execution under explicit request and reply codec round-trip assumptions.
 `negate_delivered_preserves_direct` specializes that theorem to the GoLean
 interpreter entry point and identity codecs. For each input, the runner checks
 all three outcomes against the actual freshly decoded callee. The loss theorem
-assumes a completed callee for the lost-reply case; evaluator stops or unexpected
-readouts fail the experiment rather than masquerading as communication errors.
+assumes a completed callee for the lost-reply case; evaluator stops or
+unexpected readouts fail the experiment rather than masquerading as
+communication errors.
 
 The Go comparison is an observation, not a proof about the frontend or
 interpreter. This experiment inherits trust in both, does not model non-nil Go
 error values or codec corruption, and says nothing about arbitrary Go,
-production RPC, ownership, exactly-once effects, or compiler soundness.
+production RPC, compiler soundness for the Go-to-trace mapping, or
+exactly-once effects. Network serialization and network boundaries are not
+part of the liftability model yet.
 
 ## Run from a clean checkout
 
@@ -63,6 +80,7 @@ cd lean
 Expected output includes:
 
 ```text
+Liftability checks passed: pure, aliasing, singleton state, external state, and error channel.
 Go and GoLean agree (input, output, error == nil):
 false true true
 true false true
