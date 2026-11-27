@@ -1,0 +1,15 @@
+name = "monolift-lean-experiment"
+version = "0.1.0"
+
+[[require]]
+name = "GoLean"
+git = "https://github.com/OathTech/golean.git"
+rev = "9b84b590de541bf0b675badabc000fbb0f2e12b7"
+
+[[lean_lib]]
+name = "MonoliftLean"
+globs = ["MonoliftLean.SingleAttempt"]
+
+[[lean_exe]]
+name = "lean-experiment"
+root = "Main"
