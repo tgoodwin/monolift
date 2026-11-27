@@ -83,6 +83,12 @@ Targeted research into the industry shift back toward modular monoliths, focusin
 
 - [2026-10-13-partitioning-research-agenda-v1.md](2026-10-13-partitioning-research-agenda-v1.md) — high-level reframing around semantically admissible network boundaries, alternative application partitionings, and development and deployment policies. Connects the workshop and spring v2 work and identifies questions for subsequent research sessions.
 
+## Thesis direction
+
+- [Thesis direction](thesis-direction.md) — the PLOS ’25 experiments, proposed partitioning and transformation semantics, adaptive deployment control, and scope.
+- [Full thesis proposal](thesis-proposal-2026-11-11.pdf) — the 24-page November 2026 proposal, including the Kamera context and the complete Monolift sections.
+- `thesis-figures/` — PNG renderings of the two preliminary Monolift experiment figures used by that note.
+
 ## How to add a new research effort
 
 When a sprint or research pass produces outputs here:
