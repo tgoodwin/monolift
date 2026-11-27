@@ -11,7 +11,7 @@ inductive PlacementMode
 
 The location class is deliberately abstract. A Go SSA analysis can later map
 parameter-derived stores, owned receiver stores, and external effects into this
-vocabulary without making this file depend on GoLean's frontend.
+vocabulary without depending on a Go representation.
 -/
 inductive Owner
   | caller
@@ -110,7 +110,7 @@ theorem run_preserves_caller_of_safe (mode : PlacementMode) :
 
 -- The examples correspond to small Go fixtures. The trace is the semantic
 -- summary that the Go analyzer will eventually produce.
-def negate : Operation :=
+def pureOperation : Operation :=
   { body := [], hasErrorChannel := true }
 
 def setFirst : Operation :=
@@ -128,8 +128,8 @@ def externalIncrement : Operation :=
 def noErrorResult : Operation :=
   { body := [], hasErrorChannel := false }
 
-theorem negate_is_liftable : Liftable .stateless negate := by
-  simp [Liftable, negate, safeTrace]
+theorem pureOperation_is_liftable : Liftable .stateless pureOperation := by
+  simp [Liftable, pureOperation, safeTrace]
 
 theorem setFirst_is_not_liftable : ¬ Liftable .stateless setFirst := by
   simp [Liftable, setFirst, safeTrace, safeEvent]
@@ -150,10 +150,10 @@ theorem externalIncrement_is_externalState_liftable :
 theorem noErrorResult_is_not_liftable : ¬ Liftable .stateless noErrorResult := by
   simp [Liftable, noErrorResult, safeTrace]
 
-theorem negate_preserves_caller (store : Store) :
-    (run negate.body store).caller = store.caller := by
-  exact run_preserves_caller_of_safe .stateless negate.body store
-    (by simp [safeTrace, negate])
+theorem pureOperation_preserves_caller (store : Store) :
+    (run pureOperation.body store).caller = store.caller := by
+  exact run_preserves_caller_of_safe .stateless pureOperation.body store
+    (by simp [safeTrace, pureOperation])
 
 theorem ownedIncrement_preserves_caller (store : Store) :
     (run ownedIncrement.body store).caller = store.caller := by
